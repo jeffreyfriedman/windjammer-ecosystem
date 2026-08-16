@@ -1,0 +1,86 @@
+name: CI
+
+on:
+  push:
+    branches: [main, "feat/**"]
+  pull_request:
+    branches: [main]
+
+env:
+  CARGO_TERM_COLOR: always
+  # Pin windjammer so ecosystem builds are reproducible. Bump deliberately.
+  WINDJAMMER_REF: main
+
+jobs:
+  ban-list:
+    name: Ban local ffi / hand .rs
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Fail if ffi/ or hand-written app Rust appears
+        run: |
+          set -euo pipefail
+          if find apps packages -type d -name ffi 2>/dev/null | grep -q .; then
+            echo "Forbidden: project-local ffi/ directory"
+            exit 1
+          fi
+          if rg -n '^\s*extern fn\b' apps packages --glob '*.wj' 2>/dev/null; then
+            echo "Forbidden: extern fn in ecosystem .wj sources"
+            exit 1
+          fi
+          echo "Ban-list OK"
+
+  build-apps:
+    name: Build seed apps with pinned wj
+    runs-on: ubuntu-latest
+    needs: ban-list
+    steps:
+      - name: Checkout ecosystem
+        uses: actions/checkout@v4
+        with:
+          path: windjammer-ecosystem
+
+      - name: Checkout windjammer (pinned)
+        uses: actions/checkout@v4
+        with:
+          repository: jeffreyfriedman/windjammer
+          ref: ${{ env.WINDJAMMER_REF }}
+          path: windjammer
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Build local wj
+        working-directory: windjammer
+        run: |
+          unset CARGO_TARGET_DIR
+          cargo build --release -p windjammer --bin wj
+          ./target/release/wj --version
+
+      - name: Build / test each app and package
+        env:
+          WJ: ${{ github.workspace }}/windjammer/target/release/wj
+        run: |
+          set -euo pipefail
+          unset CARGO_TARGET_DIR
+          shopt -s nullglob
+          found=0
+          for dir in windjammer-ecosystem/apps/* windjammer-ecosystem/packages/*; do
+            if [[ -f "$dir/wj.toml" ]]; then
+              found=1
+              echo "==> $dir"
+              if [[ -d "$dir/src" ]]; then
+                (cd "$dir" && "$WJ" build --release src)
+              elif [[ -f "$dir/src/main.wj" ]]; then
+                (cd "$dir" && "$WJ" build --release src/main.wj)
+              elif [[ -f "$dir/src/lib.wj" ]]; then
+                (cd "$dir" && "$WJ" build --release --library src/lib.wj)
+              else
+                (cd "$dir" && "$WJ" build --release src)
+              fi
+              (cd "$dir" && "$WJ" test)
+            fi
+          done
+          if [[ "$found" -eq 0 ]]; then
+            echo "No seed projects with wj.toml yet"
+          fi

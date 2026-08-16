@@ -1,0 +1,5 @@
+// Domain: version identity for the wj-hello smoke binary.
+
+pub fn version() -> string {
+    "wj-hello 0.1.0"
+}

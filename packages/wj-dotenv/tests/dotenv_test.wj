@@ -1,0 +1,52 @@
+use crate::parse
+use crate::load
+use std::fs
+
+fn test_parse_simple_key_value() {
+    let map = parse("HOST=localhost\nPORT=8080\n")
+    assert(map.get("HOST").is_some(), "HOST present")
+    assert(map.get("PORT").is_some(), "PORT present")
+    assert_eq(map.len(), 2)
+}
+
+fn test_parse_skips_comments_and_blank_lines() {
+    let content = "# comment\n\nNAME=windjammer\n  # indented comment\nEMPTY=\n"
+    let map = parse(content)
+    assert(map.get("NAME").is_some(), "NAME present")
+    assert(map.get("EMPTY").is_some(), "EMPTY present")
+    assert_eq(map.len(), 2)
+}
+
+fn test_parse_trims_whitespace_and_keeps_equals_in_value() {
+    let map = parse("  KEY = value=with=equals  \n")
+    assert(map.get("KEY").is_some(), "KEY present")
+    assert_eq(map.len(), 1)
+}
+
+fn test_parse_ignores_lines_without_equals() {
+    let map = parse("NOEQUALS\nOK=yes\n")
+    assert_eq(map.len(), 1)
+    assert(map.get("OK").is_some(), "OK present")
+}
+
+fn test_load_missing_file_is_err() {
+    match load("/tmp/wj-dotenv-does-not-exist-xyz.env") {
+        Ok(_) => assert(false, "missing file must be Err"),
+        Err(_) => {},
+    }
+}
+
+fn test_load_reads_file() {
+    let path = "/tmp/wj-dotenv-test-load.env"
+    match fs.write(path, "APP=ecosystem\n") {
+        Ok(_) => {},
+        Err(_) => assert(false, "write fixture failed"),
+    }
+    match load(path) {
+        Ok(map) => {
+            assert(map.get("APP").is_some(), "APP present")
+        },
+        Err(_) => assert(false, "load should succeed"),
+    }
+    let _ = fs.remove_file(path)
+}

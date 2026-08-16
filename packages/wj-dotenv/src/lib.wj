@@ -1,0 +1,44 @@
+use std::collections::HashMap
+use std::fs
+use std::strings
+
+/// Parse dotenv text into key/value pairs.
+/// Skips blank lines and `#` comments. Trims keys/values. Values may contain `=`.
+pub fn parse(content: string) -> HashMap<string, string> {
+    let mut map = HashMap::new()
+    let lines = strings.split_lines(content)
+    for line in lines {
+        let trimmed = strings.trim(line)
+        if trimmed.len() == 0 {
+            continue
+        }
+        if strings.starts_with(trimmed, "#") {
+            continue
+        }
+        let parts = strings.split(trimmed, "=")
+        if parts.len() < 2 {
+            continue
+        }
+        let key = strings.trim(parts[0])
+        let mut value_parts = Vec::new()
+        let mut i = 1
+        while i < parts.len() {
+            value_parts.push(parts[i])
+            i = i + 1
+        }
+        let value = strings.join(value_parts, "=")
+        let value_trimmed = strings.trim(value)
+        if key.len() > 0 {
+            map.insert(key, value_trimmed)
+        }
+    }
+    map
+}
+
+/// Load a dotenv file from `path`.
+pub fn load(path: string) -> Result<HashMap<string, string>, string> {
+    match fs.read_to_string(path) {
+        Ok(content) => Ok(parse(content)),
+        Err(e) => Err(e),
+    }
+}

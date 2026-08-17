@@ -1,0 +1,28 @@
+// Composition root — CLI argv + HTTP GET + domain formatting.
+
+use crate::domain::url_from_args
+use crate::domain::format_fetch_result
+use crate::adapters::read_args
+use crate::adapters::fetch_url
+use std::process
+
+fn main() {
+    let args = read_args()
+    match url_from_args(args) {
+        Ok(url) => {
+            match fetch_url(url) {
+                Ok((status, body)) => {
+                    println!("{}", format_fetch_result(status, body))
+                },
+                Err(e) => {
+                    eprintln!("wj-fetch: ${e}")
+                    process.exit(1)
+                },
+            }
+        },
+        Err(e) => {
+            eprintln!("wj-fetch: ${e}")
+            process.exit(1)
+        },
+    }
+}

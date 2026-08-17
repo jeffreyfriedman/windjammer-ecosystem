@@ -1,0 +1,21 @@
+use std::json
+
+/// Pretty-print JSON when possible; otherwise return the raw body.
+pub fn format_body(body: string) -> string {
+    match json.parse(body) {
+        Ok(value) => {
+            match json.stringify_pretty(value) {
+                Ok(pretty) => pretty,
+                Err(_) => body,
+            }
+        },
+        Err(_) => body,
+    }
+}
+
+/// Human-readable fetch summary for CLI stdout.
+/// Status is `u16` to match HTTP / `std::http::Response::status_code`.
+pub fn format_fetch_result(status: u16, body: string) -> string {
+    let formatted = format_body(body)
+    "HTTP ${status}\n${formatted}"
+}

@@ -1,0 +1,20 @@
+use crate::domain::url_from_args
+
+fn test_url_from_args_takes_first_positional() {
+    let mut args = Vec::new()
+    args.push("wj-fetch")
+    args.push("https://example.com/api")
+    match url_from_args(args) {
+        Ok(url) => assert_eq(url, "https://example.com/api"),
+        Err(_) => assert(false, "expected Ok"),
+    }
+}
+
+fn test_url_from_args_errors_when_missing() {
+    let mut args = Vec::new()
+    args.push("wj-fetch")
+    match url_from_args(args) {
+        Ok(_) => assert(false, "expected Err"),
+        Err(msg) => assert(msg.len() > 0, "error message required"),
+    }
+}

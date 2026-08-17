@@ -1,0 +1,20 @@
+use crate::domain::format_fetch_result
+use crate::domain::format_body
+
+fn test_format_fetch_result_includes_status_and_body() {
+    let out = format_fetch_result(200, "{\"ok\":true}")
+    assert(out.len() > 0, "non-empty")
+    assert_str_contains(out, "200")
+    assert_str_contains(out, "ok")
+}
+
+fn test_format_body_pretty_prints_json() {
+    let out = format_body("{\"a\":1}")
+    assert_str_contains(out, "a")
+    assert_str_contains(out, "1")
+}
+
+fn test_format_body_falls_back_to_raw_text() {
+    let out = format_body("not-json")
+    assert_eq(out, "not-json")
+}

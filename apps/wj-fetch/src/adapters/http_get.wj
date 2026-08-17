@@ -1,0 +1,15 @@
+use std::http
+
+/// GET `url` and return `(status_code, body_text)`.
+pub fn fetch_url(url: string) -> Result<(u16, string), string> {
+    match http.get(url) {
+        Ok(response) => {
+            let status = response.status_code()
+            match response.text() {
+                Ok(body) => Ok((status, body)),
+                Err(e) => Err(e),
+            }
+        },
+        Err(e) => Err(e),
+    }
+}

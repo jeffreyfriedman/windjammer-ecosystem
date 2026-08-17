@@ -14,8 +14,8 @@ Apps and packages that show what everyday Windjammer development looks like: CLI
 | Kind | Project | Status |
 |---|---|---|
 | Std-only CLI | [`apps/wj-hello`](apps/wj-hello) | Available |
-| `.env` loader | [`packages/wj-dotenv`](packages/wj-dotenv) | Planned |
-| HTTP CLI | `apps/wj-fetch` | Planned |
+| `.env` loader | [`packages/wj-dotenv`](packages/wj-dotenv) | Available |
+| HTTP CLI | [`apps/wj-fetch`](apps/wj-fetch) | Available |
 | CRUD API | `apps/wj-notes-api` | Planned |
 | Static site generator | `apps/wj-sitegen` | Planned |
 | Webhook worker | `apps/wj-webhook` | Planned |

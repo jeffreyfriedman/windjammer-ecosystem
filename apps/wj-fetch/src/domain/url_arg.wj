@@ -1,0 +1,11 @@
+/// First positional URL after the program name (`args[0]`).
+pub fn url_from_args(args: Vec<string>) -> Result<string, string> {
+    if args.len() < 2 {
+        return Err("usage: wj-fetch <url>")
+    }
+    let url = args[1]
+    if url.len() == 0 {
+        return Err("usage: wj-fetch <url>")
+    }
+    Ok(url)
+}

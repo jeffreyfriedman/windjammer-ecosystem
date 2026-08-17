@@ -7,9 +7,10 @@ Windjammer `std::*` modules used on production paths in seed apps and packages.
 | (println / core) | yes | | | | | | language builtins |
 | `std::fs` | | yes | | | planned | | files / dotenv / sitegen |
 | `std::strings` | | yes | | | planned | | parse / templates |
-| `std::env` / CLI | | | planned | | | | argv / config |
-| `std::http` | | | planned | planned | | planned | client + server + webhooks |
-| `std::json` | | | planned | planned | | planned | bodies / config |
+| `std::env` / CLI | | | yes | | | | argv via `env.args()` |
+| `std::http` | | | yes | planned | | planned | client + server + webhooks |
+| `std::json` | | | yes | planned | | planned | bodies / config |
+| `std::process` | | | yes | | | | exit codes |
 | `std::log` | | | | planned | | planned | workers / API |
 | `std::time` | | | | | | planned | timestamps / retries |
 | `std::db` | | | | optional | | | CRUD persistence |

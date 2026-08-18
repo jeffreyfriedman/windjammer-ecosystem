@@ -1,0 +1,5 @@
+// Composition root — wired after domain + HTTP adapter pass tests.
+
+fn main() {
+    println!("wj-notes-api: not wired yet")
+}

@@ -1,0 +1,79 @@
+use std::collections::HashMap
+
+pub struct Note {
+    pub id: int,
+    pub title: string,
+    pub body: string,
+}
+
+pub struct NoteStore {
+    next_id: int,
+    notes: HashMap<int, Note>,
+}
+
+impl NoteStore {
+    pub fn new() -> NoteStore {
+        NoteStore {
+            next_id: 1,
+            notes: HashMap::new(),
+        }
+    }
+
+    pub fn create(self, title: string, body: string) -> Result<Note, string> {
+        if title.len() == 0 {
+            return Err("title required")
+        }
+        let id = self.next_id
+        self.next_id = self.next_id + 1
+        let note = Note {
+            id: id,
+            title: title,
+            body: body,
+        }
+        self.notes.insert(id, note)
+        match self.notes.get(id) {
+            Some(stored) => Ok(stored),
+            None => Err("create failed"),
+        }
+    }
+
+    pub fn get(self, id: int) -> Option<Note> {
+        self.notes.get(id)
+    }
+
+    pub fn list(self) -> Vec<Note> {
+        let mut result = Vec::new()
+        for (_id, note) in self.notes {
+            result.push(note)
+        }
+        result
+    }
+
+    pub fn update(self, id: int, title: string, body: string) -> Result<Note, string> {
+        if title.len() == 0 {
+            return Err("title required")
+        }
+        match self.notes.get(id) {
+            Some(_) => {
+                let note = Note {
+                    id: id,
+                    title: title,
+                    body: body,
+                }
+                self.notes.insert(id, note)
+                match self.notes.get(id) {
+                    Some(stored) => Ok(stored),
+                    None => Err("update failed"),
+                }
+            },
+            None => Err("note not found"),
+        }
+    }
+
+    pub fn delete(self, id: int) -> Result<(), string> {
+        match self.notes.remove(id) {
+            Some(_) => Ok(()),
+            None => Err("note not found"),
+        }
+    }
+}

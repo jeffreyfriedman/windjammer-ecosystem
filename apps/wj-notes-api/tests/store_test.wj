@@ -1,0 +1,104 @@
+use crate::domain::NoteStore
+
+fn test_create_assigns_incrementing_ids() {
+    let mut store = NoteStore::new()
+    match store.create("first", "a") {
+        Ok(n) => assert_eq(n.id, 1),
+        Err(_) => assert(false, "create first"),
+    }
+    match store.create("second", "b") {
+        Ok(n) => assert_eq(n.id, 2),
+        Err(_) => assert(false, "create second"),
+    }
+}
+
+fn test_create_rejects_empty_title() {
+    let mut store = NoteStore::new()
+    match store.create("", "body") {
+        Ok(_) => assert(false, "empty title must be Err"),
+        Err(msg) => assert(msg.len() > 0, "error message required"),
+    }
+}
+
+fn test_get_returns_created_note() {
+    let mut store = NoteStore::new()
+    match store.create("hello", "world") {
+        Ok(created) => {
+            match store.get(created.id) {
+                Some(found) => {
+                    assert_eq(found.id, created.id)
+                    assert_eq(found.title, "hello")
+                    assert_eq(found.body, "world")
+                },
+                None => assert(false, "get after create"),
+            }
+        },
+        Err(_) => assert(false, "create hello"),
+    }
+}
+
+fn test_get_missing_is_none() {
+    let store = NoteStore::new()
+    match store.get(99) {
+        Some(_) => assert(false, "missing id must be None"),
+        None => {},
+    }
+}
+
+fn test_list_returns_all_notes() {
+    let mut store = NoteStore::new()
+    let _ = store.create("a", "1")
+    let _ = store.create("b", "2")
+    let notes = store.list()
+    assert_eq(notes.len(), 2)
+}
+
+fn test_update_changes_title_and_body() {
+    let mut store = NoteStore::new()
+    match store.create("old", "x") {
+        Ok(created) => {
+            match store.update(created.id, "new", "y") {
+                Ok(updated) => {
+                    assert_eq(updated.title, "new")
+                    assert_eq(updated.body, "y")
+                },
+                Err(_) => assert(false, "update should succeed"),
+            }
+        },
+        Err(_) => assert(false, "create for update"),
+    }
+}
+
+fn test_update_missing_is_err() {
+    let mut store = NoteStore::new()
+    match store.update(1, "t", "b") {
+        Ok(_) => assert(false, "missing update must be Err"),
+        Err(_) => {},
+    }
+}
+
+fn test_delete_removes_note() {
+    let mut store = NoteStore::new()
+    match store.create("gone", "z") {
+        Ok(created) => {
+            match store.delete(created.id) {
+                Ok(_) => {
+                    match store.get(created.id) {
+                        Some(_) => assert(false, "deleted note still present"),
+                        None => {},
+                    }
+                },
+                Err(_) => assert(false, "delete should succeed"),
+            }
+        },
+        Err(_) => assert(false, "create for delete"),
+    }
+}
+
+fn test_delete_missing_is_err() {
+    let mut store = NoteStore::new()
+    match store.delete(1) {
+        Ok(_) => assert(false, "missing delete must be Err"),
+        Err(_) => {},
+    }
+}

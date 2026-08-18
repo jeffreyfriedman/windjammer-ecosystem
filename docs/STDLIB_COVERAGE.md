@@ -18,6 +18,6 @@ Windjammer `std::*` modules used on production paths in seed apps and packages.
 | `std::encoding` | | | | | | optional | base64 |
 | `std::regex` | | | | | optional | | frontmatter / routes |
 | `std::csv` | | | | | | | later utilities |
-| `std::map` / collections | | yes (`HashMap`) | | planned | | | config / notes store |
+| `std::map` / collections | | yes (`HashMap`) | | yes (`HashMap`) | | | config / notes store |
 
 Mark a cell **yes** when production `.wj` (not only tests) uses that module. Prefer one clear owner app or package per concern.

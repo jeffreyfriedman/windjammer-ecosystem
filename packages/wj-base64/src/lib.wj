@@ -1,0 +1,21 @@
+use std::encoding
+
+/// Base64-encode UTF-8 text.
+pub fn encode(text: string) -> string {
+    encoding.base64_encode_string(text)
+}
+
+/// Decode a base64 string to UTF-8 text.
+pub fn decode(text: string) -> Result<string, string> {
+    encoding.base64_decode_string(text)
+}
+
+/// Base64-encode raw bytes.
+pub fn encode_bytes(data: Vec<u8>) -> string {
+    encoding.base64_encode(data)
+}
+
+/// Decode a base64 string to raw bytes.
+pub fn decode_bytes(text: string) -> Result<Vec<u8>, string> {
+    encoding.base64_decode(text)
+}

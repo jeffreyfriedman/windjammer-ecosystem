@@ -20,6 +20,9 @@ Weekly build health for seed apps and packages.
 | 2 | 2026-08-22 | + `wj-template` | 0 | 0 | — | Wave 2 `{{key}}` render / strict / missing-keys; 8 tests green |
 | 2 | 2026-08-22 | + `wj-uuid` (blocked) | 0 | 0 | `random.range`, `crypto.sha1_bytes`, `time.utc_now` (repros in `windjammer/tests/`) | v1/v4/v5 + validation; 16 tests written, pending stdlib |
 | 2 | 2026-08-22 | + `wj-semver` | 0 | 0 | — | Wave 2 parse / compare / format; 6 tests green |
+| 2 | 2026-08-22 | + `wj-url` | 0 | 0 | user `join` vs `strings.join` name clash (renamed `join_url`; repro queued) | Wave 2 parse / format / join_url / query; 11 tests green |
+| 2 | 2026-08-22 | + `wj-base64` (blocked) | 0 | 0 | `encoding.base64_encode_string` / `decode_string` not in runtime exports (repro queued) | Idiomatic API written; 6 tests pending stdlib |
+| 2 | 2026-08-22 | + `wj-retry` | 0 | 0 | — | Wave 2 exponential backoff helpers; 4 tests green |
 
 ## Weekly checklist
 

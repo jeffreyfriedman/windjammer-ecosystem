@@ -1,0 +1,37 @@
+use crate::Backoff
+use crate::delay_ms
+use crate::should_retry
+
+fn test_delay_ms_exponential() {
+    let b = Backoff {
+        initial_ms: 100,
+        multiplier: 2,
+        max_ms: 1000,
+    }
+    assert_eq(delay_ms(b, 0), 100)
+    assert_eq(delay_ms(b, 1), 200)
+    assert_eq(delay_ms(b, 2), 400)
+    assert_eq(delay_ms(b, 3), 800)
+    assert_eq(delay_ms(b, 4), 1000)
+    assert_eq(delay_ms(b, 5), 1000)
+}
+
+fn test_delay_ms_zero_attempt() {
+    let b = Backoff {
+        initial_ms: 50,
+        multiplier: 3,
+        max_ms: 500,
+    }
+    assert_eq(delay_ms(b, 0), 50)
+}
+
+fn test_should_retry_respects_max_attempts() {
+    assert(should_retry(0, 3), "attempt 0 of 3")
+    assert(should_retry(2, 3), "attempt 2 of 3")
+    assert(!should_retry(3, 3), "attempt 3 of 3")
+    assert(!should_retry(4, 3), "attempt 4 of 3")
+}
+
+fn test_should_retry_zero_max() {
+    assert(!should_retry(0, 0), "max 0")
+}

@@ -28,6 +28,9 @@ Apps and packages that show what everyday Windjammer development looks like: CLI
 | String templates | [`packages/wj-template`](packages/wj-template) | Available |
 | UUID v1/v4/v5 | [`packages/wj-uuid`](packages/wj-uuid) | Blocked on stdlib wiring (see package README) |
 | Semver | [`packages/wj-semver`](packages/wj-semver) | Available |
+| URL parse / join | [`packages/wj-url`](packages/wj-url) | Available |
+| Base64 | [`packages/wj-base64`](packages/wj-base64) | Blocked on `encoding.base64_*_string` wiring |
+| Retry / backoff | [`packages/wj-retry`](packages/wj-retry) | Available |
 
 See [docs/ROADMAP.md](docs/ROADMAP.md) for the full package catalog.
 

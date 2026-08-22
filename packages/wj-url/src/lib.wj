@@ -1,0 +1,253 @@
+use std::strings
+
+pub struct Url {
+    pub scheme: string,
+    pub host: string,
+    pub port: string,
+    pub path: string,
+    pub query: string,
+    pub fragment: string,
+}
+
+/// Parse an absolute URL: `scheme://host[:port][/path][?query][#fragment]`.
+pub fn parse(text: string) -> Result<Url, string> {
+    if strings.len(text) == 0 {
+        return Err("empty url")
+    }
+    match split_scheme(text) {
+        Ok(scheme_rest) => {
+            let scheme = scheme_rest.0
+            let after_scheme = scheme_rest.1
+            if !strings.starts_with(after_scheme, "//") {
+                return Err("expected // after scheme")
+            }
+            let authority_and_rest = strings.substring(after_scheme, 2, strings.len(after_scheme))
+            match split_authority(authority_and_rest) {
+                Ok(auth_rest) => {
+                    let authority = auth_rest.0
+                    let path_query_frag = auth_rest.1
+                    match split_host_port(authority) {
+                        Ok(host_port) => {
+                            match split_path_query_fragment(path_query_frag) {
+                                Ok(pqf) => Ok(Url {
+                                    scheme: scheme,
+                                    host: host_port.0,
+                                    port: host_port.1,
+                                    path: pqf.0,
+                                    query: pqf.1,
+                                    fragment: pqf.2,
+                                }),
+                                Err(e) => Err(e),
+                            }
+                        },
+                        Err(e) => Err(e),
+                    }
+                },
+                Err(e) => Err(e),
+            }
+        },
+        Err(e) => Err(e),
+    }
+}
+
+/// Format a URL back to an absolute string.
+pub fn format_url(u: Url) -> string {
+    let mut out = "${u.scheme}://${u.host}"
+    if strings.len(u.port) > 0 {
+        out = "${out}:${u.port}"
+    }
+    out = "${out}${u.path}"
+    if strings.len(u.query) > 0 {
+        out = "${out}?${u.query}"
+    }
+    if strings.len(u.fragment) > 0 {
+        out = "${out}#${u.fragment}"
+    }
+    out
+}
+
+/// Resolve `relative` against absolute `base` (absolute relative replaces base).
+/// Named `join_url` to avoid clashing with `std::strings.join`.
+pub fn join_url(base: string, relative: string) -> Result<string, string> {
+    if strings.contains(relative, "://") {
+        return Ok(relative)
+    }
+    match parse(base) {
+        Ok(u) => {
+            let new_path = join_path(u.path, relative)
+            Ok(format_url(Url {
+                scheme: u.scheme,
+                host: u.host,
+                port: u.port,
+                path: new_path,
+                query: empty_string(),
+                fragment: empty_string(),
+            }))
+        },
+        Err(e) => Err(e),
+    }
+}
+
+/// First value for `key` in `a=1&b=2` query text (no leading `?`).
+pub fn query_get(query: string, key: string) -> Option<string> {
+    if strings.len(query) == 0 {
+        return None
+    }
+    let pairs = strings.split(query, "&")
+    let mut i = 0
+    while i < pairs.len() {
+        let pair = pairs[i]
+        match split_once(pair, "=") {
+            Some(kv) => {
+                if kv.0 == key {
+                    return Some(kv.1)
+                }
+            },
+            None => {
+                if pair == key {
+                    return Some(empty_string())
+                }
+            },
+        }
+        i = i + 1
+    }
+    None
+}
+
+/// Set `key=value` in query text, replacing any existing `key`.
+pub fn query_set(query: string, key: string, value: string) -> string {
+    let mut out_parts = Vec::new()
+    let mut found = false
+    if strings.len(query) > 0 {
+        let pairs = strings.split(query, "&")
+        let mut i = 0
+        while i < pairs.len() {
+            let pair = pairs[i]
+            if strings.len(pair) > 0 {
+                match split_once(pair, "=") {
+                    Some(kv) => {
+                        if kv.0 == key {
+                            out_parts.push("${key}=${value}")
+                            found = true
+                        } else {
+                            out_parts.push(pair)
+                        }
+                    },
+                    None => {
+                        if pair == key {
+                            out_parts.push("${key}=${value}")
+                            found = true
+                        } else {
+                            out_parts.push(pair)
+                        }
+                    },
+                }
+            }
+            i = i + 1
+        }
+    }
+    if !found {
+        out_parts.push("${key}=${value}")
+    }
+    strings.join(out_parts, "&")
+}
+
+fn empty_string() -> string {
+    ""
+}
+
+fn join_path(base_path: string, relative: string) -> string {
+    if strings.starts_with(relative, "/") {
+        return relative
+    }
+    let dir = dirname(base_path)
+    if strings.len(dir) == 0 {
+        return "/${relative}"
+    }
+    "${dir}/${relative}"
+}
+
+fn dirname(path: string) -> string {
+    if strings.len(path) == 0 {
+        return empty_string()
+    }
+    let mut last_slash = 0
+    let mut found = false
+    let mut i = 0
+    while i < strings.len(path) {
+        if strings.substring(path, i, i + 1) == "/" {
+            last_slash = i
+            found = true
+        }
+        i = i + 1
+    }
+    if !found {
+        return empty_string()
+    }
+    strings.substring(path, 0, last_slash)
+}
+
+fn split_scheme(text: string) -> Result<(string, string), string> {
+    let mut i = 0
+    while i < strings.len(text) {
+        let ch = strings.substring(text, i, i + 1)
+        if ch == ":" {
+            if i == 0 {
+                return Err("empty scheme")
+            }
+            return Ok((strings.substring(text, 0, i), strings.substring(text, i + 1, strings.len(text))))
+        }
+        i = i + 1
+    }
+    Err("missing scheme")
+}
+
+fn split_authority(text: string) -> Result<(string, string), string> {
+    let mut i = 0
+    while i < strings.len(text) {
+        let ch = strings.substring(text, i, i + 1)
+        if ch == "/" || ch == "?" || ch == "#" {
+            return Ok((strings.substring(text, 0, i), strings.substring(text, i, strings.len(text))))
+        }
+        i = i + 1
+    }
+    Ok((text, empty_string()))
+}
+
+fn split_host_port(authority: string) -> Result<(string, string), string> {
+    if strings.len(authority) == 0 {
+        return Err("empty host")
+    }
+    match split_once(authority, ":") {
+        Some(parts) => Ok((parts.0, parts.1)),
+        None => Ok((authority, empty_string())),
+    }
+}
+
+fn split_path_query_fragment(text: string) -> Result<(string, string, string), string> {
+    let without_frag = match split_once(text, "#") {
+        Some(pf) => pf,
+        None => (text, empty_string()),
+    }
+    let path_and_query = without_frag.0
+    let fragment = without_frag.1
+    match split_once(path_and_query, "?") {
+        Some(pq) => Ok((pq.0, pq.1, fragment)),
+        None => Ok((path_and_query, empty_string(), fragment)),
+    }
+}
+
+fn split_once(text: string, sep: string) -> Option<(string, string)> {
+    let mut i = 0
+    while i < strings.len(text) {
+        let rest = strings.substring(text, i, strings.len(text))
+        if strings.starts_with(rest, sep) {
+            return Some((
+                strings.substring(text, 0, i),
+                strings.substring(text, i + strings.len(sep), strings.len(text)),
+            ))
+        }
+        i = i + 1
+    }
+    None
+}

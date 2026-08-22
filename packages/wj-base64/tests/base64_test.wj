@@ -1,0 +1,61 @@
+use crate::encode
+use crate::decode
+use crate::encode_bytes
+use crate::decode_bytes
+
+fn test_encode_hello() {
+    let text = "Hello"
+    let expected = "SGVsbG8="
+    assert_eq(encode(text), expected)
+}
+
+fn test_decode_hello() {
+    let encoded = "SGVsbG8="
+    match decode(encoded) {
+        Ok(text) => {
+            let expected = "Hello"
+            assert_eq(text, expected)
+        },
+        Err(_) => assert(false, "decode Hello"),
+    }
+}
+
+fn test_roundtrip_empty() {
+    let text = ""
+    match decode(encode(text)) {
+        Ok(out) => assert_eq(out, text),
+        Err(_) => assert(false, "empty roundtrip"),
+    }
+}
+
+fn test_roundtrip_punctuation() {
+    let text = "a+b/c="
+    match decode(encode(text)) {
+        Ok(out) => assert_eq(out, text),
+        Err(_) => assert(false, "punct roundtrip"),
+    }
+}
+
+fn test_decode_rejects_garbage() {
+    let bad = "!!!"
+    match decode(bad) {
+        Ok(_) => assert(false, "expected Err"),
+        Err(msg) => assert(msg.len() > 0, "error message"),
+    }
+}
+
+fn test_encode_bytes_roundtrip() {
+    let mut bytes = Vec::new()
+    bytes.push(0)
+    bytes.push(255)
+    bytes.push(10)
+    match decode_bytes(encode_bytes(bytes)) {
+        Ok(out) => {
+            assert_eq(out.len(), 3)
+            assert_eq(out[0], 0)
+            assert_eq(out[1], 255)
+            assert_eq(out[2], 10)
+        },
+        Err(_) => assert(false, "bytes roundtrip"),
+    }
+}

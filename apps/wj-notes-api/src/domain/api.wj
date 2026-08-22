@@ -1,0 +1,147 @@
+use std::json
+use std::strings
+
+use crate::domain::Note
+use crate::domain::NoteStore
+use crate::domain::parse_positive_int
+
+pub struct HttpReply {
+    pub status: u16,
+    pub body: string,
+}
+
+pub struct HttpRequest {
+    pub method: string,
+    pub path: string,
+    pub body: string,
+}
+
+pub struct NoteInput {
+    title: string,
+    body: string,
+}
+
+struct ErrorBody {
+    error: string,
+}
+
+pub fn handle_request(method: string, path: string, body: string, store: NoteStore) -> HttpReply {
+    let mut api = NotesApi::new(store)
+    api.serve(HttpRequest { method: method, path: path, body: body })
+}
+
+pub struct NotesApi {
+    store: NoteStore,
+}
+
+impl NotesApi {
+    pub fn new(store: NoteStore) -> NotesApi {
+        NotesApi { store: store }
+    }
+
+    pub fn handle(self, method: string, path: string, body: string) -> HttpReply {
+        self.serve(HttpRequest { method: method, path: path, body: body })
+    }
+
+    pub fn serve(self, request: HttpRequest) -> HttpReply {
+        let method = request.method
+        let path = request.path
+        let body = request.body
+        self.dispatch(method, path, body)
+    }
+
+    fn dispatch(self, method: string, path: string, body: string) -> HttpReply {
+        if path == "/notes" || path == "/notes/" {
+            if method == "GET" {
+                let notes = self.store.list()
+                return match json.to_string(notes) {
+                    Ok(text) => HttpReply { status: 200, body: text },
+                    Err(_) => json_error(500, "serialization failed"),
+                }
+            }
+            if method == "POST" {
+                let input: NoteInput = match json.parse_string(body) {
+                    Ok(value) => value,
+                    Err(_) => return json_error(400, "invalid json"),
+                }
+                return match self.store.create(input.title, input.body) {
+                    Ok(note) => note_reply(201, note),
+                    Err(msg) => {
+                        let payload = ErrorBody { error: msg }
+                        match json.to_string(payload) {
+                            Ok(text) => HttpReply { status: 400, body: text },
+                            Err(_) => HttpReply { status: 400, body: "{\"error\":\"unknown\"}" },
+                        }
+                    },
+                }
+            }
+            return json_error(404, "not found")
+        }
+        match note_id_from_path(path) {
+            Some(id) => {
+                if method == "GET" {
+                    match self.store.get(id) {
+                        Some(note) => note_reply(200, note),
+                        None => json_error(404, "note not found"),
+                    }
+                } else if method == "PUT" {
+                    let input: NoteInput = match json.parse_string(body) {
+                        Ok(value) => value,
+                        Err(_) => return json_error(400, "invalid json"),
+                    }
+                    match self.store.update(id, input.title, input.body) {
+                        Ok(note) => note_reply(200, note),
+                        Err(msg) => {
+                            let status = if msg == "note not found" { 404 } else { 400 }
+                            let payload = ErrorBody { error: msg }
+                            match json.to_string(payload) {
+                                Ok(text) => HttpReply { status: status, body: text },
+                                Err(_) => HttpReply { status: status, body: "{\"error\":\"unknown\"}" },
+                            }
+                        },
+                    }
+                } else if method == "DELETE" {
+                    match self.store.delete(id) {
+                        Ok(_) => HttpReply { status: 204, body: "" },
+                        Err(_) => json_error(404, "note not found"),
+                    }
+                } else {
+                    json_error(404, "not found")
+                }
+            },
+            None => json_error(404, "not found"),
+        }
+    }
+}
+
+fn note_reply(status: u16, note: Note) -> HttpReply {
+    match json.to_string(note) {
+        Ok(text) => HttpReply { status: status, body: text },
+        Err(_) => json_error(500, "serialization failed"),
+    }
+}
+
+fn error_from_message(status: u16, message: string) -> HttpReply {
+    let payload = ErrorBody { error: message }
+    match json.to_string(payload) {
+        Ok(text) => HttpReply { status: status, body: text },
+        Err(_) => HttpReply { status: status, body: "{\"error\":\"unknown\"}" },
+    }
+}
+
+fn json_error(status: u16, message: string) -> HttpReply {
+    error_from_message(status, message)
+}
+
+fn note_id_from_path(path: string) -> Option<int> {
+    let marker = "/notes/"
+    if path.len() <= 7 {
+        return None
+    }
+    let head = strings.substring(path, 0, 7)
+    if head != marker {
+        return None
+    }
+    let suffix = strings.substring(path, 7, path.len())
+    parse_positive_int(suffix)
+}

@@ -1,0 +1,130 @@
+use std::strings
+
+pub struct SiteDirs {
+    pub src: string,
+    pub out: string,
+}
+
+pub struct GeneratedPage {
+    pub filename: string,
+    pub title: string,
+    pub html: string,
+}
+
+fn last_path_segment(path: string) -> string {
+    let parts = strings.split(path, "/")
+    let mut last = ""
+    for part in parts {
+        last = part
+    }
+    last
+}
+
+fn skip_first_join(parts: Vec<string>) -> string {
+    let mut rest = Vec::new()
+    let mut first = true
+    for part in parts {
+        if first {
+            first = false
+            continue
+        }
+        rest.push(part)
+    }
+    strings.join(rest, " ")
+}
+
+fn escape_html(text: string) -> string {
+    let amp = strings.replace(text, "&", "&amp;")
+    let lt = strings.replace(amp, "<", "&lt;")
+    strings.replace(lt, ">", "&gt;")
+}
+
+fn heading_text(parts: Vec<string>) -> string {
+    skip_first_join(parts)
+}
+
+/// Markdown path (`posts/hello.md`) → output file (`hello.html`).
+pub fn html_filename(path: string) -> string {
+    let name = last_path_segment(path)
+    if strings.ends_with(name, ".md") {
+        return strings.replace(name, ".md", ".html")
+    }
+    "${name}.html"
+}
+
+fn parse_markdown(source: string) -> (string, string) {
+    let lines = strings.split_lines(source)
+    let mut title = "Untitled"
+    let mut chunks = Vec::new()
+    let mut seen_h1 = false
+    for line in lines {
+        let trimmed = strings.trim(line)
+        if trimmed.len() == 0 {
+            continue
+        }
+        let parts = strings.split(trimmed, " ")
+        if parts.len() >= 2 && parts[0] == "##" {
+            let text = escape_html(heading_text(parts))
+            chunks.push("<h2>${text}</h2>")
+            continue
+        }
+        if parts.len() >= 2 && parts[0] == "#" {
+            let text = heading_text(parts)
+            if !seen_h1 {
+                title = "${text}"
+                seen_h1 = true
+            }
+            let html_text = escape_html(text)
+            chunks.push("<h1>${html_text}</h1>")
+            continue
+        }
+        let text = escape_html(trimmed)
+        chunks.push("<p>${text}</p>")
+    }
+    (title, strings.join(chunks, "\n"))
+}
+
+/// First ATX h1 (`# Title`); otherwise `Untitled`.
+pub fn title_from_markdown(source: string) -> string {
+    let parsed = parse_markdown(source)
+    parsed.0
+}
+
+/// Tiny markdown subset: `#` / `##` headings and paragraph lines. HTML-escaped.
+pub fn markdown_to_html(source: string) -> string {
+    let parsed = parse_markdown(source)
+    parsed.1
+}
+
+/// HTML5 document wrapping already-rendered body markup.
+pub fn render_document(title: string, body_html: string) -> string {
+    let safe_title = escape_html(title)
+    "<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n<meta charset=\"utf-8\">\n<title>${safe_title}</title>\n</head>\n<body>\n${body_html}\n</body>\n</html>\n"
+}
+
+/// Domain pipeline: one markdown file → one HTML page.
+pub fn generate_page(path: string, markdown: string) -> GeneratedPage {
+    let filename = html_filename(path)
+    let parsed = parse_markdown(markdown)
+    let title = parsed.0
+    let body = parsed.1
+    let html = render_document("${title}", body)
+    GeneratedPage {
+        filename: filename,
+        title: title,
+        html: html,
+    }
+}
+
+/// Program name + source dir + output dir.
+pub fn dirs_from_args(args: Vec<string>) -> Result<SiteDirs, string> {
+    if args.len() < 3 {
+        return Err("usage: wj-sitegen <src-dir> <out-dir>")
+    }
+    let src = args[1]
+    let out = args[2]
+    if src.len() == 0 || out.len() == 0 {
+        return Err("usage: wj-sitegen <src-dir> <out-dir>")
+    }
+    Ok(SiteDirs { src: src, out: out })
+}

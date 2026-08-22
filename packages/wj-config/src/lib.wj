@@ -1,0 +1,26 @@
+use std::collections::HashMap
+
+/// Later map wins on shared keys. Keys only in `base` are kept.
+pub fn merge(base: HashMap<string, string>, overlay: HashMap<string, string>) -> HashMap<string, string> {
+    let mut out = base
+    for (key, value) in overlay {
+        out.insert(key, value)
+    }
+    out
+}
+
+/// Overlay `env_map` onto `map` only for keys that already exist (process env must not invent keys).
+pub fn overlay_matching(map: HashMap<string, string>, env_map: HashMap<string, string>) -> HashMap<string, string> {
+    let mut out = map
+    for (key, value) in env_map {
+        if out.contains_key(key) {
+            out.insert(key, value)
+        }
+    }
+    out
+}
+
+/// defaults < file < matching env keys. File maps come from `wj-dotenv::parse` / `load`.
+pub fn resolve(defaults: HashMap<string, string>, file: HashMap<string, string>, env_map: HashMap<string, string>) -> HashMap<string, string> {
+    overlay_matching(merge(defaults, file), env_map)
+}

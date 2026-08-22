@@ -1,0 +1,147 @@
+use crate::is_hidden_name
+use crate::walk
+use crate::walk_files
+use crate::walk_dirs
+use crate::walk_files_with_suffix
+use std::fs
+use std::strings
+
+fn setup_tree(root: string) -> Result<(), string> {
+    match fs.remove_dir_all(root) {
+        Ok(_) => {},
+        Err(_) => {},
+    }
+    match fs.create_dir_all("${root}/sub/nested") {
+        Ok(_) => {},
+        Err(e) => return Err(e),
+    }
+    match fs.write("${root}/a.txt", "a") {
+        Ok(_) => {},
+        Err(e) => return Err(e),
+    }
+    match fs.write("${root}/sub/b.md", "b") {
+        Ok(_) => {},
+        Err(e) => return Err(e),
+    }
+    match fs.write("${root}/sub/nested/c.txt", "c") {
+        Ok(_) => {},
+        Err(e) => return Err(e),
+    }
+    match fs.write("${root}/.hidden", "h") {
+        Ok(_) => {},
+        Err(e) => return Err(e),
+    }
+    Ok(())
+}
+
+fn teardown_tree(root: string) {
+    match fs.remove_dir_all(root) {
+        Ok(_) => {},
+        Err(_) => {},
+    }
+}
+
+fn contains_path(paths: Vec<string>, needle: string) -> bool {
+    let mut i = 0
+    while i < paths.len() {
+        let p = paths[i]
+        if p == needle {
+            return true
+        }
+        if strings.ends_with(p, needle) {
+            return true
+        }
+        i = i + 1
+    }
+    false
+}
+
+fn test_is_hidden_name() {
+    assert(is_hidden_name(".git"), ".git")
+    assert(is_hidden_name(".env"), ".env")
+    assert(!is_hidden_name("git"), "git")
+    assert(!is_hidden_name("a.txt"), "a.txt")
+}
+
+fn test_walk_lists_files_and_dirs() {
+    let root = "/tmp/wj-fs-walk-tree-list"
+    match setup_tree(root) {
+        Ok(_) => {},
+        Err(_) => assert(false, "setup failed"),
+    }
+    match walk(root) {
+        Ok(paths) => {
+            assert(paths.len() >= 4, "expected nested entries")
+            assert(contains_path(paths, "${root}/a.txt"), "a.txt")
+            assert(contains_path(paths, "${root}/sub"), "sub dir")
+            assert(contains_path(paths, "${root}/sub/b.md"), "b.md")
+            assert(contains_path(paths, "${root}/sub/nested/c.txt"), "c.txt")
+        },
+        Err(_) => assert(false, "walk failed"),
+    }
+    teardown_tree(root)
+}
+
+fn test_walk_files_skips_directories() {
+    let root = "/tmp/wj-fs-walk-tree-files"
+    match setup_tree(root) {
+        Ok(_) => {},
+        Err(_) => assert(false, "setup failed"),
+    }
+    match walk_files(root) {
+        Ok(paths) => {
+            assert(contains_path(paths, "${root}/a.txt"), "a.txt")
+            assert(contains_path(paths, "${root}/sub/b.md"), "b.md")
+            assert(contains_path(paths, "${root}/sub/nested/c.txt"), "c.txt")
+            assert(!contains_path(paths, "${root}/sub"), "no bare sub dir")
+            for p in paths {
+                assert(fs.is_file(p), "every walk_files path is a file")
+            }
+        },
+        Err(_) => assert(false, "walk_files failed"),
+    }
+    teardown_tree(root)
+}
+
+fn test_walk_dirs_skips_files() {
+    let root = "/tmp/wj-fs-walk-tree-dirs"
+    match setup_tree(root) {
+        Ok(_) => {},
+        Err(_) => assert(false, "setup failed"),
+    }
+    match walk_dirs(root) {
+        Ok(paths) => {
+            assert(contains_path(paths, "${root}/sub"), "sub")
+            assert(contains_path(paths, "${root}/sub/nested"), "nested")
+            assert(!contains_path(paths, "${root}/a.txt"), "no file")
+            for p in paths {
+                assert(fs.is_dir(p), "every walk_dirs path is a dir")
+            }
+        },
+        Err(_) => assert(false, "walk_dirs failed"),
+    }
+    teardown_tree(root)
+}
+
+fn test_walk_files_with_suffix() {
+    let root = "/tmp/wj-fs-walk-tree-suffix"
+    match setup_tree(root) {
+        Ok(_) => {},
+        Err(_) => assert(false, "setup failed"),
+    }
+    match walk_files_with_suffix(root, ".md") {
+        Ok(paths) => {
+            assert_eq(paths.len(), 1)
+            assert(contains_path(paths, "${root}/sub/b.md"), "only md")
+        },
+        Err(_) => assert(false, "suffix walk failed"),
+    }
+    teardown_tree(root)
+}
+
+fn test_walk_missing_root_errors() {
+    match walk("/tmp/wj-fs-walk-does-not-exist-xyz") {
+        Ok(_) => assert(false, "expected Err"),
+        Err(msg) => assert(msg.len() > 0, "error message"),
+    }
+}

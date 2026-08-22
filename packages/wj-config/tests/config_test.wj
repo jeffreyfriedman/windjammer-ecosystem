@@ -1,0 +1,93 @@
+use crate::merge
+use crate::overlay_matching
+use crate::resolve
+use std::collections::HashMap
+
+fn test_merge_overlay_wins_on_shared_keys() {
+    let mut defaults = HashMap::new()
+    defaults.insert("HOST", "localhost")
+    defaults.insert("PORT", "8080")
+    let mut file = HashMap::new()
+    file.insert("PORT", "3000")
+    file.insert("DEBUG", "true")
+    let cfg = merge(defaults, file)
+    assert_eq(cfg.len(), 3)
+    match cfg.get("HOST") {
+        Some(v) => assert_eq(v, "localhost"),
+        None => assert(false, "HOST from defaults"),
+    }
+}
+
+fn test_merge_overlay_port_and_debug() {
+    let mut defaults = HashMap::new()
+    defaults.insert("HOST", "localhost")
+    defaults.insert("PORT", "8080")
+    let mut file = HashMap::new()
+    file.insert("PORT", "3000")
+    file.insert("DEBUG", "true")
+    let cfg = merge(defaults, file)
+    match cfg.get("PORT") {
+        Some(v) => assert_eq(v, "3000"),
+        None => assert(false, "PORT from file"),
+    }
+    match cfg.get("DEBUG") {
+        Some(v) => assert_eq(v, "true"),
+        None => assert(false, "DEBUG from file"),
+    }
+}
+
+fn test_overlay_matching_overrides_existing_keys_only() {
+    let mut map = HashMap::new()
+    map.insert("PORT", "8080")
+    map.insert("HOST", "localhost")
+    let mut env_map = HashMap::new()
+    env_map.insert("PORT", "9090")
+    env_map.insert("UNRELATED", "nope")
+    let cfg = overlay_matching(map, env_map)
+    match cfg.get("PORT") {
+        Some(v) => assert_eq(v, "9090"),
+        None => assert(false, "PORT from env overlay"),
+    }
+    match cfg.get("HOST") {
+        Some(v) => assert_eq(v, "localhost"),
+        None => assert(false, "HOST unchanged"),
+    }
+    assert(cfg.get("UNRELATED").is_none(), "unknown env key stays out")
+}
+
+fn test_overlay_matching_empty_env_keeps_file() {
+    let mut map = HashMap::new()
+    map.insert("PORT", "8080")
+    let env_map = HashMap::new()
+    let cfg = overlay_matching(map, env_map)
+    match cfg.get("PORT") {
+        Some(v) => assert_eq(v, "8080"),
+        None => assert(false, "PORT unchanged"),
+    }
+}
+
+fn test_resolve_file_then_env_over_defaults() {
+    let mut defaults = HashMap::new()
+    defaults.insert("HOST", "localhost")
+    defaults.insert("PORT", "8080")
+    defaults.insert("LOG", "info")
+    let mut file = HashMap::new()
+    file.insert("PORT", "3000")
+    let mut env_map = HashMap::new()
+    env_map.insert("LOG", "debug")
+    env_map.insert("IGNORED", "x")
+    let cfg = resolve(defaults, file, env_map)
+    match cfg.get("HOST") {
+        Some(v) => assert_eq(v, "localhost"),
+        None => assert(false, "HOST defaults"),
+    }
+    match cfg.get("PORT") {
+        Some(v) => assert_eq(v, "3000"),
+        None => assert(false, "PORT file"),
+    }
+    match cfg.get("LOG") {
+        Some(v) => assert_eq(v, "debug"),
+        None => assert(false, "LOG env"),
+    }
+    assert(cfg.get("IGNORED").is_none(), "env must not add unknown keys")
+}

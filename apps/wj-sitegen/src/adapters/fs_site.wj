@@ -1,0 +1,64 @@
+use crate::domain::generate_page
+use crate::domain::GeneratedPage
+use std::fs
+use std::strings
+
+fn join_path(dir: string, name: string) -> string {
+    if strings.ends_with(dir, "/") {
+        return "${dir}${name}"
+    }
+    "${dir}/${name}"
+}
+
+/// Read `*.md` files in `src_dir` (non-recursive) and render HTML pages.
+pub fn load_pages(src_dir: string) -> Result<Vec<GeneratedPage>, string> {
+    match fs.read_dir(src_dir) {
+        Ok(entries) => {
+            let mut pages = Vec::new()
+            for entry in entries {
+                if !entry.is_file() {
+                    continue
+                }
+                let path = entry.path()
+                if !strings.ends_with(path, ".md") {
+                    continue
+                }
+                let source_path = "${path}"
+                match fs.read_to_string(path) {
+                    Ok(markdown) => {
+                        pages.push(generate_page(source_path, markdown))
+                    },
+                    Err(e) => return Err(e),
+                }
+            }
+            Ok(pages)
+        },
+        Err(e) => Err(e),
+    }
+}
+
+/// Write generated pages into `out_dir`, creating it if needed.
+pub fn write_pages(out_dir: string, pages: Vec<GeneratedPage>) -> Result<int, string> {
+    match fs.create_dir_all(out_dir) {
+        Ok(_) => {},
+        Err(e) => return Err(e),
+    }
+    let mut written = 0
+    for page in pages {
+        let dest = join_path("${out_dir}", page.filename)
+        match fs.write(dest, page.html) {
+            Ok(_) => {
+                written = written + 1
+            },
+            Err(e) => return Err(e),
+        }
+    }
+    Ok(written)
+}
+
+pub fn generate_site(src_dir: string, out_dir: string) -> Result<int, string> {
+    match load_pages(src_dir) {
+        Ok(pages) => write_pages(out_dir, pages),
+        Err(e) => Err(e),
+    }
+}

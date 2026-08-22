@@ -1,0 +1,126 @@
+use std::env
+use std::strings
+
+/// Full process argv, including the program name at index 0.
+pub fn read_argv() -> Vec<string> {
+    env.args()
+}
+
+/// Tokens after the program name (`args[1..]`).
+pub fn tail(args: Vec<string>) -> Vec<string> {
+    let mut out = Vec::new()
+    let mut i = 1
+    while i < args.len() {
+        out.push(args[i])
+        i = i + 1
+    }
+    out
+}
+
+fn long_prefix(name: string) -> string {
+    "--${name}"
+}
+
+fn equals_prefix(name: string) -> string {
+    "--${name}="
+}
+
+fn is_long_flag_token(token: string, name: string) -> bool {
+    let prefix = long_prefix(name)
+    if token == prefix {
+        return true
+    }
+    strings.starts_with(token, "${prefix}=")
+}
+
+fn value_from_equals_token(token: string, name: string) -> Option<string> {
+    let prefix = equals_prefix(name)
+    if !strings.starts_with(token, prefix) {
+        return None
+    }
+    let parts = strings.split(token, "=")
+    if parts.len() < 2 {
+        return None
+    }
+    let mut value_parts = Vec::new()
+    let mut i = 1
+    while i < parts.len() {
+        value_parts.push(parts[i])
+        i = i + 1
+    }
+    Some(strings.join(value_parts, "="))
+}
+
+/// True when `--name` or `--name=value` appears in argv (after the program name).
+pub fn has_long_flag(args: Vec<string>, name: string) -> bool {
+    let rest = tail(args)
+    for token in rest {
+        if is_long_flag_token(token, name) {
+            return true
+        }
+    }
+    false
+}
+
+/// Value from `--name=value` or the token immediately after bare `--name`.
+pub fn long_flag_value(args: Vec<string>, name: string) -> Option<string> {
+    let rest = tail(args)
+    let mut i = 0
+    while i < rest.len() {
+        let token = rest[i]
+        match value_from_equals_token(token, name) {
+            Some(value) => return Some(value),
+            None => {},
+        }
+        if token == long_prefix(name) {
+            let next = i + 1
+            if next < rest.len() {
+                let candidate = rest[next]
+                if !strings.starts_with(candidate, "--") {
+                    return Some(candidate)
+                }
+            }
+            return None
+        }
+        i = i + 1
+    }
+    None
+}
+
+/// Non-flag tokens after the program name, in order.
+/// Tokens starting with `--` are skipped (including `--name=value`).
+/// Space-separated option values are still collected unless the caller
+/// reads them with `long_flag_value`.
+pub fn positionals(args: Vec<string>) -> Vec<string> {
+    let rest = tail(args)
+    let mut out = Vec::new()
+    for token in rest {
+        if strings.starts_with(token, "--") {
+            continue
+        }
+        out.push(token)
+    }
+    out
+}
+
+/// First positional token after the program name (skips `--` flags).
+pub fn first_positional(args: Vec<string>) -> Option<string> {
+    let pos = positionals(args)
+    if pos.len() == 0 {
+        return None
+    }
+    Some(pos[0])
+}
+
+/// First positional or a usage error when none is present.
+pub fn require_first_positional(args: Vec<string>, usage: string) -> Result<string, string> {
+    match first_positional(args) {
+        Some(value) => {
+            if value.len() == 0 {
+                return Err(usage)
+            }
+            Ok(value)
+        },
+        None => Err(usage),
+    }
+}

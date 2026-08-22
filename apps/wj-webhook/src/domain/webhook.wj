@@ -1,0 +1,146 @@
+use std::json
+use std::crypto
+
+pub struct HttpReply {
+    pub status: u16,
+    pub body: string,
+}
+
+pub struct WebhookEvent {
+    pub event: string,
+    pub id: string,
+}
+
+struct ErrorBody {
+    error: string,
+}
+
+struct OkBody {
+    ok: bool,
+}
+
+struct ReceivedBody {
+    received: bool,
+    event: string,
+    id: string,
+}
+
+pub struct WebhookApp {
+    secret: string,
+    events: Vec<WebhookEvent>,
+}
+
+/// SHA-256 hex of `secret.body` (demo signing until std HMAC lands).
+pub fn signature_for(secret: string, body: string) -> string {
+    crypto.sha256("${secret}.${body}")
+}
+
+impl WebhookApp {
+    pub fn new(secret: string) -> WebhookApp {
+        WebhookApp {
+            secret: secret,
+            events: Vec::new(),
+        }
+    }
+
+    pub fn handle(
+        self,
+        method: string,
+        path: string,
+        token: string,
+        signature: string,
+        body: string,
+    ) -> HttpReply {
+        // Keep owned String formals (call sites from tests use String::new() for "").
+        let method = own(method)
+        let path = own(path)
+        let token = own(token)
+        let signature = own(signature)
+        let body = own(body)
+        if path == "/health" || path == "/health/" {
+            if method == "GET" {
+                return json_ok()
+            }
+            return json_error(404, "not found")
+        }
+        if path == "/events" || path == "/events/" {
+            if method == "GET" {
+                return self.list_events()
+            }
+            return json_error(404, "not found")
+        }
+        if path == "/webhook" || path == "/webhook/" {
+            if method == "POST" {
+                return self.receive(token, signature, body)
+            }
+            return json_error(404, "not found")
+        }
+        json_error(404, "not found")
+    }
+
+    fn authorized(self, token: string, signature: string, body: string) -> bool {
+        if token.len() > 0 && token == self.secret {
+            return true
+        }
+        if signature.len() > 0 {
+            let expected = signature_for(self.secret, body)
+            return signature == expected
+        }
+        false
+    }
+
+    fn receive(self, token: string, signature: string, body: string) -> HttpReply {
+        if !self.authorized(token, signature, body) {
+            return json_error(401, "unauthorized")
+        }
+        let parsed: WebhookEvent = match json.parse_string(body) {
+            Ok(value) => value,
+            Err(_) => return json_error(400, "invalid json"),
+        }
+        if parsed.event.len() == 0 || parsed.id.len() == 0 {
+            return json_error(400, "event and id required")
+        }
+        let event_name = parsed.event
+        let event_id = parsed.id
+        self.events.push(WebhookEvent {
+            event: "${event_name}",
+            id: "${event_id}",
+        })
+        let payload = ReceivedBody {
+            received: true,
+            event: event_name,
+            id: event_id,
+        }
+        match json.to_string(payload) {
+            Ok(text) => HttpReply { status: 200, body: text },
+            Err(_) => json_error(500, "serialization failed"),
+        }
+    }
+
+    fn list_events(self) -> HttpReply {
+        match json.to_string(self.events) {
+            Ok(text) => HttpReply { status: 200, body: text },
+            Err(_) => json_error(500, "serialization failed"),
+        }
+    }
+}
+
+fn json_ok() -> HttpReply {
+    let payload = OkBody { ok: true }
+    match json.to_string(payload) {
+        Ok(text) => HttpReply { status: 200, body: text },
+        Err(_) => HttpReply { status: 200, body: "{\"ok\":true}" },
+    }
+}
+
+fn json_error(status: u16, message: string) -> HttpReply {
+    let payload = ErrorBody { error: message }
+    match json.to_string(payload) {
+        Ok(text) => HttpReply { status: status, body: text },
+        Err(_) => HttpReply { status: status, body: "{\"error\":\"unknown\"}" },
+    }
+}
+
+fn own(value: string) -> string {
+    value
+}

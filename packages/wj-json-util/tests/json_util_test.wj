@@ -1,0 +1,101 @@
+use crate::pretty
+use crate::path_get
+use crate::path_get_str
+use crate::merge
+use crate::parse_nonneg_int
+
+fn test_pretty_indents_valid_json() {
+    let out = pretty("{\"a\":1}")
+    assert_str_contains(out, "\n")
+    assert_str_contains(out, "\"a\"")
+}
+
+fn test_pretty_returns_raw_when_invalid() {
+    assert_eq(pretty("not-json"), "not-json")
+}
+
+fn test_path_get_nested_object_key() {
+    match path_get("{\"user\":{\"name\":\"Ada\"}}", "user.name") {
+        Some(v) => assert_eq(v, "\"Ada\""),
+        None => assert(false, "expected user.name"),
+    }
+}
+
+fn test_path_get_array_index_including_zero() {
+    match path_get("{\"nums\":[10,20]}", "nums.0") {
+        Some(v) => assert_eq(v, "10"),
+        None => assert(false, "expected nums.0"),
+    }
+    match path_get("{\"nums\":[10,20]}", "nums.1") {
+        Some(v) => assert_eq(v, "20"),
+        None => assert(false, "expected nums.1"),
+    }
+}
+
+fn test_path_get_missing_returns_none() {
+    match path_get("{\"a\":1}", "b.c") {
+        Some(_) => assert(false, "expected None"),
+        None => {},
+    }
+}
+
+fn test_path_get_str_unwraps_string_leaf() {
+    match path_get_str("{\"user\":{\"name\":\"Ada\"}}", "user.name") {
+        Some(v) => assert_eq(v, "Ada"),
+        None => assert(false, "expected Ada"),
+    }
+}
+
+fn test_path_get_str_none_for_non_string() {
+    match path_get_str("{\"n\":1}", "n") {
+        Some(_) => assert(false, "expected None"),
+        None => {},
+    }
+}
+
+fn test_merge_overlays_object_keys_shallow() {
+    match merge("{\"a\":1,\"b\":2}", "{\"b\":9,\"c\":3}") {
+        Ok(out) => {
+            assert_str_contains(out, "\"a\":1")
+            assert_str_contains(out, "\"b\":9")
+            assert_str_contains(out, "\"c\":3")
+        },
+        Err(_) => assert(false, "merge shallow failed"),
+    }
+}
+
+fn test_merge_deep_merges_nested_objects() {
+    match merge("{\"user\":{\"name\":\"Ada\",\"age\":1}}", "{\"user\":{\"age\":2}}") {
+        Ok(out) => {
+            assert_str_contains(out, "\"name\":\"Ada\"")
+            assert_str_contains(out, "\"age\":2")
+        },
+        Err(_) => assert(false, "merge deep failed"),
+    }
+}
+
+fn test_merge_errors_when_not_objects() {
+    match merge("[1]", "{\"a\":1}") {
+        Ok(_) => assert(false, "expected Err"),
+        Err(msg) => assert(msg.len() > 0, "error message"),
+    }
+}
+
+fn test_parse_nonneg_int_allows_zero() {
+    match parse_nonneg_int("0") {
+        Some(n) => assert_eq(n, 0),
+        None => assert(false, "0"),
+    }
+    match parse_nonneg_int("12") {
+        Some(n) => assert_eq(n, 12),
+        None => assert(false, "12"),
+    }
+    match parse_nonneg_int("01") {
+        Some(_) => assert(false, "leading zero rejected"),
+        None => {},
+    }
+    match parse_nonneg_int("x") {
+        Some(_) => assert(false, "letter"),
+        None => {},
+    }
+}

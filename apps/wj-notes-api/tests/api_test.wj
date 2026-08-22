@@ -1,0 +1,63 @@
+use crate::domain::NoteStore
+use crate::domain::handle_request
+
+fn test_get_notes_empty_returns_json_array() {
+    let store = NoteStore::new()
+    let reply = handle_request("GET", "/notes", "", store)
+    assert_eq(reply.status, 200)
+    assert_str_contains(reply.body, "[")
+}
+
+fn test_post_creates_note_with_201() {
+    let mut store = NoteStore::new()
+    let body = "{\"title\":\"hello\",\"body\":\"world\"}"
+    let reply = handle_request("POST", "/notes", body, store)
+    assert_eq(reply.status, 201)
+    assert_str_contains(reply.body, "hello")
+    assert_str_contains(reply.body, "world")
+}
+
+fn test_get_note_by_id() {
+    let mut store = NoteStore::new()
+    let _ = store.create("item", "detail")
+    let reply = handle_request("GET", "/notes/1", "", store)
+    assert_eq(reply.status, 200)
+    assert_str_contains(reply.body, "item")
+    assert_str_contains(reply.body, "detail")
+}
+
+fn test_get_missing_note_returns_404() {
+    let store = NoteStore::new()
+    let reply = handle_request("GET", "/notes/99", "", store)
+    assert_eq(reply.status, 404)
+}
+
+fn test_put_updates_note() {
+    let mut store = NoteStore::new()
+    let _ = store.create("old", "x")
+    let body = "{\"title\":\"new\",\"body\":\"y\"}"
+    let reply = handle_request("PUT", "/notes/1", body, store)
+    assert_eq(reply.status, 200)
+    assert_str_contains(reply.body, "new")
+    assert_str_contains(reply.body, "y")
+}
+
+fn test_delete_note_returns_204() {
+    let mut store = NoteStore::new()
+    let _ = store.create("gone", "z")
+    let reply = handle_request("DELETE", "/notes/1", "", store)
+    assert_eq(reply.status, 204)
+    assert_eq(reply.body.len(), 0)
+}
+
+fn test_post_invalid_json_returns_400() {
+    let store = NoteStore::new()
+    let reply = handle_request("POST", "/notes", "{bad", store)
+    assert_eq(reply.status, 400)
+}
+
+fn test_unknown_path_returns_404() {
+    let store = NoteStore::new()
+    let reply = handle_request("GET", "/health", "", store)
+    assert_eq(reply.status, 404)
+}

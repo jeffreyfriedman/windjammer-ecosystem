@@ -1,0 +1,83 @@
+use crate::parse
+use crate::compare
+use crate::format_version
+
+fn test_parse_simple_version() {
+    match parse("1.2.3") {
+        Ok(v) => {
+            assert_eq(v.major, 1)
+            assert_eq(v.minor, 2)
+            assert_eq(v.patch, 3)
+            assert_eq(v.pre, "")
+            assert_eq(v.build, "")
+        },
+        Err(_) => assert(false, "parse 1.2.3"),
+    }
+}
+
+fn test_parse_with_prerelease_and_build() {
+    match parse("1.0.0-alpha.1+build.5") {
+        Ok(v) => {
+            assert_eq(v.major, 1)
+            assert_eq(v.pre, "alpha.1")
+            assert_eq(v.build, "build.5")
+        },
+        Err(_) => assert(false, "parse prerelease"),
+    }
+}
+
+fn test_parse_rejects_empty() {
+    match parse("") {
+        Ok(_) => assert(false, "expected Err"),
+        Err(_) => {},
+    }
+}
+
+fn test_compare_ordering() {
+    match parse("1.0.0") {
+        Ok(a) => {
+            match parse("2.0.0") {
+                Ok(b) => assert_eq(compare(a, b), -1),
+                Err(_) => assert(false, "parse b"),
+            }
+        },
+        Err(_) => assert(false, "parse a"),
+    }
+    match parse("1.2.3") {
+        Ok(a) => {
+            match parse("1.2.4") {
+                Ok(b) => assert_eq(compare(a, b), -1),
+                Err(_) => assert(false, "parse patch"),
+            }
+        },
+        Err(_) => assert(false, "parse a2"),
+    }
+    match parse("1.0.0") {
+        Ok(a) => {
+            match parse("1.0.0") {
+                Ok(b) => assert_eq(compare(a, b), 0),
+                Err(_) => assert(false, "parse b same"),
+            }
+        },
+        Err(_) => assert(false, "parse same"),
+    }
+}
+
+fn test_prerelease_is_older_than_release() {
+    match parse("1.0.0-alpha") {
+        Ok(pre) => {
+            match parse("1.0.0") {
+                Ok(rel) => assert_eq(compare(pre, rel), -1),
+                Err(_) => assert(false, "parse rel"),
+            }
+        },
+        Err(_) => assert(false, "parse pre"),
+    }
+}
+
+fn test_format_version_roundtrip() {
+    match parse("3.4.5-beta.2+meta") {
+        Ok(v) => assert_eq(format_version(v), "3.4.5-beta.2+meta"),
+        Err(_) => assert(false, "parse roundtrip"),
+    }
+}

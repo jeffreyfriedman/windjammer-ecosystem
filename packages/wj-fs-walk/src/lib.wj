@@ -1,0 +1,68 @@
+use std::fs
+use std::strings
+
+/// True when `name` starts with `.` (dotfile / hidden directory name).
+pub fn is_hidden_name(name: string) -> bool {
+    strings.starts_with(name, ".")
+}
+
+/// Depth-first list of every file and directory path under `root` (not including `root`).
+pub fn walk(root: string) -> Result<Vec<string>, string> {
+    walk_into(root, true, true)
+}
+
+/// Depth-first list of file paths under `root`.
+pub fn walk_files(root: string) -> Result<Vec<string>, string> {
+    walk_into(root, true, false)
+}
+
+/// Depth-first list of directory paths under `root` (not including `root`).
+pub fn walk_dirs(root: string) -> Result<Vec<string>, string> {
+    walk_into(root, false, true)
+}
+
+/// Files under `root` whose path ends with `suffix` (e.g. `.md`).
+pub fn walk_files_with_suffix(root: string, suffix: string) -> Result<Vec<string>, string> {
+    match walk_files(root) {
+        Ok(paths) => {
+            let mut filtered = Vec::new()
+            for path in paths {
+                if strings.ends_with(path, suffix) {
+                    filtered.push(path)
+                }
+            }
+            Ok(filtered)
+        },
+        Err(e) => Err(e),
+    }
+}
+
+fn walk_into(dir: string, include_files: bool, include_dirs: bool) -> Result<Vec<string>, string> {
+    match fs.read_dir(dir) {
+        Ok(entries) => {
+            let mut out = Vec::new()
+            for entry in entries {
+                let path = entry.path()
+                if entry.is_dir() {
+                    if include_dirs {
+                        out.push("${path}")
+                    }
+                    match walk_into(path, include_files, include_dirs) {
+                        Ok(nested) => {
+                            for p in nested {
+                                out.push(p)
+                            }
+                        },
+                        Err(e) => return Err(e),
+                    }
+                } else if entry.is_file() {
+                    if include_files {
+                        out.push(path)
+                    }
+                }
+            }
+            Ok(out)
+        },
+        Err(e) => Err(e),
+    }
+}

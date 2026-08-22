@@ -1,0 +1,107 @@
+use std::http::*
+use std::sync::{Arc, Mutex}
+
+use crate::domain::HttpReply
+use crate::domain::WebhookApp
+
+/// Bind HTTP and dispatch into a shared `WebhookApp`.
+pub fn serve(port: int, secret: string) -> Result<(), string> {
+    let app = WebhookApp::new(secret)
+    let shared = Arc::new(Mutex::new(app))
+    match server_serve(bind_address(), port, |req| dispatch(req, shared)) {
+        Ok(_) => Ok(()),
+        Err(err) => Err(err),
+    }
+}
+
+fn bind_address() -> string {
+    "0.0.0.0"
+}
+
+fn dispatch(req: ServerRequest, state: Arc<Mutex<WebhookApp>>) -> ServerResponse {
+    let method = method_label(req.method)
+    let path = req.path
+    let body = req.body
+    let headers = req.headers
+    let auth = auth_from_headers(headers)
+    match state.lock() {
+        Ok(mut app) => {
+            let reply = app.handle(method, path, auth.0, auth.1, body)
+            to_response(reply)
+        },
+        Err(_) => server_error("internal server error"),
+    }
+}
+
+fn auth_from_headers(headers: Vec<(string, string)>) -> (string, string) {
+    let mut token = ""
+    let mut signature = ""
+    for pair in headers {
+        let key = pair.0
+        let value = pair.1
+        if header_key_matches(key, "X-Webhook-Token") {
+            token = value
+            continue
+        }
+        if header_key_matches(key, "X-Webhook-Signature") {
+            signature = value
+        }
+    }
+    (token, signature)
+}
+
+fn header_key_matches(actual: string, expected: string) -> bool {
+    actual == expected
+}
+
+fn method_label(method: HttpMethod) -> string {
+    if method == "GET" {
+        return "GET"
+    }
+    if method == "POST" {
+        return "POST"
+    }
+    if method == "PUT" {
+        return "PUT"
+    }
+    if method == "DELETE" {
+        return "DELETE"
+    }
+    if method == "PATCH" {
+        return "PATCH"
+    }
+    if method == "HEAD" {
+        return "HEAD"
+    }
+    if method == "OPTIONS" {
+        return "OPTIONS"
+    }
+    "UNKNOWN"
+}
+
+fn to_response(reply: HttpReply) -> ServerResponse {
+    if reply.status == 200 {
+        return ServerResponse::json(reply.body)
+    }
+    if reply.status == 400 {
+        return ServerResponse::bad_request(reply.body)
+            .header("Content-Type", "application/json")
+    }
+    if reply.status == 401 {
+        let status = 401
+        return ServerResponse::new(status, reply.body)
+            .header("Content-Type", "application/json")
+    }
+    if reply.status == 404 {
+        let status = 404
+        return ServerResponse::new(status, reply.body)
+            .header("Content-Type", "application/json")
+    }
+    server_error(reply.body)
+}
+
+fn server_error(message: string) -> ServerResponse {
+    let status = 500
+    ServerResponse::new(status, message)
+        .header("Content-Type", "application/json")
+}

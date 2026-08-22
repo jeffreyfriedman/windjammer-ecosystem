@@ -1,4 +1,11 @@
 pub mod store
+pub mod api
+pub mod parse
 
 pub use store::Note
 pub use store::NoteStore
+pub use parse::parse_positive_int
+pub use api::HttpReply
+pub use api::HttpRequest
+pub use api::NotesApi
+pub use api::handle_request

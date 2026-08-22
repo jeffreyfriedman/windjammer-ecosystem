@@ -15,10 +15,19 @@ Apps and packages that show what everyday Windjammer development looks like: CLI
 |---|---|---|
 | Std-only CLI | [`apps/wj-hello`](apps/wj-hello) | Available |
 | `.env` loader | [`packages/wj-dotenv`](packages/wj-dotenv) | Available |
+| Layered config | [`packages/wj-config`](packages/wj-config) | Available |
+| Logging helpers | [`packages/wj-log`](packages/wj-log) | Available |
+| Argv helpers | [`packages/wj-cli-args`](packages/wj-cli-args) | Available |
 | HTTP CLI | [`apps/wj-fetch`](apps/wj-fetch) | Available |
-| CRUD API | `apps/wj-notes-api` | Domain green (HTTP next) |
-| Static site generator | `apps/wj-sitegen` | Planned |
-| Webhook worker | `apps/wj-webhook` | Planned |
+| CRUD API | [`apps/wj-notes-api`](apps/wj-notes-api) | Available (in-memory REST) |
+| Static site generator | [`apps/wj-sitegen`](apps/wj-sitegen) | Available |
+| Webhook worker | [`apps/wj-webhook`](apps/wj-webhook) | Available |
+| HTTP client helpers | [`packages/wj-http-client`](packages/wj-http-client) | Available |
+| JSON utilities | [`packages/wj-json-util`](packages/wj-json-util) | Available |
+| Directory walk | [`packages/wj-fs-walk`](packages/wj-fs-walk) | Available |
+| String templates | [`packages/wj-template`](packages/wj-template) | Available |
+| UUID v1/v4/v5 | [`packages/wj-uuid`](packages/wj-uuid) | Blocked on stdlib wiring (see package README) |
+| Semver | [`packages/wj-semver`](packages/wj-semver) | Available |
 
 See [docs/ROADMAP.md](docs/ROADMAP.md) for the full package catalog.
 

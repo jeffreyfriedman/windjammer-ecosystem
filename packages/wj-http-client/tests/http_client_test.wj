@@ -1,0 +1,53 @@
+use crate::HttpResult
+use crate::status_is_success
+use crate::require_ok
+use crate::error_message
+use crate::from_parts
+
+fn test_status_is_success_accepts_2xx() {
+    assert(status_is_success(200), "200")
+    assert(status_is_success(201), "201")
+    assert(status_is_success(204), "204")
+    assert(!status_is_success(199), "199")
+    assert(!status_is_success(300), "300")
+    assert(!status_is_success(404), "404")
+    assert(!status_is_success(500), "500")
+}
+
+fn test_require_ok_returns_body_on_success() {
+    let result = from_parts(200, "{\"ok\":true}")
+    match require_ok(result) {
+        Ok(body) => assert_str_contains(body, "ok"),
+        Err(_) => assert(false, "expected Ok"),
+    }
+}
+
+fn test_require_ok_errors_on_4xx() {
+    let result = from_parts(404, "missing")
+    match require_ok(result) {
+        Ok(_) => assert(false, "expected Err"),
+        Err(msg) => {
+            assert_str_contains(msg, "404")
+            assert_str_contains(msg, "missing")
+        },
+    }
+}
+
+fn test_error_message_includes_status_and_body() {
+    let msg = error_message(500, "boom")
+    assert_str_contains(msg, "500")
+    assert_str_contains(msg, "boom")
+}
+
+fn test_from_parts_builds_result() {
+    let result = from_parts(201, "created")
+    assert_eq(result.status, 201)
+    assert_eq(result.body, "created")
+}
+
+fn test_http_result_is_success_method() {
+    let ok = from_parts(204, "")
+    assert(ok.is_success(), "204 should succeed")
+    let bad = from_parts(401, "nope")
+    assert(!bad.is_success(), "401 should fail")
+}

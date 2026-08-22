@@ -1,0 +1,64 @@
+use crate::render
+use crate::render_strict
+use crate::missing_keys
+use std::collections::HashMap
+use std::strings
+
+fn vars_one() -> HashMap<string, string> {
+    let mut vars = HashMap::new()
+    vars.insert("name", "Ada")
+    vars
+}
+
+fn test_render_single_placeholder() {
+    let out = render("Hello {{name}}!", vars_one())
+    assert_eq(out, "Hello Ada!")
+}
+
+fn test_render_multiple_placeholders() {
+    let mut vars = HashMap::new()
+    vars.insert("greeting", "Hi")
+    vars.insert("name", "Bob")
+    let out = render("{{greeting}}, {{name}}.", vars)
+    assert_eq(out, "Hi, Bob.")
+}
+
+fn test_render_adjacent_placeholders() {
+    let mut vars = HashMap::new()
+    vars.insert("a", "1")
+    vars.insert("b", "2")
+    let out = render("{{a}}{{b}}", vars)
+    assert_eq(out, "12")
+}
+
+fn test_render_missing_key_left_unchanged() {
+    let out = render("Hello {{name}}!", HashMap::new())
+    assert_eq(out, "Hello {{name}}!")
+}
+
+fn test_render_no_placeholders() {
+    let out = render("plain text", vars_one())
+    assert_eq(out, "plain text")
+}
+
+fn test_render_strict_ok() {
+    match render_strict("Hello {{name}}!", vars_one()) {
+        Ok(out) => assert_eq(out, "Hello Ada!"),
+        Err(_) => assert(false, "expected Ok"),
+    }
+}
+
+fn test_render_strict_missing_key() {
+    match render_strict("Hello {{name}}!", HashMap::new()) {
+        Ok(_) => assert(false, "expected Err"),
+        Err(msg) => assert(strings.contains(msg, "name"), "names missing key"),
+    }
+}
+
+fn test_missing_keys_finds_gaps() {
+    let mut vars = HashMap::new()
+    vars.insert("a", "1")
+    let gaps = missing_keys("{{a}} and {{b}}", vars)
+    assert_eq(gaps.len(), 1)
+    assert_eq(gaps[0], "b")
+}

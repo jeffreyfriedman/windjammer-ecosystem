@@ -1,0 +1,90 @@
+use std::http::*
+use std::sync::{Arc, Mutex}
+
+use crate::domain::HttpReply
+use crate::domain::HttpRequest
+use crate::domain::NoteStore
+use crate::domain::NotesApi
+
+pub fn serve(port: int, store: NoteStore) -> Result<(), string> {
+    let shared = Arc::new(Mutex::new(NotesApi::new(store)))
+    match server_serve(bind_address(), port, |req| dispatch(req, shared)) {
+        Ok(_) => Ok(()),
+        Err(err) => Err(err),
+    }
+}
+
+fn bind_address() -> string {
+    "0.0.0.0"
+}
+
+fn dispatch(req: ServerRequest, state: Arc<Mutex<NotesApi>>) -> ServerResponse {
+    let method = method_label(req.method)
+    let path = req.path
+    let body = req.body
+    match state.lock() {
+        Ok(mut api) => {
+            let reply = api.serve(HttpRequest {
+                method: method,
+                path: path,
+                body: body,
+            })
+            to_response(reply)
+        },
+        Err(_) => server_error("internal server error"),
+    }
+}
+
+fn method_label(method: HttpMethod) -> string {
+    if method == "GET" {
+        return "GET"
+    }
+    if method == "POST" {
+        return "POST"
+    }
+    if method == "PUT" {
+        return "PUT"
+    }
+    if method == "DELETE" {
+        return "DELETE"
+    }
+    if method == "PATCH" {
+        return "PATCH"
+    }
+    if method == "HEAD" {
+        return "HEAD"
+    }
+    if method == "OPTIONS" {
+        return "OPTIONS"
+    }
+    "UNKNOWN"
+}
+
+fn to_response(reply: HttpReply) -> ServerResponse {
+    if reply.status == 204 {
+        return ServerResponse::no_content()
+    }
+    if reply.status == 201 {
+        return ServerResponse::created(reply.body)
+            .header("Content-Type", "application/json")
+    }
+    if reply.status == 200 {
+        return ServerResponse::json(reply.body)
+    }
+    if reply.status == 400 {
+        return ServerResponse::bad_request(reply.body)
+            .header("Content-Type", "application/json")
+    }
+    if reply.status == 404 {
+        let status = 404
+        return ServerResponse::new(status, reply.body)
+            .header("Content-Type", "application/json")
+    }
+    server_error(reply.body)
+}
+
+fn server_error(message: string) -> ServerResponse {
+    let status = 500
+    ServerResponse::new(status, message)
+        .header("Content-Type", "application/json")
+}

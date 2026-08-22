@@ -1,0 +1,117 @@
+use crate::v4
+use crate::v1
+use crate::v1_from_timestamp
+use crate::v5
+use crate::v5_dns
+use crate::v5_url
+use crate::version
+use crate::is_valid
+use crate::normalize
+use std::strings
+
+fn test_v1_from_timestamp_known_vector() {
+    match v1_from_timestamp(1700000000000, 984, "123456789abc") {
+        Ok(id) => assert_eq(id, "04afc000-833b-11ee-83d8-123456789abc"),
+        Err(_) => assert(false, "v1_from_timestamp failed"),
+    }
+}
+
+fn test_v1_from_timestamp_validates_clock_seq() {
+    match v1_from_timestamp(1700000000000, 99999, "123456789abc") {
+        Ok(_) => assert(false, "expected clock_seq Err"),
+        Err(msg) => assert(strings.contains(msg, "clock_seq"), "clock_seq message"),
+    }
+}
+
+fn test_v5_dns_rfc4122_vector() {
+    match v5_dns("www.example.com") {
+        Ok(id) => assert_eq(id, "2ed6657d-e927-568b-95e1-2665a8aea6a2"),
+        Err(_) => assert(false, "v5_dns failed"),
+    }
+}
+
+fn test_v5_url_rfc4122_vector() {
+    match v5_url("www.example.com") {
+        Ok(id) => assert_eq(id, "b63cdfa4-3df9-568e-97ae-006c5b8fd652"),
+        Err(_) => assert(false, "v5_url failed"),
+    }
+}
+
+fn test_v5_is_deterministic() {
+    match v5("6ba7b810-9dad-11d1-80b4-00c04fd430c8", "www.example.com") {
+        Ok(a) => {
+            match v5("6ba7b810-9dad-11d1-80b4-00c04fd430c8", "www.example.com") {
+                Ok(b) => assert_eq(a, b),
+                Err(_) => assert(false, "second v5 failed"),
+            }
+        },
+        Err(_) => assert(false, "first v5 failed"),
+    }
+}
+
+fn test_version_detects_v1_v4_v5() {
+    assert_eq(version("04afc000-833b-11ee-83d8-123456789abc"), 1)
+    assert_eq(version("550e8400-e29b-41d4-a716-446655440000"), 4)
+    assert_eq(version("2ed6657d-e927-568b-95e1-2665a8aea6a2"), 5)
+}
+
+fn test_v4_has_canonical_shape() {
+    let id = v4()
+    assert_eq(strings.len(id), 36)
+    assert(strings.substring(id, 8, 9) == "-", "dash 1")
+    assert(strings.substring(id, 13, 14) == "-", "dash 2")
+    assert(strings.substring(id, 18, 19) == "-", "dash 3")
+    assert(strings.substring(id, 23, 24) == "-", "dash 4")
+    assert(strings.substring(id, 14, 15) == "4", "version nibble")
+}
+
+fn test_v4_variant_nibble_is_rfc4122() {
+    let id = v4()
+    let variant = strings.substring(id, 19, 20)
+    let ok = variant == "8" || variant == "9" || variant == "a" || variant == "b"
+    assert(ok, "variant nibble")
+}
+
+fn test_v4_generates_distinct_values() {
+    let a = v4()
+    let b = v4()
+    assert(a != b, "uuids should differ")
+}
+
+fn test_is_valid_accepts_v1_v4_v5() {
+    assert(is_valid("04afc000-833b-11ee-83d8-123456789abc"), "v1")
+    assert(is_valid("550E8400-E29B-41D4-A716-446655440000"), "v4 uppercase")
+    assert(is_valid("2ed6657d-e927-568b-95e1-2665a8aea6a2"), "v5")
+}
+
+fn test_is_valid_rejects_wrong_length() {
+    assert(!is_valid("550e8400-e29b-41d4-a716-44665544000"), "short")
+    assert(!is_valid("550e8400-e29b-41d4-a716-4466554400000"), "long")
+}
+
+fn test_is_valid_rejects_unsupported_version() {
+    assert(!is_valid("550e8400-e29b-31d4-a716-446655440000"), "version 3")
+}
+
+fn test_is_valid_rejects_bad_variant() {
+    assert(!is_valid("550e8400-e29b-41d4-c716-446655440000"), "variant c")
+}
+
+fn test_normalize_lowercases() {
+    assert_eq(normalize("550E8400-E29B-41D4-A716-446655440000"), "550e8400-e29b-41d4-a716-446655440000")
+}
+
+fn test_v1_now_has_version_one() {
+    match v1() {
+        Ok(id) => {
+            assert_eq(version(id), 1)
+            assert(is_valid(id), "generated v1")
+        },
+        Err(_) => assert(false, "v1 failed"),
+    }
+}
+
+fn test_v4_roundtrip_valid() {
+    let id = v4()
+    assert(is_valid(id), "generated v4")
+}

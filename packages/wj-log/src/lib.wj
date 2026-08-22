@@ -1,0 +1,37 @@
+use std::log::*
+
+/// Parse `trace` / `debug` / `info` / `warn` / `error` (case-insensitive aliases included).
+pub fn parse_level(text: string) -> Option<LogLevel> {
+    match text {
+        "trace" | "TRACE" | "Trace" => Some(LogLevel::Trace),
+        "debug" | "DEBUG" | "Debug" => Some(LogLevel::Debug),
+        "info" | "INFO" | "Info" => Some(LogLevel::Info),
+        "warn" | "WARN" | "Warn" | "warning" | "WARNING" => Some(LogLevel::Warn),
+        "error" | "ERROR" | "Error" => Some(LogLevel::Error),
+        _ => None,
+    }
+}
+
+/// Initialize logging at the given level text; returns an error when the level is unknown.
+pub fn init_from_level_text(text: string) -> Result<(), string> {
+    match parse_level(text) {
+        Some(level) => {
+            init_with_level(level)
+            Ok(())
+        },
+        None => Err("unknown log level: ${text}"),
+    }
+}
+
+/// Route a tagged message to the matching std log function. Unknown levels fall back to info.
+pub fn log_tagged(level: string, tag: string, message: string) {
+    let line = "[${tag}] ${message}"
+    match level {
+        "trace" | "TRACE" | "Trace" => trace(line),
+        "debug" | "DEBUG" | "Debug" => debug(line),
+        "info" | "INFO" | "Info" => info(line),
+        "warn" | "WARN" | "Warn" | "warning" | "WARNING" => warn(line),
+        "error" | "ERROR" | "Error" => error(line),
+        _ => info(line),
+    }
+}

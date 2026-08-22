@@ -1,0 +1,71 @@
+use crate::domain::html_filename
+use crate::domain::title_from_markdown
+use crate::domain::markdown_to_html
+use crate::domain::render_document
+use crate::domain::generate_page
+use crate::domain::dirs_from_args
+
+fn test_html_filename_strips_directory_and_md() {
+    assert_eq(html_filename("posts/hello.md"), "hello.html")
+}
+
+fn test_html_filename_bare_file() {
+    assert_eq(html_filename("index.md"), "index.html")
+}
+
+fn test_title_from_markdown_uses_first_h1() {
+    let src = "# Hello\n\nA paragraph."
+    assert_eq(title_from_markdown(src), "Hello")
+}
+
+fn test_title_from_markdown_untitled_without_heading() {
+    assert_eq(title_from_markdown("just text"), "Untitled")
+}
+
+fn test_markdown_to_html_heading_and_paragraph() {
+    let html = markdown_to_html("# Hello\n\nA paragraph.")
+    assert_str_contains(html, "<h1>Hello</h1>")
+    assert_str_contains(html, "<p>A paragraph.</p>")
+}
+
+fn test_markdown_to_html_escapes_markup() {
+    let html = markdown_to_html("<script>")
+    assert_str_contains(html, "&lt;script&gt;")
+}
+
+fn test_render_document_includes_title_and_body() {
+    let page = render_document("Hello", "<p>Hi</p>")
+    assert_str_contains(page, "<title>Hello</title>")
+    assert_str_contains(page, "<p>Hi</p>")
+}
+
+fn test_generate_page_combines_filename_title_and_html() {
+    let page = generate_page("docs/intro.md", "# Intro\n\nWelcome.")
+    assert_eq(page.filename, "intro.html")
+    assert_eq(page.title, "Intro")
+    assert_str_contains(page.html, "<h1>Intro</h1>")
+    assert_str_contains(page.html, "<title>Intro</title>")
+}
+
+fn test_dirs_from_args_takes_src_and_out() {
+    let mut args = Vec::new()
+    args.push("wj-sitegen")
+    args.push("content")
+    args.push("site")
+    match dirs_from_args(args) {
+        Ok(dirs) => {
+            assert_eq(dirs.src, "content")
+            assert_eq(dirs.out, "site")
+        },
+        Err(_) => assert(false, "expected Ok"),
+    }
+}
+
+fn test_dirs_from_args_errors_when_missing() {
+    let mut args = Vec::new()
+    args.push("wj-sitegen")
+    match dirs_from_args(args) {
+        Ok(_) => assert(false, "expected Err"),
+        Err(msg) => assert(msg.len() > 0, "usage message"),
+    }
+}

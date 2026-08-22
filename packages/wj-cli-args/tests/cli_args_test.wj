@@ -1,0 +1,86 @@
+use crate::read_argv
+use crate::tail
+use crate::first_positional
+use crate::require_first_positional
+use crate::has_long_flag
+use crate::long_flag_value
+use crate::positionals
+
+fn sample_args() -> Vec<string> {
+    let mut args = Vec::new()
+    args.push("my-app")
+    args.push("--verbose")
+    args.push("https://example.com")
+    args.push("--port=9090")
+    args
+}
+
+fn test_tail_skips_program_name() {
+    let args = sample_args()
+    let rest = tail(args)
+    assert_eq(rest.len(), 3)
+    assert_eq(rest[0], "--verbose")
+}
+
+fn test_first_positional_skips_flags() {
+    let args = sample_args()
+    match first_positional(args) {
+        Some(url) => assert_eq(url, "https://example.com"),
+        None => assert(false, "expected positional url"),
+    }
+}
+
+fn test_require_first_positional_errors_with_usage() {
+    let mut args = Vec::new()
+    args.push("my-app")
+    args.push("--verbose")
+    match require_first_positional(args, "usage: my-app <url>") {
+        Ok(_) => assert(false, "expected Err"),
+        Err(msg) => assert(msg.len() > 0, "usage message required"),
+    }
+}
+
+fn test_has_long_flag_detects_bare_flag() {
+    let mut args = Vec::new()
+    args.push("tool")
+    args.push("--verbose")
+    assert(has_long_flag(args, "verbose"), "bare --verbose")
+}
+
+fn test_long_flag_value_from_equals_form() {
+    let mut args = Vec::new()
+    args.push("tool")
+    args.push("--port=9090")
+    match long_flag_value(args, "port") {
+        Some(v) => assert_eq(v, "9090"),
+        None => assert(false, "expected port value"),
+    }
+}
+
+fn test_long_flag_value_from_space_form() {
+    let mut args = Vec::new()
+    args.push("tool")
+    args.push("--port")
+    args.push("3000")
+    match long_flag_value(args, "port") {
+        Some(v) => assert_eq(v, "3000"),
+        None => assert(false, "expected port after --port"),
+    }
+}
+
+fn test_positionals_collects_non_flags() {
+    let mut args = Vec::new()
+    args.push("tool")
+    args.push("alpha")
+    args.push("--verbose")
+    args.push("beta")
+    let pos = positionals(args)
+    assert_eq(pos.len(), 2)
+    assert_eq(pos[0], "alpha")
+    assert_eq(pos[1], "beta")
+}
+
+fn test_read_argv_includes_program_name() {
+    let args = read_argv()
+    assert(args.len() > 0, "argv should not be empty")
+}

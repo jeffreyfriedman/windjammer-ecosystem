@@ -1,0 +1,14 @@
+# Windjammer build artifacts
+build/
+.wj-cache/
+target/
+
+# OS / IDE
+.DS_Store
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Logs
+*.log

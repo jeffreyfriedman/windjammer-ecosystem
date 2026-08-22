@@ -1,0 +1,27 @@
+// Composition root — argv dirs + filesystem adapters + domain rendering.
+
+use crate::domain::dirs_from_args
+use crate::adapters::read_args
+use crate::adapters::generate_site
+use std::process
+
+fn main() {
+    let args = read_args()
+    match dirs_from_args(args) {
+        Ok(dirs) => {
+            match generate_site(dirs.src, dirs.out) {
+                Ok(count) => {
+                    println("wj-sitegen: wrote ${count} page(s) to ${dirs.out}")
+                },
+                Err(e) => {
+                    eprintln!("wj-sitegen: ${e}")
+                    process.exit(1)
+                },
+            }
+        },
+        Err(e) => {
+            eprintln!("wj-sitegen: ${e}")
+            process.exit(1)
+        },
+    }
+}

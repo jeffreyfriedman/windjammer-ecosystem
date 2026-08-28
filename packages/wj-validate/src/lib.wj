@@ -1,0 +1,97 @@
+use std::strings
+
+/// Trim and require a non-empty string.
+pub fn require_nonempty(field: string, value: string) -> Result<string, string> {
+    let trimmed = strings.trim(value)
+    if strings.len(trimmed) == 0 {
+        return Err("${field} is required")
+    }
+    Ok(trimmed)
+}
+
+/// Require `value` length >= `min` (after trim).
+pub fn require_min_len(field: string, value: string, min: int) -> Result<string, string> {
+    let trimmed = strings.trim(value)
+    if strings.len(trimmed) < min {
+        return Err("${field} must be at least ${min} characters")
+    }
+    Ok(trimmed)
+}
+
+/// Require `value` length <= `max` (after trim).
+pub fn require_max_len(field: string, value: string, max: int) -> Result<string, string> {
+    let trimmed = strings.trim(value)
+    if strings.len(trimmed) > max {
+        return Err("${field} must be at most ${max} characters")
+    }
+    Ok(trimmed)
+}
+
+/// Lightweight email shape: non-empty local@domain with a dot in the domain.
+pub fn require_email(field: string, value: string) -> Result<string, string> {
+    let trimmed = strings.trim(value)
+    if strings.len(trimmed) == 0 {
+        return Err("${field} is required")
+    }
+    let parts = strings.split(trimmed, "@")
+    if parts.len() != 2 {
+        return Err("${field} must be a valid email")
+    }
+    let local = parts[0]
+    let domain = parts[1]
+    if strings.len(local) == 0 {
+        return Err("${field} must be a valid email")
+    }
+    if strings.len(domain) == 0 {
+        return Err("${field} must be a valid email")
+    }
+    if !strings.contains(domain, ".") {
+        return Err("${field} must be a valid email")
+    }
+    if strings.starts_with(domain, ".") {
+        return Err("${field} must be a valid email")
+    }
+    if strings.ends_with(domain, ".") {
+        return Err("${field} must be a valid email")
+    }
+    Ok(trimmed)
+}
+
+/// Require `min <= value <= max`.
+pub fn require_int_range(field: string, value: int, min: int, max: int) -> Result<int, string> {
+    if value < min || value > max {
+        return Err("${field} must be between ${min} and ${max}")
+    }
+    Ok(value)
+}
+
+/// Require `value` is one of `allowed`.
+pub fn require_one_of(field: string, value: string, allowed: Vec<string>) -> Result<string, string> {
+    let trimmed = strings.trim(value)
+    let mut i = 0
+    while i < allowed.len() {
+        if allowed[i] == trimmed {
+            return Ok(trimmed)
+        }
+        i = i + 1
+    }
+    Err("${field} must be one of the allowed values")
+}
+
+/// Ok if `errors` is empty; otherwise Err with errors joined by `"; "`.
+pub fn all_ok(errors: Vec<string>) -> Result<(), string> {
+    if errors.len() == 0 {
+        return Ok(())
+    }
+    let mut out = ""
+    let mut i = 0
+    while i < errors.len() {
+        if i == 0 {
+            out = errors[i]
+        } else {
+            out = "${out}; ${errors[i]}"
+        }
+        i = i + 1
+    }
+    Err(out)
+}

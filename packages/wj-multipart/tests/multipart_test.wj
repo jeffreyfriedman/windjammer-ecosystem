@@ -1,0 +1,126 @@
+use crate::boundary_from_content_type
+use crate::content_type_header
+use crate::format_multipart
+use crate::get_field
+use crate::get_file
+use crate::parse_multipart
+use std::strings
+
+@test
+fn test_boundary_from_content_type() {
+    match boundary_from_content_type("multipart/form-data; boundary=----WebKitFormBoundary7MA4YWxk") {
+        Ok(b) => assert_eq(b, "----WebKitFormBoundary7MA4YWxk"),
+        Err(_) => assert(false, "expected boundary"),
+    }
+}
+
+@test
+fn test_boundary_rejects_non_multipart() {
+    match boundary_from_content_type("application/json") {
+        Ok(_) => assert(false, "expected Err"),
+        Err(_) => {},
+    }
+}
+
+@test
+fn test_parse_text_fields() {
+    let boundary = "----bound"
+    let body = "--${boundary}\r\nContent-Disposition: form-data; name=\"title\"\r\n\r\nHello\r\n--${boundary}\r\nContent-Disposition: form-data; name=\"count\"\r\n\r\n3\r\n--${boundary}--"
+    match parse_multipart(boundary, body) {
+        Ok(parts) => {
+            assert_eq(parts.len(), 2)
+            assert_eq(parts[0].name, "title")
+            assert_eq(parts[0].body, "Hello")
+            assert_eq(parts[0].filename, "")
+            assert_eq(parts[1].name, "count")
+            assert_eq(parts[1].body, "3")
+        },
+        Err(_) => assert(false, "parse text fields"),
+    }
+}
+
+@test
+fn test_parse_file_part() {
+    let boundary = "----file"
+    let body = "--${boundary}\r\nContent-Disposition: form-data; name=\"avatar\"; filename=\"a.txt\"\r\nContent-Type: text/plain\r\n\r\nhi\r\n--${boundary}--"
+    match parse_multipart(boundary, body) {
+        Ok(parts) => {
+            assert_eq(parts.len(), 1)
+            assert_eq(parts[0].name, "avatar")
+            assert_eq(parts[0].filename, "a.txt")
+            assert_eq(parts[0].content_type, "text/plain")
+            assert_eq(parts[0].body, "hi")
+        },
+        Err(_) => assert(false, "parse file part"),
+    }
+}
+
+@test
+fn test_get_field_returns_first_match() {
+    let boundary = "----g"
+    let body = "--${boundary}\r\nContent-Disposition: form-data; name=\"a\"\r\n\r\n1\r\n--${boundary}\r\nContent-Disposition: form-data; name=\"a\"\r\n\r\n2\r\n--${boundary}--"
+    match parse_multipart(boundary, body) {
+        Ok(parts) => {
+            match get_field(parts, "a") {
+                Some(v) => assert_eq(v, "1"),
+                None => assert(false, "expected field a"),
+            }
+        },
+        Err(_) => assert(false, "parse for get_field"),
+    }
+}
+
+@test
+fn test_get_file_returns_named_upload() {
+    let boundary = "----f"
+    let body = "--${boundary}\r\nContent-Disposition: form-data; name=\"doc\"; filename=\"x.md\"\r\nContent-Type: text/markdown\r\n\r\n# hi\r\n--${boundary}--"
+    match parse_multipart(boundary, body) {
+        Ok(parts) => {
+            match get_file(parts, "doc") {
+                Some(p) => {
+                    assert_eq(p.filename, "x.md")
+                    assert_eq(p.body, "# hi")
+                },
+                None => assert(false, "expected file"),
+            }
+        },
+        Err(_) => assert(false, "parse for get_file"),
+    }
+}
+
+@test
+fn test_format_roundtrip_text_field() {
+    let boundary = "----rt"
+    let body = "--${boundary}\r\nContent-Disposition: form-data; name=\"msg\"\r\n\r\nok\r\n--${boundary}--"
+    match parse_multipart(boundary, body) {
+        Ok(parts) => {
+            let out = format_multipart(boundary, parts)
+            assert(strings.contains(out, "name=\"msg\""), "has disposition")
+            assert(strings.contains(out, "ok"), "has body")
+            assert(strings.contains(out, "----rt--"), "has closing")
+            match parse_multipart("----rt", out) {
+                Ok(again) => {
+                    assert_eq(again.len(), 1)
+                    assert_eq(again[0].body, "ok")
+                },
+                Err(_) => assert(false, "reparse formatted"),
+            }
+        },
+        Err(_) => assert(false, "parse for format"),
+    }
+}
+
+@test
+fn test_content_type_header() {
+    let header = content_type_header("----abc")
+    assert(strings.starts_with(header, "multipart/form-data"), "mime")
+    assert(strings.contains(header, "boundary=----abc"), "boundary")
+}
+
+@test
+fn test_parse_rejects_missing_boundary_marker() {
+    match parse_multipart("----b", "not multipart") {
+        Ok(_) => assert(false, "expected Err"),
+        Err(_) => {},
+    }
+}

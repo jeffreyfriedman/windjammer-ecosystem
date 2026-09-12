@@ -105,6 +105,7 @@ Weekly build health for seed apps and packages.
 | 2 | 2026-09-11 | full graduate `wj-yaml` | 0 | 0 | — | Drop empty pre-check; `to_json` → `std::yaml` only; P3.244 ✅; **16/16 tests green** |
 | 2 | 2026-09-12 | deepen `wj-uuid` | 0 | 0 | tip `i64 & 0xff` → `255_u8` (P3.250 repro) | RFC 9562 **v7** + **NIL**/**MAX**; **20/20** on wj 0.50.0 |
 | 2 | 2026-09-12 | deepen `wj-toml` | 0 | 0 | tip `get(&text)` owned formal (P3.254); `"${raw}"` interim (P3.251) | Dotted keys + inline tables; **17/17** on wj 0.50.0 |
+| 2 | 2026-09-12 | deepen `wj-validate` | 0 | 0 | — | `require_uuid` accepts v1/v4/v5/v7 + RFC variant; **27/27** |
 
 ## Weekly checklist
 

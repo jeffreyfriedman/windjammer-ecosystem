@@ -191,6 +191,42 @@ fn test_require_uuid_ok() {
 }
 
 @test
+fn test_require_uuid_accepts_v7() {
+    match require_uuid("id", "017f22e2-79b0-7cc3-98c4-dc0c0c07398f") {
+        Ok(v) => assert_eq(v, "017f22e2-79b0-7cc3-98c4-dc0c0c07398f"),
+        Err(_) => assert(false, "v7 should be Ok"),
+    }
+}
+
+@test
+fn test_require_uuid_accepts_v1_and_v5() {
+    match require_uuid("id", "04afc000-833b-11ee-83d8-123456789abc") {
+        Ok(_) => {},
+        Err(_) => assert(false, "v1"),
+    }
+    match require_uuid("id", "2ed6657d-e927-568b-95e1-2665a8aea6a2") {
+        Ok(_) => {},
+        Err(_) => assert(false, "v5"),
+    }
+}
+
+@test
+fn test_require_uuid_rejects_unsupported_version() {
+    match require_uuid("id", "550e8400-e29b-31d4-a716-446655440000") {
+        Ok(_) => assert(false, "version 3"),
+        Err(msg) => assert(strings.contains(msg, "id"), "field in error"),
+    }
+}
+
+@test
+fn test_require_uuid_rejects_bad_variant() {
+    match require_uuid("id", "550e8400-e29b-41d4-c716-446655440000") {
+        Ok(_) => assert(false, "variant c"),
+        Err(_) => assert(true, "bad variant"),
+    }
+}
+
+@test
 fn test_require_uuid_rejects_short() {
     match require_uuid("id", "550e8400-e29b-41d4-a716") {
         Ok(_) => assert(false, "expected Err"),

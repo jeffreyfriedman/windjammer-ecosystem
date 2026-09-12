@@ -39,7 +39,7 @@ match all_ok(errors) {
 | `require_min_len` / `require_max_len` | Length bounds |
 | `require_email` | Lightweight `local@domain` shape |
 | `require_url` | Absolute `http://` / `https://` URL |
-| `require_uuid` | Hex UUID `8-4-4-4-12` |
+| `require_uuid` | Canonical UUID **v1 / v4 / v5 / v7** (`8-4-4-4-12`, RFC variant) |
 | `require_int_range` | Inclusive int bounds |
 | `require_one_of` | Allow-list membership |
 | `all_ok` | Aggregate error list |

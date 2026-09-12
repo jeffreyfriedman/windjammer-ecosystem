@@ -119,7 +119,7 @@ pub fn require_url(field: string, value: string) -> Result<string, string> {
     Ok(trimmed)
 }
 
-/// Require a lowercase/uppercase hex UUID (`8-4-4-4-12`).
+/// Require a canonical UUID v1, v4, v5, or v7 (`8-4-4-4-12`, RFC variant).
 pub fn require_uuid(field: string, value: string) -> Result<string, string> {
     let trimmed = strings.trim(value)
     let parts = strings.split(trimmed, "-")
@@ -147,6 +147,18 @@ pub fn require_uuid(field: string, value: string) -> Result<string, string> {
             return Err("${field} must be a UUID")
         }
         i = i + 1
+    }
+    let id = strings.to_lower(trimmed)
+    if strings.len(id) != 36 {
+        return Err("${field} must be a UUID")
+    }
+    let ver = strings.substring(id, 14, 15)
+    if ver != "1" && ver != "4" && ver != "5" && ver != "7" {
+        return Err("${field} must be a UUID")
+    }
+    let variant = strings.substring(id, 19, 20)
+    if variant != "8" && variant != "9" && variant != "a" && variant != "b" {
+        return Err("${field} must be a UUID")
     }
     Ok(trimmed)
 }

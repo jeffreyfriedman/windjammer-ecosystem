@@ -1,0 +1,55 @@
+use crate::basename
+use crate::dirname
+use crate::extname
+use crate::join_path
+use crate::normalize
+
+@test
+fn test_join_simple() {
+    assert_eq(join_path("/tmp", "a"), "/tmp/a")
+}
+
+@test
+fn test_join_trailing_slash() {
+    assert_eq(join_path("/tmp/", "a"), "/tmp/a")
+}
+
+@test
+fn test_join_absolute_second() {
+    assert_eq(join_path("/tmp", "/etc"), "/etc")
+}
+
+@test
+fn test_normalize_dotdot() {
+    assert_eq(normalize("/a/b/../c"), "/a/c")
+}
+
+@test
+fn test_normalize_dot() {
+    assert_eq(normalize("/a/./b"), "/a/b")
+}
+
+@test
+fn test_basename() {
+    assert_eq(basename("/tmp/foo.txt"), "foo.txt")
+}
+
+@test
+fn test_dirname() {
+    assert_eq(dirname("/tmp/foo.txt"), "/tmp")
+}
+
+@test
+fn test_dirname_root() {
+    assert_eq(dirname("/"), "/")
+}
+
+@test
+fn test_extname() {
+    assert_eq(extname("foo.txt"), ".txt")
+}
+
+@test
+fn test_extname_none() {
+    assert_eq(extname("Makefile"), "")
+}

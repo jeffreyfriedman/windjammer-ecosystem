@@ -1,0 +1,68 @@
+use crate::allow_origin
+use crate::is_origin_allowed
+use crate::preflight
+
+@test
+fn test_origin_exact_match() {
+    let mut allowed = Vec::new()
+    allowed.push("https://app.example.com")
+    assert(is_origin_allowed("https://app.example.com", allowed), "exact origin should match")
+}
+
+@test
+fn test_origin_wildcard() {
+    let mut allowed = Vec::new()
+    allowed.push("*")
+    assert(is_origin_allowed("https://any.example.com", allowed), "wildcard should allow any")
+}
+
+@test
+fn test_origin_reject() {
+    let mut allowed = Vec::new()
+    allowed.push("https://app.example.com")
+    assert(!is_origin_allowed("https://evil.example.com", allowed), "unknown origin rejected")
+}
+
+@test
+fn test_allow_origin_echo() {
+    let mut allowed = Vec::new()
+    allowed.push("https://app.example.com")
+    match allow_origin("https://app.example.com", allowed) {
+        Some(value) => assert_eq(value, "https://app.example.com"),
+        None => assert(false, "expected Some"),
+    }
+}
+
+@test
+fn test_allow_origin_star() {
+    let mut allowed = Vec::new()
+    allowed.push("*")
+    match allow_origin("https://any.example.com", allowed) {
+        Some(value) => assert_eq(value, "*"),
+        None => assert(false, "expected Some"),
+    }
+}
+
+@test
+fn test_allow_origin_none() {
+    let mut allowed = Vec::new()
+    allowed.push("https://app.example.com")
+    match allow_origin("https://evil.example.com", allowed) {
+        Some(_) => assert(false, "expected None"),
+        None => assert(true, "rejected"),
+    }
+}
+
+@test
+fn test_preflight_headers() {
+    let mut allowed = Vec::new()
+    allowed.push("https://app.example.com")
+    match preflight("https://app.example.com", allowed, "GET,POST", "Content-Type") {
+        Some(h) => {
+            assert_eq(h.allow_origin, "https://app.example.com")
+            assert_eq(h.allow_methods, "GET,POST")
+            assert_eq(h.allow_headers, "Content-Type")
+        },
+        None => assert(false, "expected preflight headers"),
+    }
+}

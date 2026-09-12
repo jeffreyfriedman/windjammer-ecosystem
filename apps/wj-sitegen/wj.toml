@@ -4,6 +4,7 @@ version = "0.1.0"
 edition = "2025"
 
 [dependencies]
+wj_template = { path = "../../packages/wj-template/build" }
 
 [dev-dependencies]
 

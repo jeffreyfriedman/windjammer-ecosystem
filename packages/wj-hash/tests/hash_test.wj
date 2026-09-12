@@ -1,0 +1,51 @@
+use crate::hash_password
+use crate::verify_password
+use std::strings
+
+@test
+fn test_hash_and_verify_roundtrip() {
+    match hash_password("secret123") {
+        Ok(digest) => {
+            assert(strings.len(digest) > 0, "nonempty hash")
+            match verify_password("secret123", digest) {
+                Ok(ok) => assert(ok, "valid password"),
+                Err(_) => assert(false, "verify ok"),
+            }
+        },
+        Err(_) => assert(false, "hash"),
+    }
+}
+
+@test
+fn test_verify_rejects_wrong_password() {
+    match hash_password("correct-horse") {
+        Ok(digest) => {
+            match verify_password("wrong-password", digest) {
+                Ok(ok) => assert(!ok, "wrong password"),
+                Err(_) => assert(false, "verify wrong"),
+            }
+        },
+        Err(_) => assert(false, "hash for wrong"),
+    }
+}
+
+@test
+fn test_hash_differs_per_call() {
+    match hash_password("same-input") {
+        Ok(a) => {
+            match hash_password("same-input") {
+                Ok(b) => assert(a != b, "bcrypt salt randomizes"),
+                Err(_) => assert(false, "second hash"),
+            }
+        },
+        Err(_) => assert(false, "first hash"),
+    }
+}
+
+@test
+fn test_verify_rejects_garbage_hash() {
+    match verify_password("pw", "not-a-bcrypt-hash") {
+        Ok(ok) => assert(!ok, "garbage hash"),
+        Err(_) => {},
+    }
+}

@@ -1,0 +1,114 @@
+use crate::format_cookie_header
+use crate::format_set_cookie
+use crate::parse_cookie_header
+use crate::parse_set_cookie
+use std::collections::HashMap
+use std::strings
+
+@test
+fn test_parse_and_format_cookie_header_contains_pairs() {
+    match parse_cookie_header("a=1; b=two") {
+        Ok(map) => {
+            let header = format_cookie_header(map)
+            assert(strings.contains(header, "a=1"), "missing a=1")
+            assert(strings.contains(header, "b=two"), "missing b=two")
+        },
+        Err(_) => assert(false, "parse pairs"),
+    }
+}
+
+@test
+fn test_parse_cookie_header_empty_formats_empty() {
+    match parse_cookie_header("") {
+        Ok(map) => {
+            let header = format_cookie_header(map)
+            assert_eq(header, "")
+        },
+        Err(_) => assert(false, "parse empty"),
+    }
+}
+
+@test
+fn test_parse_cookie_header_trims() {
+    match parse_cookie_header("  x = 1 ; y = 2 ") {
+        Ok(map) => {
+            let header = format_cookie_header(map)
+            assert(strings.contains(header, "x=1"), "missing x=1")
+            assert(strings.contains(header, "y=2"), "missing y=2")
+        },
+        Err(_) => assert(false, "parse trims"),
+    }
+}
+
+@test
+fn test_format_cookie_header_roundtrip() {
+    let mut map = HashMap::new()
+    map.insert("sid", "abc")
+    map.insert("theme", "dark")
+    let header = format_cookie_header(map)
+    match parse_cookie_header(header) {
+        Ok(parsed) => {
+            let again = format_cookie_header(parsed)
+            assert(strings.contains(again, "sid=abc"), "missing sid")
+            assert(strings.contains(again, "theme=dark"), "missing theme")
+        },
+        Err(_) => assert(false, "roundtrip parse"),
+    }
+}
+
+@test
+fn test_parse_set_cookie_basic() {
+    match parse_set_cookie("session=xyz; Path=/; HttpOnly; Secure; SameSite=Lax") {
+        Ok(c) => {
+            assert_eq(c.name, "session")
+            assert_eq(c.value, "xyz")
+            assert_eq(c.path, "/")
+            assert(c.http_only, "HttpOnly")
+            assert(c.secure, "Secure")
+            assert_eq(c.same_site, "Lax")
+        },
+        Err(_) => assert(false, "parse set-cookie basic"),
+    }
+}
+
+@test
+fn test_parse_set_cookie_minimal() {
+    match parse_set_cookie("token=abc") {
+        Ok(c) => {
+            assert_eq(c.name, "token")
+            assert_eq(c.value, "abc")
+            assert_eq(c.path, "")
+            assert(!c.http_only, "no HttpOnly")
+            assert(!c.secure, "no Secure")
+            assert_eq(c.same_site, "")
+        },
+        Err(_) => assert(false, "parse set-cookie minimal"),
+    }
+}
+
+@test
+fn test_format_set_cookie_roundtrip() {
+    match parse_set_cookie("token=abc; Path=/app; HttpOnly") {
+        Ok(c) => {
+            let out = format_set_cookie(c)
+            match parse_set_cookie(out) {
+                Ok(again) => {
+                    assert_eq(again.name, "token")
+                    assert_eq(again.value, "abc")
+                    assert_eq(again.path, "/app")
+                    assert(again.http_only, "HttpOnly")
+                },
+                Err(_) => assert(false, "reparse set-cookie"),
+            }
+        },
+        Err(_) => assert(false, "parse for format"),
+    }
+}
+
+@test
+fn test_parse_set_cookie_missing_equals() {
+    match parse_set_cookie("novalue") {
+        Ok(_) => assert(false, "expected Err"),
+        Err(_) => assert(true, "rejected"),
+    }
+}

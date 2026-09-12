@@ -1,0 +1,23 @@
+use crate::domain::format_status_result
+
+fn test_format_status_result_none_applied_all_pending() {
+    let applied = Vec::new()
+    let mut pending = Vec::new()
+    pending.push(1)
+    pending.push(2)
+    let msg = format_status_result(applied, pending)
+    assert_str_contains(msg, "applied: (none)")
+    assert_str_contains(msg, "pending:")
+    assert_str_contains(msg, "1")
+    assert_str_contains(msg, "2")
+}
+
+fn test_format_status_result_all_applied() {
+    let mut applied = Vec::new()
+    applied.push(1)
+    applied.push(2)
+    let pending = Vec::new()
+    let msg = format_status_result(applied, pending)
+    assert_str_contains(msg, "pending: (none)")
+    assert_str_contains(msg, "1")
+}

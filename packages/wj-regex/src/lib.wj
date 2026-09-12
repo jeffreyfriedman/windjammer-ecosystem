@@ -1,0 +1,36 @@
+use std::regex
+
+/// True when `pattern` matches somewhere in `text`.
+pub fn is_match(pattern: string, text: string) -> Result<bool, string> {
+    regex.is_match(pattern, text)
+}
+
+/// First match substring, or None.
+pub fn find(pattern: string, text: string) -> Result<Option<string>, string> {
+    regex.find(pattern, text)
+}
+
+/// All non-overlapping match substrings.
+pub fn find_all(pattern: string, text: string) -> Result<Vec<string>, string> {
+    regex.find_all(pattern, text)
+}
+
+/// Replace the first match.
+pub fn replace(pattern: string, text: string, replacement: string) -> Result<string, string> {
+    regex.replace(pattern, text, replacement)
+}
+
+/// Replace every match.
+pub fn replace_all(pattern: string, text: string, replacement: string) -> Result<string, string> {
+    regex.replace_all(pattern, text, replacement)
+}
+
+/// Split `text` on matches of `pattern`.
+pub fn split(pattern: string, text: string) -> Result<Vec<string>, string> {
+    regex.split(pattern, text)
+}
+
+/// Escape regex metacharacters for a literal search.
+pub fn escape(text: string) -> string {
+    regex.escape(text)
+}

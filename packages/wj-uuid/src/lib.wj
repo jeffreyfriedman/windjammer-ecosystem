@@ -11,6 +11,12 @@ pub const NAMESPACE_URL: string = "6ba7b811-9dad-11d1-80b4-00c04fd430c8"
 pub const NAMESPACE_OID: string = "6ba7b812-9dad-11d1-80b4-00c04fd430c8"
 pub const NAMESPACE_X500: string = "6ba7b814-9dad-11d1-80b4-00c04fd430c8"
 
+/// All-zero UUID (RFC 9562 nil UUID).
+pub const NIL: string = "00000000-0000-0000-0000-000000000000"
+
+/// All-ones UUID (RFC 9562 max UUID).
+pub const MAX: string = "ffffffff-ffff-ffff-ffff-ffffffffffff"
+
 /// Random RFC 4122 UUID version 4.
 pub fn v4() -> string {
     let bytes = random_octets(16)
@@ -45,28 +51,47 @@ pub fn v5(namespace: string, name: string) -> Result<string, string> {
     match uuid_to_bytes(namespace) {
         Ok(ns_bytes) => {
             let payload = concat_bytes(ns_bytes, string_to_bytes(name))
-            match crypto.sha1_bytes(payload) {
-                Ok(hash) => uuid_from_v5_hash(hash),
-                Err(e) => Err(e),
-            }
+            let hash = crypto.sha1_bytes(payload)
+            uuid_from_v5_hash(hash)
         },
         Err(e) => Err(e),
     }
 }
 
 pub fn v5_dns(name: string) -> Result<string, string> {
-    v5(NAMESPACE_DNS, name)
+    // Literal (not module const) until const→owned formal auto-own is green
+    // (bug_module_const_string_owned_formal_call_site_test).
+    v5("6ba7b810-9dad-11d1-80b4-00c04fd430c8", name)
 }
 
 pub fn v5_url(name: string) -> Result<string, string> {
-    v5(NAMESPACE_URL, name)
+    v5("6ba7b811-9dad-11d1-80b4-00c04fd430c8", name)
 }
 
-/// Version nibble (`1`, `4`, `5`, …) when `text` is a supported RFC 4122 UUID.
+/// Unix-ms time-ordered UUID version 7 (RFC 9562) using the current UTC clock.
+pub fn v7() -> Result<string, string> {
+    let millis = time.utc_now().timestamp_millis()
+    let hex = encoding.hex_encode(random_octets(10))
+    v7_from_timestamp(millis, hex)
+}
+
+/// UUID version 7 from explicit Unix millis + 10 random bytes (20 hex digits).
+pub fn v7_from_timestamp(unix_millis: i64, random_hex: string) -> Result<string, string> {
+    let compact = normalize(random_hex)
+    if strings.len(compact) != 20 {
+        return Err("random must be 20 hex digits")
+    }
+    match encoding.hex_decode(compact) {
+        Ok(rand) => Ok(format_uuid_bytes(v7_bytes(unix_millis, rand))),
+        Err(e) => Err(e),
+    }
+}
+
+/// Version nibble (`1`, `4`, `5`, `7`, …) when `text` is a supported UUID.
 pub fn version(text: string) -> Option<int> {
     let id = normalize(text)
     let ver = strings.substring(id, 14, 15)
-    if ver != "1" && ver != "4" && ver != "5" {
+    if ver != "1" && ver != "4" && ver != "5" && ver != "7" {
         return None
     }
     if !is_valid_normalized(id) {
@@ -76,13 +101,24 @@ pub fn version(text: string) -> Option<int> {
         "1" => Some(1),
         "4" => Some(4),
         "5" => Some(5),
+        "7" => Some(7),
         _ => None,
     }
 }
 
-/// True for canonical v1, v4, or v5 UUID strings.
+/// True for canonical v1, v4, v5, or v7 UUID strings.
 pub fn is_valid(text: string) -> bool {
     is_valid_normalized(normalize(text))
+}
+
+/// True when `text` is the nil UUID (all zeros).
+pub fn is_nil(text: string) -> bool {
+    normalize(text) == "00000000-0000-0000-0000-000000000000"
+}
+
+/// True when `text` is the max UUID (all ones).
+pub fn is_max(text: string) -> bool {
+    normalize(text) == "ffffffff-ffff-ffff-ffff-ffffffffffff"
 }
 
 fn is_valid_normalized(id: string) -> bool {
@@ -90,7 +126,7 @@ fn is_valid_normalized(id: string) -> bool {
         return false
     }
     let ver = strings.substring(id, 14, 15)
-    if ver != "1" && ver != "4" && ver != "5" {
+    if ver != "1" && ver != "4" && ver != "5" && ver != "7" {
         return false
     }
     let variant = strings.substring(id, 19, 20)
@@ -98,6 +134,20 @@ fn is_valid_normalized(id: string) -> bool {
         return false
     }
     canonical_dashes(id) && all_hex_or_dash(id)
+}
+
+fn v7_bytes(unix_millis: i64, rand: Vec<u8>) -> Vec<u8> {
+    let mut out = Vec::new()
+    out.push(((unix_millis >> 40) & 0xff) as u8)
+    out.push(((unix_millis >> 32) & 0xff) as u8)
+    out.push(((unix_millis >> 24) & 0xff) as u8)
+    out.push(((unix_millis >> 16) & 0xff) as u8)
+    out.push(((unix_millis >> 8) & 0xff) as u8)
+    out.push((unix_millis & 0xff) as u8)
+    out = append_bytes(out, rand)
+    out[6] = (out[6] & 0x0f) | 0x70
+    out[8] = (out[8] & 0x3f) | 0x80
+    out
 }
 
 /// Lowercase UUID formatting (dashes unchanged).

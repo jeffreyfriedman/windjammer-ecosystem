@@ -5,6 +5,8 @@ use crate::require_max_len
 use crate::require_min_len
 use crate::require_nonempty
 use crate::require_one_of
+use crate::require_url
+use crate::require_uuid
 use std::strings
 
 @test
@@ -145,5 +147,61 @@ fn test_all_ok_with_errors() {
             assert(strings.contains(msg, "name is required"), "first err")
             assert(strings.contains(msg, "age out of range"), "second err")
         },
+    }
+}
+
+@test
+fn test_require_url_https_ok() {
+    match require_url("home", "https://example.com/path") {
+        Ok(v) => assert_eq(v, "https://example.com/path"),
+        Err(_) => assert(false, "expected Ok"),
+    }
+}
+
+@test
+fn test_require_url_http_ok() {
+    match require_url("home", "http://localhost:8080") {
+        Ok(v) => assert_eq(v, "http://localhost:8080"),
+        Err(_) => assert(false, "expected Ok"),
+    }
+}
+
+@test
+fn test_require_url_rejects_relative() {
+    match require_url("home", "/relative") {
+        Ok(_) => assert(false, "expected Err"),
+        Err(msg) => assert(strings.contains(msg, "home"), "field in error"),
+    }
+}
+
+@test
+fn test_require_url_rejects_blank() {
+    match require_url("home", "  ") {
+        Ok(_) => assert(false, "expected Err"),
+        Err(_) => assert(true, "blank"),
+    }
+}
+
+@test
+fn test_require_uuid_ok() {
+    match require_uuid("id", "550e8400-e29b-41d4-a716-446655440000") {
+        Ok(v) => assert_eq(v, "550e8400-e29b-41d4-a716-446655440000"),
+        Err(_) => assert(false, "expected Ok"),
+    }
+}
+
+@test
+fn test_require_uuid_rejects_short() {
+    match require_uuid("id", "550e8400-e29b-41d4-a716") {
+        Ok(_) => assert(false, "expected Err"),
+        Err(msg) => assert(strings.contains(msg, "id"), "field in error"),
+    }
+}
+
+@test
+fn test_require_uuid_rejects_non_hex() {
+    match require_uuid("id", "550e8400-e29b-41d4-a716-44665544000g") {
+        Ok(_) => assert(false, "expected Err"),
+        Err(_) => assert(true, "bad hex"),
     }
 }

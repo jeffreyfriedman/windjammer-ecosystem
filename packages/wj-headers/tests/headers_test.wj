@@ -1,0 +1,57 @@
+use crate::defaults
+use crate::format_headers
+use crate::hsts
+use crate::nosniff
+use crate::frame_options
+use std::strings
+
+@test
+fn test_defaults_include_nosniff() {
+    let h = defaults()
+    let text = format_headers(h)
+    assert_str_contains(text, "X-Content-Type-Options: nosniff")
+}
+
+@test
+fn test_defaults_include_frame_deny() {
+    let h = defaults()
+    let text = format_headers(h)
+    assert_str_contains(text, "X-Frame-Options: DENY")
+}
+
+@test
+fn test_defaults_include_referrer() {
+    let h = defaults()
+    let text = format_headers(h)
+    assert_str_contains(text, "Referrer-Policy: no-referrer")
+}
+
+@test
+fn test_hsts_header() {
+    assert_eq(hsts(31536000), "Strict-Transport-Security: max-age=31536000")
+}
+
+@test
+fn test_nosniff_helper() {
+    assert_eq(nosniff(), "X-Content-Type-Options: nosniff")
+}
+
+@test
+fn test_frame_options_sameorigin() {
+    assert_eq(frame_options("SAMEORIGIN"), "X-Frame-Options: SAMEORIGIN")
+}
+
+@test
+fn test_custom_csp_in_defaults() {
+    let mut h = defaults()
+    h.content_security_policy = "default-src 'self'"
+    let text = format_headers(h)
+    assert_str_contains(text, "Content-Security-Policy: default-src 'self'")
+}
+
+@test
+fn test_hsts_optional_in_defaults() {
+    let h = defaults()
+    let text = format_headers(h)
+    assert(!strings.contains(text, "Strict-Transport-Security"), "HSTS off by default")
+}

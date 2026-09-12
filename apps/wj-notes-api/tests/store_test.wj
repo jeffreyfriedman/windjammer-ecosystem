@@ -1,4 +1,9 @@
 use crate::domain::NoteStore
+use std::strings
+
+fn empty_title() -> string {
+    strings.substring("x", 0, 0)
+}
 
 fn test_create_assigns_incrementing_ids() {
     let mut store = NoteStore::new()
@@ -14,7 +19,7 @@ fn test_create_assigns_incrementing_ids() {
 
 fn test_create_rejects_empty_title() {
     let mut store = NoteStore::new()
-    match store.create("", "body") {
+    match store.create(empty_title(), "body") {
         Ok(_) => assert(false, "empty title must be Err"),
         Err(msg) => assert(msg.len() > 0, "error message required"),
     }

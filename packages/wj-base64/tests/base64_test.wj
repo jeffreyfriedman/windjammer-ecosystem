@@ -21,17 +21,17 @@ fn test_decode_hello() {
 }
 
 fn test_roundtrip_empty() {
-    let text = ""
-    match decode(encode(text)) {
-        Ok(out) => assert_eq(out, text),
+    let encoded = encode("")
+    match decode(encoded) {
+        Ok(out) => assert_eq(out, ""),
         Err(_) => assert(false, "empty roundtrip"),
     }
 }
 
 fn test_roundtrip_punctuation() {
-    let text = "a+b/c="
-    match decode(encode(text)) {
-        Ok(out) => assert_eq(out, text),
+    let encoded = encode("a+b/c=")
+    match decode(encoded) {
+        Ok(out) => assert_eq(out, "a+b/c="),
         Err(_) => assert(false, "punct roundtrip"),
     }
 }
@@ -45,16 +45,19 @@ fn test_decode_rejects_garbage() {
 }
 
 fn test_encode_bytes_roundtrip() {
-    let mut bytes = Vec::new()
-    bytes.push(0)
-    bytes.push(255)
-    bytes.push(10)
-    match decode_bytes(encode_bytes(bytes)) {
+    // Typed u8 literals until int→u8 vec inference is fixed
+    // (bug_vec_u8_push_int_literal_infers_u8_test).
+    let mut bytes: Vec<u8> = Vec::new()
+    bytes.push(0u8)
+    bytes.push(255u8)
+    bytes.push(10u8)
+    let encoded = encode_bytes(bytes)
+    match decode_bytes(encoded) {
         Ok(out) => {
             assert_eq(out.len(), 3)
-            assert_eq(out[0], 0)
-            assert_eq(out[1], 255)
-            assert_eq(out[2], 10)
+            assert_eq(out[0], 0u8)
+            assert_eq(out[1], 255u8)
+            assert_eq(out[2], 10u8)
         },
         Err(_) => assert(false, "bytes roundtrip"),
     }

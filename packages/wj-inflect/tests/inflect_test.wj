@@ -1,0 +1,44 @@
+use crate::camel_case
+use crate::pascal_case
+use crate::slugify
+use crate::snake_case
+
+@test
+fn test_snake_from_camel() {
+    assert_eq(snake_case("helloWorld"), "hello_world")
+}
+
+@test
+fn test_snake_from_pascal() {
+    assert_eq(snake_case("HelloWorld"), "hello_world")
+}
+
+@test
+fn test_snake_already_snake() {
+    assert_eq(snake_case("hello_world"), "hello_world")
+}
+
+@test
+fn test_camel_from_snake() {
+    assert_eq(camel_case("hello_world"), "helloWorld")
+}
+
+@test
+fn test_pascal_from_snake() {
+    assert_eq(pascal_case("hello_world"), "HelloWorld")
+}
+
+@test
+fn test_slugify_spaces() {
+    assert_eq(slugify("Hello World!"), "hello-world")
+}
+
+@test
+fn test_slugify_collapse() {
+    assert_eq(slugify("foo---bar  baz"), "foo-bar-baz")
+}
+
+@test
+fn test_slugify_trim_hyphens() {
+    assert_eq(slugify("  --Hello--  "), "hello")
+}

@@ -2,23 +2,26 @@
 
 Windjammer `std::*` modules used on production paths in seed apps and packages.
 
-| Std module | wj-hello | wj-dotenv | wj-config | wj-log | wj-cli-args | wj-fetch | wj-notes-api | wj-sitegen | wj-webhook | wj-http-client | wj-json-util | wj-fs-walk | wj-template | wj-uuid | wj-semver | wj-url | Notes |
-|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
-| (println / core) | yes | | | | | | | yes | yes | | | | | | | | language builtins |
-| `std::fs` | | yes | | | | | | yes | | | | yes | | | | | files / dotenv / sitegen / walk |
-| `std::strings` | | yes | | | yes | | yes | yes | yes | | yes | yes | yes | yes | yes | yes | parse / paths / templates / uuid / semver / url |
-| `std::env` / CLI | | | | | yes | yes | yes (`PORT`) | yes | yes (`PORT`, `WEBHOOK_SECRET`) | | | | | | | | argv / bind / secrets |
-| `std::http` | | | | | | yes | yes (server) | | yes (server) | yes (client) | | | | | | | client + server / webhooks |
-| `std::json` | | | | | | yes | yes | | yes | | yes | | | | | | bodies / config / events / util |
-| `std::process` | | | | | | yes | | yes | | | | | | | | | exit codes |
-| `std::log` | | | | yes | | | planned | | planned | | | | | | | | tagged helpers / workers / API |
-| `std::time` | | | | | | | | planned | | | | | | planned | | | timestamps / uuid v1 |
-| `std::random` | | | | | | | | | | | | | | planned | | | uuid v4/v1 entropy |
-| `std::db` | | | | | | | optional | | | | | | | | | | CRUD persistence |
-| `std::crypto` | | | | | | | | | yes (`sha256`) | | | | | planned (`sha1`) | | | webhook + uuid v5 |
-| `std::encoding` | | | | | | | | | optional | | | | | yes | | | hex for uuid bytes |
-| `std::regex` | | | | | | | | optional | | | | | | | | | frontmatter / routes |
-| `std::csv` | | | | | | | | | | | | | | | | | later utilities |
-| `std::map` / collections | | yes (`HashMap`) | yes (`HashMap`) | | | | yes (`HashMap`) | | | | | | yes (`HashMap`) | | | | config / notes / template vars |
+| Std module | hello | dotenv | config | log | cli-args | fetch | notes-api | sitegen | webhook | http-client | json-util | fs-walk | template | uuid | semver | url | base64 | retry | sha | cors | router | path | auth-api | Notes |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| (println / core) | yes | | | | | | | yes | yes | | | | | | | | | | | | | | language builtins |
+| `std::fs` | | yes | | | | | | yes | | | | yes | | | | | | | | | | | files / dotenv / sitegen / walk |
+| `std::strings` | | yes | | | yes | | yes | yes | yes | | yes | yes | yes | yes | yes | yes | | | | | yes | yes | yes | parse / paths / yaml / mime / templates |
+| `std::env` / CLI | | | | | yes | yes | yes | yes | yes | | | | | | | | | | | | | argv / bind / secrets |
+| `std::http` | | | | | | yes | yes | | yes | yes | | | | | | | | | | | | client + server / webhooks |
+| `std::json` | | | | | | yes | yes | | yes | | yes | | | | | | | | | | | yes | bodies / config / yaml / events / util |
+| `std::process` | | | | | | yes | | yes | | | | | | | | | | | | | | exit codes |
+| `std::log` | | | | yes | | | planned | | planned | | | | | | | | | | | | | tagged helpers |
+| `std::time` | | | | | | | | planned | | | | | | planned | | | | | | | | timestamps / uuid v1 |
+| `std::random` | | | | | | | | | | | | | | planned | | | | | | | | uuid entropy |
+| `std::db` | | | | | | | optional | | | | | | | | | | | | | | | yes via `wj-migrate` `db_apply` |
+| `std::crypto` | | | | | | | | | yes | | | | | planned | | | | | yes | | | yes | webhook + sha + uuid v5 + auth-api bcrypt |
+| `std::jwt` | | | | | | | | | | | | | | | | | | | | | | yes | auth-api HS256 tokens |
+| `std::compress` | | | | | | | | | | | | | | | | | | | | | | yes | auth-api gzip bodies |
+| `std::encoding` | | | | | | | | | optional | | | | | yes | | | planned | | | | | hex / base64 wiring |
+| `std::regex` | | | | | | | | | | | | | | | | | | | | | | yes via `wj-regex` |
+| `std::csv` | | | | | | | | | | | | | | | | | | | | | | yes via `wj-csv` |
+| `std::yaml` | | | | | | | | | | | | | | | | | | | | | | yes via `wj-yaml` |
+| `std::map` / collections | | yes | yes | | | | yes | | | | | | yes | | | | | | | | yes | | yes | config / notes / template / router / cookie |
 
 Mark a cell **yes** when production `.wj` (not only tests) uses that module. Prefer one clear owner app or package per concern.

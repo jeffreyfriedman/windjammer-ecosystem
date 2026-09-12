@@ -1,3 +1,5 @@
+use std::time
+
 /// Exponential backoff parameters (milliseconds).
 pub struct Backoff {
     pub initial_ms: int,
@@ -31,4 +33,18 @@ pub fn should_retry(attempt: int, max_attempts: int) -> bool {
         return false
     }
     attempt < max_attempts
+}
+
+/// Blocking pause between retry attempts (milliseconds).
+/// Uses `std::time` spin-wait until `std::async_runtime::sleep_ms_blocking` import codegen is fixed.
+pub fn pause_ms(ms: int) {
+    if ms <= 0 {
+        return
+    }
+    let start = time.utc_now().timestamp_millis()
+    let deadline = start + ms
+    let mut now = start
+    while now < deadline {
+        now = time.utc_now().timestamp_millis()
+    }
 }

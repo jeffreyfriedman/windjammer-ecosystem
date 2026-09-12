@@ -1,0 +1,11 @@
+use std::crypto
+
+/// Hash a password with bcrypt (default cost).
+pub fn hash_password(password: string) -> Result<string, string> {
+    crypto.hash_password(password)
+}
+
+/// Verify a password against a bcrypt hash from `hash_password`.
+pub fn verify_password(password: string, hash: string) -> Result<bool, string> {
+    crypto.verify_password(password, hash)
+}

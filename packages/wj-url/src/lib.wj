@@ -22,24 +22,20 @@ pub fn parse(text: string) -> Result<Url, string> {
                 return Err("expected // after scheme")
             }
             let authority_and_rest = strings.substring(after_scheme, 2, strings.len(after_scheme))
-            match split_authority(authority_and_rest) {
-                Ok(auth_rest) => {
-                    let authority = auth_rest.0
-                    let path_query_frag = auth_rest.1
-                    match split_host_port(authority) {
-                        Ok(host_port) => {
-                            match split_path_query_fragment(path_query_frag) {
-                                Ok(pqf) => Ok(Url {
-                                    scheme: scheme,
-                                    host: host_port.0,
-                                    port: host_port.1,
-                                    path: pqf.0,
-                                    query: pqf.1,
-                                    fragment: pqf.2,
-                                }),
-                                Err(e) => Err(e),
-                            }
-                        },
+            match split_authority_host_port(authority_and_rest) {
+                Ok(parts) => {
+                    let host = parts.0
+                    let port = parts.1
+                    let rest = parts.2
+                    match split_path_query_fragment(rest) {
+                        Ok(pqf) => Ok(Url {
+                            scheme: scheme,
+                            host: host,
+                            port: port,
+                            path: pqf.0,
+                            query: pqf.1,
+                            fragment: pqf.2,
+                        }),
                         Err(e) => Err(e),
                     }
                 },
@@ -67,22 +63,57 @@ pub fn format_url(u: Url) -> string {
 }
 
 /// Resolve `relative` against absolute `base` (absolute relative replaces base).
+/// Relative may include `?query` and `#fragment`.
 /// Named `join_url` to avoid clashing with `std::strings.join`.
 pub fn join_url(base: string, relative: string) -> Result<string, string> {
-    if strings.contains(relative, "://") {
-        return Ok(relative)
+    // Inline absolute check + owned copy (avoid demoted reuse after contains;
+    // see bug_match_none_arm_string_after_split_test).
+    let n = strings.len(relative)
+    let mut abs = false
+    let mut i = 0
+    while i < n {
+        let end = i + 3
+        if end <= n {
+            if strings.substring(relative, i, end) == "://" {
+                abs = true
+                i = n
+            } else {
+                i = i + 1
+            }
+        } else {
+            i = i + 1
+        }
+    }
+    let rel = strings.substring(relative, 0, n)
+    if abs {
+        return Ok(rel)
     }
     match parse(base) {
         Ok(u) => {
-            let new_path = join_path(u.path, relative)
-            Ok(format_url(Url {
-                scheme: u.scheme,
-                host: u.host,
-                port: u.port,
-                path: new_path,
-                query: empty_string(),
-                fragment: empty_string(),
-            }))
+            match split_path_query_fragment(rel) {
+                Ok(pqf) => {
+                    let leaf = pqf.0
+                    let new_path = if strings.starts_with(leaf, "/") {
+                        leaf
+                    } else {
+                        let dir = dirname(u.path)
+                        if strings.len(dir) == 0 {
+                            "/${leaf}"
+                        } else {
+                            "${dir}/${leaf}"
+                        }
+                    }
+                    Ok(format_url(Url {
+                        scheme: u.scheme,
+                        host: u.host,
+                        port: u.port,
+                        path: new_path,
+                        query: pqf.1,
+                        fragment: pqf.2,
+                    }))
+                },
+                Err(e) => Err(e),
+            }
         },
         Err(e) => Err(e),
     }
@@ -112,6 +143,14 @@ pub fn query_get(query: string, key: string) -> Option<string> {
         i = i + 1
     }
     None
+}
+
+/// True when `key` appears at least once in query text.
+pub fn query_has(query: string, key: string) -> bool {
+    match query_get(query, key) {
+        Some(_) => true,
+        None => false,
+    }
 }
 
 /// Set `key=value` in query text, replacing any existing `key`.
@@ -152,19 +191,49 @@ pub fn query_set(query: string, key: string, value: string) -> string {
     strings.join(out_parts, "&")
 }
 
-fn empty_string() -> string {
-    ""
+/// Drop every pair whose key equals `key`.
+pub fn query_remove(query: string, key: string) -> string {
+    let mut out_parts = Vec::new()
+    if strings.len(query) == 0 {
+        return empty_string()
+    }
+    let pairs = strings.split(query, "&")
+    let mut i = 0
+    while i < pairs.len() {
+        let pair = pairs[i]
+        if strings.len(pair) > 0 {
+            match split_once(pair, "=") {
+                Some(kv) => {
+                    if kv.0 != key {
+                        out_parts.push(pair)
+                    }
+                },
+                None => {
+                    if pair != key {
+                        out_parts.push(pair)
+                    }
+                },
+            }
+        }
+        i = i + 1
+    }
+    strings.join(out_parts, "&")
 }
 
-fn join_path(base_path: string, relative: string) -> string {
-    if strings.starts_with(relative, "/") {
-        return relative
+/// Return a copy of `u` with `query` replaced.
+pub fn with_query(u: Url, query: string) -> Url {
+    Url {
+        scheme: u.scheme,
+        host: u.host,
+        port: u.port,
+        path: u.path,
+        query: query,
+        fragment: u.fragment,
     }
-    let dir = dirname(base_path)
-    if strings.len(dir) == 0 {
-        return "/${relative}"
-    }
-    "${dir}/${relative}"
+}
+
+fn empty_string() -> string {
+    ""
 }
 
 fn dirname(path: string) -> string {
@@ -202,38 +271,125 @@ fn split_scheme(text: string) -> Result<(string, string), string> {
     Err("missing scheme")
 }
 
-fn split_authority(text: string) -> Result<(string, string), string> {
+fn split_authority_host_port(text: string) -> Result<(string, string, string), string> {
+    let n = strings.len(text)
+    let mut auth_end = 0
+    let mut found_end = false
     let mut i = 0
-    while i < strings.len(text) {
+    while i < n {
         let ch = strings.substring(text, i, i + 1)
         if ch == "/" || ch == "?" || ch == "#" {
-            return Ok((strings.substring(text, 0, i), strings.substring(text, i, strings.len(text))))
+            auth_end = i
+            found_end = true
+            i = n
+        } else {
+            i = i + 1
         }
-        i = i + 1
     }
-    Ok((text, empty_string()))
-}
-
-fn split_host_port(authority: string) -> Result<(string, string), string> {
-    if strings.len(authority) == 0 {
+    if !found_end {
+        // Full string is authority; use n only as substring end alone.
+        if n == 0 {
+            return Err("empty host")
+        }
+        let mut colon_at = 0
+        let mut found_colon = false
+        let mut j = 0
+        while j < n {
+            if strings.substring(text, j, j + 1) == ":" {
+                colon_at = j
+                found_colon = true
+                j = n
+            } else {
+                j = j + 1
+            }
+        }
+        let host = if found_colon {
+            strings.substring(text, 0, colon_at)
+        } else {
+            strings.substring(text, 0, n)
+        }
+        let port = if found_colon {
+            strings.substring(text, colon_at + 1, n)
+        } else {
+            empty_string()
+        }
+        return Ok((host, port, empty_string()))
+    }
+    if auth_end == 0 {
         return Err("empty host")
     }
-    match split_once(authority, ":") {
-        Some(parts) => Ok((parts.0, parts.1)),
-        None => Ok((authority, empty_string())),
+    let mut colon_at = 0
+    let mut found_colon = false
+    let mut j = 0
+    while j < auth_end {
+        if strings.substring(text, j, j + 1) == ":" {
+            colon_at = j
+            found_colon = true
+            j = auth_end
+        } else {
+            j = j + 1
+        }
     }
+    let host = if found_colon {
+        strings.substring(text, 0, colon_at)
+    } else {
+        strings.substring(text, 0, auth_end)
+    }
+    let port = if found_colon {
+        strings.substring(text, colon_at + 1, auth_end)
+    } else {
+        empty_string()
+    }
+    let rest = strings.substring(text, auth_end, n)
+    Ok((host, port, rest))
 }
 
 fn split_path_query_fragment(text: string) -> Result<(string, string, string), string> {
-    let without_frag = match split_once(text, "#") {
-        Some(pf) => pf,
-        None => (text, empty_string()),
+    let n = strings.len(text)
+    let mut hash_at = 0
+    let mut query_at = 0
+    let mut found_hash = false
+    let mut found_query = false
+    let mut i = 0
+    while i < n {
+        let ch = strings.substring(text, i, i + 1)
+        if ch == "?" && !found_query && !found_hash {
+            query_at = i
+            found_query = true
+        }
+        if ch == "#" {
+            hash_at = i
+            found_hash = true
+            i = n
+        } else {
+            i = i + 1
+        }
     }
-    let path_and_query = without_frag.0
-    let fragment = without_frag.1
-    match split_once(path_and_query, "?") {
-        Some(pq) => Ok((pq.0, pq.1, fragment)),
-        None => Ok((path_and_query, empty_string(), fragment)),
+    // Branch on flags only — do not mix `hash_at` (int) with `n` (usize) in one if/else.
+    if found_query && found_hash {
+        Ok((
+            strings.substring(text, 0, query_at),
+            strings.substring(text, query_at + 1, hash_at),
+            strings.substring(text, hash_at + 1, n),
+        ))
+    } else if found_query {
+        Ok((
+            strings.substring(text, 0, query_at),
+            strings.substring(text, query_at + 1, n),
+            empty_string(),
+        ))
+    } else if found_hash {
+        Ok((
+            strings.substring(text, 0, hash_at),
+            empty_string(),
+            strings.substring(text, hash_at + 1, n),
+        ))
+    } else {
+        Ok((
+            strings.substring(text, 0, n),
+            empty_string(),
+            empty_string(),
+        ))
     }
 }
 

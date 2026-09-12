@@ -1,0 +1,24 @@
+use crate::hex
+use crate::verify
+
+@test
+fn test_sha256_hello() {
+    let digest = hex("hello")
+    assert_eq(digest, "2cf24dba5fb0a30e26e83b2ac5b9e29e1b161e5c1fa7425e73043362938b9824")
+}
+
+@test
+fn test_sha256_empty() {
+    let digest = hex("")
+    assert_eq(digest, "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855")
+}
+
+@test
+fn test_verify_true() {
+    assert(verify("hello", "2cf24dba5fb0a30e26e83b2ac5b9e29e1b161e5c1fa7425e73043362938b9824"), "expected match")
+}
+
+@test
+fn test_verify_false() {
+    assert(!verify("hello", "deadbeef"), "expected mismatch")
+}

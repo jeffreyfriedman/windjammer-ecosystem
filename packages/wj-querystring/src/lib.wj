@@ -1,0 +1,168 @@
+use std::encoding
+use std::strings
+
+/// Parse `a=1&b=2` (optional leading `?`) into ordered key/value pairs.
+/// `+` and `%HH` are decoded via `std::encoding` (form-urlencoded friendly).
+pub fn parse(text: string) -> Vec<(string, string)> {
+    let mut pairs = Vec::new()
+    let body = strip_question(text)
+    if strings.len(body) == 0 {
+        return pairs
+    }
+    let parts = strings.split(body, "&")
+    let mut i = 0
+    while i < parts.len() {
+        let part = parts[i]
+        if strings.len(part) > 0 {
+            match split_once(part, "=") {
+                Some(kv) => {
+                    pairs.push((decode_component(kv.0), decode_component(kv.1)))
+                },
+                None => {
+                    pairs.push((decode_component(part), empty_string()))
+                },
+            }
+        }
+        i = i + 1
+    }
+    pairs
+}
+
+/// Serialize pairs as `key=value&…` with form encoding (` ` → `+`, reserved → `%HH`).
+pub fn stringify(pairs: Vec<(string, string)>) -> string {
+    let mut parts = Vec::new()
+    let mut i = 0
+    while i < pairs.len() {
+        let pair = pairs[i]
+        parts.push("${encode_component(pair.0)}=${encode_component(pair.1)}")
+        i = i + 1
+    }
+    strings.join(parts, "&")
+}
+
+/// First value for `key`, or None.
+pub fn get(query: string, key: string) -> Option<string> {
+    let pairs = parse(query)
+    let mut i = 0
+    while i < pairs.len() {
+        let pair = pairs[i]
+        if pair.0 == key {
+            return Some(pair.1)
+        }
+        i = i + 1
+    }
+    None
+}
+
+/// All values for `key` (repeated keys).
+pub fn get_all(query: string, key: string) -> Vec<string> {
+    let mut out = Vec::new()
+    let pairs = parse(query)
+    let mut i = 0
+    while i < pairs.len() {
+        let pair = pairs[i]
+        if pair.0 == key {
+            out.push(pair.1)
+        }
+        i = i + 1
+    }
+    out
+}
+
+/// True when `key` appears at least once.
+pub fn has(query: string, key: string) -> bool {
+    match get(query, key) {
+        Some(_) => true,
+        None => false,
+    }
+}
+
+/// Drop every pair whose key equals `key`.
+pub fn remove(query: string, key: string) -> string {
+    let pairs = parse(query)
+    let mut kept = Vec::new()
+    let mut i = 0
+    while i < pairs.len() {
+        let pair = pairs[i]
+        if pair.0 != key {
+            kept.push(pair)
+        }
+        i = i + 1
+    }
+    stringify(kept)
+}
+
+/// Append `key=value` without removing existing keys.
+pub fn append(query: string, key: string, value: string) -> string {
+    let mut pairs = parse(query)
+    pairs.push((key, value))
+    stringify(pairs)
+}
+
+fn empty_string() -> string {
+    ""
+}
+
+fn strip_question(text: string) -> string {
+    let t = strings.trim(text)
+    if strings.starts_with(t, "?") {
+        return strings.substring(t, 1, strings.len(t))
+    }
+    t
+}
+
+fn split_once(text: string, sep: string) -> Option<(string, string)> {
+    let mut i = 0
+    while i < strings.len(text) {
+        let end = i + strings.len(sep)
+        if end <= strings.len(text) {
+            if strings.substring(text, i, end) == sep {
+                return Some((
+                    strings.substring(text, 0, i),
+                    strings.substring(text, end, strings.len(text)),
+                ))
+            }
+        }
+        i = i + 1
+    }
+    None
+}
+
+fn encode_component(text: string) -> string {
+    let enc = encoding.url_encode(text)
+    replace_all(enc, "%20", "+")
+}
+
+fn decode_component(text: string) -> string {
+    let normalized = replace_all(text, "+", "%20")
+    match encoding.url_decode(normalized) {
+        Ok(s) => s,
+        Err(_) => text,
+    }
+}
+
+fn replace_all(text: string, from: string, to: string) -> string {
+    if strings.len(from) == 0 {
+        return text
+    }
+    let mut out = ""
+    let mut i = 0
+    let n = strings.len(text)
+    let fl = strings.len(from)
+    while i < n {
+        let end = i + fl
+        if end <= n {
+            if strings.substring(text, i, end) == from {
+                out = "${out}${to}"
+                i = end
+            } else {
+                out = "${out}${strings.substring(text, i, i + 1)}"
+                i = i + 1
+            }
+        } else {
+            out = "${out}${strings.substring(text, i, i + 1)}"
+            i = i + 1
+        }
+    }
+    out
+}

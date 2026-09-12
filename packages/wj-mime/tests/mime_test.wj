@@ -1,0 +1,69 @@
+use crate::from_extension
+use crate::from_path
+use crate::is_audio
+use crate::is_image
+use crate::is_text
+use crate::is_video
+use crate::json
+use crate::html
+use crate::octet_stream
+
+@test
+fn test_json_constant() {
+    assert_eq(json(), "application/json; charset=utf-8")
+}
+
+@test
+fn test_html_constant() {
+    assert_eq(html(), "text/html; charset=utf-8")
+}
+
+@test
+fn test_octet_stream_constant() {
+    assert_eq(octet_stream(), "application/octet-stream")
+}
+
+@test
+fn test_from_extension_json() {
+    assert_eq(from_extension("json"), "application/json; charset=utf-8")
+}
+
+@test
+fn test_from_extension_unknown() {
+    assert_eq(from_extension("zzz"), "application/octet-stream")
+}
+
+@test
+fn test_from_path_html() {
+    assert_eq(from_path("index.html"), "text/html; charset=utf-8")
+}
+
+@test
+fn test_from_path_unknown() {
+    assert_eq(from_path("file.unknown"), "application/octet-stream")
+}
+
+@test
+fn test_is_text_json() {
+    assert(is_text("application/json; charset=utf-8"), "json is text")
+}
+
+@test
+fn test_is_text_png() {
+    assert(!is_text("image/png"), "png not text")
+}
+
+@test
+fn test_is_image_png() {
+    assert(is_image("image/png"), "png is image")
+}
+
+@test
+fn test_is_audio_mpeg() {
+    assert(is_audio("audio/mpeg"), "mp3 mime")
+}
+
+@test
+fn test_is_video_mp4() {
+    assert(is_video("video/mp4"), "mp4 mime")
+}

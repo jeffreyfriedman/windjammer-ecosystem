@@ -1,0 +1,66 @@
+/// CORS response header values for a successful allow.
+pub struct CorsHeaders {
+    pub allow_origin: string,
+    pub allow_methods: string,
+    pub allow_headers: string,
+}
+
+/// True when `origin` is listed in `allowed`, or `allowed` contains `*`.
+pub fn is_origin_allowed(origin: string, allowed: Vec<string>) -> bool {
+    let mut i = 0
+    while i < allowed.len() {
+        let entry = allowed[i]
+        if entry == "*" {
+            return true
+        }
+        if entry == origin {
+            return true
+        }
+        i = i + 1
+    }
+    false
+}
+
+/// `Access-Control-Allow-Origin` value: echoed origin, `*`, or `None` if rejected.
+pub fn allow_origin(origin: string, allowed: Vec<string>) -> Option<string> {
+    // Inline until `bug_same_module_vec_helper_reuse_clone_instead_of_borrow_test` is green
+    // on the pinned `wj` (0.50.0 still emits `allowed.clone()` for `&Vec` callee).
+    let mut i = 0
+    let mut matched = false
+    while i < allowed.len() {
+        let entry = allowed[i]
+        if entry == "*" || entry == origin {
+            matched = true
+            break
+        }
+        i = i + 1
+    }
+    if !matched {
+        return None
+    }
+    let mut j = 0
+    while j < allowed.len() {
+        if allowed[j] == "*" {
+            return Some("*")
+        }
+        j = j + 1
+    }
+    Some(origin)
+}
+
+/// Preflight header set, or `None` when the origin is not allowed.
+pub fn preflight(
+    origin: string,
+    allowed: Vec<string>,
+    methods: string,
+    headers: string,
+) -> Option<CorsHeaders> {
+    match allow_origin(origin, allowed) {
+        Some(ao) => Some(CorsHeaders {
+            allow_origin: ao,
+            allow_methods: methods,
+            allow_headers: headers,
+        }),
+        None => None,
+    }
+}

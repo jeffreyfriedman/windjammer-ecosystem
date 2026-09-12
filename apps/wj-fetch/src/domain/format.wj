@@ -1,21 +1,39 @@
-use std::json
+use wj_json_util::pretty
+use std::strings
 
 /// Pretty-print JSON when possible; otherwise return the raw body.
 pub fn format_body(body: string) -> string {
-    match json.parse(body) {
-        Ok(value) => {
-            match json.stringify_pretty(value) {
-                Ok(pretty) => pretty,
-                Err(_) => body,
-            }
-        },
-        Err(_) => body,
-    }
+    pretty(own(body))
+}
+
+fn own(value: string) -> string {
+    value
 }
 
 /// Human-readable fetch summary for CLI stdout.
-/// Status is `u16` to match HTTP / `std::http::Response::status_code`.
 pub fn format_fetch_result(status: u16, body: string) -> string {
     let formatted = format_body(body)
     "HTTP ${status}\n${formatted}"
+}
+
+/// Error line when `--fail` and status is not 2xx.
+pub fn format_fetch_error(status: u16, body: string) -> string {
+    let snippet = format_body(body)
+    "HTTP ${status}\n${snippet}"
+}
+
+/// Resolve stdout message and optional file body when `--output` / `--silent` are set.
+pub fn resolve_fetch_output(status: u16, body: string, output_path: string, silent: bool) -> Result<(string, string), string> {
+    let formatted = format_body(body)
+    if strings.len(output_path) > 0 {
+        if silent {
+            return Ok((formatted, ""))
+        }
+        let message = "HTTP ${status}\nwritten to ${output_path}"
+        return Ok((formatted, message))
+    }
+    if silent {
+        return Ok(("", formatted))
+    }
+    Ok(("", format_fetch_result(status, body)))
 }

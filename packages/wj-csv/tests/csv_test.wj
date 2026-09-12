@@ -1,0 +1,92 @@
+use crate::parse
+use crate::parse_with_headers
+use crate::write
+use std::strings
+
+@test
+fn test_parse_simple_rows() {
+    let text = "a,b,c\n1,2,3\n4,5,6"
+    match parse(text) {
+        Ok(rows) => {
+            assert_eq(rows.len(), 3)
+            assert_eq(rows[0][0], "a")
+            assert_eq(rows[1][2], "3")
+        },
+        Err(_) => assert(false, "parse simple"),
+    }
+}
+
+@test
+fn test_parse_quoted_commas() {
+    let text = "name,note\nalice,\"hello, world\""
+    match parse(text) {
+        Ok(rows) => {
+            assert_eq(rows.len(), 2)
+            assert_eq(rows[1][0], "alice")
+            assert_eq(rows[1][1], "hello, world")
+        },
+        Err(_) => assert(false, "parse quoted"),
+    }
+}
+
+@test
+fn test_parse_with_headers_splits_first_row() {
+    let text = "id,name\n1,alice\n2,bob"
+    match parse_with_headers(text) {
+        Ok(pair) => {
+            let headers = pair.0
+            let rows = pair.1
+            assert_eq(headers.len(), 2)
+            assert_eq(headers[0], "id")
+            assert_eq(headers[1], "name")
+            assert_eq(rows.len(), 2)
+            assert_eq(rows[0][1], "alice")
+        },
+        Err(_) => assert(false, "parse_with_headers"),
+    }
+}
+
+@test
+fn test_write_roundtrip() {
+    let mut row1 = Vec::new()
+    row1.push("x")
+    row1.push("y")
+    let mut row2 = Vec::new()
+    row2.push("1")
+    row2.push("2")
+    let mut rows = Vec::new()
+    rows.push(row1)
+    rows.push(row2)
+    match write(rows) {
+        Ok(text) => {
+            assert(strings.contains(text, "x"), "has x")
+            assert(strings.contains(text, "1"), "has 1")
+            match parse(text) {
+                Ok(again) => {
+                    assert_eq(again.len(), 2)
+                    assert_eq(again[0][0], "x")
+                    assert_eq(again[1][1], "2")
+                },
+                Err(_) => assert(false, "reparse"),
+            }
+        },
+        Err(_) => assert(false, "write"),
+    }
+}
+
+@test
+fn test_parse_empty_string_is_empty_rows() {
+    match parse("") {
+        Ok(rows) => assert_eq(rows.len(), 0),
+        Err(_) => assert(false, "empty parse"),
+    }
+}
+
+@test
+fn test_write_empty_rows() {
+    let rows = Vec::new()
+    match write(rows) {
+        Ok(text) => assert_eq(text, ""),
+        Err(_) => assert(false, "empty write"),
+    }
+}

@@ -1,0 +1,10 @@
+use crate::domain::ProxyConfig
+
+fn test_config_defaults() {
+    let cfg = ProxyConfig::defaults()
+    assert_eq(cfg.upstream, "http://127.0.0.1:9000")
+    assert_eq(cfg.strip_prefix, "")
+    assert_eq(cfg.rate_limit, 100)
+    assert_eq(cfg.window_ms, 60_000)
+    assert_eq(cfg.log_max, 1000)
+}

@@ -1,0 +1,95 @@
+use std::strings
+
+pub struct Event {
+    pub name: string,
+    pub payload: string,
+}
+
+struct Listener {
+    id: string,
+    pattern: string,
+}
+
+pub struct EventBus {
+    listeners: Vec<Listener>,
+    queue: Vec<Event>,
+}
+
+pub fn new_bus() -> EventBus {
+    EventBus {
+        listeners: Vec::new(),
+        queue: Vec::new(),
+    }
+}
+
+pub fn subscribe(bus: EventBus, id: string, pattern: string) -> EventBus {
+    let mut listeners = bus.listeners
+    listeners.push(Listener { id: id, pattern: pattern })
+    EventBus {
+        listeners: listeners,
+        queue: bus.queue,
+    }
+}
+
+pub fn unsubscribe(bus: EventBus, id: string) -> EventBus {
+    let mut kept = Vec::new()
+    let mut i = 0
+    while i < bus.listeners.len() {
+        let listener = bus.listeners[i]
+        if listener.id != id {
+            kept.push(listener)
+        }
+        i = i + 1
+    }
+    EventBus {
+        listeners: kept,
+        queue: bus.queue,
+    }
+}
+
+pub fn emit(bus: EventBus, name: string, payload: string) -> EventBus {
+    let mut queue = bus.queue
+    queue.push(Event { name: name, payload: payload })
+    EventBus {
+        listeners: bus.listeners,
+        queue: queue,
+    }
+}
+
+pub fn drain(bus: EventBus) -> (EventBus, Vec<Event>) {
+    let taken = bus.queue
+    let empty = Vec::new()
+    let next = EventBus {
+        listeners: bus.listeners,
+        queue: empty,
+    }
+    (next, taken)
+}
+
+pub fn listener_ids(bus: EventBus, event_name: string) -> Vec<string> {
+    let mut out = Vec::new()
+    let mut i = 0
+    while i < bus.listeners.len() {
+        let listener = bus.listeners[i]
+        if match_pattern(listener.pattern, event_name) {
+            out.push(listener.id)
+        }
+        i = i + 1
+    }
+    out
+}
+
+pub fn match_pattern(pattern: string, event_name: string) -> bool {
+    if pattern == "*" {
+        return true
+    }
+    if strings.ends_with(pattern, "*") {
+        let prefix_len = strings.len(pattern) - 1
+        if prefix_len == 0 {
+            return true
+        }
+        let prefix = strings.substring(pattern, 0, prefix_len)
+        return strings.starts_with(event_name, prefix)
+    }
+    pattern == event_name
+}

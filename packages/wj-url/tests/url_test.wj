@@ -2,9 +2,13 @@ use crate::parse
 use crate::format_url
 use crate::join_url
 use crate::query_get
+use crate::query_has
+use crate::query_remove
 use crate::query_set
+use crate::with_query
 use std::strings
 
+@test
 fn test_parse_https_with_path_query_fragment() {
     let text = "https://example.com:8443/api/v1?x=1&y=2#top"
     match parse(text) {
@@ -20,6 +24,7 @@ fn test_parse_https_with_path_query_fragment() {
     }
 }
 
+@test
 fn test_parse_http_no_port() {
     let text = "http://localhost/path"
     match parse(text) {
@@ -33,100 +38,111 @@ fn test_parse_http_no_port() {
     }
 }
 
+@test
 fn test_parse_rejects_empty() {
-    let text = ""
-    match parse(text) {
+    match parse("") {
         Ok(_) => assert(false, "expected Err"),
         Err(_) => {},
     }
 }
 
+@test
 fn test_parse_rejects_missing_scheme() {
-    let text = "example.com/path"
-    match parse(text) {
+    match parse("example.com/path") {
         Ok(_) => assert(false, "expected Err"),
         Err(_) => {},
     }
 }
 
+@test
 fn test_format_url_roundtrip() {
-    let text = "https://a.b:443/x?q=1#f"
-    match parse(text) {
-        Ok(u) => {
-            let expected = "https://a.b:443/x?q=1#f"
-            assert_eq(format_url(u), expected)
-        },
+    match parse("https://a.b:443/x?q=1#f") {
+        Ok(u) => assert_eq(format_url(u), "https://a.b:443/x?q=1#f"),
         Err(_) => assert(false, "parse for format"),
     }
 }
 
+@test
 fn test_join_absolute_relative_replaces() {
-    let base = "https://example.com/a/b"
-    let relative = "https://other.com/z"
-    match join_url(base, relative) {
-        Ok(out) => {
-            let expected = "https://other.com/z"
-            assert_eq(out, expected)
-        },
+    match join_url("https://example.com/a/b", "https://other.com/z") {
+        Ok(out) => assert_eq(out, "https://other.com/z"),
         Err(_) => assert(false, "join absolute"),
     }
 }
 
+@test
 fn test_join_path_relative() {
-    let base = "https://example.com/a/b"
-    let relative = "c"
-    match join_url(base, relative) {
-        Ok(out) => {
-            let expected = "https://example.com/a/c"
-            assert_eq(out, expected)
-        },
+    match join_url("https://example.com/a/b", "c") {
+        Ok(out) => assert_eq(out, "https://example.com/a/c"),
         Err(_) => assert(false, "join relative"),
     }
 }
 
+@test
 fn test_join_rooted_path() {
-    let base = "https://example.com/a/b"
-    let relative = "/root"
-    match join_url(base, relative) {
-        Ok(out) => {
-            let expected = "https://example.com/root"
-            assert_eq(out, expected)
-        },
+    match join_url("https://example.com/a/b", "/root") {
+        Ok(out) => assert_eq(out, "https://example.com/root"),
         Err(_) => assert(false, "join rooted"),
     }
 }
 
+@test
+fn test_join_relative_keeps_query_and_fragment() {
+    match join_url("https://example.com/a/b", "c?x=1#sec") {
+        Ok(out) => assert_eq(out, "https://example.com/a/c?x=1#sec"),
+        Err(_) => assert(false, "join with query"),
+    }
+}
+
+@test
 fn test_query_get_finds_key() {
-    let query = "a=1&b=two&c=3"
-    let key = "b"
-    match query_get(query, key) {
-        Some(v) => {
-            let expected = "two"
-            assert_eq(v, expected)
-        },
+    match query_get("a=1&b=two&c=3", "b") {
+        Some(v) => assert_eq(v, "two"),
         None => assert(false, "expected b"),
     }
 }
 
+@test
 fn test_query_get_missing_key() {
-    let query = "a=1"
-    let key = "z"
-    match query_get(query, key) {
+    match query_get("a=1", "z") {
         Some(_) => assert(false, "expected None"),
         None => {},
     }
 }
 
+@test
 fn test_query_set_adds_and_replaces() {
-    let q1 = "a=1"
-    let key_b = "b"
-    let val_2 = "2"
-    let with_b = query_set(q1, key_b, val_2)
+    let with_b = query_set("a=1", "b", "2")
     assert(strings.contains(with_b, "a=1"), "keeps a")
     assert(strings.contains(with_b, "b=2"), "adds b")
-    let q2 = "a=1&b=old"
-    let val_new = "new"
-    let replaced = query_set(q2, key_b, val_new)
+    let replaced = query_set("a=1&b=old", "b", "new")
     assert(strings.contains(replaced, "b=new"), "replaces b")
     assert(!strings.contains(replaced, "b=old"), "drops old b")
+}
+
+@test
+fn test_query_remove_drops_key() {
+    let out = query_remove("a=1&b=2&c=3", "b")
+    assert(strings.contains(out, "a=1"), "keeps a")
+    assert(strings.contains(out, "c=3"), "keeps c")
+    assert(!strings.contains(out, "b=2"), "drops b")
+}
+
+@test
+fn test_query_has() {
+    assert(query_has("a=1&b=2", "a"), "has a")
+    assert(!query_has("a=1&b=2", "z"), "missing z")
+}
+
+@test
+fn test_with_query_sets_on_url() {
+    match parse("https://example.com/path?old=1#f") {
+        Ok(u) => {
+            let updated = with_query(u, "a=1&b=2")
+            assert_eq(updated.query, "a=1&b=2")
+            assert_eq(updated.fragment, "f")
+            assert_eq(format_url(updated), "https://example.com/path?a=1&b=2#f")
+        },
+        Err(_) => assert(false, "parse for with_query"),
+    }
 }

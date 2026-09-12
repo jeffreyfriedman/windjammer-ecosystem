@@ -1,0 +1,105 @@
+use crate::escape
+use crate::find
+use crate::find_all
+use crate::is_match
+use crate::replace
+use crate::replace_all
+use crate::split
+
+@test
+fn test_is_match_digits() {
+    match is_match("\\d+", "abc123") {
+        Ok(ok) => assert(ok, "digits match"),
+        Err(_) => assert(false, "is_match err"),
+    }
+    match is_match("\\d+", "abc") {
+        Ok(ok) => assert(!ok, "no digits"),
+        Err(_) => assert(false, "is_match err2"),
+    }
+}
+
+@test
+fn test_find_first() {
+    match find("\\d+", "abc123def456") {
+        Ok(opt) => {
+            match opt {
+                Some(m) => assert_eq(m, "123"),
+                None => assert(false, "expected match"),
+            }
+        },
+        Err(_) => assert(false, "find err"),
+    }
+}
+
+@test
+fn test_find_none() {
+    match find("\\d+", "abcdef") {
+        Ok(opt) => {
+            match opt {
+                Some(_) => assert(false, "expected None"),
+                None => {},
+            }
+        },
+        Err(_) => assert(false, "find none err"),
+    }
+}
+
+@test
+fn test_find_all() {
+    match find_all("\\d+", "a1b22c333") {
+        Ok(ms) => {
+            assert_eq(ms.len(), 3)
+            assert_eq(ms[0], "1")
+            assert_eq(ms[1], "22")
+            assert_eq(ms[2], "333")
+        },
+        Err(_) => assert(false, "find_all err"),
+    }
+}
+
+@test
+fn test_replace_first() {
+    match replace("\\d+", "a1b2", "X") {
+        Ok(out) => assert_eq(out, "aXb2"),
+        Err(_) => assert(false, "replace err"),
+    }
+}
+
+@test
+fn test_replace_all() {
+    match replace_all("\\d+", "a1b2c3", "X") {
+        Ok(out) => assert_eq(out, "aXbXcX"),
+        Err(_) => assert(false, "replace_all err"),
+    }
+}
+
+@test
+fn test_split_whitespace() {
+    match split("\\s+", "hello  world\tfoo") {
+        Ok(parts) => {
+            assert_eq(parts.len(), 3)
+            assert_eq(parts[0], "hello")
+            assert_eq(parts[1], "world")
+            assert_eq(parts[2], "foo")
+        },
+        Err(_) => assert(false, "split err"),
+    }
+}
+
+@test
+fn test_escape_specials() {
+    let escaped = escape("a+b?")
+    assert(escaped != "a+b?", "escaped differs")
+    match is_match(escaped, "a+b?") {
+        Ok(ok) => assert(ok, "literal match after escape"),
+        Err(_) => assert(false, "escape match"),
+    }
+}
+
+@test
+fn test_invalid_pattern_errors() {
+    match is_match("(", "x") {
+        Ok(_) => assert(false, "expected Err"),
+        Err(msg) => assert(msg != "", "err message"),
+    }
+}

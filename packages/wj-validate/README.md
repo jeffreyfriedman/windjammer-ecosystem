@@ -38,6 +38,8 @@ match all_ok(errors) {
 | `require_nonempty` | Trim + non-empty |
 | `require_min_len` / `require_max_len` | Length bounds |
 | `require_email` | Lightweight `local@domain` shape |
+| `require_url` | Absolute `http://` / `https://` URL |
+| `require_uuid` | Hex UUID `8-4-4-4-12` |
 | `require_int_range` | Inclusive int bounds |
 | `require_one_of` | Allow-list membership |
 | `all_ok` | Aggregate error list |

@@ -1,0 +1,123 @@
+use std::strings
+
+/// Parse a duration string into milliseconds.
+/// Accepts bare numbers (ms) and compounds like `1h30m`, `5s`, `250ms`.
+pub fn parse_ms(text: string) -> Result<int, string> {
+    let s = strings.trim(text)
+    if strings.len(s) == 0 {
+        return Err("empty duration")
+    }
+    if is_all_digits(s) {
+        return Ok(to_int(s))
+    }
+    let mut total = 0
+    let mut i = 0
+    let mut saw = false
+    while i < strings.len(s) {
+        let start = i
+        while i < strings.len(s) && is_digit(strings.substring(s, i, i + 1)) {
+            i = i + 1
+        }
+        if i == start {
+            return Err("expected number in duration")
+        }
+        let num_text = strings.substring(s, start, i)
+        let n = to_int(num_text)
+        if i >= strings.len(s) {
+            return Err("expected unit after number")
+        }
+        let unit_start = i
+        while i < strings.len(s) && !is_digit(strings.substring(s, i, i + 1)) {
+            i = i + 1
+        }
+        let unit = strings.to_lower(strings.substring(s, unit_start, i))
+        match unit_to_ms(unit) {
+            Ok(mult) => {
+                total = total + (n * mult)
+                saw = true
+            },
+            Err(e) => {
+                return Err(e)
+            },
+        }
+    }
+    if !saw {
+        return Err("invalid duration")
+    }
+    Ok(total)
+}
+
+/// Format milliseconds as a compact duration (`5ms`, `3s`, `1h30m`).
+pub fn format_ms(ms: int) -> string {
+    if ms < 0 {
+        return "0ms"
+    }
+    if ms < 1000 {
+        return "${ms}ms"
+    }
+    let mut rem = ms
+    let hours = rem / 3600000
+    rem = rem - (hours * 3600000)
+    let minutes = rem / 60000
+    rem = rem - (minutes * 60000)
+    let seconds = rem / 1000
+    rem = rem - (seconds * 1000)
+    let mut out = ""
+    if hours > 0 {
+        out = "${out}${hours}h"
+    }
+    if minutes > 0 {
+        out = "${out}${minutes}m"
+    }
+    if seconds > 0 {
+        out = "${out}${seconds}s"
+    }
+    if rem > 0 {
+        out = "${out}${rem}ms"
+    }
+    if strings.len(out) == 0 {
+        return "0ms"
+    }
+    out
+}
+
+fn unit_to_ms(unit: string) -> Result<int, string> {
+    if unit == "ms" {
+        return Ok(1)
+    }
+    if unit == "s" {
+        return Ok(1000)
+    }
+    if unit == "m" {
+        return Ok(60000)
+    }
+    if unit == "h" {
+        return Ok(3600000)
+    }
+    if unit == "d" {
+        return Ok(86400000)
+    }
+    Err("unknown duration unit")
+}
+
+fn is_all_digits(text: string) -> bool {
+    if strings.len(text) == 0 {
+        return false
+    }
+    let mut i = 0
+    while i < strings.len(text) {
+        if !is_digit(strings.substring(text, i, i + 1)) {
+            return false
+        }
+        i = i + 1
+    }
+    true
+}
+
+fn is_digit(ch: string) -> bool {
+    ch == "0" || ch == "1" || ch == "2" || ch == "3" || ch == "4" || ch == "5" || ch == "6" || ch == "7" || ch == "8" || ch == "9"
+}
+
+fn to_int(text: string) -> int {
+    strings.parse_i32(text) as int
+}

@@ -10,10 +10,12 @@ use wj_url
 match parse("https://example.com:8443/api?x=1#top") {
     Ok(u) => {
         println(format_url(u))
-        match join_url("https://example.com/a/b", "c") {
+        match join_url("https://example.com/a/b", "c?x=1#sec") {
             Ok(joined) => println(joined),
             Err(e) => println(e),
         }
+        let u2 = with_query(u, "a=1&b=2")
+        println(format_url(u2))
     },
     Err(e) => println(e),
 }
@@ -23,15 +25,20 @@ match query_get("a=1&b=two", "b") {
     None => {},
 }
 let q = query_set("a=1", "b", "2")
+let q2 = query_remove(q, "a")
+assert(query_has(q2, "b"), "b remains")
 ```
 
 | Function | Description |
 |---|---|
 | `parse(text)` | Absolute URL → `Url` |
 | `format_url(u)` | `Url` → absolute string |
-| `join_url(base, relative)` | Resolve relative against base (`join_url` avoids clashing with `strings.join`) |
+| `join_url(base, relative)` | Resolve relative against base (keeps `?query` / `#fragment`) |
 | `query_get(query, key)` | First value for key |
+| `query_has(query, key)` | Whether key is present |
 | `query_set(query, key, value)` | Add/replace key |
+| `query_remove(query, key)` | Drop all pairs for key |
+| `with_query(u, query)` | Copy of `Url` with query replaced |
 
 ## Layout
 

@@ -1,0 +1,9 @@
+use crate::domain::AuthConfig
+
+fn test_config_defaults() {
+    let cfg = AuthConfig::defaults()
+    assert_eq(cfg.jwt_secret, "dev-secret")
+    assert_eq(cfg.jwt_ttl_secs, 3600)
+    assert_eq(cfg.allowed_origins.len(), 1)
+    assert_eq(cfg.allowed_origins[0], "*")
+}

@@ -1,0 +1,53 @@
+use crate::domain::Todo
+use crate::domain::filter_pending
+use crate::domain::filter_done
+use crate::domain::sort_todos_by_id
+use crate::domain::count_todos
+
+fn make_todo(id: int, title: string, done: bool) -> Todo {
+    Todo {
+        id: id,
+        title: title,
+        done: done,
+    }
+}
+
+fn test_filter_pending_only() {
+    let mut todos = Vec::new()
+    todos.push(make_todo(1, "open", false))
+    todos.push(make_todo(2, "closed", true))
+    let filtered = filter_pending(todos)
+    assert_eq(filtered.len(), 1)
+    assert_eq(filtered[0].id, 1)
+}
+
+fn test_filter_done_only() {
+    let mut todos = Vec::new()
+    todos.push(make_todo(1, "open", false))
+    todos.push(make_todo(2, "closed", true))
+    let filtered = filter_done(todos)
+    assert_eq(filtered.len(), 1)
+    assert_eq(filtered[0].id, 2)
+}
+
+fn test_sort_todos_by_id_orders_ascending() {
+    let mut todos = Vec::new()
+    todos.push(make_todo(3, "c", false))
+    todos.push(make_todo(1, "a", false))
+    todos.push(make_todo(2, "b", true))
+    let sorted = sort_todos_by_id(todos)
+    assert_eq(sorted[0].id, 1)
+    assert_eq(sorted[1].id, 2)
+    assert_eq(sorted[2].id, 3)
+}
+
+fn test_count_todos() {
+    let mut todos = Vec::new()
+    todos.push(make_todo(1, "open", false))
+    todos.push(make_todo(2, "closed", true))
+    todos.push(make_todo(3, "also-open", false))
+    let counts = count_todos(todos)
+    assert_eq(counts.0, 3)
+    assert_eq(counts.1, 2)
+    assert_eq(counts.2, 1)
+}

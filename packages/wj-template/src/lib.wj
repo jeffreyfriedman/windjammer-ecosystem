@@ -2,34 +2,81 @@ use std::collections::HashMap
 use std::strings
 
 /// Replace `{{key}}` placeholders using `vars`. Unknown keys stay in the output.
+/// Whitespace inside braces is ignored: `{{ name }}` uses key `name`.
 pub fn render(template: string, vars: HashMap<string, string>) -> string {
-    let mut out = template
-    for (key, value) in vars {
-        let token = "{{${key}}}"
-        out = strings.replace(out, token, value)
+    let mut out = ""
+    let mut i = 0
+    while i < strings.len(template) {
+        if strings.starts_with(strings.substring(template, i, strings.len(template)), "{{") {
+            match read_placeholder(template, i) {
+                Some(pair) => {
+                    let name = pair.0
+                    let end = pair.1
+                    match lookup_var(vars, name) {
+                        Some(value) => {
+                            out = "${out}${value}"
+                        },
+                        None => {
+                            out = "${out}${strings.substring(template, i, end)}"
+                        },
+                    }
+                    i = end
+                },
+                None => {
+                    out = "${out}${strings.substring(template, i, i + 1)}"
+                    i = i + 1
+                },
+            }
+        } else {
+            out = "${out}${strings.substring(template, i, i + 1)}"
+            i = i + 1
+        }
     }
     out
+}
+
+/// Like `render`, but fills missing keys from `defaults` first (`vars` win on conflict).
+pub fn render_with_defaults(
+    template: string,
+    vars: HashMap<string, string>,
+    defaults: HashMap<string, string>,
+) -> string {
+    render(template, merge_maps(defaults, vars))
+}
+
+/// Escape `&`, `<`, `>`, and `"` for HTML text nodes.
+pub fn escape_html(text: string) -> string {
+    let amp = strings.replace(text, "&", "&amp;")
+    let lt = strings.replace(amp, "<", "&lt;")
+    let gt = strings.replace(lt, ">", "&gt;")
+    strings.replace(gt, "\"", "&quot;")
+}
+
+/// Like `render`, but HTML-escapes every substituted value.
+pub fn render_html(template: string, vars: HashMap<string, string>) -> string {
+    let mut safe = HashMap::new()
+    for (key, value) in vars {
+        safe.insert(key, escape_html(value))
+    }
+    render(template, safe)
 }
 
 /// Like `render`, but returns `Err` when the template references a key not in `vars`.
 pub fn render_strict(template: string, vars: HashMap<string, string>) -> Result<string, string> {
     let required = placeholder_names(template)
-    let mut out = template
     let mut provided = Vec::new()
-    for (key, value) in vars {
-        let token = "{{${key}}}"
-        out = strings.replace(out, token, value)
+    for (key, _value) in vars {
         provided.push(key)
     }
     let mut i = 0
     while i < required.len() {
         let name = required[i]
-        if !list_contains(provided, name) {
+        if !list_contains(provided, "${name}") {
             return Err("missing template key: ${name}")
         }
         i = i + 1
     }
-    Ok(out)
+    Ok(render(template, vars))
 }
 
 /// Keys referenced as `{{key}}` in `template` that are absent from `vars`.
@@ -41,7 +88,8 @@ pub fn missing_keys(template: string, vars: HashMap<string, string>) -> Vec<stri
     }
     let mut missing = Vec::new()
     for name in required {
-        if !list_contains(provided, name) && !list_contains(missing, name) {
+        let key = "${name}"
+        if !list_contains(provided, key) && !list_contains(missing, key) {
             missing.push(name)
         }
     }
@@ -81,6 +129,26 @@ fn list_contains(items: Vec<string>, needle: string) -> bool {
     false
 }
 
+fn merge_maps(base: HashMap<string, string>, overrides: HashMap<string, string>) -> HashMap<string, string> {
+    let mut out = HashMap::new()
+    for (key, value) in base {
+        out.insert(key, value)
+    }
+    for (key, value) in overrides {
+        out.insert(key, value)
+    }
+    out
+}
+
+fn lookup_var(vars: HashMap<string, string>, key: string) -> Option<string> {
+    for (k, v) in vars {
+        if k == key {
+            return Some(v)
+        }
+    }
+    None
+}
+
 /// Returns `(name, index_after_closing)`.
 fn read_placeholder(text: string, start: usize) -> Option<(string, usize)> {
     if !strings.starts_with(strings.substring(text, start, strings.len(text)), "{{") {
@@ -91,10 +159,11 @@ fn read_placeholder(text: string, start: usize) -> Option<(string, usize)> {
     while i + 1 < strings.len(text) {
         let tail = strings.substring(text, i, strings.len(text))
         if strings.starts_with(tail, "}}") {
-            if name.len() == 0 {
+            let trimmed = strings.trim(name)
+            if strings.len(trimmed) == 0 {
                 return None
             }
-            return Some((name, i + 2))
+            return Some((trimmed, i + 2))
         }
         let ch = strings.substring_chars(text, i, i + 1)
         name = "${name}${ch}"

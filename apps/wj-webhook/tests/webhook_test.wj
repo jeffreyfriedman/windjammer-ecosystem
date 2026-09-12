@@ -1,9 +1,10 @@
 use crate::domain::WebhookApp
+use crate::domain::WebhookConfig
 use crate::domain::signature_for
 
 fn test_health_returns_ok_json() {
     let app = WebhookApp::new("secret")
-    let reply = app.handle("GET", "/health", "", "", "")
+    let reply = app.handle("GET", "/health", "", "", "", "")
     assert_eq(reply.status, 200)
     assert_str_contains(reply.body, "ok")
 }
@@ -11,17 +12,17 @@ fn test_health_returns_ok_json() {
 fn test_post_webhook_rejects_bad_token() {
     let app = WebhookApp::new("secret")
     let body = "{\"event\":\"ping\",\"id\":\"1\"}"
-    let reply = app.handle("POST", "/webhook", "wrong", "", body)
+    let reply = app.handle("POST", "/webhook", "", "wrong", "", body)
     assert_eq(reply.status, 401)
 }
 
 fn test_post_webhook_accepts_token_and_lists_event() {
     let mut app = WebhookApp::new("secret")
     let body = "{\"event\":\"ping\",\"id\":\"evt-1\"}"
-    let reply = app.handle("POST", "/webhook", "secret", "", body)
+    let reply = app.handle("POST", "/webhook", "", "secret", "", body)
     assert_eq(reply.status, 200)
     assert_str_contains(reply.body, "ping")
-    let listed = app.handle("GET", "/events", "", "", "")
+    let listed = app.handle("GET", "/events", "", "", "", "")
     assert_eq(listed.status, 200)
     assert_str_contains(listed.body, "ping")
     assert_str_contains(listed.body, "evt-1")
@@ -29,15 +30,15 @@ fn test_post_webhook_accepts_token_and_lists_event() {
 
 fn test_post_webhook_invalid_json_returns_400() {
     let app = WebhookApp::new("secret")
-    let reply = app.handle("POST", "/webhook", "secret", "", "{bad")
+    let reply = app.handle("POST", "/webhook", "", "secret", "", "{bad")
     assert_eq(reply.status, 400)
 }
 
 fn test_post_webhook_accepts_sha256_signature() {
     let mut app = WebhookApp::new("secret")
     let body = "{\"event\":\"order.created\",\"id\":\"42\"}"
-    let sig = signature_for("secret", body)
-    let reply = app.handle("POST", "/webhook", "", sig, body)
+    let sig = signature_for("secret", "{\"event\":\"order.created\",\"id\":\"42\"}")
+    let reply = app.handle("POST", "/webhook", "", "", sig, body)
     assert_eq(reply.status, 200)
     assert_str_contains(reply.body, "order.created")
 }
@@ -51,6 +52,58 @@ fn test_signature_for_is_deterministic() {
 
 fn test_unknown_path_returns_404() {
     let app = WebhookApp::new("secret")
-    let reply = app.handle("GET", "/nope", "", "", "")
+    let reply = app.handle("GET", "/nope", "", "", "", "")
     assert_eq(reply.status, 404)
+}
+
+fn test_security_headers_on_health() {
+    let app = WebhookApp::new("secret")
+    let reply = app.handle("GET", "/health", "", "", "", "")
+    assert_eq(reply.status, 200)
+    assert_str_contains(reply.extra_headers, "X-Frame-Options")
+    assert_str_contains(reply.extra_headers, "X-Content-Type-Options")
+}
+
+fn test_cors_preflight_allowed_origin() {
+    let app = WebhookApp::new_with_config(config_with_cors())
+    let reply = app.handle("OPTIONS", "/webhook", "http://localhost:3000", "", "", "")
+    assert_eq(reply.status, 204)
+    assert_eq(reply.allow_origin, "http://localhost:3000")
+    assert_str_contains(reply.extra_headers, "X-Frame-Options")
+}
+
+fn test_cors_preflight_rejects_unknown_origin() {
+    let app = WebhookApp::new_with_config(config_with_cors())
+    let reply = app.handle("OPTIONS", "/webhook", "http://evil.example", "", "", "")
+    assert_eq(reply.status, 403)
+}
+
+fn test_post_webhook_rejects_empty_event() {
+    let app = WebhookApp::new("secret")
+    let body = "{\"event\":\"\",\"id\":\"1\"}"
+    let reply = app.handle("POST", "/webhook", "", "secret", "", body)
+    assert_eq(reply.status, 400)
+    assert_str_contains(reply.body, "event")
+}
+
+fn test_post_webhook_rejects_oversized_event() {
+    let mut cfg = default_config()
+    cfg.max_event_len = 10
+    let app = WebhookApp::new_with_config(cfg)
+    let body = "{\"event\":\"this-is-way-too-long\",\"id\":\"1\"}"
+    let reply = app.handle("POST", "/webhook", "", "secret", "", body)
+    assert_eq(reply.status, 400)
+    assert_str_contains(reply.body, "event")
+}
+
+fn config_with_cors() -> WebhookConfig {
+    let mut cfg = default_config()
+    cfg.allowed_origins.push("http://localhost:3000")
+    cfg
+}
+
+fn default_config() -> WebhookConfig {
+    let mut cfg = WebhookConfig::defaults()
+    cfg.secret = "secret"
+    cfg
 }

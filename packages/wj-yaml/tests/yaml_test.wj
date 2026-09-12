@@ -1,0 +1,154 @@
+use crate::get_bool
+use crate::get_int
+use crate::get_str
+use crate::to_json
+
+@test
+fn test_to_json_flat_scalars() {
+    let yaml = "name: alice\nage: 30\nactive: true\n"
+    match to_json(yaml) {
+        Ok(json) => {
+            assert_str_contains(json, "\"name\"")
+            assert_str_contains(json, "\"alice\"")
+            assert_str_contains(json, "\"age\"")
+            assert_str_contains(json, "30")
+            assert_str_contains(json, "\"active\"")
+            assert_str_contains(json, "true")
+        },
+        Err(_) => assert(false, "parse failed"),
+    }
+}
+
+@test
+fn test_to_json_quoted_string() {
+    let yaml = "msg: \"hello: world\"\n"
+    match to_json(yaml) {
+        Ok(json) => assert_str_contains(json, "hello: world"),
+        Err(_) => assert(false, "parse failed"),
+    }
+}
+
+@test
+fn test_get_str_flat() {
+    match get_str("name: bob\n", "name") {
+        Some(v) => assert_eq(v, "bob"),
+        None => assert(false, "expected name"),
+    }
+}
+
+@test
+fn test_get_int_flat() {
+    match get_int("port: 8080\n", "port") {
+        Some(v) => assert_eq(v, 8080),
+        None => assert(false, "expected port"),
+    }
+}
+
+@test
+fn test_get_bool_flat() {
+    match get_bool("ok: true\n", "ok") {
+        Some(v) => assert(v, "expected true"),
+        None => assert(false, "expected ok"),
+    }
+}
+
+@test
+fn test_nested_map_get_str() {
+    let yaml = "server:\n  host: localhost\n  port: 8080\n"
+    match get_str(yaml, "server.host") {
+        Some(v) => assert_eq(v, "localhost"),
+        None => assert(false, "expected host"),
+    }
+}
+
+@test
+fn test_nested_map_get_int() {
+    let yaml = "server:\n  host: localhost\n  port: 8080\n"
+    match get_int(yaml, "server.port") {
+        Some(v) => assert_eq(v, 8080),
+        None => assert(false, "expected port"),
+    }
+}
+
+@test
+fn test_list_to_json() {
+    let yaml = "tags:\n  - red\n  - blue\n"
+    match to_json(yaml) {
+        Ok(json) => {
+            assert_str_contains(json, "\"tags\"")
+            assert_str_contains(json, "red")
+            assert_str_contains(json, "blue")
+        },
+        Err(_) => assert(false, "parse failed"),
+    }
+}
+
+@test
+fn test_comments_ignored() {
+    let yaml = "# ignore me\nname: carol\n"
+    match get_str(yaml, "name") {
+        Some(v) => assert_eq(v, "carol"),
+        None => assert(false, "expected name"),
+    }
+}
+
+@test
+fn test_null_scalar() {
+    let yaml = "x: null\n"
+    match to_json(yaml) {
+        Ok(json) => assert_str_contains(json, "null"),
+        Err(_) => assert(false, "parse failed"),
+    }
+}
+
+@test
+fn test_missing_path() {
+    match get_str("a: 1\n", "b") {
+        Some(_) => assert(false, "should be missing"),
+        None => assert(true, "ok"),
+    }
+}
+
+@test
+fn test_empty_rejected() {
+    match to_json("") {
+        Ok(_) => assert(false, "empty should fail"),
+        Err(_) => assert(true, "ok"),
+    }
+}
+
+@test
+fn test_literal_block_scalar() {
+    let yaml = "body: |\n  line one\n  line two\n"
+    match get_str(yaml, "body") {
+        Some(v) => assert_eq(v, "line one\nline two\n"),
+        None => assert(false, "expected body"),
+    }
+}
+
+@test
+fn test_literal_block_preserves_relative_indent() {
+    let yaml = "body: |\n  hello\n    world\n"
+    match get_str(yaml, "body") {
+        Some(v) => assert_eq(v, "hello\n  world\n"),
+        None => assert(false, "expected body"),
+    }
+}
+
+@test
+fn test_folded_block_scalar() {
+    let yaml = "msg: >\n  hello\n  world\n"
+    match get_str(yaml, "msg") {
+        Some(v) => assert_eq(v, "hello world\n"),
+        None => assert(false, "expected msg"),
+    }
+}
+
+@test
+fn test_literal_block_in_nested_map() {
+    let yaml = "doc:\n  note: |\n    alpha\n    beta\n"
+    match get_str(yaml, "doc.note") {
+        Some(v) => assert_eq(v, "alpha\nbeta\n"),
+        None => assert(false, "expected note"),
+    }
+}

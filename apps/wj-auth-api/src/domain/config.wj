@@ -1,0 +1,113 @@
+use std::env
+use std::strings
+
+pub struct AuthConfig {
+    pub jwt_secret: string,
+    pub jwt_ttl_secs: int,
+    pub allowed_origins: Vec<string>,
+}
+
+impl AuthConfig {
+    pub fn defaults() -> AuthConfig {
+        let mut allowed = Vec::new()
+        allowed.push("*")
+        AuthConfig {
+            jwt_secret: "dev-secret",
+            jwt_ttl_secs: 3600,
+            allowed_origins: allowed,
+        }
+    }
+}
+
+pub fn config_from_env() -> AuthConfig {
+    AuthConfig {
+        jwt_secret: jwt_secret_from_env(),
+        jwt_ttl_secs: jwt_ttl_from_env(),
+        allowed_origins: cors_origins_from_env(),
+    }
+}
+
+pub fn port_from_env() -> int {
+    match env.get("PORT") {
+        Some(value) => {
+            match parse_positive_int(value) {
+                Some(port) => port,
+                None => 8091,
+            }
+        },
+        None => 8091,
+    }
+}
+
+fn jwt_secret_from_env() -> string {
+    match env.get("JWT_SECRET") {
+        Some(value) => value,
+        None => "dev-secret",
+    }
+}
+
+fn jwt_ttl_from_env() -> int {
+    match env.get("JWT_TTL_SECS") {
+        Some(value) => {
+            match parse_positive_int(value) {
+                Some(n) => n,
+                None => 3600,
+            }
+        },
+        None => 3600,
+    }
+}
+
+fn cors_origins_from_env() -> Vec<string> {
+    match env.get("CORS_ORIGIN") {
+        Some(value) => {
+            let trimmed = strings.trim(value)
+            if strings.len(trimmed) == 0 {
+                return default_origins()
+            }
+            let mut out = Vec::new()
+            out.push(trimmed)
+            out
+        },
+        None => default_origins(),
+    }
+}
+
+fn default_origins() -> Vec<string> {
+    let mut out = Vec::new()
+    out.push("*")
+    out
+}
+
+fn parse_positive_int(text: string) -> Option<int> {
+    if text.len() == 0 {
+        return None
+    }
+    let mut total: int = 0
+    for ch in strings.chars(text) {
+        match char_to_digit(ch) {
+            Some(digit) => {
+                total = total * 10 + digit
+            },
+            None => return None,
+        }
+    }
+    if total < 1 {
+        return None
+    }
+    Some(total)
+}
+
+fn char_to_digit(ch: char) -> Option<int> {
+    if ch == '0' { return Some(0) }
+    if ch == '1' { return Some(1) }
+    if ch == '2' { return Some(2) }
+    if ch == '3' { return Some(3) }
+    if ch == '4' { return Some(4) }
+    if ch == '5' { return Some(5) }
+    if ch == '6' { return Some(6) }
+    if ch == '7' { return Some(7) }
+    if ch == '8' { return Some(8) }
+    if ch == '9' { return Some(9) }
+    None
+}

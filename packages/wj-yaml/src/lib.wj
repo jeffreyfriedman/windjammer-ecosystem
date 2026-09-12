@@ -1,0 +1,95 @@
+use std::json
+use std::strings
+use std::yaml
+
+/// Parse YAML config into compact JSON text.
+///
+/// Thin-wraps `std::yaml.to_json` (serde_yaml backend). Supports full YAML 1.x
+/// including block scalars, flow style, and multi-document (first doc wins for
+/// JSON bridge). Package sugar: dotted-path getters below.
+pub fn to_json(text: string) -> Result<string, string> {
+    yaml.to_json(text)
+}
+
+/// String scalar (or stringified JSON leaf) at a dotted path.
+pub fn get_str(text: string, path: string) -> Option<string> {
+    match load_root(text) {
+        Some(root) => {
+            match walk_path(root, path) {
+                Some(node) => {
+                    match json.as_str(node) {
+                        Some(s) => Some(s),
+                        None => {
+                            match json.stringify(node) {
+                                Ok(s) => Some(s),
+                                Err(_) => None,
+                            }
+                        },
+                    }
+                },
+                None => None,
+            }
+        },
+        None => None,
+    }
+}
+
+/// Integer scalar at a dotted path.
+pub fn get_int(text: string, path: string) -> Option<int> {
+    match load_root(text) {
+        Some(root) => {
+            match walk_path(root, path) {
+                Some(node) => {
+                    match json.as_i64(node) {
+                        Some(n) => Some(n as int),
+                        None => None,
+                    }
+                },
+                None => None,
+            }
+        },
+        None => None,
+    }
+}
+
+/// Boolean scalar at a dotted path.
+pub fn get_bool(text: string, path: string) -> Option<bool> {
+    match load_root(text) {
+        Some(root) => {
+            match walk_path(root, path) {
+                Some(node) => json.as_bool(node),
+                None => None,
+            }
+        },
+        None => None,
+    }
+}
+
+fn load_root(text: string) -> Option<Value> {
+    match to_json(text) {
+        Ok(j) => {
+            match json.parse(j) {
+                Ok(v) => Some(v),
+                Err(_) => None,
+            }
+        },
+        Err(_) => None,
+    }
+}
+
+fn walk_path(root: Value, path: string) -> Option<Value> {
+    if strings.len(path) == 0 {
+        return Some(root)
+    }
+    let parts = strings.split(path, ".")
+    let mut current = root
+    for seg in parts {
+        match json.get(current, seg) {
+            Some(next) => {
+                current = next
+            },
+            None => return None,
+        }
+    }
+    Some(current)
+}

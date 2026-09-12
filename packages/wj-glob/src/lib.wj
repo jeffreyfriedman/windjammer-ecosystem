@@ -1,0 +1,96 @@
+use std::strings
+
+/// Shell-style glob match for `*`, `?`, and recursive `**`.
+/// `*` / `?` match within a single path segment (do not cross `/`).
+/// `**` matches zero or more path segments.
+pub fn is_match(pattern: string, path: string) -> bool {
+    let pats = split_segs(pattern)
+    let texts = split_segs(path)
+    match_segs(pats, 0, texts, 0)
+}
+
+/// Paths that match `pattern`.
+pub fn filter(pattern: string, paths: Vec<string>) -> Vec<string> {
+    let mut out = Vec::new()
+    let mut i = 0
+    while i < paths.len() {
+        // Fresh copies each iteration (read-only params are currently owned).
+        if is_match("${pattern}", "${paths[i]}") {
+            out.push("${paths[i]}")
+        }
+        i = i + 1
+    }
+    out
+}
+
+fn match_segs(pats: Vec<string>, pi: int, texts: Vec<string>, ti: int) -> bool {
+    if pi >= pats.len() {
+        return ti >= texts.len()
+    }
+    let pat = "${pats[pi]}"
+    if pat == "**" {
+        // Consume zero or more text segments.
+        let mut k = ti
+        while k <= texts.len() {
+            if match_segs(pats, pi + 1, texts, k) {
+                return true
+            }
+            k = k + 1
+        }
+        return false
+    }
+    if ti >= texts.len() {
+        return false
+    }
+    let text = "${texts[ti]}"
+    if !match_seg(pat, text) {
+        return false
+    }
+    match_segs(pats, pi + 1, texts, ti + 1)
+}
+
+fn match_seg(pat: string, text: string) -> bool {
+    if strings.len(pat) == 0 {
+        return strings.len(text) == 0
+    }
+    let pc = strings.substring(pat, 0, 1)
+    let prest = strings.substring(pat, 1, strings.len(pat))
+    if pc == "*" {
+        let tlen = strings.len(text)
+        let mut k = 0
+        while k < tlen {
+            let rest = strings.substring(text, k, tlen)
+            if match_seg("${prest}", rest) {
+                return true
+            }
+            k = k + 1
+        }
+        return match_seg(prest, "")
+    }
+    if strings.len(text) == 0 {
+        return false
+    }
+    let tc = strings.substring(text, 0, 1)
+    let trest = strings.substring(text, 1, strings.len(text))
+    if pc == "?" || pc == tc {
+        return match_seg(prest, trest)
+    }
+    false
+}
+
+fn split_segs(path: string) -> Vec<string> {
+    let mut segs = Vec::new()
+    if strings.len(path) == 0 {
+        return segs
+    }
+    let parts = strings.split(path, "/")
+    let mut i = 0
+    while i < parts.len() {
+        let part = parts[i]
+        if strings.len(part) > 0 {
+            segs.push(part)
+        }
+        i = i + 1
+    }
+    segs
+}

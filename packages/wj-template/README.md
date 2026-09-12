@@ -16,9 +16,14 @@ println(render("<h1>{{title}}</h1><p>{{body}}</p>", vars))
 ```
 
 - `render(template, vars)` — substitute known keys; leave unknown `{{key}}` tokens unchanged
+- `render_with_defaults(template, vars, defaults)` — fill from defaults; `vars` override
+- `render_html(template, vars)` — like `render`, but HTML-escapes values
+- `escape_html(text)` — escape `&`, `<`, `>`, `"` for HTML text
 - `render_strict(template, vars)` — `Ok` rendered text or `Err` on missing keys
 - `missing_keys(template, vars)` — keys referenced in the template but not in `vars`
-- `placeholder_names(template)` — ordered list of every `{{key}}` in the template
+- `placeholder_names(template)` — ordered list of every `{{key}}` in the template (names trimmed)
+
+Placeholder names ignore surrounding whitespace: `{{ name }}` uses key `name`.
 
 ## Layout
 

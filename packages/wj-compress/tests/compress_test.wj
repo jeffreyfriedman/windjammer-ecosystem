@@ -1,0 +1,88 @@
+use crate::accepts_gzip
+use crate::content_encoding_gzip
+use crate::gzip_decode
+use crate::gzip_encode
+use crate::negotiate
+use crate::prefer_identity
+
+@test
+fn test_accepts_gzip_simple() {
+    assert(accepts_gzip("gzip"), "plain gzip")
+    assert(accepts_gzip("gzip, deflate"), "list")
+    assert(accepts_gzip("deflate, gzip;q=1.0"), "with q")
+    assert(!accepts_gzip("deflate"), "no gzip")
+    assert(!accepts_gzip(""), "empty")
+}
+
+@test
+fn test_accepts_gzip_star() {
+    assert(accepts_gzip("*"), "star")
+    assert(accepts_gzip("*;q=0.5"), "star q")
+}
+
+@test
+fn test_accepts_gzip_q_zero() {
+    assert(!accepts_gzip("gzip;q=0"), "q=0 rejects")
+    assert(!accepts_gzip("gzip;q=0.0"), "q=0.0 rejects")
+}
+
+@test
+fn test_negotiate_prefers_gzip() {
+    match negotiate("gzip, deflate") {
+        Some(enc) => assert_eq(enc, "gzip"),
+        None => assert(false, "expected gzip"),
+    }
+}
+
+@test
+fn test_negotiate_identity_when_no_gzip() {
+    match negotiate("deflate, br") {
+        Some(_) => assert(false, "expected None"),
+        None => {},
+    }
+}
+
+@test
+fn test_content_encoding_gzip() {
+    assert_eq(content_encoding_gzip(), "gzip")
+}
+
+@test
+fn test_prefer_identity() {
+    assert(prefer_identity(""), "empty")
+    assert(prefer_identity("identity"), "identity")
+    assert(!prefer_identity("gzip"), "gzip not identity")
+}
+
+@test
+fn test_accepts_gzip_case_insensitive() {
+    assert(accepts_gzip("GZip"), "mixed case")
+    assert(accepts_gzip("GZIP, Deflate"), "upper")
+}
+
+@test
+fn test_gzip_roundtrip() {
+    match gzip_encode("hello compress world") {
+        Ok(encoded) => {
+            assert(encoded != "hello compress world", "compressed differs")
+            match gzip_decode(encoded) {
+                Ok(plain) => assert_eq(plain, "hello compress world"),
+                Err(_) => assert(false, "decode"),
+            }
+        },
+        Err(_) => assert(false, "encode"),
+    }
+}
+
+@test
+fn test_gzip_empty() {
+    match gzip_encode("") {
+        Ok(encoded) => {
+            match gzip_decode(encoded) {
+                Ok(plain) => assert_eq(plain, ""),
+                Err(_) => assert(false, "decode empty"),
+            }
+        },
+        Err(_) => assert(false, "encode empty"),
+    }
+}

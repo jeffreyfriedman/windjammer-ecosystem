@@ -1,0 +1,148 @@
+use std::path
+use std::strings
+
+/// Join two path segments. If `right` is absolute, return `right`.
+/// Thin-wraps `std::path.join` (empty `right` keeps package normalize semantics).
+pub fn join_path(left: string, right: string) -> string {
+    if strings.len(right) == 0 {
+        return normalize(left)
+    }
+    path.join(left, right)
+}
+
+/// Collapse `.` and `..` segments. Absolute paths stay absolute.
+pub fn normalize(path: string) -> string {
+    if strings.len(path) == 0 {
+        return "."
+    }
+    let absolute = strings.starts_with(path, "/")
+    let parts = strings.split(path, "/")
+    let mut stack = Vec::new()
+    for part in parts {
+        if strings.len(part) == 0 {
+            continue
+        }
+        if part == "." {
+            continue
+        }
+        if part == ".." {
+            if stack.len() > 0 {
+                let last = stack[stack.len() - 1]
+                if last != ".." {
+                    let _ = stack.pop()
+                    continue
+                }
+            }
+            if !absolute {
+                stack.push("..")
+            }
+            continue
+        }
+        stack.push(part)
+    }
+    if stack.len() == 0 {
+        if absolute {
+            return "/"
+        }
+        return "."
+    }
+    let mut out = ""
+    let mut i = 0
+    while i < stack.len() {
+        if i == 0 {
+            if absolute {
+                out = "/${stack[i]}"
+            } else {
+                out = stack[i]
+            }
+        } else {
+            out = "${out}/${stack[i]}"
+        }
+        i = i + 1
+    }
+    out
+}
+
+/// Final path segment.
+/// Uses `std::path.file_name` when present; root `/` stays `/`.
+pub fn basename(p: string) -> string {
+    if p == "/" {
+        return "/"
+    }
+    match path.file_name(p) {
+        Some(n) => n,
+        None => {
+            let cleaned = strip_trailing_slashes(p)
+            match rfind_slash(cleaned) {
+                Some(idx) => strings.substring(cleaned, idx + 1, strings.len(cleaned)),
+                None => cleaned,
+            }
+        },
+    }
+}
+
+/// Parent directory of `path`.
+pub fn dirname(path: string) -> string {
+    if path == "/" {
+        return "/"
+    }
+    let cleaned = strip_trailing_slashes(path)
+    match rfind_slash(cleaned) {
+        Some(idx) => {
+            if idx == 0 {
+                return "/"
+            }
+            strings.substring(cleaned, 0, idx)
+        },
+        None => ".",
+    }
+}
+
+/// Extension including the leading `.`, or empty if none.
+pub fn extname(path: string) -> string {
+    let base = basename(path)
+    if base == "." || base == ".." {
+        return ""
+    }
+    match rfind_dot(base) {
+        Some(idx) => {
+            if idx == 0 {
+                return ""
+            }
+            strings.substring(base, idx, strings.len(base))
+        },
+        None => "",
+    }
+}
+
+fn strip_trailing_slashes(path: string) -> string {
+    let mut out = path
+    while strings.len(out) > 1 && strings.ends_with(out, "/") {
+        out = strings.substring(out, 0, strings.len(out) - 1)
+    }
+    out
+}
+
+fn rfind_slash(path: string) -> Option<int> {
+    let mut i = strings.len(path)
+    while i > 0 {
+        i = i - 1
+        let ch = strings.substring(path, i, i + 1)
+        if ch == "/" {
+            return Some(i)
+        }
+    }
+    None
+}
+
+fn rfind_dot(path: string) -> Option<int> {
+    let mut i = strings.len(path)
+    while i > 0 {
+        i = i - 1
+        let ch = strings.substring(path, i, i + 1)
+        if ch == "." {
+            return Some(i)
+        }
+    }
+    None
+}

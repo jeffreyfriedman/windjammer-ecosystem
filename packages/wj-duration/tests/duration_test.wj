@@ -1,0 +1,89 @@
+use crate::format_ms
+use crate::parse_ms
+
+@test
+fn test_parse_ms_unit() {
+    match parse_ms("5ms") {
+        Ok(v) => assert_eq(v, 5),
+        Err(_) => assert(false, "parse 5ms"),
+    }
+}
+
+@test
+fn test_parse_seconds() {
+    match parse_ms("3s") {
+        Ok(v) => assert_eq(v, 3000),
+        Err(_) => assert(false, "parse 3s"),
+    }
+}
+
+@test
+fn test_parse_minutes() {
+    match parse_ms("2m") {
+        Ok(v) => assert_eq(v, 120000),
+        Err(_) => assert(false, "parse 2m"),
+    }
+}
+
+@test
+fn test_parse_hours() {
+    match parse_ms("1h") {
+        Ok(v) => assert_eq(v, 3600000),
+        Err(_) => assert(false, "parse 1h"),
+    }
+}
+
+@test
+fn test_parse_compound() {
+    match parse_ms("1h30m") {
+        Ok(v) => assert_eq(v, 5400000),
+        Err(_) => assert(false, "parse 1h30m"),
+    }
+}
+
+@test
+fn test_parse_compound_with_seconds() {
+    match parse_ms("1m5s") {
+        Ok(v) => assert_eq(v, 65000),
+        Err(_) => assert(false, "parse 1m5s"),
+    }
+}
+
+@test
+fn test_parse_bare_number_is_ms() {
+    match parse_ms("250") {
+        Ok(v) => assert_eq(v, 250),
+        Err(_) => assert(false, "parse bare"),
+    }
+}
+
+@test
+fn test_parse_empty_err() {
+    match parse_ms("") {
+        Ok(_) => assert(false, "expected Err"),
+        Err(_) => assert(true, "rejected"),
+    }
+}
+
+@test
+fn test_parse_invalid_err() {
+    match parse_ms("nope") {
+        Ok(_) => assert(false, "expected Err"),
+        Err(_) => assert(true, "rejected"),
+    }
+}
+
+@test
+fn test_format_ms_seconds() {
+    assert_eq(format_ms(3000), "3s")
+}
+
+@test
+fn test_format_ms_compound() {
+    assert_eq(format_ms(5400000), "1h30m")
+}
+
+@test
+fn test_format_ms_small() {
+    assert_eq(format_ms(5), "5ms")
+}

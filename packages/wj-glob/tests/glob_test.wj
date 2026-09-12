@@ -1,0 +1,94 @@
+use crate::filter
+use crate::is_match
+
+@test
+fn test_exact_match() {
+    assert(is_match("readme.md", "readme.md"), "exact")
+}
+
+@test
+fn test_exact_mismatch() {
+    assert(!is_match("readme.md", "README.md"), "case sensitive")
+}
+
+@test
+fn test_star_suffix() {
+    assert(is_match("*.md", "readme.md"), "*.md")
+}
+
+@test
+fn test_star_suffix_mismatch() {
+    assert(!is_match("*.md", "readme.txt"), "wrong ext")
+}
+
+@test
+fn test_star_prefix() {
+    assert(is_match("src/*", "src/main.wj"), "src/*")
+}
+
+@test
+fn test_star_does_not_cross_slash() {
+    assert(!is_match("src/*", "src/deep/main.wj"), "no cross slash")
+}
+
+@test
+fn test_question_mark() {
+    assert(is_match("file.?", "file.c"), "single char")
+    assert(!is_match("file.?", "file.rs"), "too long")
+}
+
+@test
+fn test_multi_segment_stars() {
+    assert(is_match("src/*/lib.wj", "src/app/lib.wj"), "mid star")
+    assert(!is_match("src/*/lib.wj", "src/app/deep/lib.wj"), "too deep")
+}
+
+@test
+fn test_filter_paths() {
+    let mut paths = Vec::new()
+    paths.push("a.md")
+    paths.push("b.txt")
+    paths.push("c.md")
+    let hits = filter("*.md", paths)
+    assert_eq(hits.len(), 2)
+}
+
+@test
+fn test_double_star_crosses_segments() {
+    assert(is_match("src/**/lib.wj", "src/lib.wj"), "zero middle segs")
+    assert(is_match("src/**/lib.wj", "src/app/lib.wj"), "one middle")
+    assert(is_match("src/**/lib.wj", "src/app/deep/lib.wj"), "two middle")
+    assert(!is_match("src/**/lib.wj", "src/app/other.rs"), "wrong file")
+}
+
+@test
+fn test_double_star_prefix() {
+    assert(is_match("**/main.wj", "main.wj"), "at root")
+    assert(is_match("**/main.wj", "src/main.wj"), "one deep")
+    assert(is_match("**/main.wj", "a/b/c/main.wj"), "many deep")
+    assert(!is_match("**/main.wj", "a/b/other.wj"), "wrong name")
+}
+
+@test
+fn test_double_star_suffix_glob() {
+    assert(is_match("src/**/*.wj", "src/main.wj"), "direct child")
+    assert(is_match("src/**/*.wj", "src/deep/main.wj"), "nested")
+    assert(!is_match("src/**/*.wj", "src/deep/main.rs"), "wrong ext")
+    assert(!is_match("src/**/*.wj", "other/main.wj"), "wrong prefix")
+}
+
+@test
+fn test_double_star_alone() {
+    assert(is_match("**", "a"), "single seg")
+    assert(is_match("**", "a/b/c"), "multi seg")
+}
+
+@test
+fn test_filter_with_double_star() {
+    let mut paths = Vec::new()
+    paths.push("src/main.wj")
+    paths.push("src/deep/util.wj")
+    paths.push("readme.md")
+    let hits = filter("src/**/*.wj", paths)
+    assert_eq(hits.len(), 2)
+}

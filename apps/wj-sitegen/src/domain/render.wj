@@ -1,4 +1,12 @@
+use std::collections::HashMap
 use std::strings
+
+use wj_template::escape_html
+use wj_template::render
+
+use crate::domain::config::resolve_src_dir
+use crate::domain::config::resolve_out_dir
+use crate::domain::config::config_from_env
 
 pub struct SiteDirs {
     pub src: string,
@@ -20,6 +28,20 @@ fn last_path_segment(path: string) -> string {
     last
 }
 
+fn join_strings(parts: Vec<string>, sep: string) -> string {
+    let mut out = ""
+    let mut first = true
+    for part in parts {
+        if first {
+            out = part
+            first = false
+        } else {
+            out = "${out}${sep}${part}"
+        }
+    }
+    out
+}
+
 fn skip_first_join(parts: Vec<string>) -> string {
     let mut rest = Vec::new()
     let mut first = true
@@ -30,26 +52,41 @@ fn skip_first_join(parts: Vec<string>) -> string {
         }
         rest.push(part)
     }
-    strings.join(rest, " ")
-}
-
-fn escape_html(text: string) -> string {
-    let amp = strings.replace(text, "&", "&amp;")
-    let lt = strings.replace(amp, "<", "&lt;")
-    strings.replace(lt, ">", "&gt;")
+    join_strings(rest, " ")
 }
 
 fn heading_text(parts: Vec<string>) -> string {
     skip_first_join(parts)
 }
 
-/// Markdown path (`posts/hello.md`) → output file (`hello.html`).
+/// Strip `root` prefix from a walked file path (`/content/posts/a.md` → `posts/a.md`).
+pub fn relative_path_from_root(full_path: string, root: string) -> string {
+    let mut prefix = root
+    if strings.ends_with(prefix, "/") {
+        prefix = strings.substring(prefix, 0, strings.len(prefix) - 1)
+    }
+    if !strings.starts_with(full_path, prefix) {
+        return full_path
+    }
+    let rest = strings.substring(full_path, strings.len(prefix), strings.len(full_path))
+    if strings.len(rest) > 0 && strings.starts_with(rest, "/") {
+        return strings.substring(rest, 1, strings.len(rest))
+    }
+    rest
+}
+
+/// Markdown path (`posts/hello.md`) → output file (`posts/hello.html`).
+pub fn html_output_path(relative_md: string) -> string {
+    if strings.ends_with(relative_md, ".md") {
+        return strings.replace(relative_md, ".md", ".html")
+    }
+    "${relative_md}.html"
+}
+
+/// Basename-only HTML filename (`posts/hello.md` → `hello.html`).
 pub fn html_filename(path: string) -> string {
     let name = last_path_segment(path)
-    if strings.ends_with(name, ".md") {
-        return strings.replace(name, ".md", ".html")
-    }
-    "${name}.html"
+    html_output_path(name)
 }
 
 fn parse_markdown(source: string) -> (string, string) {
@@ -64,7 +101,7 @@ fn parse_markdown(source: string) -> (string, string) {
         }
         let parts = strings.split(trimmed, " ")
         if parts.len() >= 2 && parts[0] == "##" {
-            let text = escape_html(heading_text(parts))
+            let text = html_escape(heading_text(parts))
             chunks.push("<h2>${text}</h2>")
             continue
         }
@@ -74,14 +111,14 @@ fn parse_markdown(source: string) -> (string, string) {
                 title = "${text}"
                 seen_h1 = true
             }
-            let html_text = escape_html(text)
+            let html_text = html_escape(text)
             chunks.push("<h1>${html_text}</h1>")
             continue
         }
-        let text = escape_html(trimmed)
+        let text = html_escape(trimmed)
         chunks.push("<p>${text}</p>")
     }
-    (title, strings.join(chunks, "\n"))
+    (title, join_strings(chunks, "\n"))
 }
 
 /// First ATX h1 (`# Title`); otherwise `Untitled`.
@@ -96,15 +133,19 @@ pub fn markdown_to_html(source: string) -> string {
     parsed.1
 }
 
-/// HTML5 document wrapping already-rendered body markup.
 pub fn render_document(title: string, body_html: string) -> string {
-    let safe_title = escape_html(title)
-    "<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n<meta charset=\"utf-8\">\n<title>${safe_title}</title>\n</head>\n<body>\n${body_html}\n</body>\n</html>\n"
+    let mut vars = HashMap::new()
+    vars.insert("title", html_escape(title))
+    vars.insert("body", body_html)
+    render(
+        "<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n<meta charset=\"utf-8\">\n<title>{{title}}</title>\n</head>\n<body>\n{{body}}\n</body>\n</html>\n",
+        vars,
+    )
 }
 
 /// Domain pipeline: one markdown file → one HTML page.
-pub fn generate_page(path: string, markdown: string) -> GeneratedPage {
-    let filename = html_filename(path)
+pub fn generate_page(relative_path: string, markdown: string) -> GeneratedPage {
+    let filename = html_output_path(relative_path)
     let parsed = parse_markdown(markdown)
     let title = parsed.0
     let body = parsed.1
@@ -116,15 +157,20 @@ pub fn generate_page(path: string, markdown: string) -> GeneratedPage {
     }
 }
 
-/// Program name + source dir + output dir.
+/// Program name + source dir + output dir (+ optional env overrides).
 pub fn dirs_from_args(args: Vec<string>) -> Result<SiteDirs, string> {
     if args.len() < 3 {
         return Err("usage: wj-sitegen <src-dir> <out-dir>")
     }
-    let src = args[1]
-    let out = args[2]
+    let config = config_from_env()
+    let src = resolve_src_dir(args[1], config.src_override)
+    let out = resolve_out_dir(args[2], config.out_override)
     if src.len() == 0 || out.len() == 0 {
         return Err("usage: wj-sitegen <src-dir> <out-dir>")
     }
     Ok(SiteDirs { src: src, out: out })
+}
+
+fn html_escape(text: string) -> string {
+    escape_html(text)
 }

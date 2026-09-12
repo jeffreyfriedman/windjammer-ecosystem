@@ -4,6 +4,10 @@ version = "0.1.0"
 edition = "2025"
 
 [dependencies]
+wj_router = { path = "../../packages/wj-router/build" }
+wj_cors = { path = "../../packages/wj-cors/build" }
+wj_headers = { path = "../../packages/wj-headers/build" }
+wj_rate_limit = { path = "../../packages/wj-rate-limit/build" }
 
 [dev-dependencies]
 

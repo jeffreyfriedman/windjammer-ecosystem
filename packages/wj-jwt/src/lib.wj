@@ -1,0 +1,44 @@
+use std::jwt
+
+/// Idiomatic claims view (mirrors `std::jwt::JwtClaims`).
+pub struct Claims {
+    pub sub: string,
+    pub tenant_slug: string,
+    pub tenant_id: Option<string>,
+    pub entity_id: Option<string>,
+    pub email: Option<string>,
+    pub exp: int,
+}
+
+/// Mint an HS256 JWT for `sub` in `tenant_slug` with `ttl_secs` lifetime.
+pub fn sign(sub: string, tenant_slug: string, secret: string, ttl_secs: int) -> Result<string, string> {
+    jwt.sign_hs256(sub, tenant_slug, secret, ttl_secs)
+}
+
+/// Mint HS256 JWT with tenant/entity/email claims.
+pub fn sign_scoped(
+    sub: string,
+    tenant_slug: string,
+    tenant_id: string,
+    entity_id: string,
+    email: string,
+    secret: string,
+    ttl_secs: int,
+) -> Result<string, string> {
+    jwt.sign_hs256_scoped(sub, tenant_slug, tenant_id, entity_id, email, secret, ttl_secs)
+}
+
+/// Verify HS256 signature + expiration; returns claims.
+pub fn verify(token: string, secret: string) -> Result<Claims, string> {
+    match jwt.verify_hs256(token, secret) {
+        Ok(c) => Ok(Claims {
+            sub: c.sub,
+            tenant_slug: c.tenant_slug,
+            tenant_id: c.tenant_id,
+            entity_id: c.entity_id,
+            email: c.email,
+            exp: c.exp,
+        }),
+        Err(e) => Err(e),
+    }
+}

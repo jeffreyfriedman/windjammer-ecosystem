@@ -1,0 +1,84 @@
+use crate::domain::parse_crontab_line
+use crate::domain::parse_crontab
+use crate::domain::due_schedules
+use crate::domain::parse_civil
+
+fn test_parse_crontab_line_skips_blank() {
+    match parse_crontab_line("   ") {
+        Some(_e) => assert(false, "blank should skip"),
+        None => {},
+    }
+}
+
+fn test_parse_crontab_line_skips_comment() {
+    match parse_crontab_line("# nightly job") {
+        Some(_e) => assert(false, "comment should skip"),
+        None => {},
+    }
+}
+
+fn test_parse_crontab_line_keeps_expr() {
+    match parse_crontab_line("*/5 * * * *") {
+        Some(expr) => assert_eq(expr, "*/5 * * * *"),
+        None => assert(false, "expr should be kept"),
+    }
+}
+
+fn test_parse_crontab_line_keeps_alias() {
+    match parse_crontab_line("  @hourly  ") {
+        Some(expr) => assert_eq(expr, "@hourly"),
+        None => assert(false, "alias should be kept"),
+    }
+}
+
+fn test_parse_crontab_collects_valid_lines() {
+    let text = "# jobs\n\n@hourly\n*/15 * * * *\n"
+    match parse_crontab(text) {
+        Ok(exprs) => {
+            assert_eq(exprs.len(), 2)
+            assert_eq(exprs[0], "@hourly")
+            assert_eq(exprs[1], "*/15 * * * *")
+        },
+        Err(e) => assert(false, e),
+    }
+}
+
+fn test_parse_crontab_rejects_bad_expr() {
+    let text = "@hourly\n* * *\n"
+    assert(parse_crontab(text).is_err(), "bad expr should fail")
+}
+
+fn test_due_schedules_filters_matching() {
+    match parse_civil("2026-01-01T09:00") {
+        Ok(at) => {
+            let mut exprs = Vec::new()
+            exprs.push("@hourly")
+            exprs.push("0 8 * * *")
+            exprs.push("*/5 * * * *")
+            match due_schedules(exprs, at) {
+                Ok(due) => {
+                    assert_eq(due.len(), 2)
+                    assert_eq(due[0], "@hourly")
+                    assert_eq(due[1], "*/5 * * * *")
+                },
+                Err(e) => assert(false, e),
+            }
+        },
+        Err(_e) => assert(false, "civil"),
+    }
+}
+
+fn test_due_schedules_empty_when_none_match() {
+    match parse_civil("2026-01-01T09:07") {
+        Ok(at) => {
+            let mut exprs = Vec::new()
+            exprs.push("@hourly")
+            exprs.push("0 8 * * *")
+            match due_schedules(exprs, at) {
+                Ok(due) => assert_eq(due.len(), 0),
+                Err(e) => assert(false, e),
+            }
+        },
+        Err(_e) => assert(false, "civil"),
+    }
+}

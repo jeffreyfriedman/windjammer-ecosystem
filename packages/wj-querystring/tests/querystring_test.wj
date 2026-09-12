@@ -1,0 +1,117 @@
+use crate::append
+use crate::get
+use crate::get_all
+use crate::has
+use crate::parse
+use crate::remove
+use crate::stringify
+use std::strings
+
+@test
+fn test_parse_empty() {
+    let pairs = parse("")
+    assert_eq(pairs.len(), 0)
+}
+
+@test
+fn test_parse_simple_pairs() {
+    let pairs = parse("a=1&b=two")
+    assert_eq(pairs.len(), 2)
+    assert_eq(pairs[0].0, "a")
+    assert_eq(pairs[0].1, "1")
+    assert_eq(pairs[1].0, "b")
+    assert_eq(pairs[1].1, "two")
+}
+
+@test
+fn test_parse_key_without_value() {
+    let pairs = parse("flag&x=1")
+    assert_eq(pairs.len(), 2)
+    assert_eq(pairs[0].0, "flag")
+    assert_eq(pairs[0].1, "")
+    assert_eq(pairs[1].0, "x")
+    assert_eq(pairs[1].1, "1")
+}
+
+@test
+fn test_parse_strips_leading_question() {
+    let pairs = parse("?a=1")
+    assert_eq(pairs.len(), 1)
+    assert_eq(pairs[0].0, "a")
+    assert_eq(pairs[0].1, "1")
+}
+
+@test
+fn test_stringify_roundtrip() {
+    let pairs = parse("a=1&b=2")
+    let text = stringify(pairs)
+    assert_eq(text, "a=1&b=2")
+}
+
+@test
+fn test_get_first_value() {
+    match get("a=1&a=2&b=3", "a") {
+        Some(v) => assert_eq(v, "1"),
+        None => assert(false, "expected a"),
+    }
+}
+
+@test
+fn test_get_all_repeated_keys() {
+    let values = get_all("tag=red&tag=blue&x=1", "tag")
+    assert_eq(values.len(), 2)
+    assert_eq(values[0], "red")
+    assert_eq(values[1], "blue")
+}
+
+@test
+fn test_has_true_false() {
+    assert(has("a=1&b=2", "b"), "b present")
+    assert(!has("a=1", "z"), "z missing")
+}
+
+@test
+fn test_remove_drops_all_matching_keys() {
+    let out = remove("a=1&b=2&a=3", "a")
+    assert_eq(out, "b=2")
+}
+
+@test
+fn test_append_keeps_existing() {
+    let out = append("a=1", "a", "2")
+    assert(strings.contains(out, "a=1"), "keeps first")
+    assert(strings.contains(out, "a=2"), "appends second")
+}
+
+@test
+fn test_parse_plus_as_space() {
+    let pairs = parse("q=hello+world")
+    assert_eq(pairs.len(), 1)
+    assert_eq(pairs[0].1, "hello world")
+}
+
+@test
+fn test_stringify_encodes_spaces() {
+    let pairs = parse("q=hello world")
+    let text = stringify(pairs)
+    assert(strings.contains(text, "q="), "has key")
+    assert(!strings.contains(text, " "), "no raw space")
+}
+
+@test
+fn test_parse_percent_encoded_value() {
+    let pairs = parse("q=hello%20world")
+    assert_eq(pairs.len(), 1)
+    assert_eq(pairs[0].1, "hello world")
+}
+
+@test
+fn test_stringify_encodes_ampersand_in_value() {
+    let text = append("", "q", "a&b")
+    assert(strings.contains(text, "q="), "has key")
+    assert(!strings.contains(text, "q=a&b"), "ampersand must be encoded")
+    match get(text, "q") {
+        Some(v) => assert_eq(v, "a&b"),
+        None => assert(false, "roundtrip q"),
+    }
+}

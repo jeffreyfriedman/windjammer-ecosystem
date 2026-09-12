@@ -1,0 +1,207 @@
+use crate::get
+use crate::parse
+
+@test
+fn test_parse_flat_strings() {
+    let text = "host = \"localhost\"\nport = \"8080\"\n"
+    let map = parse(text)
+    match map.get("host") {
+        Some(v) => assert_eq(v, "localhost"),
+        None => assert(false, "host"),
+    }
+    match map.get("port") {
+        Some(v) => assert_eq(v, "8080"),
+        None => assert(false, "port"),
+    }
+}
+
+@test
+fn test_parse_unquoted_scalars() {
+    let text = "port = 3000\ndebug = true\nname = alice\n"
+    let map = parse(text)
+    match map.get("port") {
+        Some(v) => assert_eq(v, "3000"),
+        None => assert(false, "port"),
+    }
+    match map.get("debug") {
+        Some(v) => assert_eq(v, "true"),
+        None => assert(false, "debug"),
+    }
+    match map.get("name") {
+        Some(v) => assert_eq(v, "alice"),
+        None => assert(false, "name"),
+    }
+}
+
+@test
+fn test_parse_skips_comments_and_blanks() {
+    let text = "# header\n\nhost = \"x\"\n# trailing\n"
+    let map = parse(text)
+    assert_eq(map.len(), 1)
+    match map.get("host") {
+        Some(v) => assert_eq(v, "x"),
+        None => assert(false, "host"),
+    }
+}
+
+@test
+fn test_parse_section_dotted_keys() {
+    let text = "[server]\nhost = \"127.0.0.1\"\nport = 9090\n[db]\nurl = \"postgres://x\"\n"
+    let map = parse(text)
+    match map.get("server.host") {
+        Some(v) => assert_eq(v, "127.0.0.1"),
+        None => assert(false, "server.host"),
+    }
+    match map.get("server.port") {
+        Some(v) => assert_eq(v, "9090"),
+        None => assert(false, "server.port"),
+    }
+    match map.get("db.url") {
+        Some(v) => assert_eq(v, "postgres://x"),
+        None => assert(false, "db.url"),
+    }
+}
+
+@test
+fn test_parse_inline_comment() {
+    let text = "port = 8080 # listen port\n"
+    let map = parse(text)
+    match map.get("port") {
+        Some(v) => assert_eq(v, "8080"),
+        None => assert(false, "port"),
+    }
+}
+
+@test
+fn test_get_helper() {
+    match get("[app]\nname = \"notes\"\n", "app.name") {
+        Some(v) => assert_eq(v, "notes"),
+        None => assert(false, "get"),
+    }
+    match get("[app]\nname = \"notes\"\n", "missing") {
+        Some(_) => assert(false, "expected None"),
+        None => {},
+    }
+}
+
+@test
+fn test_parse_empty_is_empty_map() {
+    let map = parse("")
+    assert_eq(map.len(), 0)
+}
+
+@test
+fn test_parse_equals_in_quoted_value() {
+    let text = "dsn = \"a=b&c=d\"\n"
+    let map = parse(text)
+    match map.get("dsn") {
+        Some(v) => assert_eq(v, "a=b&c=d"),
+        None => assert(false, "dsn"),
+    }
+}
+
+@test
+fn test_parse_string_array() {
+    let text = "tags = [\"red\", \"blue\"]\n"
+    let map = parse(text)
+    match map.get("tags") {
+        Some(v) => assert_eq(v, "[\"red\",\"blue\"]"),
+        None => assert(false, "tags"),
+    }
+}
+
+@test
+fn test_parse_int_array() {
+    let text = "ports = [80, 443]\n"
+    let map = parse(text)
+    match map.get("ports") {
+        Some(v) => assert_eq(v, "[80,443]"),
+        None => assert(false, "ports"),
+    }
+}
+
+@test
+fn test_parse_array_in_section() {
+    let text = "[app]\nmodes = [\"dev\", \"prod\"]\n"
+    let map = parse(text)
+    match map.get("app.modes") {
+        Some(v) => assert_eq(v, "[\"dev\",\"prod\"]"),
+        None => assert(false, "app.modes"),
+    }
+}
+
+@test
+fn test_parse_empty_array() {
+    let text = "items = []\n"
+    let map = parse(text)
+    match map.get("items") {
+        Some(v) => assert_eq(v, "[]"),
+        None => assert(false, "items"),
+    }
+}
+
+@test
+fn test_parse_dotted_left_hand_key() {
+    let text = "server.host = \"127.0.0.1\"\nserver.port = 8080\n"
+    let map = parse(text)
+    match map.get("server.host") {
+        Some(v) => assert_eq(v, "127.0.0.1"),
+        None => assert(false, "server.host"),
+    }
+    match map.get("server.port") {
+        Some(v) => assert_eq(v, "8080"),
+        None => assert(false, "server.port"),
+    }
+}
+
+@test
+fn test_parse_dotted_key_under_section() {
+    let text = "[app]\ndb.url = \"postgres://x\"\n"
+    let map = parse(text)
+    match map.get("app.db.url") {
+        Some(v) => assert_eq(v, "postgres://x"),
+        None => assert(false, "app.db.url"),
+    }
+}
+
+@test
+fn test_parse_inline_table() {
+    let text = "point = { x = 1, y = 2 }\n"
+    let map = parse(text)
+    match map.get("point.x") {
+        Some(v) => assert_eq(v, "1"),
+        None => assert(false, "point.x"),
+    }
+    match map.get("point.y") {
+        Some(v) => assert_eq(v, "2"),
+        None => assert(false, "point.y"),
+    }
+}
+
+@test
+fn test_parse_inline_table_strings_and_bool() {
+    let text = "meta = { name = \"notes\", debug = true }\n"
+    let map = parse(text)
+    match map.get("meta.name") {
+        Some(v) => assert_eq(v, "notes"),
+        None => assert(false, "meta.name"),
+    }
+    match map.get("meta.debug") {
+        Some(v) => assert_eq(v, "true"),
+        None => assert(false, "meta.debug"),
+    }
+}
+
+@test
+fn test_parse_inline_table_in_section() {
+    let text = "[server]\nlisten = { host = \"0.0.0.0\", port = 9090 }\n"
+    let map = parse(text)
+    match map.get("server.listen.host") {
+        Some(v) => assert_eq(v, "0.0.0.0"),
+        None => assert(false, "server.listen.host"),
+    }
+    match map.get("server.listen.port") {
+        Some(v) => assert_eq(v, "9090"),
+        None => assert(false, "server.listen.port"),
+    }
+}

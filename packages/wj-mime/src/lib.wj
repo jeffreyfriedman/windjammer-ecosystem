@@ -1,0 +1,46 @@
+use std::mime
+
+/// Common MIME type for JSON responses.
+pub fn json() -> string {
+    mime.APPLICATION_JSON
+}
+
+/// Common MIME type for HTML responses.
+pub fn html() -> string {
+    mime.TEXT_HTML
+}
+
+/// Fallback binary MIME type.
+pub fn octet_stream() -> string {
+    mime.APPLICATION_OCTET_STREAM
+}
+
+/// MIME type for a file extension (without leading dot).
+pub fn from_extension(ext: string) -> string {
+    mime.from_extension(ext)
+}
+
+/// MIME type inferred from a file path.
+pub fn from_path(path: string) -> string {
+    mime.from_path(path)
+}
+
+/// True for text-like MIME types.
+pub fn is_text(mime_type: string) -> bool {
+    mime.is_text(mime_type)
+}
+
+/// True for `image/*`.
+pub fn is_image(mime_type: string) -> bool {
+    mime.is_image(mime_type)
+}
+
+/// True for `audio/*`.
+pub fn is_audio(mime_type: string) -> bool {
+    mime.is_audio(mime_type)
+}
+
+/// True for `video/*`.
+pub fn is_video(mime_type: string) -> bool {
+    mime.is_video(mime_type)
+}

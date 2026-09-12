@@ -2,7 +2,7 @@
 
 Layered string config: **defaults → file → process env** (env only overrides keys already defined).
 
-Compose with [`wj-dotenv`](../wj-dotenv) for the file layer and build a small env map from `std::env` for keys you care about.
+Compose with [`wj-dotenv`](../wj-dotenv) for `.env` file layers and [`wj-toml`](../wj-toml) for `.toml` config subsets. Build a small env map from `std::env` for keys you care about.
 
 ## API
 
@@ -42,7 +42,7 @@ src/lib.wj                      # merge, overlay_matching, resolve
 tests/config_test.wj            # unit tests
 ```
 
-Compose with [`wj-dotenv`](../wj-dotenv) for the file layer (see example above). Cross-package `wj test` dev-dependencies are not wired into the test harness yet — integration is documented and exercised manually via app composition.
+Compose with [`wj-dotenv`](../wj-dotenv) / [`wj-toml`](../wj-toml) for file layers (see example above). Cross-package `wj test` dev-dependencies are not wired into the test harness yet — integration is documented and exercised manually via app composition.
 
 ## Build / test
 

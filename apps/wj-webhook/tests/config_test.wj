@@ -1,0 +1,9 @@
+use crate::domain::WebhookConfig
+
+fn test_config_defaults() {
+    let cfg = WebhookConfig::defaults()
+    assert_eq(cfg.secret, "dev-secret")
+    assert_eq(cfg.allowed_origins.len(), 0)
+    assert_eq(cfg.max_event_len, 128)
+    assert_eq(cfg.max_id_len, 128)
+}

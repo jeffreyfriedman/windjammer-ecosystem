@@ -1,0 +1,11 @@
+use std::crypto
+
+/// SHA-256 hex digest of `text` (lowercase hex).
+pub fn hex(text: string) -> string {
+    crypto.sha256(text)
+}
+
+/// True when `hex(text)` equals `expected_hex` (exact string match).
+pub fn verify(text: string, expected_hex: string) -> bool {
+    hex(text) == expected_hex
+}

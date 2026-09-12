@@ -1,0 +1,87 @@
+use std::env
+use std::strings
+
+use crate::domain::parse_positive_int
+
+pub struct NotesConfig {
+    pub allowed_origins: Vec<string>,
+    pub rate_limit: int,
+    pub window_ms: int,
+}
+
+impl NotesConfig {
+    pub fn defaults() -> NotesConfig {
+        let mut allowed = Vec::new()
+        allowed.push("*")
+        NotesConfig {
+            allowed_origins: allowed,
+            rate_limit: 100,
+            window_ms: 60_000,
+        }
+    }
+}
+
+pub fn config_from_env() -> NotesConfig {
+    NotesConfig {
+        allowed_origins: cors_origins_from_env(),
+        rate_limit: rate_limit_from_env(),
+        window_ms: window_ms_from_env(),
+    }
+}
+
+pub fn port_from_env() -> int {
+    match env.get("PORT") {
+        Some(value) => {
+            match parse_positive_int(value) {
+                Some(port) => port,
+                None => 8080,
+            }
+        },
+        None => 8080,
+    }
+}
+
+fn cors_origins_from_env() -> Vec<string> {
+    match env.get("CORS_ORIGIN") {
+        Some(value) => {
+            let trimmed = strings.trim(value)
+            if strings.len(trimmed) == 0 {
+                return default_origins()
+            }
+            let mut out = Vec::new()
+            out.push(trimmed)
+            out
+        },
+        None => default_origins(),
+    }
+}
+
+fn default_origins() -> Vec<string> {
+    let mut out = Vec::new()
+    out.push("*")
+    out
+}
+
+fn rate_limit_from_env() -> int {
+    match env.get("RATE_LIMIT") {
+        Some(value) => {
+            match parse_positive_int(value) {
+                Some(limit) => limit,
+                None => 100,
+            }
+        },
+        None => 100,
+    }
+}
+
+fn window_ms_from_env() -> int {
+    match env.get("RATE_WINDOW_MS") {
+        Some(value) => {
+            match parse_positive_int(value) {
+                Some(ms) => ms,
+                None => 60_000,
+            }
+        },
+        None => 60_000,
+    }
+}

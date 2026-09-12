@@ -1,0 +1,65 @@
+use crate::domain::Todo
+
+pub fn filter_pending(todos: Vec<Todo>) -> Vec<Todo> {
+    let mut out = Vec::new()
+    for todo in todos {
+        if !todo.done {
+            out.push(todo)
+        }
+    }
+    out
+}
+
+pub fn filter_done(todos: Vec<Todo>) -> Vec<Todo> {
+    let mut out = Vec::new()
+    for todo in todos {
+        if todo.done {
+            out.push(todo)
+        }
+    }
+    out
+}
+
+pub fn sort_todos_by_id(todos: Vec<Todo>) -> Vec<Todo> {
+    let mut sorted = Vec::new()
+    for todo in todos {
+        sorted = insert_by_id(sorted, todo)
+    }
+    sorted
+}
+
+/// Returns `(total, pending, done)` counts.
+pub fn count_todos(todos: Vec<Todo>) -> (int, int, int) {
+    let mut pending = 0
+    let mut done = 0
+    for todo in todos {
+        if todo.done {
+            done = done + 1
+        } else {
+            pending = pending + 1
+        }
+    }
+    (pending + done, pending, done)
+}
+
+fn insert_by_id(sorted: Vec<Todo>, item: Todo) -> Vec<Todo> {
+    let mut before = Vec::new()
+    let mut after = Vec::new()
+    let mut placed = false
+    for todo in sorted {
+        if !placed && item.id < todo.id {
+            placed = true
+        }
+        if placed {
+            after.push(todo)
+        } else {
+            before.push(todo)
+        }
+    }
+    let mut out = before
+    out.push(item)
+    for todo in after {
+        out.push(todo)
+    }
+    out
+}

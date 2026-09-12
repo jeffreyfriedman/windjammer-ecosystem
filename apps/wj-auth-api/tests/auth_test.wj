@@ -1,0 +1,201 @@
+use crate::domain::AuthApp
+use crate::domain::AuthConfig
+use crate::domain::gzip_decode_body
+use std::strings
+
+fn default_config() -> AuthConfig {
+    AuthConfig {
+        jwt_secret: "test-secret",
+        jwt_ttl_secs: 3600,
+        allowed_origins: allowed_one(),
+    }
+}
+
+fn allowed_one() -> Vec<string> {
+    let mut out = Vec::new()
+    out.push("https://app.example.com")
+    out
+}
+
+fn token_from_body(body: string) -> string {
+    let marker = "\"token\":\""
+    let mut i = 0
+    let n = strings.len(body)
+    let marker_len = strings.len(marker)
+    while i + marker_len <= n {
+        if strings.substring(body, i, i + marker_len) == marker {
+            let start = i + marker_len
+            let mut out = ""
+            let mut j = start
+            while j < n {
+                let ch = strings.substring(body, j, j + 1)
+                if ch == "\"" {
+                    return out
+                }
+                out = "${out}${ch}"
+                j = j + 1
+            }
+            return ""
+        }
+        i = i + 1
+    }
+    ""
+}
+
+fn test_health_returns_ok() {
+    let app = AuthApp::new(default_config())
+    let reply = app.handle("GET", "/health", "", "", "", "")
+    assert_eq(reply.status, 200)
+    assert_str_contains(reply.body, "ok")
+}
+
+fn test_register_and_login_returns_jwt() {
+    let mut app = AuthApp::new(default_config())
+    let reg = app.handle(
+        "POST",
+        "/register",
+        "",
+        "",
+        "",
+        "{\"username\":\"ada\",\"password\":\"secret123\"}",
+    )
+    assert_eq(reg.status, 201)
+    let login = app.handle(
+        "POST",
+        "/login",
+        "",
+        "",
+        "",
+        "{\"username\":\"ada\",\"password\":\"secret123\"}",
+    )
+    assert_eq(login.status, 200)
+    assert_str_contains(login.body, "token")
+}
+
+fn test_login_rejects_bad_password() {
+    let mut app = AuthApp::new(default_config())
+    let _ = app.handle(
+        "POST",
+        "/register",
+        "",
+        "",
+        "",
+        "{\"username\":\"bob\",\"password\":\"right\"}",
+    )
+    let login = app.handle(
+        "POST",
+        "/login",
+        "",
+        "",
+        "",
+        "{\"username\":\"bob\",\"password\":\"wrong\"}",
+    )
+    assert_eq(login.status, 401)
+}
+
+fn test_me_requires_bearer_token() {
+    let app = AuthApp::new(default_config())
+    let reply = app.handle("GET", "/me", "", "", "", "")
+    assert_eq(reply.status, 401)
+}
+
+fn test_me_returns_profile_after_login() {
+    let mut app = AuthApp::new(default_config())
+    let _ = app.handle(
+        "POST",
+        "/register",
+        "",
+        "",
+        "",
+        "{\"username\":\"carl\",\"password\":\"pw\"}",
+    )
+    let login = app.handle(
+        "POST",
+        "/login",
+        "",
+        "",
+        "",
+        "{\"username\":\"carl\",\"password\":\"pw\"}",
+    )
+    assert_eq(login.status, 200)
+    let token = token_from_body(login.body)
+    let auth = "Bearer ${token}"
+    let me = app.handle("GET", "/me", "", "", auth, "")
+    assert_eq(me.status, 200)
+    assert_str_contains(me.body, "carl")
+}
+
+fn test_options_preflight_sets_cors_origin() {
+    let app = AuthApp::new(default_config())
+    let reply = app.handle(
+        "OPTIONS",
+        "/login",
+        "https://app.example.com",
+        "",
+        "",
+        "",
+    )
+    assert_eq(reply.status, 204)
+    assert_eq(reply.allow_origin, "https://app.example.com")
+}
+
+fn test_cors_origin_on_json_response() {
+    let app = AuthApp::new(default_config())
+    let reply = app.handle(
+        "GET",
+        "/health",
+        "https://app.example.com",
+        "",
+        "",
+        "",
+    )
+    assert_eq(reply.allow_origin, "https://app.example.com")
+}
+
+fn test_gzip_when_accepted() {
+    let app = AuthApp::new(default_config())
+    let reply = app.handle(
+        "GET",
+        "/health",
+        "",
+        "gzip",
+        "",
+        "",
+    )
+    assert_eq(reply.content_encoding, "gzip")
+    match gzip_decode_body(reply.body) {
+        Ok(plain) => assert_str_contains(plain, "ok"),
+        Err(_) => assert(false, "gzip decode"),
+    }
+}
+
+fn test_welcome_page_uses_template() {
+    let app = AuthApp::new(default_config())
+    let reply = app.handle("GET", "/", "", "", "", "")
+    assert_eq(reply.status, 200)
+    assert_str_contains(reply.body, "<h1>")
+    assert_str_contains(reply.body, "wj-auth-api")
+    assert(!strings.contains(reply.body, "{{"), "placeholders filled")
+}
+
+fn test_duplicate_register_returns_409() {
+    let mut app = AuthApp::new(default_config())
+    let first = app.handle(
+        "POST",
+        "/register",
+        "",
+        "",
+        "",
+        "{\"username\":\"dup\",\"password\":\"pw\"}",
+    )
+    assert_eq(first.status, 201)
+    let second = app.handle(
+        "POST",
+        "/register",
+        "",
+        "",
+        "",
+        "{\"username\":\"dup\",\"password\":\"pw\"}",
+    )
+    assert_eq(second.status, 409)
+}

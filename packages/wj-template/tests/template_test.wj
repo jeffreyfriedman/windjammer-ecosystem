@@ -1,5 +1,8 @@
 use crate::render
 use crate::render_strict
+use crate::render_with_defaults
+use crate::render_html
+use crate::escape_html
 use crate::missing_keys
 use std::collections::HashMap
 use std::strings
@@ -61,4 +64,42 @@ fn test_missing_keys_finds_gaps() {
     let gaps = missing_keys("{{a}} and {{b}}", vars)
     assert_eq(gaps.len(), 1)
     assert_eq(gaps[0], "b")
+}
+
+fn test_render_with_defaults_fills_missing() {
+    let mut defaults = HashMap::new()
+    defaults.insert("greeting", "Hello")
+    let mut vars = HashMap::new()
+    vars.insert("name", "Ada")
+    let out = render_with_defaults("{{greeting}}, {{name}}!", vars, defaults)
+    assert_eq(out, "Hello, Ada!")
+}
+
+fn test_render_with_defaults_vars_override() {
+    let mut defaults = HashMap::new()
+    defaults.insert("name", "Default")
+    let mut vars = HashMap::new()
+    vars.insert("name", "Override")
+    let out = render_with_defaults("Hi {{name}}", vars, defaults)
+    assert_eq(out, "Hi Override")
+}
+
+fn test_placeholder_trims_whitespace() {
+    let mut vars = HashMap::new()
+    vars.insert("name", "Ada")
+    let out = render("Hello {{ name }}!", vars)
+    assert_eq(out, "Hello Ada!")
+}
+
+fn test_escape_html() {
+    assert_eq(escape_html("a & b"), "a &amp; b")
+    assert_eq(escape_html("<script>"), "&lt;script&gt;")
+    assert_eq(escape_html("\"x\""), "&quot;x&quot;")
+}
+
+fn test_render_html_escapes_values() {
+    let mut vars = HashMap::new()
+    vars.insert("body", "<b>hi</b>")
+    let out = render_html("<p>{{body}}</p>", vars)
+    assert_eq(out, "<p>&lt;b&gt;hi&lt;/b&gt;</p>")
 }

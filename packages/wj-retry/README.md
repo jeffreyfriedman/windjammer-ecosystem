@@ -1,6 +1,6 @@
 # wj-retry
 
-Pure backoff helpers for retry loops (no sleep — callers decide how to wait).
+Pure backoff + blocking pause helpers for retry loops.
 
 ## API
 
@@ -16,8 +16,7 @@ let backoff = Backoff {
 let mut attempt = 0
 while should_retry(attempt, 5) {
     // do work…
-    let wait = delay_ms(backoff, attempt)
-    // sleep(wait) in an adapter
+    pause_ms(delay_ms(backoff, attempt))
     attempt = attempt + 1
 }
 ```
@@ -26,6 +25,7 @@ while should_retry(attempt, 5) {
 |---|---|
 | `delay_ms(backoff, attempt)` | Exponential delay capped at `max_ms` |
 | `should_retry(attempt, max_attempts)` | Whether attempt index is still in range |
+| `pause_ms(ms)` | Blocking wait (`std::time` spin until `std::async_runtime` import is green) |
 
 ## Layout
 

@@ -1,0 +1,32 @@
+/// Human-readable stdout for a successful apply.
+pub fn format_apply_result(applied_count: int, applied_versions: Vec<int>) -> string {
+    if applied_count == 0 {
+        return "no pending migrations"
+    }
+    let mut out = "applied ${applied_count} migration(s):"
+    for version in applied_versions {
+        out = "${out} ${version}"
+    }
+    out
+}
+
+/// Human-readable stdout for migration status.
+pub fn format_status_result(applied_versions: Vec<int>, pending_versions: Vec<int>) -> string {
+    let mut out = "applied:"
+    if applied_versions.len() == 0 {
+        out = "${out} (none)"
+    } else {
+        for version in applied_versions {
+            out = "${out} ${version}"
+        }
+    }
+    out = "${out}\npending:"
+    if pending_versions.len() == 0 {
+        out = "${out} (none)"
+    } else {
+        for version in pending_versions {
+            out = "${out} ${version}"
+        }
+    }
+    out
+}

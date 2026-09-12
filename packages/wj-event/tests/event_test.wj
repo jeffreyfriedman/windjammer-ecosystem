@@ -1,0 +1,72 @@
+use crate::drain
+use crate::emit
+use crate::listener_ids
+use crate::match_pattern
+use crate::new_bus
+use crate::subscribe
+use crate::unsubscribe
+
+@test
+fn test_new_bus_has_no_listeners() {
+    let bus = new_bus()
+    let ids = listener_ids(bus, "user.created")
+    assert_eq(ids.len(), 0)
+}
+
+@test
+fn test_subscribe_registers_listener() {
+    let bus = new_bus()
+    let next = subscribe(bus, "audit", "user.created")
+    let ids = listener_ids(next, "user.created")
+    assert_eq(ids.len(), 1)
+    assert_eq(ids[0], "audit")
+}
+
+@test
+fn test_unsubscribe_removes_listener() {
+    let bus = subscribe(new_bus(), "audit", "user.created")
+    let cleared = unsubscribe(bus, "audit")
+    let ids = listener_ids(cleared, "user.created")
+    assert_eq(ids.len(), 0)
+}
+
+@test
+fn test_emit_and_drain_returns_event() {
+    let bus = subscribe(new_bus(), "audit", "user.created")
+    let queued = emit(bus, "user.created", "{\"id\":1}")
+    let drained = drain(queued)
+    assert_eq(drained.1.len(), 1)
+    assert_eq(drained.1[0].name, "user.created")
+    assert_eq(drained.1[0].payload, "{\"id\":1}")
+}
+
+@test
+fn test_drain_clears_queue() {
+    let bus = emit(new_bus(), "ping", "pong")
+    let drained = drain(bus)
+    assert_eq(drained.1.len(), 1)
+    let again = drain(drained.0)
+    assert_eq(again.1.len(), 0)
+}
+
+@test
+fn test_wildcard_pattern_matches() {
+    assert(match_pattern("user.*", "user.created"), "suffix wildcard")
+    assert(!match_pattern("user.*", "order.created"), "different prefix")
+    assert(match_pattern("*", "anything"), "star matches all")
+}
+
+@test
+fn test_listener_ids_respects_wildcard() {
+    let bus = subscribe(new_bus(), "all", "*")
+    let ids = listener_ids(bus, "user.created")
+    assert_eq(ids.len(), 1)
+}
+
+@test
+fn test_multiple_listeners_same_event() {
+    let bus = subscribe(new_bus(), "a", "tick")
+    let bus2 = subscribe(bus, "b", "tick")
+    let ids = listener_ids(bus2, "tick")
+    assert_eq(ids.len(), 2)
+}

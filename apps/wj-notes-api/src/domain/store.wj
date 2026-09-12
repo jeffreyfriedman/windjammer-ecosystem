@@ -1,10 +1,7 @@
 use std::collections::HashMap
+use std::strings
 
-pub struct Note {
-    pub id: int,
-    pub title: string,
-    pub body: string,
-}
+use crate::domain::note::Note
 
 pub struct NoteStore {
     next_id: int,
@@ -20,7 +17,7 @@ impl NoteStore {
     }
 
     pub fn create(self, title: string, body: string) -> Result<Note, string> {
-        if title.len() == 0 {
+        if strings.len(title) == 0 {
             return Err("title required")
         }
         let id = self.next_id
@@ -31,14 +28,14 @@ impl NoteStore {
             body: body,
         }
         self.notes.insert(id, note)
-        match self.notes.get(id) {
+        match lookup_note(self.notes, id) {
             Some(stored) => Ok(stored),
             None => Err("create failed"),
         }
     }
 
     pub fn get(self, id: int) -> Option<Note> {
-        self.notes.get(id)
+        lookup_note(self.notes, id)
     }
 
     pub fn list(self) -> Vec<Note> {
@@ -50,10 +47,10 @@ impl NoteStore {
     }
 
     pub fn update(self, id: int, title: string, body: string) -> Result<Note, string> {
-        if title.len() == 0 {
+        if strings.len(title) == 0 {
             return Err("title required")
         }
-        match self.notes.get(id) {
+        match lookup_note(self.notes, id) {
             Some(_) => {
                 let note = Note {
                     id: id,
@@ -61,7 +58,7 @@ impl NoteStore {
                     body: body,
                 }
                 self.notes.insert(id, note)
-                match self.notes.get(id) {
+                match lookup_note(self.notes, id) {
                     Some(stored) => Ok(stored),
                     None => Err("update failed"),
                 }
@@ -71,9 +68,31 @@ impl NoteStore {
     }
 
     pub fn delete(self, id: int) -> Result<(), string> {
-        match self.notes.remove(id) {
-            Some(_) => Ok(()),
-            None => Err("note not found"),
+        match lookup_note(self.notes, id) {
+            None => return Err("note not found"),
+            Some(_) => {},
+        }
+        let mut kept = HashMap::new()
+        for (note_id, note) in self.notes {
+            if note_id == id {
+                continue
+            }
+            kept.insert(note_id, note)
+        }
+        self.notes = kept
+        Ok(())
+    }
+}
+
+fn lookup_note(notes: HashMap<int, Note>, id: int) -> Option<Note> {
+    for (note_id, note) in notes {
+        if note_id == id {
+            return Some(note)
         }
     }
+    None
+}
+
+pub fn fetch_note(store: NoteStore, id: int) -> Option<Note> {
+    lookup_note(store.notes, id)
 }

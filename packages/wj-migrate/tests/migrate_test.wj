@@ -1,0 +1,167 @@
+use crate::parse_filename
+use crate::pending
+use crate::record_applied_sql
+use crate::schema_table_sql
+use crate::select_applied_sql
+use crate::sort_migrations
+use crate::validate_unique_versions
+use crate::Migration
+
+@test
+fn test_parse_numeric_prefix() {
+    match parse_filename("001_create_users.sql") {
+        Ok(m) => {
+            assert_eq(m.version, 1)
+            assert_eq(m.name, "create_users")
+            assert_eq(m.filename, "001_create_users.sql")
+        },
+        Err(_) => assert(false, "parse should succeed"),
+    }
+}
+
+@test
+fn test_parse_larger_version() {
+    match parse_filename("042_add_indexes.sql") {
+        Ok(m) => {
+            assert_eq(m.version, 42)
+            assert_eq(m.name, "add_indexes")
+        },
+        Err(_) => assert(false, "parse should succeed"),
+    }
+}
+
+@test
+fn test_parse_rejects_missing_extension() {
+    match parse_filename("001_create_users") {
+        Ok(_) => assert(false, "should reject"),
+        Err(_) => assert(true, "ok"),
+    }
+}
+
+@test
+fn test_parse_rejects_non_numeric() {
+    match parse_filename("create_users.sql") {
+        Ok(_) => assert(false, "should reject"),
+        Err(_) => assert(true, "ok"),
+    }
+}
+
+@test
+fn test_sort_by_version() {
+    let mut items = Vec::new()
+    match parse_filename("010_b.sql") {
+        Ok(m) => items.push(m),
+        Err(_) => assert(false, "parse"),
+    }
+    match parse_filename("002_a.sql") {
+        Ok(m) => items.push(m),
+        Err(_) => assert(false, "parse"),
+    }
+    match parse_filename("003_c.sql") {
+        Ok(m) => items.push(m),
+        Err(_) => assert(false, "parse"),
+    }
+    let sorted = sort_migrations(items)
+    assert_eq(sorted.len(), 3)
+    assert_eq(sorted[0].version, 2)
+    assert_eq(sorted[1].version, 3)
+    assert_eq(sorted[2].version, 10)
+}
+
+@test
+fn test_pending_skips_applied() {
+    let mut all = Vec::new()
+    match parse_filename("001_a.sql") {
+        Ok(m) => all.push(m),
+        Err(_) => assert(false, "parse"),
+    }
+    match parse_filename("002_b.sql") {
+        Ok(m) => all.push(m),
+        Err(_) => assert(false, "parse"),
+    }
+    match parse_filename("003_c.sql") {
+        Ok(m) => all.push(m),
+        Err(_) => assert(false, "parse"),
+    }
+    let mut applied = Vec::new()
+    applied.push(1)
+    applied.push(2)
+    let left = pending(all, applied)
+    assert_eq(left.len(), 1)
+    assert_eq(left[0].version, 3)
+}
+
+@test
+fn test_pending_empty_when_all_applied() {
+    let mut all = Vec::new()
+    match parse_filename("001_a.sql") {
+        Ok(m) => all.push(m),
+        Err(_) => assert(false, "parse"),
+    }
+    let mut applied = Vec::new()
+    applied.push(1)
+    let left = pending(all, applied)
+    assert_eq(left.len(), 0)
+}
+
+@test
+fn test_validate_unique_versions_ok() {
+    let mut all = Vec::new()
+    match parse_filename("001_a.sql") {
+        Ok(m) => all.push(m),
+        Err(_) => assert(false, "parse"),
+    }
+    match parse_filename("002_b.sql") {
+        Ok(m) => all.push(m),
+        Err(_) => assert(false, "parse"),
+    }
+    match validate_unique_versions(all) {
+        Ok(_) => assert(true, "ok"),
+        Err(_) => assert(false, "should be unique"),
+    }
+}
+
+@test
+fn test_validate_unique_versions_dup() {
+    let mut all = Vec::new()
+    match parse_filename("001_a.sql") {
+        Ok(m) => all.push(m),
+        Err(_) => assert(false, "parse"),
+    }
+    match parse_filename("001_b.sql") {
+        Ok(m) => all.push(m),
+        Err(_) => assert(false, "parse"),
+    }
+    match validate_unique_versions(all) {
+        Ok(_) => assert(false, "should fail"),
+        Err(_) => assert(true, "duplicate detected"),
+    }
+}
+
+@test
+fn test_schema_table_sql() {
+    let sql = schema_table_sql()
+    assert_str_contains(sql, "schema_migrations")
+    assert_str_contains(sql, "version")
+}
+
+@test
+fn test_select_applied_sql() {
+    let sql = select_applied_sql()
+    assert_str_contains(sql, "schema_migrations")
+    assert_str_contains(sql, "version")
+}
+
+@test
+fn test_record_applied_sql() {
+    match parse_filename("001_create_users.sql") {
+        Ok(m) => {
+            let sql = record_applied_sql(m, "2026-08-23T00:00:00Z")
+            assert_str_contains(sql, "INSERT INTO schema_migrations")
+            assert_str_contains(sql, "1")
+            assert_str_contains(sql, "create_users")
+            assert_str_contains(sql, "2026-08-23T00:00:00Z")
+        },
+        Err(_) => assert(false, "parse"),
+    }
+}

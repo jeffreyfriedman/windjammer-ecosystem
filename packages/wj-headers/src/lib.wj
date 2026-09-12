@@ -1,0 +1,48 @@
+use std::strings
+
+/// Secure response header set (helmet-style defaults).
+pub struct SecurityHeaders {
+    pub content_type_options: string,
+    pub frame_options: string,
+    pub referrer_policy: string,
+    pub content_security_policy: string,
+    pub hsts_max_age_secs: int,
+}
+
+/// Sensible defaults for JSON/API services (HSTS disabled until TLS is configured).
+pub fn defaults() -> SecurityHeaders {
+    SecurityHeaders {
+        content_type_options: "nosniff",
+        frame_options: "DENY",
+        referrer_policy: "no-referrer",
+        content_security_policy: "default-src 'none'",
+        hsts_max_age_secs: 0,
+    }
+}
+
+/// Render headers as `Name: value` lines separated by newlines.
+pub fn format_headers(headers: SecurityHeaders) -> string {
+    let mut out = "X-Content-Type-Options: ${headers.content_type_options}\nX-Frame-Options: ${headers.frame_options}\nReferrer-Policy: ${headers.referrer_policy}"
+    if strings.len(headers.content_security_policy) > 0 {
+        out = "${out}\nContent-Security-Policy: ${headers.content_security_policy}"
+    }
+    if headers.hsts_max_age_secs > 0 {
+        out = "${out}\n${hsts(headers.hsts_max_age_secs)}"
+    }
+    out
+}
+
+/// `Strict-Transport-Security` header line.
+pub fn hsts(max_age_secs: int) -> string {
+    "Strict-Transport-Security: max-age=${max_age_secs}"
+}
+
+/// `X-Content-Type-Options: nosniff`.
+pub fn nosniff() -> string {
+    "X-Content-Type-Options: nosniff"
+}
+
+/// `X-Frame-Options` with the given directive (`DENY`, `SAMEORIGIN`, …).
+pub fn frame_options(directive: string) -> string {
+    "X-Frame-Options: ${directive}"
+}

@@ -1,12 +1,14 @@
 use std::http::*
+use std::strings
 use std::sync::{Arc, Mutex}
 
 use crate::domain::HttpReply
 use crate::domain::WebhookApp
+use crate::domain::WebhookConfig
 
 /// Bind HTTP and dispatch into a shared `WebhookApp`.
-pub fn serve(port: int, secret: string) -> Result<(), string> {
-    let app = WebhookApp::new(secret)
+pub fn serve(port: int, config: WebhookConfig) -> Result<(), string> {
+    let app = WebhookApp::new_with_config(config)
     let shared = Arc::new(Mutex::new(app))
     match server_serve(bind_address(), port, |req| dispatch(req, shared)) {
         Ok(_) => Ok(()),
@@ -19,26 +21,42 @@ fn bind_address() -> string {
 }
 
 fn dispatch(req: ServerRequest, state: Arc<Mutex<WebhookApp>>) -> ServerResponse {
-    let method = method_label(req.method)
     let path = req.path
     let body = req.body
     let headers = req.headers
-    let auth = auth_from_headers(headers)
+    let meta = headers_meta(headers)
     match state.lock() {
         Ok(mut app) => {
-            let reply = app.handle(method, path, auth.0, auth.1, body)
+            let reply = app.handle(method_label(req.method), path, meta.0, meta.1, meta.2, body)
             to_response(reply)
         },
         Err(_) => server_error("internal server error"),
     }
 }
 
-fn auth_from_headers(headers: Vec<(string, string)>) -> (string, string) {
+fn method_label(method: HttpMethod) -> string {
+    match method {
+        HttpMethod::GET => "GET",
+        HttpMethod::POST => "POST",
+        HttpMethod::PUT => "PUT",
+        HttpMethod::DELETE => "DELETE",
+        HttpMethod::PATCH => "PATCH",
+        HttpMethod::HEAD => "HEAD",
+        HttpMethod::OPTIONS => "OPTIONS",
+    }
+}
+
+fn headers_meta(headers: Vec<(string, string)>) -> (string, string, string) {
+    let mut origin = ""
     let mut token = ""
     let mut signature = ""
     for pair in headers {
         let key = pair.0
         let value = pair.1
+        if header_key_matches(key, "Origin") {
+            origin = value
+            continue
+        }
         if header_key_matches(key, "X-Webhook-Token") {
             token = value
             continue
@@ -47,61 +65,101 @@ fn auth_from_headers(headers: Vec<(string, string)>) -> (string, string) {
             signature = value
         }
     }
-    (token, signature)
+    (origin, token, signature)
 }
 
 fn header_key_matches(actual: string, expected: string) -> bool {
     actual == expected
 }
 
-fn method_label(method: HttpMethod) -> string {
-    if method == "GET" {
-        return "GET"
+fn to_response(reply: HttpReply) -> ServerResponse {
+    let mut resp = base_response(reply.status, reply.body)
+    if strings_len(reply.allow_origin) > 0 {
+        resp = resp.header(own("Access-Control-Allow-Origin"), reply.allow_origin)
     }
-    if method == "POST" {
-        return "POST"
-    }
-    if method == "PUT" {
-        return "PUT"
-    }
-    if method == "DELETE" {
-        return "DELETE"
-    }
-    if method == "PATCH" {
-        return "PATCH"
-    }
-    if method == "HEAD" {
-        return "HEAD"
-    }
-    if method == "OPTIONS" {
-        return "OPTIONS"
-    }
-    "UNKNOWN"
+    resp = apply_extra_headers(resp, reply.extra_headers)
+    resp
 }
 
-fn to_response(reply: HttpReply) -> ServerResponse {
-    if reply.status == 200 {
-        return ServerResponse::json(reply.body)
+fn apply_extra_headers(resp: ServerResponse, block: string) -> ServerResponse {
+    if strings_len(block) == 0 {
+        return resp
     }
-    if reply.status == 400 {
-        return ServerResponse::bad_request(reply.body)
-            .header("Content-Type", "application/json")
+    let lines = strings.split(block, "\n")
+    let mut i = 0
+    while i < lines.len() {
+        let line = strings.trim(lines[i])
+        if strings_len(line) == 0 {
+            i = i + 1
+            continue
+        }
+        match split_header_line(line) {
+            Some(pair) => {
+                resp = resp.header(pair.0, pair.1)
+            },
+            None => {},
+        }
+        i = i + 1
     }
-    if reply.status == 401 {
-        let status = 401
-        return ServerResponse::new(status, reply.body)
-            .header("Content-Type", "application/json")
+    resp
+}
+
+fn split_header_line(line: string) -> Option<(string, string)> {
+    let colon = find_char(line, ":")
+    if colon < 0 {
+        return None
     }
-    if reply.status == 404 {
-        let status = 404
-        return ServerResponse::new(status, reply.body)
-            .header("Content-Type", "application/json")
+    let name = strings.trim(strings.substring(line, 0, colon))
+    let value = strings.trim(strings.substring(line, colon + 1, strings.len(line)))
+    Some((name, value))
+}
+
+fn find_char(text: string, needle: string) -> int {
+    let mut i = 0
+    let n = strings.len(text)
+    while i < n {
+        if strings.substring(text, i, i + 1) == needle {
+            return i
+        }
+        i = i + 1
     }
-    server_error(reply.body)
+    -1
+}
+
+fn strings_len(text: string) -> int {
+    strings.len(text)
+}
+
+fn base_response(status: u16, body: string) -> ServerResponse {
+    if status == 204 {
+        return ServerResponse::no_content()
+    }
+    if status == 200 {
+        return ServerResponse::json(body)
+    }
+    if status == 400 {
+        return json_response(ServerResponse::bad_request(body))
+    }
+    if status == 401 {
+        return json_response(ServerResponse::unauthorized(body))
+    }
+    if status == 403 {
+        return json_response(ServerResponse::forbidden(body))
+    }
+    if status == 404 {
+        return json_response(ServerResponse::with_status(404, body))
+    }
+    json_response(ServerResponse::internal_error(body))
+}
+
+fn json_response(resp: ServerResponse) -> ServerResponse {
+    resp.header(own("Content-Type"), own("application/json"))
 }
 
 fn server_error(message: string) -> ServerResponse {
-    let status = 500
-    ServerResponse::new(status, message)
-        .header("Content-Type", "application/json")
+    json_response(ServerResponse::internal_error(message))
+}
+
+fn own(value: string) -> string {
+    value
 }

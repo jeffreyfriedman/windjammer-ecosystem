@@ -1,6 +1,7 @@
 use crate::Backoff
 use crate::delay_ms
 use crate::should_retry
+use crate::pause_ms
 
 fn test_delay_ms_exponential() {
     let b = Backoff {
@@ -34,4 +35,8 @@ fn test_should_retry_respects_max_attempts() {
 
 fn test_should_retry_zero_max() {
     assert(!should_retry(0, 0), "max 0")
+}
+
+fn test_pause_ms_zero_is_noop() {
+    pause_ms(0)
 }

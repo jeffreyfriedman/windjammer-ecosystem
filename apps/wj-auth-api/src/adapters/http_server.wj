@@ -1,0 +1,148 @@
+use std::http::*
+use std::strings
+use std::sync::{Arc, Mutex}
+
+use crate::domain::AuthApp
+use crate::domain::AuthConfig
+use crate::domain::HttpReply
+
+pub fn serve(port: int, config: AuthConfig) -> Result<(), string> {
+    let app = AuthApp::new(config)
+    let shared = Arc::new(Mutex::new(app))
+    match server_serve(bind_address(), port, |req| dispatch(req, shared)) {
+        Ok(_) => Ok(()),
+        Err(err) => Err(err),
+    }
+}
+
+fn bind_address() -> string {
+    "0.0.0.0"
+}
+
+fn dispatch(req: ServerRequest, state: Arc<Mutex<AuthApp>>) -> ServerResponse {
+    let path = req.path
+    let body = req.body
+    let headers = req.headers
+    let meta = headers_meta(headers)
+    match state.lock() {
+        Ok(mut app) => {
+            let reply = app.handle(
+                method_label(req.method),
+                path,
+                meta.0,
+                meta.1,
+                meta.2,
+                body,
+            )
+            to_response(reply)
+        },
+        Err(_) => server_error("internal server error"),
+    }
+}
+
+fn method_label(method: HttpMethod) -> string {
+    match method {
+        HttpMethod::GET => "GET",
+        HttpMethod::POST => "POST",
+        HttpMethod::PUT => "PUT",
+        HttpMethod::DELETE => "DELETE",
+        HttpMethod::PATCH => "PATCH",
+        HttpMethod::HEAD => "HEAD",
+        HttpMethod::OPTIONS => "OPTIONS",
+    }
+}
+
+fn headers_meta(headers: Vec<(string, string)>) -> (string, string, string) {
+    let mut origin = ""
+    let mut accept_encoding = ""
+    let mut authorization = ""
+    for pair in headers {
+        let key = pair.0
+        let value = pair.1
+        if header_key_matches(key, "Origin") {
+            origin = value
+            continue
+        }
+        if header_key_matches(key, "Accept-Encoding") {
+            accept_encoding = value
+            continue
+        }
+        if header_key_matches(key, "Authorization") {
+            authorization = value
+        }
+    }
+    (origin, accept_encoding, authorization)
+}
+
+fn header_key_matches(actual: string, expected: string) -> bool {
+    actual == expected
+}
+
+fn to_response(reply: HttpReply) -> ServerResponse {
+    let mut resp = base_response(reply.status, reply.body)
+    if strings_len(reply.allow_origin) > 0 {
+        resp = resp.header(own("Access-Control-Allow-Origin"), reply.allow_origin)
+    }
+    if strings_len(reply.content_encoding) > 0 {
+        resp = resp.header(own("Content-Encoding"), reply.content_encoding)
+    }
+    if reply.status == 204 {
+        return resp
+    }
+    if reply.status == 200 && html_response(reply.body) {
+        return resp.header(own("Content-Type"), own("text/html; charset=utf-8"))
+    }
+    json_response(resp)
+}
+
+fn html_response(body: string) -> bool {
+    strings_contains(body, "<html")
+}
+
+fn strings_contains(text: string, needle: string) -> bool {
+    strings.contains(text, needle)
+}
+
+fn strings_len(text: string) -> int {
+    strings.len(text)
+}
+
+fn base_response(status: u16, body: string) -> ServerResponse {
+    if status == 200 {
+        return ServerResponse::json(body)
+    }
+    if status == 201 {
+        return json_response(ServerResponse::created(body))
+    }
+    if status == 204 {
+        return ServerResponse::no_content()
+    }
+    if status == 400 {
+        return json_response(ServerResponse::bad_request(body))
+    }
+    if status == 401 {
+        return json_response(ServerResponse::unauthorized(body))
+    }
+    if status == 403 {
+        return json_response(ServerResponse::forbidden(body))
+    }
+    if status == 404 {
+        return json_response(ServerResponse::with_status(404, body))
+    }
+    if status == 409 {
+        return json_response(ServerResponse::with_status(409, body))
+    }
+    json_response(ServerResponse::internal_error(body))
+}
+
+fn json_response(resp: ServerResponse) -> ServerResponse {
+    resp.header(own("Content-Type"), own("application/json"))
+}
+
+fn server_error(message: string) -> ServerResponse {
+    json_response(ServerResponse::internal_error(message))
+}
+
+fn own(value: string) -> string {
+    value
+}

@@ -14,6 +14,8 @@ wj_cookie = { path = "../../packages/wj-cookie/build" }
 wj_rate_limit = { path = "../../packages/wj-rate-limit/build" }
 wj_headers = { path = "../../packages/wj-headers/build" }
 wj_validate = { path = "../../packages/wj-validate/build" }
+wj_hash = { path = "../../packages/wj-hash/build" }
+wj_jwt = { path = "../../packages/wj-jwt/build" }
 
 [dev-dependencies]
 

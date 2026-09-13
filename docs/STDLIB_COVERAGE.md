@@ -15,8 +15,8 @@ Windjammer `std::*` modules used on production paths in seed apps and packages.
 | `std::time` | | | | | | | | planned | | | | | | planned | | | | | | | | timestamps / uuid v1 |
 | `std::random` | | | | | | | | | | | | | | planned | | | | | | | | uuid entropy |
 | `std::db` | | | | | | | optional | | | | | | | | | | | | | | | yes via `wj-migrate` `db_apply` |
-| `std::crypto` | | | | | | | | | yes | | | | | planned | | | | | yes | | | yes | webhook + sha + uuid v5 + auth-api bcrypt |
-| `std::jwt` | | | | | | | | | | | | | | | | | | | | | | yes | auth-api HS256 tokens |
+| `std::crypto` | | | | | | | | | yes | | | | | planned | | | | | yes | | | yes via `wj-hash` | webhook + sha + uuid v5 + auth-api bcrypt |
+| `std::jwt` | | | | | | | | | | | | | | | | | | | | | | yes via `wj-jwt` | auth-api HS256 tokens |
 | `std::compress` | | | | | | | | | | | | | | | | | | | | | | yes | auth-api gzip bodies |
 | `std::encoding` | | | | | | | | | optional | | | | | yes | | | planned | | | | | hex / base64 wiring |
 | `std::regex` | | | | | | | | | | | | | | | | | | | | | | yes via `wj-regex` |

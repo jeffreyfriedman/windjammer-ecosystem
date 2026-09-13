@@ -21,6 +21,7 @@ use wj_rate_limit::check_key
 use wj_rate_limit::fixed_window
 use wj_rate_limit::rate_limit_headers
 use wj_rate_limit::WindowBucket
+use wj_router::match_route
 use wj_template::render_html
 use wj_uuid::v7
 use wj_validate::require_max_len
@@ -196,38 +197,74 @@ impl AuthApp {
         authorization: string,
         cookie: string,
     ) -> HttpReply {
-        if path == "/health" || path == "/health/" {
-            match method {
-                HttpMethod::GET => json_ok(),
-                _ => json_error(404, "not found"),
-            }
-        } else if path == "/" || path == "/index.html" {
-            match method {
-                HttpMethod::GET => welcome_page(),
-                _ => json_error(404, "not found"),
-            }
-        } else if path == "/register" || path == "/register/" {
-            match method {
-                HttpMethod::POST => self.register(body),
-                _ => json_error(404, "not found"),
-            }
-        } else if path == "/login" || path == "/login/" {
-            match method {
-                HttpMethod::POST => self.login(body),
-                _ => json_error(404, "not found"),
-            }
-        } else if path == "/logout" || path == "/logout/" {
-            match method {
-                HttpMethod::POST => logout(),
-                _ => json_error(404, "not found"),
-            }
-        } else if path == "/me" || path == "/me/" {
-            match method {
-                HttpMethod::GET => self.profile(authorization, cookie),
-                _ => json_error(404, "not found"),
-            }
-        } else {
-            json_error(404, "not found")
+        match route_match("/health", path) {
+            Some(_) => {
+                match method {
+                    HttpMethod::GET => json_ok(),
+                    _ => json_error(404, "not found"),
+                }
+            },
+            None => {
+                match route_match("/", path) {
+                    Some(_) => {
+                        match method {
+                            HttpMethod::GET => welcome_page(),
+                            _ => json_error(404, "not found"),
+                        }
+                    },
+                    None => {
+                        match route_match("/index.html", path) {
+                            Some(_) => {
+                                match method {
+                                    HttpMethod::GET => welcome_page(),
+                                    _ => json_error(404, "not found"),
+                                }
+                            },
+                            None => {
+                                match route_match("/register", path) {
+                                    Some(_) => {
+                                        match method {
+                                            HttpMethod::POST => self.register(body),
+                                            _ => json_error(404, "not found"),
+                                        }
+                                    },
+                                    None => {
+                                        match route_match("/login", path) {
+                                            Some(_) => {
+                                                match method {
+                                                    HttpMethod::POST => self.login(body),
+                                                    _ => json_error(404, "not found"),
+                                                }
+                                            },
+                                            None => {
+                                                match route_match("/logout", path) {
+                                                    Some(_) => {
+                                                        match method {
+                                                            HttpMethod::POST => logout(),
+                                                            _ => json_error(404, "not found"),
+                                                        }
+                                                    },
+                                                    None => {
+                                                        match route_match("/me", path) {
+                                                            Some(_) => {
+                                                                match method {
+                                                                    HttpMethod::GET => self.profile(authorization, cookie),
+                                                                    _ => json_error(404, "not found"),
+                                                                }
+                                                            },
+                                                            None => json_error(404, "not found"),
+                                                        }
+                                                    },
+                                                }
+                                            },
+                                        }
+                                    },
+                                }
+                            },
+                        }
+                    },
+                }
+            },
         }
     }
 
@@ -775,6 +812,12 @@ fn buckets_from_limit(buckets: HashMap<string, WindowBucket>) -> HashMap<string,
 
 fn own(value: string) -> string {
     value
+}
+
+fn route_match(pattern: string, path: string) -> Option<HashMap<string, string>> {
+    let pattern = own(pattern)
+    let path = own(path)
+    match_route(pattern, path)
 }
 
 fn parse_method(label: string) -> Option<HttpMethod> {

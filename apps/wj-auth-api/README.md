@@ -19,6 +19,7 @@ Reference pattern for idiomatic HTTP in Windjammer apps (see also `wj-webhook`):
 | **wj-config** / **wj-toml** | `config_from_toml` (flat + `[jwt]` section keys) |
 | **wj-dotenv** | `config_from_dotenv` (`JWT_SECRET=…` env-file layer via `wj-config::merge`) |
 | **wj-timefmt** | `/me.expires_at` RFC3339 Zulu from JWT `exp` |
+| **wj-inflect** | slugify usernames on register/login (`Carl User` → `carl-user`) |
 | **wj-cookie** | login `Set-Cookie: access_token=…; HttpOnly; Path=/; SameSite=Lax`; `/me` accepts cookie |
 | **wj-rate-limit** | fixed-window limiter + `X-RateLimit-*` / `Retry-After` on 429 |
 | **wj-headers** | helmet-style defaults (`X-Frame-Options`, `X-Content-Type-Options`, …) |
@@ -36,7 +37,7 @@ Reference pattern for idiomatic HTTP in Windjammer apps (see also `wj-webhook`):
 |---|---|---|
 | GET | `/health` | JSON `{ "ok": true }` |
 | GET | `/` | HTML welcome page |
-| POST | `/register` | `{ "username", "password" }` → 201 `{ "created", "id", "username" }` (id is UUID v7) |
+| POST | `/register` | `{ "username", "password" }` → 201 `{ "created", "id", "username" }` (id is UUID v7; username is slugified) |
 | POST | `/login` | credentials → `{ "token" }` + `Set-Cookie` access_token |
 | POST | `/logout` | clears access_token cookie |
 | GET | `/me` | `Authorization: Bearer …` **or** `Cookie: access_token=…` → `{ "username", "sub", "tenant", "expires_at" }` |
@@ -63,7 +64,7 @@ Path dependencies must point at each package’s `build/` directory. Prefer `--l
 unset CARGO_TARGET_DIR
 export WJ=/path/to/windjammer/target/release/wj   # or a known-good pinned wj
 
-for p in wj-cors wj-compress wj-template wj-uuid wj-toml wj-config wj-cookie wj-rate-limit wj-headers wj-validate wj-hash wj-jwt wj-router wj-mime wj-duration wj-dotenv wj-timefmt; do
+for p in wj-cors wj-compress wj-template wj-uuid wj-toml wj-config wj-cookie wj-rate-limit wj-headers wj-validate wj-hash wj-jwt wj-router wj-mime wj-duration wj-dotenv wj-timefmt wj-inflect; do
   cd packages/$p && $WJ build src --library --module-file
 done
 

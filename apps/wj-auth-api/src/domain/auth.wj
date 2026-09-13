@@ -11,6 +11,7 @@ use wj_compress::negotiate
 use wj_cors::allow_origin
 use wj_cors::preflight
 use wj_template::render_html
+use wj_uuid::v7
 
 use crate::domain::config::AuthConfig
 
@@ -22,6 +23,7 @@ pub struct HttpReply {
 }
 
 struct UserRecord {
+    id: string,
     username: string,
     password_hash: string,
 }
@@ -38,6 +40,12 @@ struct LoginBody {
 
 struct TokenBody {
     token: string,
+}
+
+struct CreatedBody {
+    created: bool,
+    id: string,
+    username: string,
 }
 
 struct MeBody {
@@ -79,10 +87,12 @@ impl AuthApp {
             Some(value) => value,
             None => return json_error(405, "method not allowed"),
         }
-        self.handle_method(parsed, path, origin, accept_encoding, authorization, body)
+        self.handle_http(parsed, path, origin, accept_encoding, authorization, body)
     }
 
-    fn handle_method(
+    /// Adapter entry: same-crate `HttpMethod` (avoids dual-runtime mismatch in tests
+    /// and string-lit → demoted `&str` + `.to_string()` in multipass codegen).
+    pub fn handle_http(
         self,
         method: HttpMethod,
         path: string,
@@ -172,13 +182,18 @@ impl AuthApp {
         }
         let password = parsed.password
         let username = parsed.username
+        let user_id = match new_user_id() {
+            Ok(id) => id,
+            Err(_) => return json_error(500, "id failed"),
+        }
         match hash_pw(password) {
             Ok(digest) => {
                 self.users.push(UserRecord {
-                    username: username,
+                    id: "${user_id}",
+                    username: "${username}",
                     password_hash: digest,
                 })
-                json_created()
+                json_created(user_id, username)
             },
             Err(_) => json_error(500, "hash failed"),
         }
@@ -192,7 +207,7 @@ impl AuthApp {
         let tenant = "default"
         let secret = self.config.jwt_secret
         match self.verify_user(parsed.username, parsed.password) {
-            Some(username) => match sign_jwt(username, tenant, secret, self.config.jwt_ttl_secs) {
+            Some(user_id) => match sign_jwt(user_id, tenant, secret, self.config.jwt_ttl_secs) {
                 Ok(token) => {
                     let payload = TokenBody { token: token }
                     match json.to_string(payload) {
@@ -214,13 +229,18 @@ impl AuthApp {
         let secret = self.config.jwt_secret
         match verify_jwt(token, secret) {
             Ok(claims) => {
-                let payload = MeBody {
-                    username: claims.sub,
-                    sub: claims.sub,
-                }
-                match json.to_string(payload) {
-                    Ok(text) => HttpReply { status: 200, body: text, allow_origin: "", content_encoding: "" },
-                    Err(_) => json_error(500, "serialization failed"),
+                match self.username_for_id(claims.sub) {
+                    Some(username) => {
+                        let payload = MeBody {
+                            username: username,
+                            sub: claims.sub,
+                        }
+                        match json.to_string(payload) {
+                            Ok(text) => HttpReply { status: 200, body: text, allow_origin: "", content_encoding: "" },
+                            Err(_) => json_error(500, "serialization failed"),
+                        }
+                    },
+                    None => json_error(401, "unknown subject"),
                 }
             },
             Err(_) => json_error(401, "invalid token"),
@@ -238,6 +258,17 @@ impl AuthApp {
         false
     }
 
+    fn username_for_id(self, id: string) -> Option<string> {
+        let mut i = 0
+        while i < self.users.len() {
+            if self.users[i].id == id {
+                return Some(self.users[i].username)
+            }
+            i = i + 1
+        }
+        None
+    }
+
     fn verify_user(self, username: string, password: string) -> Option<string> {
         let mut i = 0
         while i < self.users.len() {
@@ -247,7 +278,7 @@ impl AuthApp {
                 match check_password(password, digest) {
                     Ok(ok) => {
                         if ok {
-                            return Some(record.username)
+                            return Some(record.id)
                         }
                         return None
                     },
@@ -266,6 +297,10 @@ pub fn gzip_decode_body(body: string) -> Result<string, string> {
 
 struct JwtClaimsView {
     sub: string,
+}
+
+fn new_user_id() -> Result<string, string> {
+    v7()
 }
 
 fn hash_pw(password: string) -> Result<string, string> {
@@ -369,7 +404,7 @@ fn welcome_page() -> HttpReply {
     vars.insert("title", "wj-auth-api")
     vars.insert("message", "Register, login, and call /me with a Bearer JWT.")
     let html = render_html(
-        own("<!DOCTYPE html><html><head><title>{{title}}</title></head><body><h1>{{title}}</h1><p>{{message}}</p></body></html>"),
+        "<!DOCTYPE html><html><head><title>{{title}}</title></head><body><h1>{{title}}</h1><p>{{message}}</p></body></html>",
         vars,
     )
     HttpReply {
@@ -398,8 +433,16 @@ fn json_ok() -> HttpReply {
     }
 }
 
-fn json_created() -> HttpReply {
-    HttpReply { status: 201, body: "{\"created\":true}", allow_origin: "", content_encoding: "" }
+fn json_created(id: string, username: string) -> HttpReply {
+    let payload = CreatedBody {
+        created: true,
+        id: id,
+        username: username,
+    }
+    match json.to_string(payload) {
+        Ok(text) => HttpReply { status: 201, body: text, allow_origin: "", content_encoding: "" },
+        Err(_) => HttpReply { status: 201, body: "{\"created\":true}", allow_origin: "", content_encoding: "" },
+    }
 }
 
 fn json_error(status: u16, message: string) -> HttpReply {

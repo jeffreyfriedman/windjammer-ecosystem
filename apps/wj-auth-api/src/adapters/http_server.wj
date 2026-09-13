@@ -26,29 +26,12 @@ fn dispatch(req: ServerRequest, state: Arc<Mutex<AuthApp>>) -> ServerResponse {
     let meta = headers_meta(headers)
     match state.lock() {
         Ok(mut app) => {
-            let reply = app.handle(
-                method_label(req.method),
-                path,
-                meta.0,
-                meta.1,
-                meta.2,
-                body,
-            )
+            // Same-crate HttpMethod — string labels demote `handle`'s method formal
+            // to `&str` then still emit `"GET".to_string()` (WDB-168 / auth dogfood).
+            let reply = app.handle_http(req.method, path, meta.0, meta.1, meta.2, body)
             to_response(reply)
         },
         Err(_) => server_error("internal server error"),
-    }
-}
-
-fn method_label(method: HttpMethod) -> string {
-    match method {
-        HttpMethod::GET => "GET",
-        HttpMethod::POST => "POST",
-        HttpMethod::PUT => "PUT",
-        HttpMethod::DELETE => "DELETE",
-        HttpMethod::PATCH => "PATCH",
-        HttpMethod::HEAD => "HEAD",
-        HttpMethod::OPTIONS => "OPTIONS",
     }
 }
 

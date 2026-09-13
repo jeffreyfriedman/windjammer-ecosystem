@@ -5,7 +5,7 @@ Hexagonal sample API that dogfoods ecosystem packages plus stdlib crypto/JWT/com
 Reference pattern for idiomatic HTTP in Windjammer apps (see also `wj-webhook`):
 
 - **Domain** — `handle(string, …)` for tests (dual-runtime `HttpMethod` mismatch); `handle_http(HttpMethod, …)` for same-crate adapter
-- **Config** — `AuthConfig::defaults()`, `config_from_env`, `config_from_toml` (dogfoods `wj-config` + `wj-toml`)
+- **Config** — `AuthConfig::defaults()`, `config_from_env`, `config_from_toml`, `config_from_dotenv` (dogfoods `wj-config` + `wj-toml` + `wj-dotenv`)
 - **Adapter** — passes `req.method` into `handle_http` (avoids string-lit → demoted `&str` + `.to_string()`)
 
 ## Packages
@@ -17,6 +17,7 @@ Reference pattern for idiomatic HTTP in Windjammer apps (see also `wj-webhook`):
 | **wj-template** | HTML welcome page (`render_html`) |
 | **wj-uuid** | RFC 9562 **v7** user ids on register |
 | **wj-config** / **wj-toml** | `config_from_toml` (flat + `[jwt]` section keys) |
+| **wj-dotenv** | `config_from_dotenv` (`JWT_SECRET=…` env-file layer via `wj-config::merge`) |
 | **wj-cookie** | login `Set-Cookie: access_token=…; HttpOnly; Path=/; SameSite=Lax`; `/me` accepts cookie |
 | **wj-rate-limit** | fixed-window limiter + `X-RateLimit-*` / `Retry-After` on 429 |
 | **wj-headers** | helmet-style defaults (`X-Frame-Options`, `X-Content-Type-Options`, …) |
@@ -61,7 +62,7 @@ Path dependencies must point at each package’s `build/` directory. Prefer `--l
 unset CARGO_TARGET_DIR
 export WJ=/path/to/windjammer/target/release/wj   # or a known-good pinned wj
 
-for p in wj-cors wj-compress wj-template wj-uuid wj-toml wj-config wj-cookie wj-rate-limit wj-headers wj-validate wj-hash wj-jwt wj-router wj-mime wj-duration; do
+for p in wj-cors wj-compress wj-template wj-uuid wj-toml wj-config wj-cookie wj-rate-limit wj-headers wj-validate wj-hash wj-jwt wj-router wj-mime wj-duration wj-dotenv; do
   cd packages/$p && $WJ build src --library --module-file
 done
 

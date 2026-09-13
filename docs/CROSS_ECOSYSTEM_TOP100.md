@@ -36,7 +36,7 @@ Literal top-100 lists are dominated by tooling, frameworks, and transitive plumb
 | Date/time | ✅ | `wj-timefmt` (offsets + epoch) |
 | Templates | ✅ | `wj-template` (defaults, HTML escape) |
 | SHA hashing | ✅ | `wj-sha` |
-| UUID | ✅ | `wj-uuid` |
+| UUID | ✅ | `wj-uuid` (v1/v4/v5/**v7** + nil/max; dogfooded in `wj-auth-api`) |
 | Base64 | ✅ | `wj-base64` |
 | **YAML** | ✅ | `wj-yaml` (`std::yaml.to_json` + path getters; P3.244 ✅) |
 | **JWT** | ✅ | `wj-jwt` / `std::jwt` |

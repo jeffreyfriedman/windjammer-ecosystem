@@ -18,7 +18,11 @@ fn allowed_one() -> Vec<string> {
 }
 
 fn token_from_body(body: string) -> string {
-    let marker = "\"token\":\""
+    json_string_field(body, "token")
+}
+
+fn json_string_field(body: string, key: string) -> string {
+    let marker = "\"${key}\":\""
     let mut i = 0
     let n = strings.len(body)
     let marker_len = strings.len(marker)
@@ -60,6 +64,8 @@ fn test_register_and_login_returns_jwt() {
         "{\"username\":\"ada\",\"password\":\"secret123\"}",
     )
     assert_eq(reg.status, 201)
+    assert_str_contains(reg.body, "\"id\"")
+    assert_str_contains(reg.body, "ada")
     let login = app.handle(
         "POST",
         "/login",
@@ -70,6 +76,25 @@ fn test_register_and_login_returns_jwt() {
     )
     assert_eq(login.status, 200)
     assert_str_contains(login.body, "token")
+}
+
+fn test_register_assigns_uuid_v7_id() {
+    let mut app = AuthApp::new(default_config())
+    let reg = app.handle(
+        "POST",
+        "/register",
+        "",
+        "",
+        "",
+        "{\"username\":\"v7user\",\"password\":\"secret123\"}",
+    )
+    assert_eq(reg.status, 201)
+    let id = json_string_field(reg.body, "id")
+    assert(strings.len(id) == 36, "uuid length")
+    assert(strings.substring(id, 14, 15) == "7", "version nibble must be 7")
+    let variant = strings.substring(id, 19, 20)
+    let ok = variant == "8" || variant == "9" || variant == "a" || variant == "b"
+    assert(ok, "RFC variant nibble")
 }
 
 fn test_login_rejects_bad_password() {
@@ -101,7 +126,7 @@ fn test_me_requires_bearer_token() {
 
 fn test_me_returns_profile_after_login() {
     let mut app = AuthApp::new(default_config())
-    let _ = app.handle(
+    let reg = app.handle(
         "POST",
         "/register",
         "",
@@ -109,6 +134,8 @@ fn test_me_returns_profile_after_login() {
         "",
         "{\"username\":\"carl\",\"password\":\"pw\"}",
     )
+    assert_eq(reg.status, 201)
+    let user_id = json_string_field(reg.body, "id")
     let login = app.handle(
         "POST",
         "/login",
@@ -123,6 +150,7 @@ fn test_me_returns_profile_after_login() {
     let me = app.handle("GET", "/me", "", "", auth, "")
     assert_eq(me.status, 200)
     assert_str_contains(me.body, "carl")
+    assert_str_contains(me.body, user_id)
 }
 
 fn test_options_preflight_sets_cors_origin() {

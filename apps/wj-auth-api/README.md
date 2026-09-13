@@ -4,8 +4,8 @@ Hexagonal sample API that dogfoods ecosystem packages plus stdlib crypto/JWT/com
 
 Reference pattern for idiomatic HTTP in Windjammer apps (see also `wj-webhook`):
 
-- **Domain** — internal `HttpMethod` enum matching; public port accepts `string` (test crate compatibility)
-- **Adapter** — `match req.method { HttpMethod::GET => "GET", … }` + `ServerResponse` constructors
+- **Domain** — `handle(string, …)` for tests (dual-runtime `HttpMethod` mismatch); `handle_http(HttpMethod, …)` for same-crate adapter
+- **Adapter** — passes `req.method` into `handle_http` (avoids string-lit → demoted `&str` + `.to_string()`)
 - **Config** — `domain/config.wj` with `AuthConfig::defaults()` and env parsing
 
 ## Packages
@@ -15,8 +15,9 @@ Reference pattern for idiomatic HTTP in Windjammer apps (see also `wj-webhook`):
 | **wj-cors** | preflight + response `Access-Control-Allow-Origin` |
 | **wj-compress** | `Accept-Encoding` negotiation + `Content-Encoding: gzip` |
 | **wj-template** | HTML welcome page (`render_html`) |
+| **wj-uuid** | RFC 9562 **v7** user ids on register |
 | **std::crypto** | bcrypt register/login |
-| **std::jwt** | HS256 bearer tokens |
+| **std::jwt** | HS256 bearer tokens (`sub` = user id) |
 | **std::compress** | gzip body encode/decode in transport layer |
 
 ## Endpoints
@@ -25,9 +26,9 @@ Reference pattern for idiomatic HTTP in Windjammer apps (see also `wj-webhook`):
 |---|---|---|
 | GET | `/health` | JSON `{ "ok": true }` |
 | GET | `/` | HTML welcome page |
-| POST | `/register` | `{ "username", "password" }` → 201 |
-| POST | `/login` | credentials → `{ "token" }` |
-| GET | `/me` | `Authorization: Bearer …` → profile JSON |
+| POST | `/register` | `{ "username", "password" }` → 201 `{ "created", "id", "username" }` (id is UUID v7) |
+| POST | `/login` | credentials → `{ "token" }` (JWT `sub` = user id) |
+| GET | `/me` | `Authorization: Bearer …` → `{ "username", "sub" }` |
 | OPTIONS | `*` | CORS preflight |
 
 ## Layout
@@ -51,7 +52,7 @@ Path dependencies must point at each package’s `build/` directory. Pre-build d
 unset CARGO_TARGET_DIR
 export WJ=/path/to/windjammer/target/release/wj
 
-for p in wj-cors wj-compress wj-template; do
+for p in wj-cors wj-compress wj-template wj-uuid; do
   cd packages/$p && $WJ build src
 done
 

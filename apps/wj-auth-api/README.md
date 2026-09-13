@@ -5,8 +5,8 @@ Hexagonal sample API that dogfoods ecosystem packages plus stdlib crypto/JWT/com
 Reference pattern for idiomatic HTTP in Windjammer apps (see also `wj-webhook`):
 
 - **Domain** — `handle(string, …)` for tests (dual-runtime `HttpMethod` mismatch); `handle_http(HttpMethod, …)` for same-crate adapter
+- **Config** — `AuthConfig::defaults()`, `config_from_env`, `config_from_toml` (dogfoods `wj-config` + `wj-toml`)
 - **Adapter** — passes `req.method` into `handle_http` (avoids string-lit → demoted `&str` + `.to_string()`)
-- **Config** — `domain/config.wj` with `AuthConfig::defaults()` and env parsing
 
 ## Packages
 
@@ -16,6 +16,7 @@ Reference pattern for idiomatic HTTP in Windjammer apps (see also `wj-webhook`):
 | **wj-compress** | `Accept-Encoding` negotiation + `Content-Encoding: gzip` |
 | **wj-template** | HTML welcome page (`render_html`) |
 | **wj-uuid** | RFC 9562 **v7** user ids on register |
+| **wj-config** / **wj-toml** | `config_from_toml` (flat + `[jwt]` section keys) |
 | **std::crypto** | bcrypt register/login |
 | **std::jwt** | HS256 bearer tokens (`sub` = user id) |
 | **std::compress** | gzip body encode/decode in transport layer |
@@ -52,7 +53,7 @@ Path dependencies must point at each package’s `build/` directory. Pre-build d
 unset CARGO_TARGET_DIR
 export WJ=/path/to/windjammer/target/release/wj
 
-for p in wj-cors wj-compress wj-template wj-uuid; do
+for p in wj-cors wj-compress wj-template wj-uuid wj-toml wj-config; do
   cd packages/$p && $WJ build src
 done
 

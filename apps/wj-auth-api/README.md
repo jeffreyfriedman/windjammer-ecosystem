@@ -21,8 +21,8 @@ Reference pattern for idiomatic HTTP in Windjammer apps (see also `wj-webhook`):
 | **wj-rate-limit** | fixed-window limiter + `X-RateLimit-*` / `Retry-After` on 429 |
 | **wj-headers** | helmet-style defaults (`X-Frame-Options`, `X-Content-Type-Options`, …) |
 | **wj-validate** | username/password nonempty + min/max length on register/login |
-| **std::crypto** | bcrypt register/login |
-| **std::jwt** | HS256 bearer tokens (`sub` = user id) |
+| **wj-hash** | bcrypt register/login (thin wrap of `std::crypto`) |
+| **wj-jwt** | HS256 sign/verify; `/me` exposes `tenant` from claims |
 | **std::compress** | gzip body encode/decode in transport layer |
 
 ## Endpoints
@@ -34,7 +34,7 @@ Reference pattern for idiomatic HTTP in Windjammer apps (see also `wj-webhook`):
 | POST | `/register` | `{ "username", "password" }` → 201 `{ "created", "id", "username" }` (id is UUID v7) |
 | POST | `/login` | credentials → `{ "token" }` + `Set-Cookie` access_token |
 | POST | `/logout` | clears access_token cookie |
-| GET | `/me` | `Authorization: Bearer …` **or** `Cookie: access_token=…` → `{ "username", "sub" }` |
+| GET | `/me` | `Authorization: Bearer …` **or** `Cookie: access_token=…` → `{ "username", "sub", "tenant" }` |
 | OPTIONS | `*` | CORS preflight |
 
 ## Layout
@@ -58,7 +58,7 @@ Path dependencies must point at each package’s `build/` directory. Prefer `--l
 unset CARGO_TARGET_DIR
 export WJ=/path/to/windjammer/target/release/wj   # or a known-good pinned wj
 
-for p in wj-cors wj-compress wj-template wj-uuid wj-toml wj-config wj-cookie wj-rate-limit wj-headers wj-validate; do
+for p in wj-cors wj-compress wj-template wj-uuid wj-toml wj-config wj-cookie wj-rate-limit wj-headers wj-validate wj-hash wj-jwt; do
   cd packages/$p && $WJ build src --library --module-file
 done
 
@@ -73,6 +73,7 @@ Environment:
 |---|---|---|
 | `JWT_SECRET` | `dev-secret` | HS256 signing secret |
 | `JWT_TTL_SECS` | `3600` | Token lifetime |
+| `TENANT_SLUG` | `default` | JWT `tenant_slug` claim + `/me.tenant` |
 | `CORS_ORIGIN` | `*` | Allowed browser origin |
 | `RATE_LIMIT` | `0` (off) | Fixed-window request limit |
 | `WINDOW_MS` | `60000` | Rate-limit window |

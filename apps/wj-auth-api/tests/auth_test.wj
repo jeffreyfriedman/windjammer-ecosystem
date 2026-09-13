@@ -7,6 +7,21 @@ fn default_config() -> AuthConfig {
     AuthConfig {
         jwt_secret: "test-secret",
         jwt_ttl_secs: 3600,
+        tenant_slug: "default",
+        allowed_origins: allowed_one(),
+        rate_limit: 0,
+        window_ms: 60_000,
+        max_username_len: 64,
+        min_password_len: 8,
+        max_password_len: 128,
+    }
+}
+
+fn config_with_tenant(tenant: string) -> AuthConfig {
+    AuthConfig {
+        jwt_secret: "test-secret",
+        jwt_ttl_secs: 3600,
+        tenant_slug: tenant,
         allowed_origins: allowed_one(),
         rate_limit: 0,
         window_ms: 60_000,
@@ -318,6 +333,40 @@ fn test_me_returns_profile_after_login() {
     assert_eq(me.status, 200)
     assert_str_contains(me.body, "carl")
     assert_str_contains(me.body, user_id)
+    assert_str_contains(me.body, "\"tenant\":\"default\"")
+}
+
+fn test_me_returns_configured_tenant_slug() {
+    let mut app = AuthApp::new(config_with_tenant("acme"))
+    let _ = app.handle(
+        "POST",
+        "/register",
+        "",
+        "",
+        "",
+        "",
+        "",
+        0,
+        "{\"username\":\"tenantuser\",\"password\":\"password1\"}",
+    )
+    let login = app.handle(
+        "POST",
+        "/login",
+        "",
+        "",
+        "",
+        "",
+        "",
+        0,
+        "{\"username\":\"tenantuser\",\"password\":\"password1\"}",
+    )
+    assert_eq(login.status, 200)
+    let token = token_from_body(login.body)
+    let auth = "Bearer ${token}"
+    let me = app.handle("GET", "/me", "", "", auth, "", "", 0, "")
+    assert_eq(me.status, 200)
+    assert_str_contains(me.body, "\"tenant\":\"acme\"")
+    assert_str_contains(me.body, "tenantuser")
 }
 
 fn test_login_sets_http_only_access_token_cookie() {

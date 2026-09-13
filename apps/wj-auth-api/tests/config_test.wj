@@ -5,6 +5,7 @@ fn test_config_defaults() {
     let cfg = AuthConfig::defaults()
     assert_eq(cfg.jwt_secret, "dev-secret")
     assert_eq(cfg.jwt_ttl_secs, 3600)
+    assert_eq(cfg.tenant_slug, "default")
     assert_eq(cfg.allowed_origins.len(), 1)
     assert_eq(cfg.allowed_origins[0], "*")
     assert_eq(cfg.rate_limit, 0)
@@ -51,4 +52,11 @@ fn test_config_from_toml_validation_limits() {
     assert_eq(cfg.max_username_len, 32)
     assert_eq(cfg.min_password_len, 10)
     assert_eq(cfg.max_password_len, 64)
+}
+
+fn test_config_from_toml_tenant_slug() {
+    let text = "tenant_slug = \"acme\"\n"
+    let cfg = config_from_toml(text)
+    assert_eq(cfg.tenant_slug, "acme")
+    assert_eq(cfg.jwt_secret, "dev-secret")
 }

@@ -1,8 +1,6 @@
 use std::collections::HashMap
 use std::compress
-use std::crypto
 use std::json
-use std::jwt
 use std::strings
 use std::http::HttpMethod
 
@@ -13,8 +11,12 @@ use wj_cookie::parse_cookie_header
 use wj_cookie::SetCookie
 use wj_cors::allow_origin
 use wj_cors::preflight
+use wj_hash::hash_password
+use wj_hash::verify_password
 use wj_headers::defaults
 use wj_headers::format_headers
+use wj_jwt::sign
+use wj_jwt::verify
 use wj_rate_limit::check_key
 use wj_rate_limit::fixed_window
 use wj_rate_limit::rate_limit_headers
@@ -70,6 +72,7 @@ struct CreatedBody {
 struct MeBody {
     username: string,
     sub: string,
+    tenant: string,
 }
 
 struct ErrorBody {
@@ -291,7 +294,7 @@ impl AuthApp {
             Ok(value) => value,
             Err(err) => return json_error(400, err),
         }
-        let tenant = "default"
+        let tenant = self.config.tenant_slug
         let secret = self.config.jwt_secret
         match self.verify_user(username, password) {
             Some(user_id) => match sign_jwt(user_id, tenant, secret, self.config.jwt_ttl_secs) {
@@ -349,6 +352,7 @@ impl AuthApp {
                         let payload = MeBody {
                             username: username,
                             sub: claims.sub,
+                            tenant: claims.tenant,
                         }
                         match json.to_string(payload) {
                             Ok(text) => HttpReply {
@@ -419,6 +423,7 @@ pub fn gzip_decode_body(body: string) -> Result<string, string> {
 
 struct JwtClaimsView {
     sub: string,
+    tenant: string,
 }
 
 fn new_user_id() -> Result<string, string> {
@@ -426,20 +431,31 @@ fn new_user_id() -> Result<string, string> {
 }
 
 fn hash_pw(password: string) -> Result<string, string> {
-    crypto.hash_password(password)
+    let password = own(password)
+    hash_password(password)
 }
 
 fn check_password(password: string, digest: string) -> Result<bool, string> {
-    crypto.verify_password(password, digest)
+    let password = own(password)
+    let digest = own(digest)
+    verify_password(password, digest)
 }
 
 fn sign_jwt(sub: string, tenant: string, secret: string, ttl_secs: int) -> Result<string, string> {
-    jwt.sign_hs256(sub, tenant, secret, ttl_secs)
+    let sub = own(sub)
+    let tenant = own(tenant)
+    let secret = own(secret)
+    sign(sub, tenant, secret, ttl_secs)
 }
 
 fn verify_jwt(token: string, secret: string) -> Result<JwtClaimsView, string> {
-    match jwt.verify_hs256(token, secret) {
-        Ok(claims) => Ok(JwtClaimsView { sub: claims.sub }),
+    let token = own(token)
+    let secret = own(secret)
+    match verify(token, secret) {
+        Ok(claims) => Ok(JwtClaimsView {
+            sub: claims.sub,
+            tenant: claims.tenant_slug,
+        }),
         Err(err) => Err(err),
     }
 }

@@ -124,6 +124,71 @@ fn test_register_rejects_empty_username() {
     assert_str_contains(reply.body, "username")
 }
 
+fn test_register_slugifies_username() {
+    let mut app = AuthApp::new(default_config())
+    let reply = app.handle(
+        "POST",
+        "/register",
+        "",
+        "",
+        "",
+        "",
+        "",
+        0,
+        "{\"username\":\"Carl User\",\"password\":\"password1\"}",
+    )
+    assert_eq(reply.status, 201)
+    assert_str_contains(reply.body, "\"username\":\"carl-user\"")
+    assert(!strings.contains(reply.body, "Carl User"), "raw display name not stored")
+}
+
+fn test_login_accepts_display_name_matching_slug() {
+    let mut app = AuthApp::new(default_config())
+    let reg = app.handle(
+        "POST",
+        "/register",
+        "",
+        "",
+        "",
+        "",
+        "",
+        0,
+        "{\"username\":\"Hello World\",\"password\":\"password1\"}",
+    )
+    assert_eq(reg.status, 201)
+    assert_str_contains(reg.body, "hello-world")
+    let login = app.handle(
+        "POST",
+        "/login",
+        "",
+        "",
+        "",
+        "",
+        "",
+        0,
+        "{\"username\":\"Hello World\",\"password\":\"password1\"}",
+    )
+    assert_eq(login.status, 200)
+    assert(strings.len(token_from_body(login.body)) > 0, "token")
+}
+
+fn test_register_rejects_username_that_slugifies_empty() {
+    let mut app = AuthApp::new(default_config())
+    let reply = app.handle(
+        "POST",
+        "/register",
+        "",
+        "",
+        "",
+        "",
+        "",
+        0,
+        "{\"username\":\"!!!\",\"password\":\"password1\"}",
+    )
+    assert_eq(reply.status, 400)
+    assert_str_contains(reply.body, "username")
+}
+
 fn test_register_rejects_short_password() {
     let mut app = AuthApp::new(default_config())
     let reply = app.handle(

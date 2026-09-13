@@ -118,6 +118,7 @@ Weekly build health for seed apps and packages.
 | 2 | 2026-09-13 | deepen `wj-auth-api` duration | 0 | 0 | — | Dogfood `wj-duration` for JWT TTL / window (`2h`, `30m`, `2m`); **36/36** on cargo-bin `wj` |
 | 2 | 2026-09-13 | deepen `wj-auth-api` dotenv | 0 | 0 | — | Dogfood `wj-dotenv` `config_from_dotenv` + key map; **40/40** on cargo-bin `wj` |
 | 2 | 2026-09-13 | deepen `wj-auth-api` timefmt | 0 | 0 | — | Dogfood `wj-timefmt` `/me.expires_at` RFC3339; **41/41** on cargo-bin `wj` |
+| 2 | 2026-09-13 | deepen `wj-auth-api` inflect | 0 | 0 | — | Dogfood `wj-inflect` username slugify on register/login; **44/44** on cargo-bin `wj` |
 
 ## Weekly checklist
 

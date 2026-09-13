@@ -15,6 +15,7 @@ use wj_hash::hash_password
 use wj_hash::verify_password
 use wj_headers::defaults
 use wj_headers::format_headers
+use wj_inflect::slugify
 use wj_jwt::sign
 use wj_jwt::verify
 use wj_mime::html as html_mime
@@ -370,7 +371,12 @@ impl AuthApp {
             Ok(v) => v,
             Err(e) => return Err(e),
         }
-        validate_max_len("username", trimmed, self.config.max_username_len)
+        let slugged = username_slug(trimmed)
+        let nonempty = match validate_nonempty("username", slugged) {
+            Ok(v) => v,
+            Err(e) => return Err(e),
+        }
+        validate_max_len("username", nonempty, self.config.max_username_len)
     }
 
     fn validate_password(self, value: string) -> Result<string, string> {
@@ -850,6 +856,11 @@ fn mime_html() -> string {
 
 fn format_expiry(exp: int) -> string {
     format_rfc3339(from_epoch_secs(exp))
+}
+
+fn username_slug(value: string) -> string {
+    let value = own(value)
+    slugify(value)
 }
 
 fn own(value: string) -> string {

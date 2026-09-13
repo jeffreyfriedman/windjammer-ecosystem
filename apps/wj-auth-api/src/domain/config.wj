@@ -3,6 +3,7 @@ use std::env
 use std::strings
 use wj_config::from_toml
 use wj_config::merge
+use wj_dotenv::parse as parse_dotenv
 use wj_duration::parse_ms
 
 pub struct AuthConfig {
@@ -55,6 +56,11 @@ pub fn config_from_toml(text: string) -> AuthConfig {
     auth_config_from_map(merge(default_string_map(), from_toml(text)))
 }
 
+/// Defaults < dotenv text (`JWT_SECRET=…`). Dogfoods `wj-dotenv` + `wj-config::merge`.
+pub fn config_from_dotenv(text: string) -> AuthConfig {
+    auth_config_from_map(merge(default_string_map(), dotenv_to_config_map(parse_dotenv(text))))
+}
+
 pub fn port_from_env() -> int {
     match env.get("PORT") {
         Some(value) => {
@@ -79,6 +85,55 @@ fn default_string_map() -> HashMap<string, string> {
     defaults.insert("min_password_len", "8")
     defaults.insert("max_password_len", "128")
     defaults
+}
+
+/// Map process-style dotenv keys onto the flat config keys used by `auth_config_from_map`.
+fn dotenv_to_config_map(raw: HashMap<string, string>) -> HashMap<string, string> {
+    let mut out = HashMap::new()
+    for (key, value) in raw {
+        let mapped = map_dotenv_key(key)
+        if strings.len(mapped) > 0 {
+            out.insert(mapped, value)
+        }
+    }
+    out
+}
+
+fn map_dotenv_key(key: string) -> string {
+    if key == "JWT_SECRET" || key == "jwt_secret" {
+        return "jwt_secret"
+    }
+    if key == "JWT_TTL_SECS" || key == "jwt_ttl_secs" {
+        return "jwt_ttl_secs"
+    }
+    if key == "JWT_TTL" || key == "jwt_ttl" {
+        return "jwt_ttl"
+    }
+    if key == "TENANT_SLUG" || key == "tenant_slug" {
+        return "tenant_slug"
+    }
+    if key == "CORS_ORIGIN" || key == "cors_origin" {
+        return "cors_origin"
+    }
+    if key == "RATE_LIMIT" || key == "rate_limit" {
+        return "rate_limit"
+    }
+    if key == "WINDOW_MS" || key == "window_ms" {
+        return "window_ms"
+    }
+    if key == "WINDOW" || key == "window" {
+        return "window"
+    }
+    if key == "MAX_USERNAME_LEN" || key == "max_username_len" {
+        return "max_username_len"
+    }
+    if key == "MIN_PASSWORD_LEN" || key == "min_password_len" {
+        return "min_password_len"
+    }
+    if key == "MAX_PASSWORD_LEN" || key == "max_password_len" {
+        return "max_password_len"
+    }
+    ""
 }
 
 fn auth_config_from_map(map: HashMap<string, string>) -> AuthConfig {

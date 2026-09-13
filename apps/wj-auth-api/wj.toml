@@ -16,6 +16,7 @@ wj_headers = { path = "../../packages/wj-headers/build" }
 wj_validate = { path = "../../packages/wj-validate/build" }
 wj_hash = { path = "../../packages/wj-hash/build" }
 wj_jwt = { path = "../../packages/wj-jwt/build" }
+wj_router = { path = "../../packages/wj-router/build" }
 
 [dev-dependencies]
 

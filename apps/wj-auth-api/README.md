@@ -17,6 +17,8 @@ Reference pattern for idiomatic HTTP in Windjammer apps (see also `wj-webhook`):
 | **wj-template** | HTML welcome page (`render_html`) |
 | **wj-uuid** | RFC 9562 **v7** user ids on register |
 | **wj-config** / **wj-toml** | `config_from_toml` (flat + `[jwt]` section keys) |
+| **wj-cookie** | login `Set-Cookie: access_token=…; HttpOnly; Path=/; SameSite=Lax`; `/me` accepts cookie |
+| **wj-rate-limit** | fixed-window limiter + `X-RateLimit-*` / `Retry-After` on 429 |
 | **std::crypto** | bcrypt register/login |
 | **std::jwt** | HS256 bearer tokens (`sub` = user id) |
 | **std::compress** | gzip body encode/decode in transport layer |
@@ -28,16 +30,17 @@ Reference pattern for idiomatic HTTP in Windjammer apps (see also `wj-webhook`):
 | GET | `/health` | JSON `{ "ok": true }` |
 | GET | `/` | HTML welcome page |
 | POST | `/register` | `{ "username", "password" }` → 201 `{ "created", "id", "username" }` (id is UUID v7) |
-| POST | `/login` | credentials → `{ "token" }` (JWT `sub` = user id) |
-| GET | `/me` | `Authorization: Bearer …` → `{ "username", "sub" }` |
+| POST | `/login` | credentials → `{ "token" }` + `Set-Cookie` access_token |
+| POST | `/logout` | clears access_token cookie |
+| GET | `/me` | `Authorization: Bearer …` **or** `Cookie: access_token=…` → `{ "username", "sub" }` |
 | OPTIONS | `*` | CORS preflight |
 
 ## Layout
 
 ```
 src/
-  domain/config.wj       # AuthConfig + env
-  domain/auth.wj         # HttpMethod routing, auth rules
+  domain/config.wj       # AuthConfig + env + TOML
+  domain/auth.wj         # HttpMethod routing, auth rules, cookies, rate limit
   adapters/http_server.wj
   main.wj
 tests/
@@ -47,18 +50,18 @@ tests/
 
 ## Build / test
 
-Path dependencies must point at each package’s `build/` directory. Pre-build deps once:
+Path dependencies must point at each package’s `build/` directory. Prefer `--library --module-file` so `metadata.json` is emitted for cross-crate ownership:
 
 ```bash
 unset CARGO_TARGET_DIR
-export WJ=/path/to/windjammer/target/release/wj
+export WJ=/path/to/windjammer/target/release/wj   # or a known-good pinned wj
 
-for p in wj-cors wj-compress wj-template wj-uuid wj-toml wj-config; do
-  cd packages/$p && $WJ build src
+for p in wj-cors wj-compress wj-template wj-uuid wj-toml wj-config wj-cookie wj-rate-limit; do
+  cd packages/$p && $WJ build src --library --module-file
 done
 
 cd apps/wj-auth-api
-$WJ test
+$WJ test --no-runtime-copy
 $WJ build --release src
 ```
 
@@ -69,7 +72,11 @@ Environment:
 | `JWT_SECRET` | `dev-secret` | HS256 signing secret |
 | `JWT_TTL_SECS` | `3600` | Token lifetime |
 | `CORS_ORIGIN` | `*` | Allowed browser origin |
+| `RATE_LIMIT` | `0` (off) | Fixed-window request limit |
+| `WINDOW_MS` | `60000` | Rate-limit window |
 | `PORT` | `8091` | Listen port |
+
+Request headers: `X-Client-Key` selects the rate-limit bucket (defaults to `anon`).
 
 ## License
 

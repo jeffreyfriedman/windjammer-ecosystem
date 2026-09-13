@@ -8,6 +8,8 @@ fn default_config() -> AuthConfig {
         jwt_secret: "test-secret",
         jwt_ttl_secs: 3600,
         allowed_origins: allowed_one(),
+        rate_limit: 0,
+        window_ms: 60_000,
     }
 }
 
@@ -48,7 +50,7 @@ fn json_string_field(body: string, key: string) -> string {
 
 fn test_health_returns_ok() {
     let app = AuthApp::new(default_config())
-    let reply = app.handle("GET", "/health", "", "", "", "")
+    let reply = app.handle("GET", "/health", "", "", "", "", "", 0, "")
     assert_eq(reply.status, 200)
     assert_str_contains(reply.body, "ok")
 }
@@ -61,6 +63,9 @@ fn test_register_and_login_returns_jwt() {
         "",
         "",
         "",
+        "",
+        "",
+        0,
         "{\"username\":\"ada\",\"password\":\"secret123\"}",
     )
     assert_eq(reg.status, 201)
@@ -72,6 +77,9 @@ fn test_register_and_login_returns_jwt() {
         "",
         "",
         "",
+        "",
+        "",
+        0,
         "{\"username\":\"ada\",\"password\":\"secret123\"}",
     )
     assert_eq(login.status, 200)
@@ -86,6 +94,9 @@ fn test_register_assigns_uuid_v7_id() {
         "",
         "",
         "",
+        "",
+        "",
+        0,
         "{\"username\":\"v7user\",\"password\":\"secret123\"}",
     )
     assert_eq(reg.status, 201)
@@ -105,6 +116,9 @@ fn test_login_rejects_bad_password() {
         "",
         "",
         "",
+        "",
+        "",
+        0,
         "{\"username\":\"bob\",\"password\":\"right\"}",
     )
     let login = app.handle(
@@ -113,6 +127,9 @@ fn test_login_rejects_bad_password() {
         "",
         "",
         "",
+        "",
+        "",
+        0,
         "{\"username\":\"bob\",\"password\":\"wrong\"}",
     )
     assert_eq(login.status, 401)
@@ -120,7 +137,7 @@ fn test_login_rejects_bad_password() {
 
 fn test_me_requires_bearer_token() {
     let app = AuthApp::new(default_config())
-    let reply = app.handle("GET", "/me", "", "", "", "")
+    let reply = app.handle("GET", "/me", "", "", "", "", "", 0, "")
     assert_eq(reply.status, 401)
 }
 
@@ -132,6 +149,9 @@ fn test_me_returns_profile_after_login() {
         "",
         "",
         "",
+        "",
+        "",
+        0,
         "{\"username\":\"carl\",\"password\":\"pw\"}",
     )
     assert_eq(reg.status, 201)
@@ -142,15 +162,153 @@ fn test_me_returns_profile_after_login() {
         "",
         "",
         "",
+        "",
+        "",
+        0,
         "{\"username\":\"carl\",\"password\":\"pw\"}",
     )
     assert_eq(login.status, 200)
     let token = token_from_body(login.body)
     let auth = "Bearer ${token}"
-    let me = app.handle("GET", "/me", "", "", auth, "")
+    let me = app.handle("GET", "/me", "", "", auth, "", "", 0, "")
     assert_eq(me.status, 200)
     assert_str_contains(me.body, "carl")
     assert_str_contains(me.body, user_id)
+}
+
+fn test_login_sets_http_only_access_token_cookie() {
+    let mut app = AuthApp::new(default_config())
+    let _ = app.handle(
+        "POST",
+        "/register",
+        "",
+        "",
+        "",
+        "",
+        "",
+        0,
+        "{\"username\":\"cookie\",\"password\":\"pw\"}",
+    )
+    let login = app.handle(
+        "POST",
+        "/login",
+        "",
+        "",
+        "",
+        "",
+        "",
+        0,
+        "{\"username\":\"cookie\",\"password\":\"pw\"}",
+    )
+    assert_eq(login.status, 200)
+    let token = token_from_body(login.body)
+    assert(strings.len(token) > 0, "token present")
+    assert_str_contains(login.set_cookie, "access_token=")
+    assert_str_contains(login.set_cookie, token)
+    assert_str_contains(login.set_cookie, "HttpOnly")
+    assert_str_contains(login.set_cookie, "Path=/")
+    assert_str_contains(login.set_cookie, "SameSite=Lax")
+}
+
+fn test_me_accepts_access_token_cookie() {
+    let mut app = AuthApp::new(default_config())
+    let reg = app.handle(
+        "POST",
+        "/register",
+        "",
+        "",
+        "",
+        "",
+        "",
+        0,
+        "{\"username\":\"cookieme\",\"password\":\"pw\"}",
+    )
+    assert_eq(reg.status, 201)
+    let user_id = json_string_field(reg.body, "id")
+    let login = app.handle(
+        "POST",
+        "/login",
+        "",
+        "",
+        "",
+        "",
+        "",
+        0,
+        "{\"username\":\"cookieme\",\"password\":\"pw\"}",
+    )
+    assert_eq(login.status, 200)
+    let token = token_from_body(login.body)
+    let cookie = "access_token=${token}"
+    let me = app.handle("GET", "/me", "", "", "", cookie, "", 0, "")
+    assert_eq(me.status, 200)
+    assert_str_contains(me.body, "cookieme")
+    assert_str_contains(me.body, user_id)
+}
+
+fn test_logout_clears_access_token_cookie() {
+    let app = AuthApp::new(default_config())
+    let reply = app.handle("POST", "/logout", "", "", "", "", "", 0, "")
+    assert_eq(reply.status, 200)
+    assert_str_contains(reply.set_cookie, "access_token=")
+    assert_str_contains(reply.set_cookie, "Path=/")
+    assert_str_contains(reply.body, "ok")
+}
+
+fn test_rate_limit_returns_429_on_login() {
+    let mut config = default_config()
+    config.rate_limit = 2
+    config.window_ms = 60_000
+    let mut app = AuthApp::new(config)
+    let _ = app.handle(
+        "POST",
+        "/register",
+        "",
+        "",
+        "",
+        "",
+        "",
+        0,
+        "{\"username\":\"limited\",\"password\":\"pw\"}",
+    )
+    let r1 = app.handle(
+        "POST",
+        "/login",
+        "",
+        "",
+        "",
+        "",
+        "ip-1",
+        1000,
+        "{\"username\":\"limited\",\"password\":\"pw\"}",
+    )
+    assert_eq(r1.status, 200)
+    let r2 = app.handle(
+        "POST",
+        "/login",
+        "",
+        "",
+        "",
+        "",
+        "ip-1",
+        1000,
+        "{\"username\":\"limited\",\"password\":\"pw\"}",
+    )
+    assert_eq(r2.status, 200)
+    let r3 = app.handle(
+        "POST",
+        "/login",
+        "",
+        "",
+        "",
+        "",
+        "ip-1",
+        1000,
+        "{\"username\":\"limited\",\"password\":\"pw\"}",
+    )
+    assert_eq(r3.status, 429)
+    assert_str_contains(r3.body, "rate limit")
+    assert_str_contains(r3.extra_headers, "X-RateLimit-Limit")
+    assert_str_contains(r3.extra_headers, "Retry-After")
 }
 
 fn test_options_preflight_sets_cors_origin() {
@@ -161,6 +319,9 @@ fn test_options_preflight_sets_cors_origin() {
         "https://app.example.com",
         "",
         "",
+        "",
+        "",
+        0,
         "",
     )
     assert_eq(reply.status, 204)
@@ -176,20 +337,16 @@ fn test_cors_origin_on_json_response() {
         "",
         "",
         "",
+        "",
+        0,
+        "",
     )
     assert_eq(reply.allow_origin, "https://app.example.com")
 }
 
 fn test_gzip_when_accepted() {
     let app = AuthApp::new(default_config())
-    let reply = app.handle(
-        "GET",
-        "/health",
-        "",
-        "gzip",
-        "",
-        "",
-    )
+    let reply = app.handle("GET", "/health", "", "gzip", "", "", "", 0, "")
     assert_eq(reply.content_encoding, "gzip")
     match gzip_decode_body(reply.body) {
         Ok(plain) => assert_str_contains(plain, "ok"),
@@ -199,7 +356,7 @@ fn test_gzip_when_accepted() {
 
 fn test_welcome_page_uses_template() {
     let app = AuthApp::new(default_config())
-    let reply = app.handle("GET", "/", "", "", "", "")
+    let reply = app.handle("GET", "/", "", "", "", "", "", 0, "")
     assert_eq(reply.status, 200)
     assert_str_contains(reply.body, "<h1>")
     assert_str_contains(reply.body, "wj-auth-api")
@@ -214,6 +371,9 @@ fn test_duplicate_register_returns_409() {
         "",
         "",
         "",
+        "",
+        "",
+        0,
         "{\"username\":\"dup\",\"password\":\"pw\"}",
     )
     assert_eq(first.status, 201)
@@ -223,6 +383,9 @@ fn test_duplicate_register_returns_409() {
         "",
         "",
         "",
+        "",
+        "",
+        0,
         "{\"username\":\"dup\",\"password\":\"pw\"}",
     )
     assert_eq(second.status, 409)

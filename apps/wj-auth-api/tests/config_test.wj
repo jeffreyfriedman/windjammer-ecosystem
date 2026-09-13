@@ -7,6 +7,8 @@ fn test_config_defaults() {
     assert_eq(cfg.jwt_ttl_secs, 3600)
     assert_eq(cfg.allowed_origins.len(), 1)
     assert_eq(cfg.allowed_origins[0], "*")
+    assert_eq(cfg.rate_limit, 0)
+    assert_eq(cfg.window_ms, 60_000)
 }
 
 fn test_config_from_toml_overrides_defaults() {
@@ -31,4 +33,11 @@ fn test_config_from_toml_section_keys() {
     let cfg = config_from_toml(text)
     assert_eq(cfg.jwt_secret, "sectioned")
     assert_eq(cfg.jwt_ttl_secs, 120)
+}
+
+fn test_config_from_toml_rate_limit() {
+    let text = "rate_limit = 25\nwindow_ms = 30000\n"
+    let cfg = config_from_toml(text)
+    assert_eq(cfg.rate_limit, 25)
+    assert_eq(cfg.window_ms, 30000)
 }

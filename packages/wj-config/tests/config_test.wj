@@ -1,6 +1,8 @@
 use crate::merge
 use crate::overlay_matching
 use crate::resolve
+use crate::resolve_toml
+use crate::from_toml
 use std::collections::HashMap
 
 fn test_merge_overlay_wins_on_shared_keys() {
@@ -90,4 +92,46 @@ fn test_resolve_file_then_env_over_defaults() {
         None => assert(false, "LOG env"),
     }
     assert(cfg.get("IGNORED").is_none(), "env must not add unknown keys")
+}
+
+fn test_from_toml_flattens_sections() {
+    let text = "HOST = \"localhost\"\n[server]\nPORT = 3000\n"
+    let file = from_toml(text)
+    match file.get("HOST") {
+        Some(v) => assert_eq(v, "localhost"),
+        None => assert(false, "HOST top-level"),
+    }
+    match file.get("server.PORT") {
+        Some(v) => assert_eq(v, "3000"),
+        None => assert(false, "server.PORT section"),
+    }
+}
+
+fn test_resolve_toml_defaults_file_env() {
+    let mut defaults = HashMap::new()
+    defaults.insert("HOST", "localhost")
+    defaults.insert("server.PORT", "8080")
+    defaults.insert("LOG", "info")
+    let text = "server.PORT = 3000\nDEBUG = true\n"
+    let mut env_map = HashMap::new()
+    env_map.insert("LOG", "debug")
+    env_map.insert("IGNORED", "x")
+    let cfg = resolve_toml(defaults, text, env_map)
+    match cfg.get("HOST") {
+        Some(v) => assert_eq(v, "localhost"),
+        None => assert(false, "HOST defaults"),
+    }
+    match cfg.get("server.PORT") {
+        Some(v) => assert_eq(v, "3000"),
+        None => assert(false, "PORT from toml"),
+    }
+    match cfg.get("LOG") {
+        Some(v) => assert_eq(v, "debug"),
+        None => assert(false, "LOG env"),
+    }
+    match cfg.get("DEBUG") {
+        Some(v) => assert_eq(v, "true"),
+        None => assert(false, "DEBUG from toml merge"),
+    }
+    assert(cfg.get("IGNORED").is_none(), "env must not invent keys")
 }

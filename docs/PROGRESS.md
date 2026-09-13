@@ -107,6 +107,7 @@ Weekly build health for seed apps and packages.
 | 2 | 2026-09-12 | deepen `wj-toml` | 0 | 0 | tip `get(&text)` owned formal (P3.254); `"${raw}"` interim (P3.251) | Dotted keys + inline tables; **17/17** on wj 0.50.0 |
 | 2 | 2026-09-12 | deepen `wj-validate` | 0 | 0 | — | `require_uuid` accepts v1/v4/v5/v7 + RFC variant; **27/27** |
 | 2 | 2026-09-12 | deepen `wj-auth-api` | 0 | 0 | multipass lit→demoted `&str` + `.to_string()` (P3.259); dual-runtime `HttpMethod` in tests | Register assigns **UUID v7** id; JWT `sub`=id; `handle_http` adapter port; **12/12** |
+| 2 | 2026-09-12 | deepen `wj-config` | 0 | 0 | — | `from_toml` / `resolve_toml` via `wj-toml`; **7/7** |
 
 ## Weekly checklist
 

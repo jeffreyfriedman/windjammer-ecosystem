@@ -25,6 +25,7 @@ Reference pattern for idiomatic HTTP in Windjammer apps (see also `wj-webhook`):
 | **wj-jwt** | HS256 sign/verify; `/me` exposes `tenant` from claims |
 | **wj-router** | path normalize + match (`/health`, trailing slash, missing leading `/`) |
 | **wj-mime** | `Content-Type` for JSON / HTML replies (`application/json`, `text/html`) |
+| **wj-duration** | human JWT TTL / rate-limit window (`2h`, `30m`, `2m`) in TOML/env |
 | **std::compress** | gzip body encode/decode in transport layer |
 
 ## Endpoints
@@ -60,7 +61,7 @@ Path dependencies must point at each package’s `build/` directory. Prefer `--l
 unset CARGO_TARGET_DIR
 export WJ=/path/to/windjammer/target/release/wj   # or a known-good pinned wj
 
-for p in wj-cors wj-compress wj-template wj-uuid wj-toml wj-config wj-cookie wj-rate-limit wj-headers wj-validate wj-hash wj-jwt wj-router wj-mime; do
+for p in wj-cors wj-compress wj-template wj-uuid wj-toml wj-config wj-cookie wj-rate-limit wj-headers wj-validate wj-hash wj-jwt wj-router wj-mime wj-duration; do
   cd packages/$p && $WJ build src --library --module-file
 done
 
@@ -74,11 +75,11 @@ Environment:
 | Variable | Default | Purpose |
 |---|---|---|
 | `JWT_SECRET` | `dev-secret` | HS256 signing secret |
-| `JWT_TTL_SECS` | `3600` | Token lifetime |
+| `JWT_TTL_SECS` / `JWT_TTL` | `3600` | Token lifetime (seconds or duration like `1h`) |
 | `TENANT_SLUG` | `default` | JWT `tenant_slug` claim + `/me.tenant` |
 | `CORS_ORIGIN` | `*` | Allowed browser origin |
 | `RATE_LIMIT` | `0` (off) | Fixed-window request limit |
-| `WINDOW_MS` | `60000` | Rate-limit window |
+| `WINDOW_MS` / `WINDOW` | `60000` | Rate-limit window (ms or duration like `2m`) |
 | `MAX_USERNAME_LEN` | `64` | Register username max length |
 | `MIN_PASSWORD_LEN` | `8` | Register/login password min length |
 | `MAX_PASSWORD_LEN` | `128` | Register/login password max length |

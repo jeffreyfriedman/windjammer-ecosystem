@@ -60,3 +60,22 @@ fn test_config_from_toml_tenant_slug() {
     assert_eq(cfg.tenant_slug, "acme")
     assert_eq(cfg.jwt_secret, "dev-secret")
 }
+
+fn test_config_from_toml_jwt_ttl_duration() {
+    let text = "jwt_ttl = \"2h\"\n"
+    let cfg = config_from_toml(text)
+    assert_eq(cfg.jwt_ttl_secs, 7200)
+}
+
+fn test_config_from_toml_jwt_section_ttl_duration() {
+    let text = "[jwt]\nsecret = \"sectioned\"\nttl = \"30m\"\n"
+    let cfg = config_from_toml(text)
+    assert_eq(cfg.jwt_secret, "sectioned")
+    assert_eq(cfg.jwt_ttl_secs, 1800)
+}
+
+fn test_config_from_toml_window_duration() {
+    let text = "window = \"2m\"\n"
+    let cfg = config_from_toml(text)
+    assert_eq(cfg.window_ms, 120_000)
+}

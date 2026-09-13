@@ -18,6 +18,7 @@ wj_hash = { path = "../../packages/wj-hash/build" }
 wj_jwt = { path = "../../packages/wj-jwt/build" }
 wj_router = { path = "../../packages/wj-router/build" }
 wj_mime = { path = "../../packages/wj-mime/build" }
+wj_duration = { path = "../../packages/wj-duration/build" }
 
 [dev-dependencies]
 

@@ -24,6 +24,7 @@ Reference pattern for idiomatic HTTP in Windjammer apps (see also `wj-webhook`):
 | **wj-hash** | bcrypt register/login (thin wrap of `std::crypto`) |
 | **wj-jwt** | HS256 sign/verify; `/me` exposes `tenant` from claims |
 | **wj-router** | path normalize + match (`/health`, trailing slash, missing leading `/`) |
+| **wj-mime** | `Content-Type` for JSON / HTML replies (`application/json`, `text/html`) |
 | **std::compress** | gzip body encode/decode in transport layer |
 
 ## Endpoints
@@ -59,7 +60,7 @@ Path dependencies must point at each package’s `build/` directory. Prefer `--l
 unset CARGO_TARGET_DIR
 export WJ=/path/to/windjammer/target/release/wj   # or a known-good pinned wj
 
-for p in wj-cors wj-compress wj-template wj-uuid wj-toml wj-config wj-cookie wj-rate-limit wj-headers wj-validate wj-hash wj-jwt wj-router; do
+for p in wj-cors wj-compress wj-template wj-uuid wj-toml wj-config wj-cookie wj-rate-limit wj-headers wj-validate wj-hash wj-jwt wj-router wj-mime; do
   cd packages/$p && $WJ build src --library --module-file
 done
 

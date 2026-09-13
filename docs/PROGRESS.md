@@ -109,6 +109,7 @@ Weekly build health for seed apps and packages.
 | 2 | 2026-09-12 | deepen `wj-auth-api` | 0 | 0 | multipass lit→demoted `&str` + `.to_string()` (P3.259); dual-runtime `HttpMethod` in tests | Register assigns **UUID v7** id; JWT `sub`=id; `handle_http` adapter port; **12/12** |
 | 2 | 2026-09-12 | deepen `wj-config` | 0 | 0 | — | `from_toml` / `resolve_toml` via `wj-toml`; **7/7** |
 | 2 | 2026-09-13 | deepen `wj-auth-api` config | 0 | 0 | HashMap get → demoted `&str` + `.clone()` (P3.261); interim `"${v}"` | `config_from_toml` dogfoods wj-config/wj-toml; **15/15** |
+| 2 | 2026-09-13 | deepen `wj-auth-api` cookies + rate-limit | 0 | 0 | tip `wj` (2026-09-13) RED on owned cross-crate formals / notes-api; verified on cargo-bin `wj` 0.50.0 (2026-08-27); P3.262 metadata gate | Cookie session (`wj-cookie`) + `/logout` + fixed-window rate limit (`wj-rate-limit`); **20/20** |
 
 ## Weekly checklist
 

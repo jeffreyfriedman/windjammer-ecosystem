@@ -20,6 +20,7 @@ Reference pattern for idiomatic HTTP in Windjammer apps (see also `wj-webhook`):
 | **wj-cookie** | login `Set-Cookie: access_token=…; HttpOnly; Path=/; SameSite=Lax`; `/me` accepts cookie |
 | **wj-rate-limit** | fixed-window limiter + `X-RateLimit-*` / `Retry-After` on 429 |
 | **wj-headers** | helmet-style defaults (`X-Frame-Options`, `X-Content-Type-Options`, …) |
+| **wj-validate** | username/password nonempty + min/max length on register/login |
 | **std::crypto** | bcrypt register/login |
 | **std::jwt** | HS256 bearer tokens (`sub` = user id) |
 | **std::compress** | gzip body encode/decode in transport layer |
@@ -57,7 +58,7 @@ Path dependencies must point at each package’s `build/` directory. Prefer `--l
 unset CARGO_TARGET_DIR
 export WJ=/path/to/windjammer/target/release/wj   # or a known-good pinned wj
 
-for p in wj-cors wj-compress wj-template wj-uuid wj-toml wj-config wj-cookie wj-rate-limit wj-headers; do
+for p in wj-cors wj-compress wj-template wj-uuid wj-toml wj-config wj-cookie wj-rate-limit wj-headers wj-validate; do
   cd packages/$p && $WJ build src --library --module-file
 done
 
@@ -75,6 +76,9 @@ Environment:
 | `CORS_ORIGIN` | `*` | Allowed browser origin |
 | `RATE_LIMIT` | `0` (off) | Fixed-window request limit |
 | `WINDOW_MS` | `60000` | Rate-limit window |
+| `MAX_USERNAME_LEN` | `64` | Register username max length |
+| `MIN_PASSWORD_LEN` | `8` | Register/login password min length |
+| `MAX_PASSWORD_LEN` | `128` | Register/login password max length |
 | `PORT` | `8091` | Listen port |
 
 Request headers: `X-Client-Key` selects the rate-limit bucket (defaults to `anon`).

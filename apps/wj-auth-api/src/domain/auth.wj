@@ -21,6 +21,9 @@ use wj_rate_limit::rate_limit_headers
 use wj_rate_limit::WindowBucket
 use wj_template::render_html
 use wj_uuid::v7
+use wj_validate::require_max_len
+use wj_validate::require_min_len
+use wj_validate::require_nonempty
 
 use crate::domain::config::AuthConfig
 
@@ -247,14 +250,17 @@ impl AuthApp {
             Ok(value) => value,
             Err(_) => return json_error(400, "invalid json"),
         }
-        if parsed.username.len() == 0 || parsed.password.len() == 0 {
-            return json_error(400, "username and password required")
+        let username = match self.validate_username(parsed.username) {
+            Ok(value) => value,
+            Err(err) => return json_error(400, err),
         }
-        if self.find_user(parsed.username) {
+        let password = match self.validate_password(parsed.password) {
+            Ok(value) => value,
+            Err(err) => return json_error(400, err),
+        }
+        if self.find_user(username) {
             return json_error(409, "username taken")
         }
-        let password = parsed.password
-        let username = parsed.username
         let user_id = match new_user_id() {
             Ok(id) => id,
             Err(_) => return json_error(500, "id failed"),
@@ -277,9 +283,17 @@ impl AuthApp {
             Ok(value) => value,
             Err(_) => return json_error(400, "invalid json"),
         }
+        let username = match self.validate_username(parsed.username) {
+            Ok(value) => value,
+            Err(err) => return json_error(400, err),
+        }
+        let password = match self.validate_password(parsed.password) {
+            Ok(value) => value,
+            Err(err) => return json_error(400, err),
+        }
         let tenant = "default"
         let secret = self.config.jwt_secret
-        match self.verify_user(parsed.username, parsed.password) {
+        match self.verify_user(username, password) {
             Some(user_id) => match sign_jwt(user_id, tenant, secret, self.config.jwt_ttl_secs) {
                 Ok(token) => {
                     let cookie = access_token_cookie("${token}")
@@ -300,6 +314,26 @@ impl AuthApp {
             },
             None => json_error(401, "invalid credentials"),
         }
+    }
+
+    fn validate_username(self, value: string) -> Result<string, string> {
+        let trimmed = match validate_nonempty("username", value) {
+            Ok(v) => v,
+            Err(e) => return Err(e),
+        }
+        validate_max_len("username", trimmed, self.config.max_username_len)
+    }
+
+    fn validate_password(self, value: string) -> Result<string, string> {
+        let trimmed = match validate_nonempty("password", value) {
+            Ok(v) => v,
+            Err(e) => return Err(e),
+        }
+        let min_ok = match validate_min_len("password", trimmed, self.config.min_password_len) {
+            Ok(v) => v,
+            Err(e) => return Err(e),
+        }
+        validate_max_len("password", min_ok, self.config.max_password_len)
     }
 
     fn profile(self, authorization: string, cookie: string) -> HttpReply {
@@ -433,6 +467,24 @@ fn gzip_body_encode(body: string) -> Result<string, string> {
 
 fn gzip_body_decode(body: string) -> Result<string, string> {
     compress.gzip_decode(body)
+}
+
+fn validate_nonempty(field: string, value: string) -> Result<string, string> {
+    let field = own(field)
+    let value = own(value)
+    require_nonempty(field, value)
+}
+
+fn validate_min_len(field: string, value: string, min: int) -> Result<string, string> {
+    let field = own(field)
+    let value = own(value)
+    require_min_len(field, value, min)
+}
+
+fn validate_max_len(field: string, value: string, max: int) -> Result<string, string> {
+    let field = own(field)
+    let value = own(value)
+    require_max_len(field, value, max)
 }
 
 fn with_transport(reply: HttpReply, origin: string, accept_encoding: string, allowed: Vec<string>) -> HttpReply {

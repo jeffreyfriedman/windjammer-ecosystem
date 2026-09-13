@@ -10,6 +10,9 @@ fn default_config() -> AuthConfig {
         allowed_origins: allowed_one(),
         rate_limit: 0,
         window_ms: 60_000,
+        max_username_len: 64,
+        min_password_len: 8,
+        max_password_len: 128,
     }
 }
 
@@ -55,6 +58,77 @@ fn test_health_returns_ok() {
     assert_str_contains(reply.body, "ok")
 }
 
+fn test_register_rejects_empty_username() {
+    let mut app = AuthApp::new(default_config())
+    let reply = app.handle(
+        "POST",
+        "/register",
+        "",
+        "",
+        "",
+        "",
+        "",
+        0,
+        "{\"username\":\"\",\"password\":\"password1\"}",
+    )
+    assert_eq(reply.status, 400)
+    assert_str_contains(reply.body, "username")
+}
+
+fn test_register_rejects_short_password() {
+    let mut app = AuthApp::new(default_config())
+    let reply = app.handle(
+        "POST",
+        "/register",
+        "",
+        "",
+        "",
+        "",
+        "",
+        0,
+        "{\"username\":\"shortpw\",\"password\":\"short\"}",
+    )
+    assert_eq(reply.status, 400)
+    assert_str_contains(reply.body, "password")
+}
+
+fn test_register_rejects_long_username() {
+    let mut app = AuthApp::new(default_config())
+    let long_name = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+    let body = "{\"username\":\"${long_name}\",\"password\":\"password1\"}"
+    let reply = app.handle("POST", "/register", "", "", "", "", "", 0, body)
+    assert_eq(reply.status, 400)
+    assert_str_contains(reply.body, "username")
+}
+
+fn test_login_rejects_empty_password() {
+    let mut app = AuthApp::new(default_config())
+    let _ = app.handle(
+        "POST",
+        "/register",
+        "",
+        "",
+        "",
+        "",
+        "",
+        0,
+        "{\"username\":\"emptypw\",\"password\":\"password1\"}",
+    )
+    let reply = app.handle(
+        "POST",
+        "/login",
+        "",
+        "",
+        "",
+        "",
+        "",
+        0,
+        "{\"username\":\"emptypw\",\"password\":\"\"}",
+    )
+    assert_eq(reply.status, 400)
+    assert_str_contains(reply.body, "password")
+}
+
 fn test_security_headers_on_json_response() {
     let app = AuthApp::new(default_config())
     let reply = app.handle("GET", "/health", "", "", "", "", "", 0, "")
@@ -96,7 +170,7 @@ fn test_rate_limit_includes_security_headers() {
         "",
         "ip-sec",
         1000,
-        "{\"username\":\"secuser\",\"password\":\"pw\"}",
+        "{\"username\":\"secuser\",\"password\":\"password1\"}",
     )
     let _ = app.handle(
         "POST",
@@ -107,7 +181,7 @@ fn test_rate_limit_includes_security_headers() {
         "",
         "ip-sec",
         1000,
-        "{\"username\":\"secuser\",\"password\":\"pw\"}",
+        "{\"username\":\"secuser\",\"password\":\"password1\"}",
     )
     let blocked = app.handle(
         "POST",
@@ -118,7 +192,7 @@ fn test_rate_limit_includes_security_headers() {
         "",
         "ip-sec",
         1000,
-        "{\"username\":\"secuser\",\"password\":\"pw\"}",
+        "{\"username\":\"secuser\",\"password\":\"password1\"}",
     )
     assert_eq(blocked.status, 429)
     assert_str_contains(blocked.extra_headers, "Retry-After")
@@ -189,7 +263,7 @@ fn test_login_rejects_bad_password() {
         "",
         "",
         0,
-        "{\"username\":\"bob\",\"password\":\"right\"}",
+        "{\"username\":\"bob\",\"password\":\"rightpass\"}",
     )
     let login = app.handle(
         "POST",
@@ -200,7 +274,7 @@ fn test_login_rejects_bad_password() {
         "",
         "",
         0,
-        "{\"username\":\"bob\",\"password\":\"wrong\"}",
+        "{\"username\":\"bob\",\"password\":\"wrongpass\"}",
     )
     assert_eq(login.status, 401)
 }
@@ -222,7 +296,7 @@ fn test_me_returns_profile_after_login() {
         "",
         "",
         0,
-        "{\"username\":\"carl\",\"password\":\"pw\"}",
+        "{\"username\":\"carl\",\"password\":\"password1\"}",
     )
     assert_eq(reg.status, 201)
     let user_id = json_string_field(reg.body, "id")
@@ -235,7 +309,7 @@ fn test_me_returns_profile_after_login() {
         "",
         "",
         0,
-        "{\"username\":\"carl\",\"password\":\"pw\"}",
+        "{\"username\":\"carl\",\"password\":\"password1\"}",
     )
     assert_eq(login.status, 200)
     let token = token_from_body(login.body)
@@ -257,7 +331,7 @@ fn test_login_sets_http_only_access_token_cookie() {
         "",
         "",
         0,
-        "{\"username\":\"cookie\",\"password\":\"pw\"}",
+        "{\"username\":\"cookie\",\"password\":\"password1\"}",
     )
     let login = app.handle(
         "POST",
@@ -268,7 +342,7 @@ fn test_login_sets_http_only_access_token_cookie() {
         "",
         "",
         0,
-        "{\"username\":\"cookie\",\"password\":\"pw\"}",
+        "{\"username\":\"cookie\",\"password\":\"password1\"}",
     )
     assert_eq(login.status, 200)
     let token = token_from_body(login.body)
@@ -291,7 +365,7 @@ fn test_me_accepts_access_token_cookie() {
         "",
         "",
         0,
-        "{\"username\":\"cookieme\",\"password\":\"pw\"}",
+        "{\"username\":\"cookieme\",\"password\":\"password1\"}",
     )
     assert_eq(reg.status, 201)
     let user_id = json_string_field(reg.body, "id")
@@ -304,7 +378,7 @@ fn test_me_accepts_access_token_cookie() {
         "",
         "",
         0,
-        "{\"username\":\"cookieme\",\"password\":\"pw\"}",
+        "{\"username\":\"cookieme\",\"password\":\"password1\"}",
     )
     assert_eq(login.status, 200)
     let token = token_from_body(login.body)
@@ -338,7 +412,7 @@ fn test_rate_limit_returns_429_on_login() {
         "",
         "",
         0,
-        "{\"username\":\"limited\",\"password\":\"pw\"}",
+        "{\"username\":\"limited\",\"password\":\"password1\"}",
     )
     let r1 = app.handle(
         "POST",
@@ -349,7 +423,7 @@ fn test_rate_limit_returns_429_on_login() {
         "",
         "ip-1",
         1000,
-        "{\"username\":\"limited\",\"password\":\"pw\"}",
+        "{\"username\":\"limited\",\"password\":\"password1\"}",
     )
     assert_eq(r1.status, 200)
     let r2 = app.handle(
@@ -361,7 +435,7 @@ fn test_rate_limit_returns_429_on_login() {
         "",
         "ip-1",
         1000,
-        "{\"username\":\"limited\",\"password\":\"pw\"}",
+        "{\"username\":\"limited\",\"password\":\"password1\"}",
     )
     assert_eq(r2.status, 200)
     let r3 = app.handle(
@@ -373,7 +447,7 @@ fn test_rate_limit_returns_429_on_login() {
         "",
         "ip-1",
         1000,
-        "{\"username\":\"limited\",\"password\":\"pw\"}",
+        "{\"username\":\"limited\",\"password\":\"password1\"}",
     )
     assert_eq(r3.status, 429)
     assert_str_contains(r3.body, "rate limit")
@@ -444,7 +518,7 @@ fn test_duplicate_register_returns_409() {
         "",
         "",
         0,
-        "{\"username\":\"dup\",\"password\":\"pw\"}",
+        "{\"username\":\"dup\",\"password\":\"password1\"}",
     )
     assert_eq(first.status, 201)
     let second = app.handle(
@@ -456,7 +530,7 @@ fn test_duplicate_register_returns_409() {
         "",
         "",
         0,
-        "{\"username\":\"dup\",\"password\":\"pw\"}",
+        "{\"username\":\"dup\",\"password\":\"password1\"}",
     )
     assert_eq(second.status, 409)
 }

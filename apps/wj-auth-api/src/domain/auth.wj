@@ -13,6 +13,8 @@ use wj_cookie::parse_cookie_header
 use wj_cookie::SetCookie
 use wj_cors::allow_origin
 use wj_cors::preflight
+use wj_headers::defaults
+use wj_headers::format_headers
 use wj_rate_limit::check_key
 use wj_rate_limit::fixed_window
 use wj_rate_limit::rate_limit_headers
@@ -234,7 +236,7 @@ impl AuthApp {
                 allow_origin: headers.allow_origin,
                 content_encoding: "",
                 set_cookie: "",
-                extra_headers: "",
+                extra_headers: security_header_block(),
             },
             None => json_error(403, "origin not allowed"),
         }
@@ -435,7 +437,8 @@ fn gzip_body_decode(body: string) -> Result<string, string> {
 
 fn with_transport(reply: HttpReply, origin: string, accept_encoding: string, allowed: Vec<string>) -> HttpReply {
     let with_cors = apply_cors(reply, origin, allowed)
-    apply_gzip(with_cors, accept_encoding)
+    let with_gzip = apply_gzip(with_cors, accept_encoding)
+    apply_security(with_gzip)
 }
 
 fn apply_cors(reply: HttpReply, origin: string, allowed: Vec<string>) -> HttpReply {
@@ -453,6 +456,33 @@ fn apply_cors(reply: HttpReply, origin: string, allowed: Vec<string>) -> HttpRep
         },
         None => reply,
     }
+}
+
+fn apply_security(reply: HttpReply) -> HttpReply {
+    let security = security_header_block()
+    let merged = merge_header_blocks(reply.extra_headers, security)
+    HttpReply {
+        status: reply.status,
+        body: reply.body,
+        allow_origin: reply.allow_origin,
+        content_encoding: reply.content_encoding,
+        set_cookie: reply.set_cookie,
+        extra_headers: merged,
+    }
+}
+
+fn security_header_block() -> string {
+    format_headers(defaults())
+}
+
+fn merge_header_blocks(left: string, right: string) -> string {
+    if strings.len(left) == 0 {
+        return right
+    }
+    if strings.len(right) == 0 {
+        return left
+    }
+    "${left}\n${right}"
 }
 
 fn apply_gzip(reply: HttpReply, accept_encoding: string) -> HttpReply {

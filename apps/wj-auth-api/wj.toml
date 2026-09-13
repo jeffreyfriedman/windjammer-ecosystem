@@ -12,6 +12,7 @@ wj_config = { path = "../../packages/wj-config/build" }
 wj_toml = { path = "../../packages/wj-toml/build" }
 wj_cookie = { path = "../../packages/wj-cookie/build" }
 wj_rate_limit = { path = "../../packages/wj-rate-limit/build" }
+wj_headers = { path = "../../packages/wj-headers/build" }
 
 [dev-dependencies]
 

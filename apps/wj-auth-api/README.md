@@ -19,6 +19,7 @@ Reference pattern for idiomatic HTTP in Windjammer apps (see also `wj-webhook`):
 | **wj-config** / **wj-toml** | `config_from_toml` (flat + `[jwt]` section keys) |
 | **wj-cookie** | login `Set-Cookie: access_token=…; HttpOnly; Path=/; SameSite=Lax`; `/me` accepts cookie |
 | **wj-rate-limit** | fixed-window limiter + `X-RateLimit-*` / `Retry-After` on 429 |
+| **wj-headers** | helmet-style defaults (`X-Frame-Options`, `X-Content-Type-Options`, …) |
 | **std::crypto** | bcrypt register/login |
 | **std::jwt** | HS256 bearer tokens (`sub` = user id) |
 | **std::compress** | gzip body encode/decode in transport layer |
@@ -56,7 +57,7 @@ Path dependencies must point at each package’s `build/` directory. Prefer `--l
 unset CARGO_TARGET_DIR
 export WJ=/path/to/windjammer/target/release/wj   # or a known-good pinned wj
 
-for p in wj-cors wj-compress wj-template wj-uuid wj-toml wj-config wj-cookie wj-rate-limit; do
+for p in wj-cors wj-compress wj-template wj-uuid wj-toml wj-config wj-cookie wj-rate-limit wj-headers; do
   cd packages/$p && $WJ build src --library --module-file
 done
 

@@ -368,6 +368,45 @@ fn test_me_returns_profile_after_login() {
     assert_str_contains(me.body, "carl")
     assert_str_contains(me.body, user_id)
     assert_str_contains(me.body, "\"tenant\":\"default\"")
+    assert_str_contains(me.body, "\"expires_at\":\"")
+    assert_str_contains(me.body, "T")
+    assert_str_contains(me.body, "Z")
+}
+
+fn test_me_expires_at_is_rfc3339_from_ttl() {
+    let mut cfg = default_config()
+    cfg.jwt_ttl_secs = 3600
+    let mut app = AuthApp::new(cfg)
+    let _ = app.handle(
+        "POST",
+        "/register",
+        "",
+        "",
+        "",
+        "",
+        "",
+        0,
+        "{\"username\":\"expuser\",\"password\":\"password1\"}",
+    )
+    let login = app.handle(
+        "POST",
+        "/login",
+        "",
+        "",
+        "",
+        "",
+        "",
+        0,
+        "{\"username\":\"expuser\",\"password\":\"password1\"}",
+    )
+    assert_eq(login.status, 200)
+    let token = token_from_body(login.body)
+    let me = app.handle("GET", "/me", "", "", "Bearer ${token}", "", "", 0, "")
+    assert_eq(me.status, 200)
+    let expires = json_string_field(me.body, "expires_at")
+    assert(strings.len(expires) >= 20, "expires_at present")
+    assert_str_contains(expires, "T")
+    assert(strings.ends_with(expires, "Z"), "Zulu offset")
 }
 
 fn test_me_returns_configured_tenant_slug() {

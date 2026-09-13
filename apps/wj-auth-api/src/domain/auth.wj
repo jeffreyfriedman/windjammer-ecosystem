@@ -25,6 +25,8 @@ use wj_rate_limit::rate_limit_headers
 use wj_rate_limit::WindowBucket
 use wj_router::match_route
 use wj_template::render_html
+use wj_timefmt::format_rfc3339
+use wj_timefmt::from_epoch_secs
 use wj_uuid::v7
 use wj_validate::require_max_len
 use wj_validate::require_min_len
@@ -77,6 +79,7 @@ struct MeBody {
     username: string,
     sub: string,
     tenant: string,
+    expires_at: string,
 }
 
 struct ErrorBody {
@@ -396,6 +399,7 @@ impl AuthApp {
                             username: username,
                             sub: claims.sub,
                             tenant: claims.tenant,
+                            expires_at: format_expiry(claims.exp),
                         }
                         match json.to_string(payload) {
                             Ok(text) => HttpReply {
@@ -468,6 +472,7 @@ pub fn gzip_decode_body(body: string) -> Result<string, string> {
 struct JwtClaimsView {
     sub: string,
     tenant: string,
+    exp: int,
 }
 
 fn new_user_id() -> Result<string, string> {
@@ -499,6 +504,7 @@ fn verify_jwt(token: string, secret: string) -> Result<JwtClaimsView, string> {
         Ok(claims) => Ok(JwtClaimsView {
             sub: claims.sub,
             tenant: claims.tenant_slug,
+            exp: claims.exp,
         }),
         Err(err) => Err(err),
     }
@@ -840,6 +846,10 @@ fn mime_json() -> string {
 fn mime_html() -> string {
     let value = own(html_mime())
     value
+}
+
+fn format_expiry(exp: int) -> string {
+    format_rfc3339(from_epoch_secs(exp))
 }
 
 fn own(value: string) -> string {

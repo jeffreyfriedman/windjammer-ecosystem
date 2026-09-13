@@ -9,6 +9,9 @@ fn test_config_defaults() {
     assert_eq(cfg.allowed_origins[0], "*")
     assert_eq(cfg.rate_limit, 0)
     assert_eq(cfg.window_ms, 60_000)
+    assert_eq(cfg.max_username_len, 64)
+    assert_eq(cfg.min_password_len, 8)
+    assert_eq(cfg.max_password_len, 128)
 }
 
 fn test_config_from_toml_overrides_defaults() {
@@ -40,4 +43,12 @@ fn test_config_from_toml_rate_limit() {
     let cfg = config_from_toml(text)
     assert_eq(cfg.rate_limit, 25)
     assert_eq(cfg.window_ms, 30000)
+}
+
+fn test_config_from_toml_validation_limits() {
+    let text = "max_username_len = 32\nmin_password_len = 10\nmax_password_len = 64\n"
+    let cfg = config_from_toml(text)
+    assert_eq(cfg.max_username_len, 32)
+    assert_eq(cfg.min_password_len, 10)
+    assert_eq(cfg.max_password_len, 64)
 }

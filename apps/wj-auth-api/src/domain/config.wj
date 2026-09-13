@@ -10,6 +10,9 @@ pub struct AuthConfig {
     pub allowed_origins: Vec<string>,
     pub rate_limit: int,
     pub window_ms: int,
+    pub max_username_len: int,
+    pub min_password_len: int,
+    pub max_password_len: int,
 }
 
 impl AuthConfig {
@@ -22,6 +25,9 @@ impl AuthConfig {
             allowed_origins: allowed,
             rate_limit: 0,
             window_ms: 60_000,
+            max_username_len: 64,
+            min_password_len: 8,
+            max_password_len: 128,
         }
     }
 }
@@ -33,6 +39,9 @@ pub fn config_from_env() -> AuthConfig {
         allowed_origins: cors_origins_from_env(),
         rate_limit: rate_limit_from_env(),
         window_ms: window_ms_from_env(),
+        max_username_len: max_username_len_from_env(),
+        min_password_len: min_password_len_from_env(),
+        max_password_len: max_password_len_from_env(),
     }
 }
 
@@ -61,6 +70,9 @@ fn default_string_map() -> HashMap<string, string> {
     defaults.insert("cors_origin", "*")
     defaults.insert("rate_limit", "0")
     defaults.insert("window_ms", "60000")
+    defaults.insert("max_username_len", "64")
+    defaults.insert("min_password_len", "8")
+    defaults.insert("max_password_len", "128")
     defaults
 }
 
@@ -107,12 +119,42 @@ fn auth_config_from_map(map: HashMap<string, string>) -> AuthConfig {
         Some(n) => n,
         None => 60_000,
     }
+    let max_username_len = match map.get("max_username_len") {
+        Some(v) => {
+            match digits_to_int("${v}") {
+                Some(n) => n,
+                None => 64,
+            }
+        },
+        None => 64,
+    }
+    let min_password_len = match map.get("min_password_len") {
+        Some(v) => {
+            match digits_to_int("${v}") {
+                Some(n) => n,
+                None => 8,
+            }
+        },
+        None => 8,
+    }
+    let max_password_len = match map.get("max_password_len") {
+        Some(v) => {
+            match digits_to_int("${v}") {
+                Some(n) => n,
+                None => 128,
+            }
+        },
+        None => 128,
+    }
     AuthConfig {
         jwt_secret: jwt_secret,
         jwt_ttl_secs: jwt_ttl_secs,
         allowed_origins: origins_from_value(cors),
         rate_limit: rate_limit,
         window_ms: window_ms,
+        max_username_len: max_username_len,
+        min_password_len: min_password_len,
+        max_password_len: max_password_len,
     }
 }
 
@@ -202,6 +244,42 @@ fn window_ms_from_env() -> int {
             }
         },
         None => 60_000,
+    }
+}
+
+fn max_username_len_from_env() -> int {
+    match env.get("MAX_USERNAME_LEN") {
+        Some(value) => {
+            match parse_positive_int(value) {
+                Some(n) => n,
+                None => 64,
+            }
+        },
+        None => 64,
+    }
+}
+
+fn min_password_len_from_env() -> int {
+    match env.get("MIN_PASSWORD_LEN") {
+        Some(value) => {
+            match parse_positive_int(value) {
+                Some(n) => n,
+                None => 8,
+            }
+        },
+        None => 8,
+    }
+}
+
+fn max_password_len_from_env() -> int {
+    match env.get("MAX_PASSWORD_LEN") {
+        Some(value) => {
+            match parse_positive_int(value) {
+                Some(n) => n,
+                None => 128,
+            }
+        },
+        None => 128,
     }
 }
 

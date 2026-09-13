@@ -17,6 +17,8 @@ use wj_headers::defaults
 use wj_headers::format_headers
 use wj_jwt::sign
 use wj_jwt::verify
+use wj_mime::html as html_mime
+use wj_mime::json as json_mime
 use wj_rate_limit::check_key
 use wj_rate_limit::fixed_window
 use wj_rate_limit::rate_limit_headers
@@ -33,6 +35,7 @@ use crate::domain::config::AuthConfig
 pub struct HttpReply {
     pub status: u16,
     pub body: string,
+    pub content_type: string,
     pub allow_origin: string,
     pub content_encoding: string,
     pub set_cookie: string,
@@ -182,6 +185,7 @@ impl AuthApp {
         Some(HttpReply {
             status: 429,
             body: "{\"error\":\"rate limit exceeded\"}",
+            content_type: mime_json(),
             allow_origin: "",
             content_encoding: "",
             set_cookie: "",
@@ -276,6 +280,7 @@ impl AuthApp {
             Some(headers) => HttpReply {
                 status: 204,
                 body: "",
+                content_type: "",
                 allow_origin: headers.allow_origin,
                 content_encoding: "",
                 set_cookie: "",
@@ -342,6 +347,7 @@ impl AuthApp {
                         Ok(text) => HttpReply {
                             status: 200,
                             body: text,
+                            content_type: mime_json(),
                             allow_origin: "",
                             content_encoding: "",
                             set_cookie: cookie,
@@ -395,6 +401,7 @@ impl AuthApp {
                             Ok(text) => HttpReply {
                                 status: 200,
                                 body: text,
+                                content_type: mime_json(),
                                 allow_origin: "",
                                 content_encoding: "",
                                 set_cookie: "",
@@ -554,6 +561,7 @@ fn apply_cors(reply: HttpReply, origin: string, allowed: Vec<string>) -> HttpRep
         Some(ao) => HttpReply {
             status: reply.status,
             body: reply.body,
+            content_type: reply.content_type,
             allow_origin: ao,
             content_encoding: reply.content_encoding,
             set_cookie: reply.set_cookie,
@@ -569,6 +577,7 @@ fn apply_security(reply: HttpReply) -> HttpReply {
     HttpReply {
         status: reply.status,
         body: reply.body,
+        content_type: reply.content_type,
         allow_origin: reply.allow_origin,
         content_encoding: reply.content_encoding,
         set_cookie: reply.set_cookie,
@@ -599,12 +608,14 @@ fn apply_gzip(reply: HttpReply, accept_encoding: string) -> HttpReply {
     let allow_origin = reply.allow_origin
     let content_encoding = reply.content_encoding
     let set_cookie = reply.set_cookie
+    let content_type = reply.content_type
     let extra_headers = reply.extra_headers
     match negotiate(accept_encoding) {
         Some(_) => match gzip_body_encode(body) {
             Ok(encoded) => HttpReply {
                 status: status,
                 body: encoded,
+                content_type: content_type,
                 allow_origin: allow_origin,
                 content_encoding: content_encoding_gzip(),
                 set_cookie: set_cookie,
@@ -613,6 +624,7 @@ fn apply_gzip(reply: HttpReply, accept_encoding: string) -> HttpReply {
             Err(_) => HttpReply {
                 status: status,
                 body: "",
+                content_type: content_type,
                 allow_origin: allow_origin,
                 content_encoding: content_encoding,
                 set_cookie: set_cookie,
@@ -622,6 +634,7 @@ fn apply_gzip(reply: HttpReply, accept_encoding: string) -> HttpReply {
         None => HttpReply {
             status: status,
             body: body,
+            content_type: content_type,
             allow_origin: allow_origin,
             content_encoding: content_encoding,
             set_cookie: set_cookie,
@@ -641,6 +654,7 @@ fn welcome_page() -> HttpReply {
     HttpReply {
         status: 200,
         body: html,
+        content_type: mime_html(),
         allow_origin: "",
         content_encoding: "",
         set_cookie: "",
@@ -694,6 +708,7 @@ fn logout() -> HttpReply {
     HttpReply {
         status: 200,
         body: "{\"ok\":true}",
+        content_type: mime_json(),
         allow_origin: "",
         content_encoding: "",
         set_cookie: clear_access_token_cookie(),
@@ -717,6 +732,7 @@ fn json_ok() -> HttpReply {
         Ok(text) => HttpReply {
             status: 200,
             body: text,
+            content_type: mime_json(),
             allow_origin: "",
             content_encoding: "",
             set_cookie: "",
@@ -725,6 +741,7 @@ fn json_ok() -> HttpReply {
         Err(_) => HttpReply {
             status: 200,
             body: "{\"ok\":true}",
+            content_type: mime_json(),
             allow_origin: "",
             content_encoding: "",
             set_cookie: "",
@@ -743,6 +760,7 @@ fn json_created(id: string, username: string) -> HttpReply {
         Ok(text) => HttpReply {
             status: 201,
             body: text,
+            content_type: mime_json(),
             allow_origin: "",
             content_encoding: "",
             set_cookie: "",
@@ -751,6 +769,7 @@ fn json_created(id: string, username: string) -> HttpReply {
         Err(_) => HttpReply {
             status: 201,
             body: "{\"created\":true}",
+            content_type: mime_json(),
             allow_origin: "",
             content_encoding: "",
             set_cookie: "",
@@ -765,6 +784,7 @@ fn json_error(status: u16, message: string) -> HttpReply {
         Ok(text) => HttpReply {
             status: status,
             body: text,
+            content_type: mime_json(),
             allow_origin: "",
             content_encoding: "",
             set_cookie: "",
@@ -773,6 +793,7 @@ fn json_error(status: u16, message: string) -> HttpReply {
         Err(_) => HttpReply {
             status: status,
             body: "{\"error\":\"unknown\"}",
+            content_type: mime_json(),
             allow_origin: "",
             content_encoding: "",
             set_cookie: "",
@@ -808,6 +829,17 @@ fn buckets_from_limit(buckets: HashMap<string, WindowBucket>) -> HashMap<string,
         })
     }
     out
+}
+
+
+fn mime_json() -> string {
+    let value = own(json_mime())
+    value
+}
+
+fn mime_html() -> string {
+    let value = own(html_mime())
+    value
 }
 
 fn own(value: string) -> string {

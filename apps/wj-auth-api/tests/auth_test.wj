@@ -71,6 +71,7 @@ fn test_health_returns_ok() {
     let reply = app.handle("GET", "/health", "", "", "", "", "", 0, "")
     assert_eq(reply.status, 200)
     assert_str_contains(reply.body, "ok")
+    assert_str_contains(reply.content_type, "application/json")
 }
 
 fn test_health_accepts_path_without_leading_slash() {
@@ -95,6 +96,15 @@ fn test_register_accepts_trailing_slash_via_router() {
     )
     assert_eq(reply.status, 201)
     assert_str_contains(reply.body, "slashuser")
+    assert_str_contains(reply.content_type, "application/json")
+}
+
+fn test_welcome_page_uses_html_content_type() {
+    let app = AuthApp::new(default_config())
+    let reply = app.handle("GET", "/", "", "", "", "", "", 0, "")
+    assert_eq(reply.status, 200)
+    assert_str_contains(reply.body, "<html")
+    assert_str_contains(reply.content_type, "text/html")
 }
 
 fn test_register_rejects_empty_username() {

@@ -97,10 +97,10 @@ fn to_response(reply: HttpReply) -> ServerResponse {
     if reply.status == 204 {
         return resp
     }
-    if reply.status == 200 && html_response(reply.body) {
-        return resp.header(own("Content-Type"), own("text/html; charset=utf-8"))
+    if strings_len(reply.content_type) > 0 {
+        return resp.header(own("Content-Type"), reply.content_type)
     }
-    json_response(resp)
+    resp
 }
 
 fn apply_extra_headers(resp: ServerResponse, block: string) -> ServerResponse {
@@ -148,14 +148,6 @@ fn find_char(text: string, needle: string) -> int {
     -1
 }
 
-fn html_response(body: string) -> bool {
-    strings_contains(body, "<html")
-}
-
-fn strings_contains(text: string, needle: string) -> bool {
-    strings.contains(text, needle)
-}
-
 fn strings_len(text: string) -> int {
     strings.len(text)
 }
@@ -165,38 +157,35 @@ fn base_response(status: u16, body: string) -> ServerResponse {
         return ServerResponse::json(body)
     }
     if status == 201 {
-        return json_response(ServerResponse::created(body))
+        return ServerResponse::created(body)
     }
     if status == 204 {
         return ServerResponse::no_content()
     }
     if status == 400 {
-        return json_response(ServerResponse::bad_request(body))
+        return ServerResponse::bad_request(body)
     }
     if status == 401 {
-        return json_response(ServerResponse::unauthorized(body))
+        return ServerResponse::unauthorized(body)
     }
     if status == 403 {
-        return json_response(ServerResponse::forbidden(body))
+        return ServerResponse::forbidden(body)
     }
     if status == 404 {
-        return json_response(ServerResponse::with_status(404, body))
+        return ServerResponse::with_status(404, body)
     }
     if status == 409 {
-        return json_response(ServerResponse::with_status(409, body))
+        return ServerResponse::with_status(409, body)
     }
     if status == 429 {
-        return json_response(ServerResponse::with_status(429, body))
+        return ServerResponse::with_status(429, body)
     }
-    json_response(ServerResponse::internal_error(body))
-}
-
-fn json_response(resp: ServerResponse) -> ServerResponse {
-    resp.header(own("Content-Type"), own("application/json"))
+    ServerResponse::internal_error(body)
 }
 
 fn server_error(message: string) -> ServerResponse {
-    json_response(ServerResponse::internal_error(message))
+    let mut resp = ServerResponse::internal_error(message)
+    resp.header(own("Content-Type"), own("application/json"))
 }
 
 fn own(value: string) -> string {

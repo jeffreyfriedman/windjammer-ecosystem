@@ -114,6 +114,7 @@ Weekly build health for seed apps and packages.
 | 2 | 2026-09-13 | deepen `wj-auth-api` validate | 0 | 0 | — | Dogfood `wj-validate` (nonempty/min/max) + config limits; **28/28** on cargo-bin `wj` |
 | 2 | 2026-09-13 | deepen `wj-auth-api` hash+jwt | 0 | 0 | — | Dogfood `wj-hash`/`wj-jwt`; configurable `tenant_slug` on `/me`; **30/30** on cargo-bin `wj` |
 | 2 | 2026-09-13 | deepen `wj-auth-api` router | 0 | 0 | — | Dogfood `wj-router` for dispatch + path normalize; **32/32** on cargo-bin `wj` |
+| 2 | 2026-09-13 | deepen `wj-auth-api` mime | 0 | 0 | — | Dogfood `wj-mime` `Content-Type` on `HttpReply` + adapter; **33/33** on cargo-bin `wj` |
 
 ## Weekly checklist
 

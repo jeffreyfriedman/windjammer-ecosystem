@@ -1,4 +1,5 @@
 use std::collections::HashMap
+use wj_toml::parse
 
 /// Later map wins on shared keys. Keys only in `base` are kept.
 pub fn merge(base: HashMap<string, string>, overlay: HashMap<string, string>) -> HashMap<string, string> {
@@ -23,4 +24,18 @@ pub fn overlay_matching(map: HashMap<string, string>, env_map: HashMap<string, s
 /// defaults < file < matching env keys. File maps come from `wj-dotenv::parse` / `load`.
 pub fn resolve(defaults: HashMap<string, string>, file: HashMap<string, string>, env_map: HashMap<string, string>) -> HashMap<string, string> {
     overlay_matching(merge(defaults, file), env_map)
+}
+
+/// Parse a TOML config subset into a flat string map (`wj-toml`).
+pub fn from_toml(text: string) -> HashMap<string, string> {
+    parse(text)
+}
+
+/// defaults < TOML file text < matching env keys.
+pub fn resolve_toml(
+    defaults: HashMap<string, string>,
+    toml_text: string,
+    env_map: HashMap<string, string>,
+) -> HashMap<string, string> {
+    resolve(defaults, from_toml(toml_text), env_map)
 }

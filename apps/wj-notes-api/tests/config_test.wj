@@ -50,6 +50,24 @@ fn test_config_from_toml_invalid_log_level_falls_back() {
     assert_eq(cfg.log_level, "info")
 }
 
+fn test_config_from_toml_window_duration() {
+    let text = "window = \"2m\"\n"
+    let cfg = config_from_toml(text)
+    assert_eq(cfg.window_ms, 120_000)
+}
+
+fn test_config_from_toml_window_ms_duration() {
+    let text = "window_ms = \"30s\"\n"
+    let cfg = config_from_toml(text)
+    assert_eq(cfg.window_ms, 30_000)
+}
+
+fn test_config_from_dotenv_window_duration() {
+    let text = "RATE_WINDOW=2m\n"
+    let cfg = config_from_dotenv(text)
+    assert_eq(cfg.window_ms, 120_000)
+}
+
 fn test_config_from_dotenv_overrides_defaults() {
     let text = "CORS_ORIGIN=https://notes.example.com\nRATE_LIMIT=25\nRATE_WINDOW_MS=30000\nMAX_TITLE_LEN=80\nMAX_BODY_LEN=500\n"
     let cfg = config_from_dotenv(text)

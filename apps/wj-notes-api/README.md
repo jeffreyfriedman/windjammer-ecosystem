@@ -14,7 +14,7 @@ No Cargo crates, no `extern fn`, no `ffi/`. Domain routing and JSON live in Wind
 | **wj-rate-limit** | fixed-window per `X-Client-Key` (or `anonymous`) |
 | **wj-validate** | nonempty + max-len on note title/body |
 | **wj-mime** | `Content-Type` on `HttpReply` (JSON replies) |
-| **wj-dotenv** + **wj-config** | `config_from_dotenv` (defaults < env-file via `merge`) |
+| **wj-dotenv** + **wj-config** + **wj-toml** | `config_from_dotenv` / `config_from_toml` (flat + `[limits]` section keys) |
 | **wj-log** | `LOG_LEVEL` / `log_level` + tagged access lines (`[notes] GET /health -> 200`) |
 
 ## Routes
@@ -82,6 +82,6 @@ Environment:
 - `MAX_BODY_LEN` — max note body length (default `10000`)
 - `PORT` (default `8080`)
 
-Also `config_from_dotenv(text)` merges the same keys from dotenv syntax (`CORS_ORIGIN=…`) over defaults.
-
-- `LOG_LEVEL` — `trace`/`debug`/`info`/`warn`/`error` (default `info`; unknown → `info`)
+Also `config_from_dotenv(text)` and `config_from_toml(text)` merge the same keys over defaults
+(`cors_origin`, `rate_limit`, `window_ms`, `max_title_len`, `max_body_len`, `log_level`; TOML also
+accepts `[limits]` section keys).

@@ -2,6 +2,7 @@ use std::collections::HashMap
 use std::env
 use std::strings
 
+use wj_config::from_toml
 use wj_config::merge
 use wj_dotenv::parse as parse_dotenv
 use wj_log::parse_level
@@ -46,6 +47,12 @@ pub fn config_from_env() -> NotesConfig {
 /// Defaults < dotenv text (`CORS_ORIGIN=…`). Dogfoods `wj-dotenv` + `wj-config::merge`.
 pub fn config_from_dotenv(text: string) -> NotesConfig {
     notes_config_from_map(merge(default_string_map(), dotenv_to_config_map(parse_dotenv(text))))
+}
+
+/// Defaults < TOML text. Flat keys or `[limits]` section (`limits.max_title_len`).
+/// Dogfoods `wj-config::from_toml` / `wj-toml`.
+pub fn config_from_toml(text: string) -> NotesConfig {
+    notes_config_from_map(merge(default_string_map(), from_toml(text)))
 }
 
 pub fn port_from_env() -> int {
@@ -127,17 +134,27 @@ fn notes_config_from_map(map: HashMap<string, string>) -> NotesConfig {
         Some(n) => n,
         None => 60_000,
     }
-    let title_text = match map.get("max_title_len") {
+    let title_text = match map.get("limits.max_title_len") {
         Some(v) => "${v}",
-        None => "200",
+        None => {
+            match map.get("max_title_len") {
+                Some(v) => "${v}",
+                None => "200",
+            }
+        },
     }
     let max_title_len = match parse_positive_int(title_text) {
         Some(n) => n,
         None => 200,
     }
-    let body_text = match map.get("max_body_len") {
+    let body_text = match map.get("limits.max_body_len") {
         Some(v) => "${v}",
-        None => "10000",
+        None => {
+            match map.get("max_body_len") {
+                Some(v) => "${v}",
+                None => "10000",
+            }
+        },
     }
     let max_body_len = match parse_positive_int(body_text) {
         Some(n) => n,

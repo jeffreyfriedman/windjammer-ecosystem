@@ -123,6 +123,7 @@ Weekly build health for seed apps and packages.
 | 2 | 2026-09-13 | deepen `wj-notes-api` validate+mime | 0 | 0 | cargo-bin residual: owned helper → demoted `method: &str` (gate tip GREEN; adapter uses `handle_http`) | Dogfood `wj-validate`/`wj-mime`; title/body limits + JSON `Content-Type`; **29/29** on cargo-bin `wj` |
 | 2 | 2026-09-13 | deepen `wj-notes-api` dotenv | 0 | 0 | cargo-bin mid-match HashMap defer-drop in owned `.get` helper (repro filed); single-map reader like auth | Dogfood `wj-dotenv`/`wj-config::merge` `config_from_dotenv`; **32/32** on cargo-bin `wj` |
 | 2 | 2026-09-13 | deepen `wj-notes-api` log | 0 | 0 | — | Dogfood `wj-log` (`log_level` + `[notes]` access lines); **35/35** on cargo-bin `wj` |
+| 2 | 2026-09-14 | deepen `wj-notes-api` toml | 0 | 0 | — | Dogfood `wj-config`/`wj-toml` `config_from_toml` (flat + `[limits]`); **39/39** on cargo-bin `wj` |
 
 ## Weekly checklist
 

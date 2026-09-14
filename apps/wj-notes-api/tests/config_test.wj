@@ -1,5 +1,6 @@
 use crate::domain::NotesConfig
 use crate::domain::config_from_dotenv
+use crate::domain::config_from_toml
 
 fn test_config_defaults() {
     let cfg = NotesConfig::defaults()
@@ -9,6 +10,43 @@ fn test_config_defaults() {
     assert_eq(cfg.window_ms, 60_000)
     assert_eq(cfg.max_title_len, 200)
     assert_eq(cfg.max_body_len, 10_000)
+    assert_eq(cfg.log_level, "info")
+}
+
+fn test_config_from_toml_overrides_defaults() {
+    let text = "cors_origin = \"https://notes.example.com\"\nrate_limit = 25\nwindow_ms = 30000\nmax_title_len = 80\nmax_body_len = 500\nlog_level = \"debug\"\n"
+    let cfg = config_from_toml(text)
+    assert_eq(cfg.allowed_origins.len(), 1)
+    assert_eq(cfg.allowed_origins[0], "https://notes.example.com")
+    assert_eq(cfg.rate_limit, 25)
+    assert_eq(cfg.window_ms, 30_000)
+    assert_eq(cfg.max_title_len, 80)
+    assert_eq(cfg.max_body_len, 500)
+    assert_eq(cfg.log_level, "debug")
+}
+
+fn test_config_from_toml_partial_keeps_defaults() {
+    let text = "cors_origin = \"https://partial.example.com\"\n"
+    let cfg = config_from_toml(text)
+    assert_eq(cfg.allowed_origins[0], "https://partial.example.com")
+    assert_eq(cfg.rate_limit, 100)
+    assert_eq(cfg.window_ms, 60_000)
+    assert_eq(cfg.max_title_len, 200)
+    assert_eq(cfg.max_body_len, 10_000)
+    assert_eq(cfg.log_level, "info")
+}
+
+fn test_config_from_toml_section_limits() {
+    let text = "[limits]\nmax_title_len = 40\nmax_body_len = 1000\n"
+    let cfg = config_from_toml(text)
+    assert_eq(cfg.max_title_len, 40)
+    assert_eq(cfg.max_body_len, 1000)
+    assert_eq(cfg.rate_limit, 100)
+}
+
+fn test_config_from_toml_invalid_log_level_falls_back() {
+    let text = "log_level = \"nope\"\n"
+    let cfg = config_from_toml(text)
     assert_eq(cfg.log_level, "info")
 }
 

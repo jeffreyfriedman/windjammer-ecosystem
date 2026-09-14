@@ -258,6 +258,25 @@ fn test_list_notes_limit_query_param() {
     assert_eq(parts.len(), 3)
 }
 
+fn test_list_notes_pretty_query_param() {
+    let mut app = NotesApp::new(default_config(), NoteStore::new())
+    let _ = app.handle(
+        "POST",
+        "/notes",
+        "",
+        "",
+        "",
+        0,
+        "{\"title\":\"hello\",\"body\":\"world\"}",
+    )
+    let compact = app.handle("GET", "/notes", "", "", "", 0, "")
+    let pretty = app.handle("GET", "/notes?pretty=1", "", "", "", 0, "")
+    assert_eq(compact.status, 200)
+    assert_eq(pretty.status, 200)
+    assert_str_contains(pretty.body, "\n")
+    assert(strings.len(pretty.body) > strings.len(compact.body), "pretty body longer")
+}
+
 fn test_get_note_sets_etag_header() {
     let mut app = NotesApp::new(default_config(), NoteStore::new())
     let _ = app.handle(

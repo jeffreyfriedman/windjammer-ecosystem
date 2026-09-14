@@ -22,6 +22,7 @@ wj_uuid = { path = "../../packages/wj-uuid/build" }
 wj_timefmt = { path = "../../packages/wj-timefmt/build" }
 wj_inflect = { path = "../../packages/wj-inflect/build" }
 wj_sha = { path = "../../packages/wj-sha/build" }
+wj_json_util = { path = "../../packages/wj-json-util/build" }
 
 [dev-dependencies]
 

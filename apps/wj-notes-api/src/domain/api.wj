@@ -15,9 +15,12 @@ use wj_headers::format_headers
 use wj_mime::html as html_mime
 use wj_mime::json as json_mime
 use wj_json_util::pretty as json_pretty
-use wj_querystring::get as query_get
+// Alias must not be `query_get`: loading `wj_url` registers Borrowed metadata under
+// that name and steals ownership at call sites of this Owned `get` (P3.283).
+use wj_querystring::get as qs_get
 use wj_sha::hex as sha_hex
 use wj_template::render_html
+use wj_url::join_url
 use wj_log::log_tagged
 use wj_rate_limit::check_key
 use wj_rate_limit::fixed_window
@@ -78,6 +81,7 @@ pub fn handle_request(method: string, path: string, body: string, store: NoteSto
         max_title_len: 200,
         max_body_len: 10_000,
         log_level: "info",
+        public_base_url: "http://localhost:8080",
     }
     let mut app = NotesApp::new(config, store)
     app.handle(method, path, "", "", "", 0, body)
@@ -294,7 +298,7 @@ impl NotesApp {
                                 self.config.max_body_len,
                                 now_ms,
                             ) {
-                                Ok(note) => note_reply(201, note),
+                                Ok(note) => created_note_reply(note, self.config.public_base_url),
                                 Err(msg) => error_from_message(400, msg),
                             }
                         },
@@ -362,6 +366,39 @@ impl NotesApp {
             }
         }
     }
+}
+
+fn created_note_reply(note: Note, base_url: string) -> HttpReply {
+    let id = note.id
+    let location = note_location(base_url, id)
+    let reply = note_reply(201, note)
+    HttpReply {
+        status: reply.status,
+        body: reply.body,
+        content_type: reply.content_type,
+        allow_origin: reply.allow_origin,
+        content_encoding: reply.content_encoding,
+        extra_headers: merge_header_blocks(reply.extra_headers, location_header(location)),
+    }
+}
+
+fn note_location(base_url: string, id: int) -> string {
+    let base_url = own(base_url)
+    let relative = "/notes/${id}"
+    match join_absolute(base_url, relative) {
+        Ok(url) => url,
+        Err(_) => relative,
+    }
+}
+
+fn join_absolute(base: string, relative: string) -> Result<string, string> {
+    let base = own(base)
+    let relative = own(relative)
+    join_url(base, relative)
+}
+
+fn location_header(url: string) -> string {
+    "Location: ${url}"
 }
 
 fn note_get_reply(note: Note, if_none_match: string, query: string) -> HttpReply {
@@ -666,7 +703,7 @@ fn find_char(text: string, needle: string) -> int {
 
 fn list_notes_for_query(notes: Vec<Note>, query: string) -> Vec<Note> {
     let query = own(query)
-    match query_get(query, "limit") {
+    match qs_get(query, "limit") {
         None => notes,
         Some(text) => {
             match parse_positive_int(text) {
@@ -679,7 +716,7 @@ fn list_notes_for_query(notes: Vec<Note>, query: string) -> Vec<Note> {
 
 fn query_wants_pretty(query: string) -> bool {
     let query = own(query)
-    match query_get(query, "pretty") {
+    match qs_get(query, "pretty") {
         None => false,
         Some(text) => text == "1" || text == "true",
     }
@@ -687,7 +724,7 @@ fn query_wants_pretty(query: string) -> bool {
 
 fn query_wants_base64(query: string) -> bool {
     let query = own(query)
-    match query_get(query, "encoding") {
+    match qs_get(query, "encoding") {
         None => false,
         Some(text) => text == "base64",
     }

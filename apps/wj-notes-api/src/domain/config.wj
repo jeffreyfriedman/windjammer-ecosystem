@@ -17,6 +17,7 @@ pub struct NotesConfig {
     pub max_title_len: int,
     pub max_body_len: int,
     pub log_level: string,
+    pub public_base_url: string,
 }
 
 impl NotesConfig {
@@ -30,6 +31,7 @@ impl NotesConfig {
             max_title_len: 200,
             max_body_len: 10_000,
             log_level: "info",
+            public_base_url: "http://localhost:8080",
         }
     }
 }
@@ -42,6 +44,7 @@ pub fn config_from_env() -> NotesConfig {
         max_title_len: max_title_len_from_env(),
         max_body_len: max_body_len_from_env(),
         log_level: log_level_from_env(),
+        public_base_url: public_base_url_from_env(),
     }
 }
 
@@ -76,6 +79,7 @@ fn default_string_map() -> HashMap<string, string> {
     defaults.insert("max_title_len", "200")
     defaults.insert("max_body_len", "10000")
     defaults.insert("log_level", "info")
+    defaults.insert("public_base_url", "http://localhost:8080")
     defaults
 }
 
@@ -111,6 +115,9 @@ fn map_dotenv_key(key: string) -> string {
     }
     if key == "LOG_LEVEL" || key == "log_level" {
         return "log_level"
+    }
+    if key == "PUBLIC_BASE_URL" || key == "public_base_url" {
+        return "public_base_url"
     }
     ""
 }
@@ -173,6 +180,10 @@ fn notes_config_from_map(map: HashMap<string, string>) -> NotesConfig {
         Some(v) => normalize_log_level("${v}"),
         None => "info",
     }
+    let public_base_url = match map.get("public_base_url") {
+        Some(v) => normalize_base_url("${v}"),
+        None => "http://localhost:8080",
+    }
     let mut allowed = Vec::new()
     let trimmed = strings.trim(cors)
     if strings.len(trimmed) == 0 {
@@ -187,6 +198,7 @@ fn notes_config_from_map(map: HashMap<string, string>) -> NotesConfig {
         max_title_len: max_title_len,
         max_body_len: max_body_len,
         log_level: log_level,
+        public_base_url: public_base_url,
     }
 }
 
@@ -298,6 +310,13 @@ fn log_level_from_env() -> string {
     }
 }
 
+fn public_base_url_from_env() -> string {
+    match env.get("PUBLIC_BASE_URL") {
+        Some(value) => normalize_base_url(value),
+        None => "http://localhost:8080",
+    }
+}
+
 /// Accept known levels via `wj-log::parse_level`; unknown values fall back to `info`.
 fn normalize_log_level(text: string) -> string {
     let owned = own_cfg(strings.trim(text))
@@ -306,6 +325,18 @@ fn normalize_log_level(text: string) -> string {
         Some(_) => strings.to_lower(owned),
         None => "info",
     }
+}
+
+fn normalize_base_url(text: string) -> string {
+    let trimmed = strings.trim(text)
+    if strings.len(trimmed) == 0 {
+        return "http://localhost:8080"
+    }
+    // Strip trailing slash for join_url path segments.
+    if strings.ends_with(trimmed, "/") {
+        return strings.substring(trimmed, 0, strings.len(trimmed) - 1)
+    }
+    trimmed
 }
 
 fn own_cfg(value: string) -> string {

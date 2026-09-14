@@ -28,8 +28,10 @@ fn dispatch(req: ServerRequest, state: Arc<Mutex<NotesApp>>) -> ServerResponse {
     let now_ms = 0
     match state.lock() {
         Ok(mut app) => {
-            let reply = app.handle(
-                method_label(req.method),
+            // Same-crate HttpMethod — string labels demote `handle`'s method formal
+            // to `&str` then still emit owned `String` from helpers (cargo-bin 0.50.0).
+            let reply = app.handle_http(
+                req.method,
                 path,
                 meta.0,
                 meta.1,
@@ -39,18 +41,6 @@ fn dispatch(req: ServerRequest, state: Arc<Mutex<NotesApp>>) -> ServerResponse {
             to_response(reply)
         },
         Err(_) => server_error("internal server error"),
-    }
-}
-
-fn method_label(method: HttpMethod) -> string {
-    match method {
-        HttpMethod::GET => "GET",
-        HttpMethod::POST => "POST",
-        HttpMethod::PUT => "PUT",
-        HttpMethod::DELETE => "DELETE",
-        HttpMethod::PATCH => "PATCH",
-        HttpMethod::HEAD => "HEAD",
-        HttpMethod::OPTIONS => "OPTIONS",
     }
 }
 
@@ -77,6 +67,9 @@ fn header_key_matches(actual: string, expected: string) -> bool {
 
 fn to_response(reply: HttpReply) -> ServerResponse {
     let mut resp = base_response(reply.status, reply.body)
+    if strings_len(reply.content_type) > 0 {
+        resp = resp.header(own("Content-Type"), reply.content_type)
+    }
     if strings_len(reply.allow_origin) > 0 {
         resp = resp.header(own("Access-Control-Allow-Origin"), reply.allow_origin)
     }

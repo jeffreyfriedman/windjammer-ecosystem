@@ -3,6 +3,7 @@ use crate::domain::NotesConfig
 use crate::domain::NotesApp
 use crate::domain::handle_request
 use crate::domain::format_access_log
+use crate::domain::gzip_decode_body
 
 fn default_config() -> NotesConfig {
     NotesConfig {
@@ -59,6 +60,7 @@ fn test_post_rejects_title_over_max_len() {
     let reply = app.handle(
         "POST",
         "/notes",
+        "",
         "",
         "",
         0,
@@ -137,13 +139,13 @@ fn test_router_matches_note_id() {
 
 fn test_cors_origin_on_json_response() {
     let mut app = NotesApp::new(default_config(), NoteStore::new())
-    let reply = app.handle("GET", "/notes", "https://app.example.com", "client", 0, "")
+    let reply = app.handle("GET", "/notes", "https://app.example.com", "", "client", 0, "")
     assert_eq(reply.allow_origin, "https://app.example.com")
 }
 
 fn test_options_preflight_sets_cors_origin() {
     let mut app = NotesApp::new(default_config(), NoteStore::new())
-    let reply = app.handle("OPTIONS", "/notes", "https://app.example.com", "", 0, "")
+    let reply = app.handle("OPTIONS", "/notes", "https://app.example.com", "", "", 0, "")
     assert_eq(reply.status, 204)
     assert_eq(reply.allow_origin, "https://app.example.com")
 }
@@ -152,16 +154,16 @@ fn test_rate_limit_returns_429() {
     let mut config = default_config()
     config.rate_limit = 2
     let mut app = NotesApp::new(config, NoteStore::new())
-    let _ = app.handle("GET", "/notes", "", "client-a", 1000, "")
-    let _ = app.handle("GET", "/notes", "", "client-a", 1000, "")
-    let third = app.handle("GET", "/notes", "", "client-a", 1000, "")
+    let _ = app.handle("GET", "/notes", "", "", "client-a", 1000, "")
+    let _ = app.handle("GET", "/notes", "", "", "client-a", 1000, "")
+    let third = app.handle("GET", "/notes", "", "", "client-a", 1000, "")
     assert_eq(third.status, 429)
     assert_str_contains(third.extra_headers, "Retry-After")
 }
 
 fn test_security_headers_on_response() {
     let mut app = NotesApp::new(default_config(), NoteStore::new())
-    let reply = app.handle("GET", "/notes", "", "client", 0, "")
+    let reply = app.handle("GET", "/notes", "", "", "client", 0, "")
     assert_str_contains(reply.extra_headers, "X-Frame-Options")
     assert_str_contains(reply.extra_headers, "X-Content-Type-Options")
 }
@@ -175,4 +177,21 @@ fn test_format_access_log_line() {
     let err_line = format_access_log("POST", "/notes", 400)
     assert_str_contains(err_line, "[notes]")
     assert_str_contains(err_line, "400")
+}
+
+fn test_gzip_when_accepted() {
+    let mut app = NotesApp::new(default_config(), NoteStore::new())
+    let reply = app.handle("GET", "/health", "", "gzip", "", 0, "")
+    assert_eq(reply.content_encoding, "gzip")
+    match gzip_decode_body(reply.body) {
+        Ok(plain) => assert_str_contains(plain, "ok"),
+        Err(_) => assert(false, "gzip decode"),
+    }
+}
+
+fn test_no_gzip_without_accept_encoding() {
+    let mut app = NotesApp::new(default_config(), NoteStore::new())
+    let reply = app.handle("GET", "/health", "", "", "", 0, "")
+    assert_eq(reply.content_encoding, "")
+    assert_str_contains(reply.body, "ok")
 }

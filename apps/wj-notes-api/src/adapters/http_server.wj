@@ -35,6 +35,7 @@ fn dispatch(req: ServerRequest, state: Arc<Mutex<NotesApp>>) -> ServerResponse {
                 path,
                 meta.0,
                 meta.1,
+                meta.2,
                 now_ms,
                 body,
             )
@@ -44,8 +45,9 @@ fn dispatch(req: ServerRequest, state: Arc<Mutex<NotesApp>>) -> ServerResponse {
     }
 }
 
-fn headers_meta(headers: Vec<(string, string)>) -> (string, string) {
+fn headers_meta(headers: Vec<(string, string)>) -> (string, string, string) {
     let mut origin = ""
+    let mut accept_encoding = ""
     let mut client_key = ""
     for pair in headers {
         let key = pair.0
@@ -54,11 +56,15 @@ fn headers_meta(headers: Vec<(string, string)>) -> (string, string) {
             origin = value
             continue
         }
+        if header_key_matches(key, "Accept-Encoding") {
+            accept_encoding = value
+            continue
+        }
         if header_key_matches(key, "X-Client-Key") {
             client_key = value
         }
     }
-    (origin, client_key)
+    (origin, accept_encoding, client_key)
 }
 
 fn header_key_matches(actual: string, expected: string) -> bool {
@@ -72,6 +78,9 @@ fn to_response(reply: HttpReply) -> ServerResponse {
     }
     if strings_len(reply.allow_origin) > 0 {
         resp = resp.header(own("Access-Control-Allow-Origin"), reply.allow_origin)
+    }
+    if strings_len(reply.content_encoding) > 0 {
+        resp = resp.header(own("Content-Encoding"), reply.content_encoding)
     }
     resp = apply_extra_headers(resp, reply.extra_headers)
     resp

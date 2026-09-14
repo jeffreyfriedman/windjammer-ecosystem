@@ -18,6 +18,7 @@ use wj_json_util::pretty as json_pretty
 // Alias must not be `query_get`: loading `wj_url` registers Borrowed metadata under
 // that name and steals ownership at call sites of this Owned `get` (P3.283).
 use wj_querystring::get as qs_get
+use wj_regex::is_match
 use wj_sha::hex as sha_hex
 use wj_template::render_html
 use wj_url::join_url
@@ -273,17 +274,21 @@ impl NotesApp {
                     match method {
                         HttpMethod::GET => {
                             let want_pretty = query_wants_pretty(query)
-                            let notes = list_notes_for_query(self.store.list(), query)
-                            match json.to_string(notes) {
-                                Ok(text) => HttpReply {
-                                    status: 200,
-                                    body: maybe_pretty_json(text, want_pretty),
-                                    content_type: mime_json(),
-                                    allow_origin: "",
-                                    content_encoding: "",
-                                    extra_headers: "",
+                            match list_notes_for_query(self.store.list(), query) {
+                                Ok(notes) => {
+                                    match json.to_string(notes) {
+                                        Ok(text) => HttpReply {
+                                            status: 200,
+                                            body: maybe_pretty_json(text, want_pretty),
+                                            content_type: mime_json(),
+                                            allow_origin: "",
+                                            content_encoding: "",
+                                            extra_headers: "",
+                                        },
+                                        Err(_) => json_error(500, "serialization failed"),
+                                    }
                                 },
-                                Err(_) => json_error(500, "serialization failed"),
+                                Err(msg) => error_from_message(400, msg),
                             }
                         },
                         HttpMethod::POST => {
@@ -701,16 +706,59 @@ fn find_char(text: string, needle: string) -> int {
     -1
 }
 
-fn list_notes_for_query(notes: Vec<Note>, query: string) -> Vec<Note> {
+fn list_notes_for_query(notes: Vec<Note>, query: string) -> Result<Vec<Note>, string> {
     let query = own(query)
-    match qs_get(query, "limit") {
-        None => notes,
-        Some(text) => {
-            match parse_positive_int(text) {
-                None => notes,
-                Some(limit) => truncate_notes(notes, limit),
+    let mut filtered = Vec::new()
+    match qs_get("${query}", "q") {
+        None => {
+            let mut i = 0
+            while i < notes.len() {
+                filtered.push(notes[i])
+                i = i + 1
             }
         },
+        Some(pattern) => {
+            let pattern = own(pattern)
+            // Validate pattern even when the store is empty.
+            match is_match("${pattern}", "") {
+                Ok(_) => {},
+                Err(msg) => {
+                    return Err(msg)
+                },
+            }
+            let mut i = 0
+            while i < notes.len() {
+                let note = notes[i]
+                match note_matches_pattern("${pattern}", note) {
+                    Ok(true) => {
+                        filtered.push(note)
+                    },
+                    Ok(false) => {},
+                    Err(msg) => {
+                        return Err(msg)
+                    },
+                }
+                i = i + 1
+            }
+        },
+    }
+    Ok(match qs_get("${query}", "limit") {
+        None => filtered,
+        Some(text) => {
+            match parse_positive_int(text) {
+                None => filtered,
+                Some(limit) => truncate_notes(filtered, limit),
+            }
+        },
+    })
+}
+
+fn note_matches_pattern(pattern: string, note: Note) -> Result<bool, string> {
+    let pattern = own(pattern)
+    match is_match("${pattern}", note.title) {
+        Ok(true) => Ok(true),
+        Ok(false) => is_match(pattern, note.body),
+        Err(msg) => Err(msg),
     }
 }
 

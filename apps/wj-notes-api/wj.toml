@@ -25,6 +25,7 @@ wj_sha = { path = "../../packages/wj-sha/build" }
 wj_json_util = { path = "../../packages/wj-json-util/build" }
 wj_base64 = { path = "../../packages/wj-base64/build" }
 wj_url = { path = "../../packages/wj-url/build" }
+wj_regex = { path = "../../packages/wj-regex/build" }
 
 [dev-dependencies]
 

@@ -13,6 +13,7 @@ use wj_headers::format_headers
 use wj_mime::html as html_mime
 use wj_mime::json as json_mime
 use wj_querystring::get as query_get
+use wj_sha::hex as sha_hex
 use wj_template::render_html
 use wj_log::log_tagged
 use wj_rate_limit::check_key
@@ -102,7 +103,35 @@ impl NotesApp {
             Some(value) => value,
             None => return json_error(405, "method not allowed"),
         }
-        self.handle_method(parsed, path, origin, accept_encoding, client_key, now_ms, body)
+        self.handle_method(parsed, path, origin, accept_encoding, client_key, now_ms, body, "")
+    }
+
+    /// Conditional GET port: pass `If-None-Match` for 304 short-circuit.
+    pub fn handle_if_none_match(
+        self,
+        method: string,
+        path: string,
+        origin: string,
+        accept_encoding: string,
+        client_key: string,
+        now_ms: int,
+        body: string,
+        if_none_match: string,
+    ) -> HttpReply {
+        let parsed = match parse_method(method) {
+            Some(value) => value,
+            None => return json_error(405, "method not allowed"),
+        }
+        self.handle_method(
+            parsed,
+            path,
+            origin,
+            accept_encoding,
+            client_key,
+            now_ms,
+            body,
+            if_none_match,
+        )
     }
 
     /// Adapter port: same-crate `HttpMethod` avoids demoted `method: &str` + owned
@@ -116,8 +145,18 @@ impl NotesApp {
         client_key: string,
         now_ms: int,
         body: string,
+        if_none_match: string,
     ) -> HttpReply {
-        self.handle_method(method, path, origin, accept_encoding, client_key, now_ms, body)
+        self.handle_method(
+            method,
+            path,
+            origin,
+            accept_encoding,
+            client_key,
+            now_ms,
+            body,
+            if_none_match,
+        )
     }
 
     fn handle_method(
@@ -129,6 +168,7 @@ impl NotesApp {
         client_key: string,
         now_ms: int,
         body: string,
+        if_none_match: string,
     ) -> HttpReply {
         let path = own(path)
         let origin = own(origin)
@@ -153,7 +193,7 @@ impl NotesApp {
             },
             None => {},
         }
-        let reply = self.dispatch(method, path, body, now_ms)
+        let reply = self.dispatch(method, path, body, now_ms, if_none_match)
         let out = with_transport(reply, origin, accept_encoding, allowed)
         emit_access_log(level, method_label(method), path, out.status)
         out
@@ -199,7 +239,14 @@ impl NotesApp {
         })
     }
 
-    fn dispatch(self, method: HttpMethod, path: string, body: string, now_ms: int) -> HttpReply {
+    fn dispatch(
+        self,
+        method: HttpMethod,
+        path: string,
+        body: string,
+        now_ms: int,
+        if_none_match: string,
+    ) -> HttpReply {
         let split = split_path_query(path)
         let path = split.0
         let query = split.1
@@ -260,7 +307,7 @@ impl NotesApp {
                                             match method {
                                                 HttpMethod::GET => {
                                                     match fetch_note(self.store, id) {
-                                                        Some(note) => note_reply(200, note),
+                                                        Some(note) => note_get_reply(note, if_none_match),
                                                         None => json_error(404, "note not found"),
                                                     }
                                                 },
@@ -311,6 +358,53 @@ impl NotesApp {
             }
         }
     }
+}
+
+fn note_get_reply(note: Note, if_none_match: string) -> HttpReply {
+    // Keep formal owned (cargo-bin otherwise demotes to &str while callers pass String).
+    let mut held: Vec<string> = Vec::new()
+    held.push(if_none_match)
+    let inm = held[0]
+    let material = "${note.uid}:${note.title}:${note.body}"
+    let tag = "\"${sha_digest(material)}\""
+    if etag_matches(inm, tag) {
+        return HttpReply {
+            status: 304,
+            body: "",
+            content_type: "",
+            allow_origin: "",
+            content_encoding: "",
+            extra_headers: etag_header_block(tag),
+        }
+    }
+    match json.to_string(note) {
+        Ok(text) => HttpReply {
+            status: 200,
+            body: text,
+            content_type: mime_json(),
+            allow_origin: "",
+            content_encoding: "",
+            extra_headers: etag_header_block(tag),
+        },
+        Err(_) => json_error(500, "serialization failed"),
+    }
+}
+
+fn sha_digest(text: string) -> string {
+    let text = own(text)
+    sha_hex(text)
+}
+
+fn etag_matches(if_none_match: string, tag: string) -> bool {
+    let want = strings.trim(if_none_match)
+    if strings.len(want) == 0 {
+        return false
+    }
+    want == tag
+}
+
+fn etag_header_block(tag: string) -> string {
+    "ETag: ${tag}"
 }
 
 fn note_reply(status: u16, note: Note) -> HttpReply {

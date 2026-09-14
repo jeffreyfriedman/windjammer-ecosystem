@@ -38,6 +38,7 @@ fn dispatch(req: ServerRequest, state: Arc<Mutex<NotesApp>>) -> ServerResponse {
                 meta.2,
                 now_ms,
                 body,
+                meta.3,
             )
             to_response(reply)
         },
@@ -45,10 +46,11 @@ fn dispatch(req: ServerRequest, state: Arc<Mutex<NotesApp>>) -> ServerResponse {
     }
 }
 
-fn headers_meta(headers: Vec<(string, string)>) -> (string, string, string) {
+fn headers_meta(headers: Vec<(string, string)>) -> (string, string, string, string) {
     let mut origin = ""
     let mut accept_encoding = ""
     let mut client_key = ""
+    let mut if_none_match = ""
     for pair in headers {
         let key = pair.0
         let value = pair.1
@@ -60,11 +62,15 @@ fn headers_meta(headers: Vec<(string, string)>) -> (string, string, string) {
             accept_encoding = value
             continue
         }
+        if header_key_matches(key, "If-None-Match") {
+            if_none_match = value
+            continue
+        }
         if header_key_matches(key, "X-Client-Key") {
             client_key = value
         }
     }
-    (origin, accept_encoding, client_key)
+    (origin, accept_encoding, client_key, if_none_match)
 }
 
 fn header_key_matches(actual: string, expected: string) -> bool {

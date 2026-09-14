@@ -253,7 +253,57 @@ fn test_list_notes_limit_query_param() {
     let reply = app.handle("GET", "/notes?limit=2", "", "", "", 0, "")
     assert_eq(reply.status, 200)
     assert_str_contains(reply.body, "\"id\":")
-    assert(!strings.contains(reply.body, "\"id\":3"), "limit=2 must not include third note")
-    assert_str_contains(reply.body, "\"id\":1")
-    assert_str_contains(reply.body, "\"id\":2")
+    // HashMap list order is unstable — assert count, not specific ids.
+    let parts = strings.split(reply.body, "\"title\"")
+    assert_eq(parts.len(), 3)
+}
+
+fn test_get_note_sets_etag_header() {
+    let mut app = NotesApp::new(default_config(), NoteStore::new())
+    let _ = app.handle(
+        "POST",
+        "/notes",
+        "",
+        "",
+        "",
+        0,
+        "{\"title\":\"hello\",\"body\":\"world\"}",
+    )
+    let reply = app.handle_if_none_match("GET", "/notes/1", "", "", "", 0, "", "")
+    assert_eq(reply.status, 200)
+    assert_str_contains(reply.extra_headers, "ETag:")
+}
+
+fn test_get_note_if_none_match_returns_304() {
+    let mut app = NotesApp::new(default_config(), NoteStore::new())
+    let _ = app.handle(
+        "POST",
+        "/notes",
+        "",
+        "",
+        "",
+        0,
+        "{\"title\":\"hello\",\"body\":\"world\"}",
+    )
+    let first = app.handle_if_none_match("GET", "/notes/1", "", "", "", 0, "", "")
+    assert_eq(first.status, 200)
+    let etag = etag_value_from_headers(first.extra_headers)
+    assert(strings.len(etag) > 0, "etag required")
+    let second = app.handle_if_none_match("GET", "/notes/1", "", "", "", 0, "", etag)
+    assert_eq(second.status, 304)
+    assert_eq(second.body, "")
+    assert_str_contains(second.extra_headers, "ETag:")
+}
+
+fn etag_value_from_headers(block: string) -> string {
+    let lines = strings.split(block, "\n")
+    let mut i = 0
+    while i < lines.len() {
+        let line = strings.trim(lines[i])
+        if strings.starts_with(line, "ETag:") {
+            return strings.trim(strings.substring(line, 5, strings.len(line)))
+        }
+        i = i + 1
+    }
+    ""
 }

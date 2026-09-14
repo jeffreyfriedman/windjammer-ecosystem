@@ -5,6 +5,7 @@ use wj_config::from_toml
 use wj_config::merge
 use wj_dotenv::parse as parse_dotenv
 use wj_duration::parse_ms
+use wj_log::parse_level
 
 pub struct AuthConfig {
     pub jwt_secret: string,
@@ -16,6 +17,7 @@ pub struct AuthConfig {
     pub max_username_len: int,
     pub min_password_len: int,
     pub max_password_len: int,
+    pub log_level: string,
 }
 
 impl AuthConfig {
@@ -32,6 +34,7 @@ impl AuthConfig {
             max_username_len: 64,
             min_password_len: 8,
             max_password_len: 128,
+            log_level: "info",
         }
     }
 }
@@ -47,6 +50,7 @@ pub fn config_from_env() -> AuthConfig {
         max_username_len: max_username_len_from_env(),
         min_password_len: min_password_len_from_env(),
         max_password_len: max_password_len_from_env(),
+        log_level: log_level_from_env(),
     }
 }
 
@@ -84,6 +88,7 @@ fn default_string_map() -> HashMap<string, string> {
     defaults.insert("max_username_len", "64")
     defaults.insert("min_password_len", "8")
     defaults.insert("max_password_len", "128")
+    defaults.insert("log_level", "info")
     defaults
 }
 
@@ -132,6 +137,9 @@ fn map_dotenv_key(key: string) -> string {
     }
     if key == "MAX_PASSWORD_LEN" || key == "max_password_len" {
         return "max_password_len"
+    }
+    if key == "LOG_LEVEL" || key == "log_level" {
+        return "log_level"
     }
     ""
 }
@@ -230,6 +238,10 @@ fn auth_config_from_map(map: HashMap<string, string>) -> AuthConfig {
             }
         },
     }
+    let log_level = match map.get("log_level") {
+        Some(v) => normalize_log_level("${v}"),
+        None => "info",
+    }
     AuthConfig {
         jwt_secret: jwt_secret,
         jwt_ttl_secs: jwt_ttl_secs,
@@ -240,6 +252,7 @@ fn auth_config_from_map(map: HashMap<string, string>) -> AuthConfig {
         max_username_len: max_username_len,
         min_password_len: min_password_len,
         max_password_len: max_password_len,
+        log_level: log_level,
     }
 }
 
@@ -444,6 +457,23 @@ fn max_password_len_from_env() -> int {
             }
         },
         None => 128,
+    }
+}
+
+fn log_level_from_env() -> string {
+    match env.get("LOG_LEVEL") {
+        Some(value) => normalize_log_level(value),
+        None => "info",
+    }
+}
+
+/// Accept known levels via `wj-log::parse_level`; unknown values fall back to `info`.
+fn normalize_log_level(text: string) -> string {
+    let owned = own_cfg(strings.trim(text))
+    let probe = "${owned}"
+    match parse_level(probe) {
+        Some(_) => strings.to_lower(owned),
+        None => "info",
     }
 }
 

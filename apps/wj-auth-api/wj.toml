@@ -22,6 +22,7 @@ wj_duration = { path = "../../packages/wj-duration/build" }
 wj_dotenv = { path = "../../packages/wj-dotenv/build" }
 wj_timefmt = { path = "../../packages/wj-timefmt/build" }
 wj_inflect = { path = "../../packages/wj-inflect/build" }
+wj_log = { path = "../../packages/wj-log/build" }
 
 [dev-dependencies]
 

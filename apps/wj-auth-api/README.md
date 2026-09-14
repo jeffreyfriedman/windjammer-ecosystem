@@ -20,6 +20,7 @@ Reference pattern for idiomatic HTTP in Windjammer apps (see also `wj-webhook`):
 | **wj-dotenv** | `config_from_dotenv` (`JWT_SECRET=…` env-file layer via `wj-config::merge`) |
 | **wj-timefmt** | `/me.expires_at` RFC3339 Zulu from JWT `exp` |
 | **wj-inflect** | slugify usernames on register/login (`Carl User` → `carl-user`) |
+| **wj-log** | `LOG_LEVEL` / `log_level` + tagged access lines (`[auth] GET /health -> 200`) |
 | **wj-cookie** | login `Set-Cookie: access_token=…; HttpOnly; Path=/; SameSite=Lax`; `/me` accepts cookie |
 | **wj-rate-limit** | fixed-window limiter + `X-RateLimit-*` / `Retry-After` on 429 |
 | **wj-headers** | helmet-style defaults (`X-Frame-Options`, `X-Content-Type-Options`, …) |
@@ -64,7 +65,7 @@ Path dependencies must point at each package’s `build/` directory. Prefer `--l
 unset CARGO_TARGET_DIR
 export WJ=/path/to/windjammer/target/release/wj   # or a known-good pinned wj
 
-for p in wj-cors wj-compress wj-template wj-uuid wj-toml wj-config wj-cookie wj-rate-limit wj-headers wj-validate wj-hash wj-jwt wj-router wj-mime wj-duration wj-dotenv wj-timefmt wj-inflect; do
+for p in wj-cors wj-compress wj-template wj-uuid wj-toml wj-config wj-cookie wj-rate-limit wj-headers wj-validate wj-hash wj-jwt wj-router wj-mime wj-duration wj-dotenv wj-timefmt wj-inflect wj-log; do
   cd packages/$p && $WJ build src --library --module-file
 done
 
@@ -86,6 +87,7 @@ Environment:
 | `MAX_USERNAME_LEN` | `64` | Register username max length |
 | `MIN_PASSWORD_LEN` | `8` | Register/login password min length |
 | `MAX_PASSWORD_LEN` | `128` | Register/login password max length |
+| `LOG_LEVEL` | `info` | `wj-log` level for access lines (`trace`…`error`) |
 | `PORT` | `8091` | Listen port |
 
 Request headers: `X-Client-Key` selects the rate-limit bucket (defaults to `anon`).

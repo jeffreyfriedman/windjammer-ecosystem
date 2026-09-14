@@ -18,6 +18,7 @@ use wj_headers::format_headers
 use wj_inflect::slugify
 use wj_jwt::sign
 use wj_jwt::verify
+use wj_log::log_tagged
 use wj_mime::html as html_mime
 use wj_mime::json as json_mime
 use wj_rate_limit::check_key
@@ -157,20 +158,27 @@ impl AuthApp {
         let client_key = own(client_key)
         let body = own(body)
         let allowed = self.config.allowed_origins
+        let level = self.config.log_level
         match method {
             HttpMethod::OPTIONS => {
-                return self.handle_options(path, origin, allowed)
+                let reply = self.handle_options(path, origin, allowed)
+                emit_access_log(level, "OPTIONS", path, reply.status)
+                return reply
             },
             _ => {},
         }
         match self.check_rate(client_key, now_ms) {
             Some(limit_reply) => {
-                return with_transport(limit_reply, origin, accept_encoding, allowed)
+                let reply = with_transport(limit_reply, origin, accept_encoding, allowed)
+                emit_access_log(level, method_label(method), path, reply.status)
+                return reply
             },
             None => {},
         }
         let reply = self.dispatch(method, path, body, authorization, cookie)
-        with_transport(reply, origin, accept_encoding, allowed)
+        let out = with_transport(reply, origin, accept_encoding, allowed)
+        emit_access_log(level, method_label(method), path, out.status)
+        out
     }
 
     fn check_rate(self, client_key: string, now_ms: int) -> Option<HttpReply> {
@@ -856,6 +864,36 @@ fn mime_html() -> string {
 
 fn format_expiry(exp: int) -> string {
     format_rfc3339(from_epoch_secs(exp))
+}
+
+/// Stable access-log line for tests and `wj-log` emission.
+pub fn format_access_log(method: string, path: string, status: u16) -> string {
+    let message = access_log_message(method, path, status)
+    "[auth] ${message}"
+}
+
+fn access_log_message(method: string, path: string, status: u16) -> string {
+    "${method} ${path} -> ${status}"
+}
+
+fn emit_access_log(level: string, method: string, path: string, status: u16) {
+    let level = own(level)
+    let method = own(method)
+    let path = own(path)
+    let message = access_log_message(method, path, status)
+    log_tagged(level, "auth", message)
+}
+
+fn method_label(method: HttpMethod) -> string {
+    match method {
+        HttpMethod::GET => "GET",
+        HttpMethod::POST => "POST",
+        HttpMethod::PUT => "PUT",
+        HttpMethod::DELETE => "DELETE",
+        HttpMethod::PATCH => "PATCH",
+        HttpMethod::HEAD => "HEAD",
+        HttpMethod::OPTIONS => "OPTIONS",
+    }
 }
 
 fn username_slug(value: string) -> string {

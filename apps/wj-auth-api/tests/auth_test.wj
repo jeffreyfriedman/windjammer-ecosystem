@@ -1,5 +1,6 @@
 use crate::domain::AuthApp
 use crate::domain::AuthConfig
+use crate::domain::format_access_log
 use crate::domain::gzip_decode_body
 use std::strings
 
@@ -14,6 +15,7 @@ fn default_config() -> AuthConfig {
         max_username_len: 64,
         min_password_len: 8,
         max_password_len: 128,
+        log_level: "info",
     }
 }
 
@@ -28,6 +30,7 @@ fn config_with_tenant(tenant: string) -> AuthConfig {
         max_username_len: 64,
         min_password_len: 8,
         max_password_len: 128,
+        log_level: "info",
     }
 }
 
@@ -105,6 +108,13 @@ fn test_welcome_page_uses_html_content_type() {
     assert_eq(reply.status, 200)
     assert_str_contains(reply.body, "<html")
     assert_str_contains(reply.content_type, "text/html")
+}
+
+fn test_format_access_log_line() {
+    let line = format_access_log("GET", "/health", 200)
+    assert_eq(line, "[auth] GET /health -> 200")
+    let err_line = format_access_log("POST", "/login", 401)
+    assert_eq(err_line, "[auth] POST /login -> 401")
 }
 
 fn test_register_rejects_empty_username() {

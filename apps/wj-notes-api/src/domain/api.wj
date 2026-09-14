@@ -12,6 +12,7 @@ use wj_headers::defaults
 use wj_headers::format_headers
 use wj_mime::html as html_mime
 use wj_mime::json as json_mime
+use wj_querystring::get as query_get
 use wj_template::render_html
 use wj_log::log_tagged
 use wj_rate_limit::check_key
@@ -199,6 +200,9 @@ impl NotesApp {
     }
 
     fn dispatch(self, method: HttpMethod, path: string, body: string) -> HttpReply {
+        let split = split_path_query(path)
+        let path = split.0
+        let query = split.1
         if path == "/" {
             match method {
                 HttpMethod::GET => welcome_page(),
@@ -214,7 +218,7 @@ impl NotesApp {
                 Some(_) => {
                     match method {
                         HttpMethod::GET => {
-                            let notes = self.store.list()
+                            let notes = list_notes_for_query(self.store.list(), query)
                             match json.to_string(notes) {
                                 Ok(text) => HttpReply {
                                     status: 200,
@@ -520,6 +524,55 @@ fn buckets_from_limit(buckets: HashMap<string, WindowBucket>) -> HashMap<string,
             window_start_ms: bucket.window_start_ms,
             count: bucket.count,
         })
+    }
+    out
+}
+
+fn split_path_query(full: string) -> (string, string) {
+    let q = find_char(full, "?")
+    if q < 0 {
+        return (full, "")
+    }
+    let path = strings.substring(full, 0, q)
+    let query = strings.substring(full, q, strings.len(full))
+    (path, query)
+}
+
+fn find_char(text: string, needle: string) -> int {
+    let mut i = 0
+    let n = strings.len(text)
+    while i < n {
+        let ch = strings.substring(text, i, i + 1)
+        if ch == needle {
+            return i
+        }
+        i = i + 1
+    }
+    -1
+}
+
+fn list_notes_for_query(notes: Vec<Note>, query: string) -> Vec<Note> {
+    let query = own(query)
+    match query_get(query, "limit") {
+        None => notes,
+        Some(text) => {
+            match parse_positive_int(text) {
+                None => notes,
+                Some(limit) => truncate_notes(notes, limit),
+            }
+        },
+    }
+}
+
+fn truncate_notes(notes: Vec<Note>, limit: int) -> Vec<Note> {
+    if limit <= 0 {
+        return notes
+    }
+    let mut out = Vec::new()
+    let mut i = 0
+    while i < notes.len() && out.len() < limit {
+        out.push(notes[i])
+        i = i + 1
     }
     out
 }

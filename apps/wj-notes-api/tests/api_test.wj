@@ -57,6 +57,21 @@ fn test_post_includes_uuid_and_created_at() {
     assert_str_contains(reply.body, "2023")
 }
 
+fn test_post_includes_slugified_title() {
+    let mut app = NotesApp::new(default_config(), NoteStore::new())
+    let reply = app.handle(
+        "POST",
+        "/notes",
+        "",
+        "",
+        "",
+        0,
+        "{\"title\":\"Hello World!\",\"body\":\"body\"}",
+    )
+    assert_eq(reply.status, 201)
+    assert_str_contains(reply.body, "\"slug\":\"hello-world\"")
+}
+
 fn test_post_rejects_empty_title() {
     let store = NoteStore::new()
     let reply = handle_request("POST", "/notes", "{\"title\":\"\",\"body\":\"world\"}", store)

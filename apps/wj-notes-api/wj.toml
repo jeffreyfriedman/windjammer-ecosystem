@@ -20,6 +20,7 @@ wj_template = { path = "../../packages/wj-template/build" }
 wj_querystring = { path = "../../packages/wj-querystring/build" }
 wj_uuid = { path = "../../packages/wj-uuid/build" }
 wj_timefmt = { path = "../../packages/wj-timefmt/build" }
+wj_inflect = { path = "../../packages/wj-inflect/build" }
 
 [dev-dependencies]
 

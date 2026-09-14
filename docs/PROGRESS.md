@@ -129,6 +129,7 @@ Weekly build health for seed apps and packages.
 | 2 | 2026-09-14 | deepen `wj-notes-api` template | 0 | 0 | — | Dogfood `wj-template` `GET /` welcome HTML; **46/46** on cargo-bin `wj` |
 | 2 | 2026-09-14 | deepen `wj-notes-api` querystring | 0 | 0 | demoted query slice → `query_get` needs `own(query)` on cargo-bin | Dogfood `wj-querystring` `GET /notes?limit=N`; **47/47** on cargo-bin `wj` |
 | 2 | 2026-09-14 | deepen `wj-notes-api` uuid+timefmt | 0 | 0 | — | Dogfood `wj-uuid` v7 `uid` + `wj-timefmt` RFC3339 `created_at`; **51/51** on cargo-bin `wj` |
+| 2 | 2026-09-14 | deepen `wj-notes-api` inflect | 0 | 0 | — | Dogfood `wj-inflect` title `slug`; **54/54** on cargo-bin `wj` |
 
 ## Weekly checklist
 

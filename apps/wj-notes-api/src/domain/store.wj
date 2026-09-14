@@ -1,5 +1,6 @@
 use std::collections::HashMap
 
+use wj_inflect::slugify
 use wj_timefmt::format_rfc3339
 use wj_timefmt::from_epoch_secs
 use wj_uuid::v7
@@ -38,11 +39,13 @@ impl NoteStore {
             Err(err) => return Err(err),
         }
         let created_at = timestamp_from_ms(now_ms)
+        let slug = title_slug(fields.0)
         let id = self.next_id
         self.next_id = self.next_id + 1
         let note = Note {
             id: id,
             uid: uid,
+            slug: slug,
             created_at: created_at,
             title: fields.0,
             body: fields.1,
@@ -73,9 +76,11 @@ impl NoteStore {
         }
         match lookup_note(self.notes, id) {
             Some(existing) => {
+                let slug = title_slug(fields.0)
                 let note = Note {
                     id: id,
                     uid: existing.uid,
+                    slug: slug,
                     created_at: existing.created_at,
                     title: fields.0,
                     body: fields.1,
@@ -109,6 +114,11 @@ impl NoteStore {
 
 fn new_note_uid() -> Result<string, string> {
     v7()
+}
+
+fn title_slug(title: string) -> string {
+    let title = own(title)
+    slugify(title)
 }
 
 fn timestamp_from_ms(now_ms: int) -> string {

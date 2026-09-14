@@ -4,6 +4,7 @@ use crate::domain::NotesApp
 use crate::domain::handle_request
 use crate::domain::format_access_log
 use crate::domain::gzip_decode_body
+use crate::domain::decode_note_export
 use std::strings
 
 fn default_config() -> NotesConfig {
@@ -312,6 +313,30 @@ fn test_get_note_if_none_match_returns_304() {
     assert_eq(second.status, 304)
     assert_eq(second.body, "")
     assert_str_contains(second.extra_headers, "ETag:")
+}
+
+fn test_get_note_encoding_base64() {
+    let mut app = NotesApp::new(default_config(), NoteStore::new())
+    let _ = app.handle(
+        "POST",
+        "/notes",
+        "",
+        "",
+        "",
+        0,
+        "{\"title\":\"hello\",\"body\":\"world\"}",
+    )
+    let reply = app.handle("GET", "/notes/1?encoding=base64", "", "", "", 0, "")
+    assert_eq(reply.status, 200)
+    assert_str_contains(reply.content_type, "text/plain")
+    assert(!strings.contains(reply.body, "\"title\""), "payload encoded")
+    match decode_note_export(reply.body) {
+        Ok(text) => {
+            assert_str_contains(text, "hello")
+            assert_str_contains(text, "world")
+        },
+        Err(_) => assert(false, "base64 decode"),
+    }
 }
 
 fn etag_value_from_headers(block: string) -> string {

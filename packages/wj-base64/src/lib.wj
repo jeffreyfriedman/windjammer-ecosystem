@@ -5,9 +5,20 @@ pub fn encode(text: string) -> string {
     encoding.base64_encode_string(text)
 }
 
+/// Alias of `encode` — prefer this name at app call sites (cargo-bin may
+/// over-borrow a bare `encode` into an owned formal).
+pub fn encode_text(text: string) -> string {
+    encode(text)
+}
+
 /// Decode a base64 string to UTF-8 text.
 pub fn decode(text: string) -> Result<string, string> {
     encoding.base64_decode_string(text)
+}
+
+/// Alias of `decode` for symmetry with `encode_text`.
+pub fn decode_text(text: string) -> Result<string, string> {
+    decode(text)
 }
 
 /// Base64-encode raw bytes.

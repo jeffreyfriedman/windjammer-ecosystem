@@ -295,6 +295,39 @@ fn test_list_notes_pretty_query_param() {
     assert(strings.len(pretty.body) > strings.len(compact.body), "pretty body longer")
 }
 
+fn test_list_notes_q_filters_by_regex() {
+    let mut app = NotesApp::new(default_config(), NoteStore::new())
+    let _ = app.handle(
+        "POST",
+        "/notes",
+        "",
+        "",
+        "",
+        0,
+        "{\"title\":\"alpha\",\"body\":\"one\"}",
+    )
+    let _ = app.handle(
+        "POST",
+        "/notes",
+        "",
+        "",
+        "",
+        0,
+        "{\"title\":\"beta\",\"body\":\"needle here\"}",
+    )
+    let reply = app.handle("GET", "/notes?q=needle", "", "", "", 0, "")
+    assert_eq(reply.status, 200)
+    assert_str_contains(reply.body, "beta")
+    assert(!strings.contains(reply.body, "alpha"), "unmatched note excluded")
+}
+
+fn test_list_notes_invalid_q_returns_400() {
+    let mut app = NotesApp::new(default_config(), NoteStore::new())
+    let reply = app.handle("GET", "/notes?q=(", "", "", "", 0, "")
+    assert_eq(reply.status, 400)
+    assert_str_contains(reply.body, "error")
+}
+
 fn test_get_note_sets_etag_header() {
     let mut app = NotesApp::new(default_config(), NoteStore::new())
     let _ = app.handle(

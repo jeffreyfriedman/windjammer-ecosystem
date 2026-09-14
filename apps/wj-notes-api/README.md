@@ -26,6 +26,7 @@ No Cargo crates, no `extern fn`, no `ffi/`. Domain routing and JSON live in Wind
 | **wj-json-util** | `GET /notes?pretty=1` indented JSON |
 | **wj-base64** | `GET /notes/:id?encoding=base64` (`encode_text`) |
 | **wj-url** | `Location` on `POST /notes` via `join_url` + `public_base_url` |
+| **wj-regex** | `GET /notes?q=` regex filter on title/body (`is_match`) |
 | **wj-log** | `LOG_LEVEL` / `log_level` + tagged access lines (`[notes] GET /health -> 200`) |
 
 ## Routes
@@ -34,7 +35,7 @@ No Cargo crates, no `extern fn`, no `ffi/`. Domain routing and JSON live in Wind
 |---|---|---|
 | `GET` | `/` | 200 HTML welcome (wj-template) |
 | `GET` | `/health` | 200 `{ "ok": true }` |
-| `GET` | `/notes` | 200 JSON array (optional `?limit=N`, `?pretty=1`) |
+| `GET` | `/notes` | 200 JSON array (optional `?limit=N`, `?pretty=1`, `?q=` regex) |
 | `POST` | `/notes` | 201 created (+ `Location`) / 400 invalid JSON or validation |
 | `GET` | `/notes/:id` | 200 / 304 (ETag / If-None-Match) / 404; optional `?encoding=base64` |
 | `PUT` | `/notes/:id` | 200 / 400 / 404 |
@@ -76,7 +77,7 @@ Path dependencies must point at each package’s `build/` directory. Pre-build d
 unset CARGO_TARGET_DIR
 export WJ=~/.cargo/bin/wj   # or windjammer/target/release/wj
 
-for p in wj-router wj-cors wj-headers wj-rate-limit wj-validate wj-mime wj-dotenv wj-config wj-toml wj-log wj-duration wj-compress wj-template wj-querystring wj-uuid wj-timefmt wj-inflect wj-sha wj-json-util wj-base64 wj-url; do
+for p in wj-router wj-cors wj-headers wj-rate-limit wj-validate wj-mime wj-dotenv wj-config wj-toml wj-log wj-duration wj-compress wj-template wj-querystring wj-uuid wj-timefmt wj-inflect wj-sha wj-json-util wj-base64 wj-url wj-regex; do
   cd packages/$p && $WJ build src --library --module-file
 done
 

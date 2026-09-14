@@ -17,12 +17,14 @@ No Cargo crates, no `extern fn`, no `ffi/`. Domain routing and JSON live in Wind
 | **wj-dotenv** + **wj-config** + **wj-toml** | `config_from_dotenv` / `config_from_toml` (flat + `[limits]` section keys) |
 | **wj-duration** | rate-limit window as ms digits or duration (`2m`, `30s`) |
 | **wj-compress** | `Accept-Encoding` negotiation + `Content-Encoding: gzip` |
+| **wj-template** | HTML welcome page at `GET /` (`render_html` + escaped placeholders) |
 | **wj-log** | `LOG_LEVEL` / `log_level` + tagged access lines (`[notes] GET /health -> 200`) |
 
 ## Routes
 
 | Method | Path | Status |
 |---|---|---|
+| `GET` | `/` | 200 HTML welcome (wj-template) |
 | `GET` | `/health` | 200 `{ "ok": true }` |
 | `GET` | `/notes` | 200 JSON array |
 | `POST` | `/notes` | 201 created / 400 invalid JSON or validation |
@@ -66,7 +68,7 @@ Path dependencies must point at each package’s `build/` directory. Pre-build d
 unset CARGO_TARGET_DIR
 export WJ=~/.cargo/bin/wj   # or windjammer/target/release/wj
 
-for p in wj-router wj-cors wj-headers wj-rate-limit wj-validate wj-mime wj-dotenv wj-config wj-toml wj-log wj-duration wj-compress; do
+for p in wj-router wj-cors wj-headers wj-rate-limit wj-validate wj-mime wj-dotenv wj-config wj-toml wj-log wj-duration wj-compress wj-template; do
   cd packages/$p && $WJ build src --library --module-file
 done
 

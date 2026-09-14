@@ -5,6 +5,7 @@ use std::strings
 use wj_config::from_toml
 use wj_config::merge
 use wj_dotenv::parse as parse_dotenv
+use wj_duration::parse_ms
 use wj_log::parse_level
 
 use crate::domain::parse_positive_int
@@ -99,6 +100,9 @@ fn map_dotenv_key(key: string) -> string {
     if key == "RATE_WINDOW_MS" || key == "WINDOW_MS" || key == "window_ms" {
         return "window_ms"
     }
+    if key == "RATE_WINDOW" || key == "WINDOW" || key == "window" {
+        return "window"
+    }
     if key == "MAX_TITLE_LEN" || key == "max_title_len" {
         return "max_title_len"
     }
@@ -126,11 +130,16 @@ fn notes_config_from_map(map: HashMap<string, string>) -> NotesConfig {
         Some(n) => n,
         None => 100,
     }
-    let window_text = match map.get("window_ms") {
+    let window_text = match map.get("window") {
         Some(v) => "${v}",
-        None => "60000",
+        None => {
+            match map.get("window_ms") {
+                Some(v) => "${v}",
+                None => "60000",
+            }
+        },
     }
-    let window_ms = match parse_positive_int(window_text) {
+    let window_ms = match parse_window_ms(window_text) {
         Some(n) => n,
         None => 60_000,
     }
@@ -215,14 +224,24 @@ fn rate_limit_from_env() -> int {
 }
 
 fn window_ms_from_env() -> int {
-    match env.get("RATE_WINDOW_MS") {
+    match env.get("RATE_WINDOW") {
         Some(value) => {
-            match parse_positive_int(value) {
+            match parse_window_ms(value) {
                 Some(ms) => ms,
                 None => 60_000,
             }
         },
-        None => 60_000,
+        None => {
+            match env.get("RATE_WINDOW_MS") {
+                Some(value) => {
+                    match parse_window_ms(value) {
+                        Some(ms) => ms,
+                        None => 60_000,
+                    }
+                },
+                None => 60_000,
+            }
+        },
     }
 }
 
@@ -247,6 +266,28 @@ fn max_body_len_from_env() -> int {
             }
         },
         None => 10_000,
+    }
+}
+
+/// Milliseconds from bare digits or duration (`2m`, `500ms`). Digits are ms.
+fn parse_window_ms(text: string) -> Option<int> {
+    let text = own_cfg(text)
+    match parse_positive_int(text) {
+        Some(n) => Some(n),
+        None => duration_ms(text),
+    }
+}
+
+fn duration_ms(text: string) -> Option<int> {
+    let text = own_cfg(text)
+    match parse_ms(text) {
+        Ok(ms) => {
+            if ms < 1 {
+                return None
+            }
+            Some(ms)
+        },
+        Err(_) => None,
     }
 }
 

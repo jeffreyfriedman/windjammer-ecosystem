@@ -1,5 +1,8 @@
 use std::collections::HashMap
 
+use wj_timefmt::format_rfc3339
+use wj_timefmt::from_epoch_secs
+use wj_uuid::v7
 use wj_validate::require_max_len
 use wj_validate::require_nonempty
 
@@ -18,15 +21,29 @@ impl NoteStore {
         }
     }
 
-    pub fn create(self, title: string, body: string, max_title: int, max_body: int) -> Result<Note, string> {
+    pub fn create(
+        self,
+        title: string,
+        body: string,
+        max_title: int,
+        max_body: int,
+        now_ms: int,
+    ) -> Result<Note, string> {
         let fields = match validate_note_fields(title, body, max_title, max_body) {
             Ok(value) => value,
             Err(err) => return Err(err),
         }
+        let uid = match new_note_uid() {
+            Ok(value) => value,
+            Err(err) => return Err(err),
+        }
+        let created_at = timestamp_from_ms(now_ms)
         let id = self.next_id
         self.next_id = self.next_id + 1
         let note = Note {
             id: id,
+            uid: uid,
+            created_at: created_at,
             title: fields.0,
             body: fields.1,
         }
@@ -55,9 +72,11 @@ impl NoteStore {
             Err(err) => return Err(err),
         }
         match lookup_note(self.notes, id) {
-            Some(_) => {
+            Some(existing) => {
                 let note = Note {
                     id: id,
+                    uid: existing.uid,
+                    created_at: existing.created_at,
                     title: fields.0,
                     body: fields.1,
                 }
@@ -86,6 +105,15 @@ impl NoteStore {
         self.notes = kept
         Ok(())
     }
+}
+
+fn new_note_uid() -> Result<string, string> {
+    v7()
+}
+
+fn timestamp_from_ms(now_ms: int) -> string {
+    let secs = if now_ms < 0 { 0 } else { now_ms / 1000 }
+    format_rfc3339(from_epoch_secs(secs))
 }
 
 fn validate_note_fields(

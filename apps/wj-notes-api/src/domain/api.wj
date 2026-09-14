@@ -153,7 +153,7 @@ impl NotesApp {
             },
             None => {},
         }
-        let reply = self.dispatch(method, path, body)
+        let reply = self.dispatch(method, path, body, now_ms)
         let out = with_transport(reply, origin, accept_encoding, allowed)
         emit_access_log(level, method_label(method), path, out.status)
         out
@@ -199,7 +199,7 @@ impl NotesApp {
         })
     }
 
-    fn dispatch(self, method: HttpMethod, path: string, body: string) -> HttpReply {
+    fn dispatch(self, method: HttpMethod, path: string, body: string, now_ms: int) -> HttpReply {
         let split = split_path_query(path)
         let path = split.0
         let query = split.1
@@ -241,6 +241,7 @@ impl NotesApp {
                                 input.body,
                                 self.config.max_title_len,
                                 self.config.max_body_len,
+                                now_ms,
                             ) {
                                 Ok(note) => note_reply(201, note),
                                 Err(msg) => error_from_message(400, msg),

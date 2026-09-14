@@ -18,6 +18,8 @@ wj_duration = { path = "../../packages/wj-duration/build" }
 wj_compress = { path = "../../packages/wj-compress/build" }
 wj_template = { path = "../../packages/wj-template/build" }
 wj_querystring = { path = "../../packages/wj-querystring/build" }
+wj_uuid = { path = "../../packages/wj-uuid/build" }
+wj_timefmt = { path = "../../packages/wj-timefmt/build" }
 
 [dev-dependencies]
 

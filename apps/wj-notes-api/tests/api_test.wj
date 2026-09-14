@@ -2,6 +2,7 @@ use crate::domain::NoteStore
 use crate::domain::NotesConfig
 use crate::domain::NotesApp
 use crate::domain::handle_request
+use crate::domain::format_access_log
 
 fn default_config() -> NotesConfig {
     NotesConfig {
@@ -10,6 +11,7 @@ fn default_config() -> NotesConfig {
         window_ms: 60_000,
         max_title_len: 200,
         max_body_len: 10_000,
+        log_level: "info",
     }
 }
 
@@ -162,4 +164,15 @@ fn test_security_headers_on_response() {
     let reply = app.handle("GET", "/notes", "", "client", 0, "")
     assert_str_contains(reply.extra_headers, "X-Frame-Options")
     assert_str_contains(reply.extra_headers, "X-Content-Type-Options")
+}
+
+fn test_format_access_log_line() {
+    let line = format_access_log("GET", "/health", 200)
+    assert_str_contains(line, "[notes]")
+    assert_str_contains(line, "GET")
+    assert_str_contains(line, "/health")
+    assert_str_contains(line, "200")
+    let err_line = format_access_log("POST", "/notes", 400)
+    assert_str_contains(err_line, "[notes]")
+    assert_str_contains(err_line, "400")
 }

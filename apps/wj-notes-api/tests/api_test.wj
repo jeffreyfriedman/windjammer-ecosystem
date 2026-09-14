@@ -212,3 +212,16 @@ fn test_welcome_page_uses_template() {
     assert_str_contains(reply.body, "wj-notes-api")
     assert(!strings.contains(reply.body, "{{"), "placeholders filled")
 }
+
+fn test_list_notes_limit_query_param() {
+    let mut app = NotesApp::new(default_config(), NoteStore::new())
+    let _ = app.handle("POST", "/notes", "", "", "", 0, "{\"title\":\"t\",\"body\":\"b\"}")
+    let _ = app.handle("POST", "/notes", "", "", "", 0, "{\"title\":\"t\",\"body\":\"b\"}")
+    let _ = app.handle("POST", "/notes", "", "", "", 0, "{\"title\":\"t\",\"body\":\"b\"}")
+    let reply = app.handle("GET", "/notes?limit=2", "", "", "", 0, "")
+    assert_eq(reply.status, 200)
+    assert_str_contains(reply.body, "\"id\":")
+    assert(!strings.contains(reply.body, "\"id\":3"), "limit=2 must not include third note")
+    assert_str_contains(reply.body, "\"id\":1")
+    assert_str_contains(reply.body, "\"id\":2")
+}

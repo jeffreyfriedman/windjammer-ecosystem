@@ -16,6 +16,7 @@ No Cargo crates, no `extern fn`, no `ffi/`. Domain routing and JSON live in Wind
 | **wj-mime** | `Content-Type` on `HttpReply` (JSON replies) |
 | **wj-dotenv** + **wj-config** + **wj-toml** | `config_from_dotenv` / `config_from_toml` (flat + `[limits]` section keys) |
 | **wj-duration** | rate-limit window as ms digits or duration (`2m`, `30s`) |
+| **wj-compress** | `Accept-Encoding` negotiation + `Content-Encoding: gzip` |
 | **wj-log** | `LOG_LEVEL` / `log_level` + tagged access lines (`[notes] GET /health -> 200`) |
 
 ## Routes
@@ -65,7 +66,7 @@ Path dependencies must point at each package’s `build/` directory. Pre-build d
 unset CARGO_TARGET_DIR
 export WJ=~/.cargo/bin/wj   # or windjammer/target/release/wj
 
-for p in wj-router wj-cors wj-headers wj-rate-limit wj-validate wj-mime wj-dotenv wj-config wj-toml wj-log; do
+for p in wj-router wj-cors wj-headers wj-rate-limit wj-validate wj-mime wj-dotenv wj-config wj-toml wj-log wj-duration wj-compress; do
   cd packages/$p && $WJ build src --library --module-file
 done
 

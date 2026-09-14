@@ -12,6 +12,7 @@ use wj_headers::defaults
 use wj_headers::format_headers
 use wj_mime::html as html_mime
 use wj_mime::json as json_mime
+use wj_json_util::pretty as json_pretty
 use wj_querystring::get as query_get
 use wj_sha::hex as sha_hex
 use wj_template::render_html
@@ -265,11 +266,12 @@ impl NotesApp {
                 Some(_) => {
                     match method {
                         HttpMethod::GET => {
+                            let want_pretty = query_wants_pretty(query)
                             let notes = list_notes_for_query(self.store.list(), query)
                             match json.to_string(notes) {
                                 Ok(text) => HttpReply {
                                     status: 200,
-                                    body: text,
+                                    body: maybe_pretty_json(text, want_pretty),
                                     content_type: mime_json(),
                                     allow_origin: "",
                                     content_encoding: "",
@@ -657,6 +659,22 @@ fn list_notes_for_query(notes: Vec<Note>, query: string) -> Vec<Note> {
             }
         },
     }
+}
+
+fn query_wants_pretty(query: string) -> bool {
+    let query = own(query)
+    match query_get(query, "pretty") {
+        None => false,
+        Some(text) => text == "1" || text == "true",
+    }
+}
+
+fn maybe_pretty_json(text: string, want_pretty: bool) -> string {
+    if !want_pretty {
+        return text
+    }
+    let text = own(text)
+    json_pretty(text)
 }
 
 fn truncate_notes(notes: Vec<Note>, limit: int) -> Vec<Note> {

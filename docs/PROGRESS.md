@@ -131,6 +131,7 @@ Weekly build health for seed apps and packages.
 | 2 | 2026-09-14 | deepen `wj-notes-api` uuid+timefmt | 0 | 0 | — | Dogfood `wj-uuid` v7 `uid` + `wj-timefmt` RFC3339 `created_at`; **51/51** on cargo-bin `wj` |
 | 2 | 2026-09-14 | deepen `wj-notes-api` inflect | 0 | 0 | — | Dogfood `wj-inflect` title `slug`; **54/54** on cargo-bin `wj` |
 | 2 | 2026-09-14 | deepen `wj-notes-api` sha/etag | 0 | 0 | cargo-bin: owned local → demoted `&str` (tip GREEN `bug_demoted_str_formal_owned_local_auto_borrow_test`); notes holds match string in `Vec` so formal stays owned | Dogfood `wj-sha` ETag + If-None-Match 304; **56/56** on cargo-bin `wj` |
+| 2 | 2026-09-14 | deepen `wj-notes-api` json-util | 0 | 0 | — | Dogfood `wj-json-util` `?pretty=1`; **57/57** on cargo-bin `wj` |
 
 ## Weekly checklist
 

@@ -1,5 +1,9 @@
+use std::collections::HashMap
 use std::env
 use std::strings
+
+use wj_config::merge
+use wj_dotenv::parse as parse_dotenv
 
 use crate::domain::parse_positive_int
 
@@ -35,6 +39,11 @@ pub fn config_from_env() -> NotesConfig {
     }
 }
 
+/// Defaults < dotenv text (`CORS_ORIGIN=…`). Dogfoods `wj-dotenv` + `wj-config::merge`.
+pub fn config_from_dotenv(text: string) -> NotesConfig {
+    notes_config_from_map(merge(default_string_map(), dotenv_to_config_map(parse_dotenv(text))))
+}
+
 pub fn port_from_env() -> int {
     match env.get("PORT") {
         Some(value) => {
@@ -44,6 +53,101 @@ pub fn port_from_env() -> int {
             }
         },
         None => 8080,
+    }
+}
+
+fn default_string_map() -> HashMap<string, string> {
+    let mut defaults = HashMap::new()
+    defaults.insert("cors_origin", "*")
+    defaults.insert("rate_limit", "100")
+    defaults.insert("window_ms", "60000")
+    defaults.insert("max_title_len", "200")
+    defaults.insert("max_body_len", "10000")
+    defaults
+}
+
+fn dotenv_to_config_map(raw: HashMap<string, string>) -> HashMap<string, string> {
+    let mut out = HashMap::new()
+    for (key, value) in raw {
+        let mapped = map_dotenv_key(key)
+        if strings.len(mapped) > 0 {
+            out.insert(mapped, value)
+        }
+    }
+    out
+}
+
+fn map_dotenv_key(key: string) -> string {
+    if key == "CORS_ORIGIN" || key == "cors_origin" {
+        return "cors_origin"
+    }
+    if key == "RATE_LIMIT" || key == "rate_limit" {
+        return "rate_limit"
+    }
+    if key == "RATE_WINDOW_MS" || key == "WINDOW_MS" || key == "window_ms" {
+        return "window_ms"
+    }
+    if key == "MAX_TITLE_LEN" || key == "max_title_len" {
+        return "max_title_len"
+    }
+    if key == "MAX_BODY_LEN" || key == "max_body_len" {
+        return "max_body_len"
+    }
+    ""
+}
+
+/// Single-map reader (same shape as auth `auth_config_from_map`) — avoids owned
+/// HashMap helpers that cargo-bin injects mid-match defer-drop into.
+fn notes_config_from_map(map: HashMap<string, string>) -> NotesConfig {
+    let cors = match map.get("cors_origin") {
+        Some(v) => "${v}",
+        None => "*",
+    }
+    let rate_text = match map.get("rate_limit") {
+        Some(v) => "${v}",
+        None => "100",
+    }
+    let rate_limit = match parse_positive_int(rate_text) {
+        Some(n) => n,
+        None => 100,
+    }
+    let window_text = match map.get("window_ms") {
+        Some(v) => "${v}",
+        None => "60000",
+    }
+    let window_ms = match parse_positive_int(window_text) {
+        Some(n) => n,
+        None => 60_000,
+    }
+    let title_text = match map.get("max_title_len") {
+        Some(v) => "${v}",
+        None => "200",
+    }
+    let max_title_len = match parse_positive_int(title_text) {
+        Some(n) => n,
+        None => 200,
+    }
+    let body_text = match map.get("max_body_len") {
+        Some(v) => "${v}",
+        None => "10000",
+    }
+    let max_body_len = match parse_positive_int(body_text) {
+        Some(n) => n,
+        None => 10_000,
+    }
+    let mut allowed = Vec::new()
+    let trimmed = strings.trim(cors)
+    if strings.len(trimmed) == 0 {
+        allowed.push("*")
+    } else {
+        allowed.push(trimmed)
+    }
+    NotesConfig {
+        allowed_origins: allowed,
+        rate_limit: rate_limit,
+        window_ms: window_ms,
+        max_title_len: max_title_len,
+        max_body_len: max_body_len,
     }
 }
 

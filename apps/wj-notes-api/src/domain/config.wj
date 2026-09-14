@@ -7,6 +7,8 @@ pub struct NotesConfig {
     pub allowed_origins: Vec<string>,
     pub rate_limit: int,
     pub window_ms: int,
+    pub max_title_len: int,
+    pub max_body_len: int,
 }
 
 impl NotesConfig {
@@ -17,6 +19,8 @@ impl NotesConfig {
             allowed_origins: allowed,
             rate_limit: 100,
             window_ms: 60_000,
+            max_title_len: 200,
+            max_body_len: 10_000,
         }
     }
 }
@@ -26,6 +30,8 @@ pub fn config_from_env() -> NotesConfig {
         allowed_origins: cors_origins_from_env(),
         rate_limit: rate_limit_from_env(),
         window_ms: window_ms_from_env(),
+        max_title_len: max_title_len_from_env(),
+        max_body_len: max_body_len_from_env(),
     }
 }
 
@@ -83,5 +89,29 @@ fn window_ms_from_env() -> int {
             }
         },
         None => 60_000,
+    }
+}
+
+fn max_title_len_from_env() -> int {
+    match env.get("MAX_TITLE_LEN") {
+        Some(value) => {
+            match parse_positive_int(value) {
+                Some(n) => n,
+                None => 200,
+            }
+        },
+        None => 200,
+    }
+}
+
+fn max_body_len_from_env() -> int {
+    match env.get("MAX_BODY_LEN") {
+        Some(value) => {
+            match parse_positive_int(value) {
+                Some(n) => n,
+                None => 10_000,
+            }
+        },
+        None => 10_000,
     }
 }

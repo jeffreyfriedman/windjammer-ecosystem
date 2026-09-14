@@ -8,6 +8,8 @@ fn default_config() -> NotesConfig {
         allowed_origins: allowed_one(),
         rate_limit: 100,
         window_ms: 60_000,
+        max_title_len: 200,
+        max_body_len: 10_000,
     }
 }
 
@@ -31,11 +33,49 @@ fn test_post_creates_note_with_201() {
     assert_eq(reply.status, 201)
     assert_str_contains(reply.body, "hello")
     assert_str_contains(reply.body, "world")
+    assert_str_contains(reply.content_type, "application/json")
+}
+
+fn test_post_rejects_empty_title() {
+    let store = NoteStore::new()
+    let reply = handle_request("POST", "/notes", "{\"title\":\"\",\"body\":\"world\"}", store)
+    assert_eq(reply.status, 400)
+    assert_str_contains(reply.body, "title")
+}
+
+fn test_post_rejects_empty_body() {
+    let store = NoteStore::new()
+    let reply = handle_request("POST", "/notes", "{\"title\":\"hello\",\"body\":\"\"}", store)
+    assert_eq(reply.status, 400)
+    assert_str_contains(reply.body, "body")
+}
+
+fn test_post_rejects_title_over_max_len() {
+    let mut config = default_config()
+    config.max_title_len = 5
+    let mut app = NotesApp::new(config, NoteStore::new())
+    let reply = app.handle(
+        "POST",
+        "/notes",
+        "",
+        "",
+        0,
+        "{\"title\":\"too-long\",\"body\":\"ok\"}",
+    )
+    assert_eq(reply.status, 400)
+    assert_str_contains(reply.body, "title")
+}
+
+fn test_health_sets_json_content_type() {
+    let store = NoteStore::new()
+    let reply = handle_request("GET", "/health", "", store)
+    assert_eq(reply.status, 200)
+    assert_str_contains(reply.content_type, "application/json")
 }
 
 fn test_get_note_by_id() {
     let mut store = NoteStore::new()
-    let _ = store.create("item", "detail")
+    let _ = store.create("item", "detail", 200, 10_000)
     let reply = handle_request("GET", "/notes/1", "", store)
     assert_eq(reply.status, 200)
     assert_str_contains(reply.body, "item")
@@ -50,7 +90,7 @@ fn test_get_missing_note_returns_404() {
 
 fn test_put_updates_note() {
     let mut store = NoteStore::new()
-    let _ = store.create("old", "x")
+    let _ = store.create("old", "x", 200, 10_000)
     let body = "{\"title\":\"new\",\"body\":\"y\"}"
     let reply = handle_request("PUT", "/notes/1", body, store)
     assert_eq(reply.status, 200)
@@ -60,7 +100,7 @@ fn test_put_updates_note() {
 
 fn test_delete_note_returns_204() {
     let mut store = NoteStore::new()
-    let _ = store.create("gone", "z")
+    let _ = store.create("gone", "z", 200, 10_000)
     let reply = handle_request("DELETE", "/notes/1", "", store)
     assert_eq(reply.status, 204)
     assert_eq(reply.body.len(), 0)
@@ -87,7 +127,7 @@ fn test_health_returns_ok() {
 
 fn test_router_matches_note_id() {
     let mut store = NoteStore::new()
-    let _ = store.create("via-router", "body")
+    let _ = store.create("via-router", "body", 200, 10_000)
     let reply = handle_request("GET", "/notes/1", "", store)
     assert_eq(reply.status, 200)
     assert_str_contains(reply.body, "via-router")

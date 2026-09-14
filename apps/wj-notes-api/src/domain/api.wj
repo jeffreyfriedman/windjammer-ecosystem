@@ -7,6 +7,7 @@ use wj_cors::allow_origin
 use wj_cors::preflight
 use wj_headers::defaults
 use wj_headers::format_headers
+use wj_mime::json as json_mime
 use wj_rate_limit::check_key
 use wj_rate_limit::fixed_window
 use wj_rate_limit::rate_limit_headers
@@ -27,6 +28,7 @@ struct RateBucket {
 pub struct HttpReply {
     pub status: u16,
     pub body: string,
+    pub content_type: string,
     pub allow_origin: string,
     pub extra_headers: string,
 }
@@ -61,6 +63,8 @@ pub fn handle_request(method: string, path: string, body: string, store: NoteSto
         allowed_origins: Vec::new(),
         rate_limit: 0,
         window_ms: 60_000,
+        max_title_len: 200,
+        max_body_len: 10_000,
     }
     let mut app = NotesApp::new(config, store)
     app.handle(method, path, "", "", 0, body)
@@ -89,6 +93,20 @@ impl NotesApp {
             None => return json_error(405, "method not allowed"),
         }
         self.handle_method(parsed, path, origin, client_key, now_ms, body)
+    }
+
+    /// Adapter port: same-crate `HttpMethod` avoids demoted `method: &str` + owned
+    /// label helper (see `bug_owned_helper_into_demoted_str_formal_must_auto_borrow_test`).
+    pub fn handle_http(
+        self,
+        method: HttpMethod,
+        path: string,
+        origin: string,
+        client_key: string,
+        now_ms: int,
+        body: string,
+    ) -> HttpReply {
+        self.handle_method(method, path, origin, client_key, now_ms, body)
     }
 
     fn handle_method(
@@ -129,6 +147,7 @@ impl NotesApp {
             Some(headers) => HttpReply {
                 status: 204,
                 body: "",
+                content_type: "",
                 allow_origin: headers.allow_origin,
                 extra_headers: security_header_block(),
             },
@@ -152,6 +171,7 @@ impl NotesApp {
         Some(HttpReply {
             status: 429,
             body: "{\"error\":\"rate limit exceeded\"}",
+            content_type: mime_json(),
             allow_origin: "",
             extra_headers: header_block,
         })
@@ -173,6 +193,7 @@ impl NotesApp {
                                 Ok(text) => HttpReply {
                                     status: 200,
                                     body: text,
+                                    content_type: mime_json(),
                                     allow_origin: "",
                                     extra_headers: "",
                                 },
@@ -184,7 +205,12 @@ impl NotesApp {
                                 Ok(value) => value,
                                 Err(_) => return json_error(400, "invalid json"),
                             }
-                            match self.store.create(input.title, input.body) {
+                            match self.store.create(
+                                input.title,
+                                input.body,
+                                self.config.max_title_len,
+                                self.config.max_body_len,
+                            ) {
                                 Ok(note) => note_reply(201, note),
                                 Err(msg) => error_from_message(400, msg),
                             }
@@ -211,7 +237,13 @@ impl NotesApp {
                                                         Ok(value) => value,
                                                         Err(_) => return json_error(400, "invalid json"),
                                                     }
-                                                    match self.store.update(id, input.title, input.body) {
+                                                    match self.store.update(
+                                                        id,
+                                                        input.title,
+                                                        input.body,
+                                                        self.config.max_title_len,
+                                                        self.config.max_body_len,
+                                                    ) {
                                                         Ok(note) => note_reply(200, note),
                                                         Err(msg) => {
                                                             let status = if msg == "note not found" { 404 } else { 400 }
@@ -224,6 +256,7 @@ impl NotesApp {
                                                         Ok(_) => HttpReply {
                                                             status: 204,
                                                             body: "",
+                                                            content_type: "",
                                                             allow_origin: "",
                                                             extra_headers: "",
                                                         },
@@ -252,6 +285,7 @@ fn note_reply(status: u16, note: Note) -> HttpReply {
         Ok(text) => HttpReply {
             status: status,
             body: text,
+            content_type: mime_json(),
             allow_origin: "",
             extra_headers: "",
         },
@@ -265,12 +299,14 @@ fn error_from_message(status: u16, message: string) -> HttpReply {
         Ok(text) => HttpReply {
             status: status,
             body: text,
+            content_type: mime_json(),
             allow_origin: "",
             extra_headers: "",
         },
         Err(_) => HttpReply {
             status: status,
             body: "{\"error\":\"unknown\"}",
+            content_type: mime_json(),
             allow_origin: "",
             extra_headers: "",
         },
@@ -287,12 +323,14 @@ fn json_ok() -> HttpReply {
         Ok(text) => HttpReply {
             status: 200,
             body: text,
+            content_type: mime_json(),
             allow_origin: "",
             extra_headers: "",
         },
         Err(_) => HttpReply {
             status: 200,
             body: "{\"ok\":true}",
+            content_type: mime_json(),
             allow_origin: "",
             extra_headers: "",
         },
@@ -329,6 +367,7 @@ fn apply_cors(reply: HttpReply, origin: string, allowed: Vec<string>) -> HttpRep
         Some(ao) => HttpReply {
             status: reply.status,
             body: reply.body,
+            content_type: reply.content_type,
             allow_origin: ao,
             extra_headers: reply.extra_headers,
         },
@@ -342,6 +381,7 @@ fn apply_security(reply: HttpReply) -> HttpReply {
     HttpReply {
         status: reply.status,
         body: reply.body,
+        content_type: reply.content_type,
         allow_origin: reply.allow_origin,
         extra_headers: merged,
     }
@@ -394,6 +434,11 @@ fn buckets_from_limit(buckets: HashMap<string, WindowBucket>) -> HashMap<string,
         })
     }
     out
+}
+
+fn mime_json() -> string {
+    let value = own(json_mime())
+    value
 }
 
 fn own(value: string) -> string {

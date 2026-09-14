@@ -40,6 +40,23 @@ fn test_post_creates_note_with_201() {
     assert_str_contains(reply.content_type, "application/json")
 }
 
+fn test_post_includes_uuid_and_created_at() {
+    let mut app = NotesApp::new(default_config(), NoteStore::new())
+    let reply = app.handle(
+        "POST",
+        "/notes",
+        "",
+        "",
+        "",
+        1_700_000_000_000,
+        "{\"title\":\"hello\",\"body\":\"world\"}",
+    )
+    assert_eq(reply.status, 201)
+    assert_str_contains(reply.body, "\"uid\"")
+    assert_str_contains(reply.body, "\"created_at\"")
+    assert_str_contains(reply.body, "2023")
+}
+
 fn test_post_rejects_empty_title() {
     let store = NoteStore::new()
     let reply = handle_request("POST", "/notes", "{\"title\":\"\",\"body\":\"world\"}", store)
@@ -80,7 +97,7 @@ fn test_health_sets_json_content_type() {
 
 fn test_get_note_by_id() {
     let mut store = NoteStore::new()
-    let _ = store.create("item", "detail", 200, 10_000)
+    let _ = store.create("item", "detail", 200, 10_000, 0)
     let reply = handle_request("GET", "/notes/1", "", store)
     assert_eq(reply.status, 200)
     assert_str_contains(reply.body, "item")
@@ -95,7 +112,7 @@ fn test_get_missing_note_returns_404() {
 
 fn test_put_updates_note() {
     let mut store = NoteStore::new()
-    let _ = store.create("old", "x", 200, 10_000)
+    let _ = store.create("old", "x", 200, 10_000, 0)
     let body = "{\"title\":\"new\",\"body\":\"y\"}"
     let reply = handle_request("PUT", "/notes/1", body, store)
     assert_eq(reply.status, 200)
@@ -105,7 +122,7 @@ fn test_put_updates_note() {
 
 fn test_delete_note_returns_204() {
     let mut store = NoteStore::new()
-    let _ = store.create("gone", "z", 200, 10_000)
+    let _ = store.create("gone", "z", 200, 10_000, 0)
     let reply = handle_request("DELETE", "/notes/1", "", store)
     assert_eq(reply.status, 204)
     assert_eq(reply.body.len(), 0)
@@ -132,7 +149,7 @@ fn test_health_returns_ok() {
 
 fn test_router_matches_note_id() {
     let mut store = NoteStore::new()
-    let _ = store.create("via-router", "body", 200, 10_000)
+    let _ = store.create("via-router", "body", 200, 10_000, 0)
     let reply = handle_request("GET", "/notes/1", "", store)
     assert_eq(reply.status, 200)
     assert_str_contains(reply.body, "via-router")

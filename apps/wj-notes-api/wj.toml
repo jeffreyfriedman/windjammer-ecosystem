@@ -23,6 +23,7 @@ wj_timefmt = { path = "../../packages/wj-timefmt/build" }
 wj_inflect = { path = "../../packages/wj-inflect/build" }
 wj_sha = { path = "../../packages/wj-sha/build" }
 wj_json_util = { path = "../../packages/wj-json-util/build" }
+wj_base64 = { path = "../../packages/wj-base64/build" }
 
 [dev-dependencies]
 

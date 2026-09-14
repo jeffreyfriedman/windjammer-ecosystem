@@ -7,12 +7,13 @@ Base64 encode/decode helpers over `std::encoding`.
 ```windjammer
 use wj_base64
 
-let encoded = encode("Hello")
-match decode(encoded) {
+let encoded = encode_text("Hello")
+match decode_text(encoded) {
     Ok(text) => println(text),
     Err(e) => println(e),
 }
 
+// `encode` / `decode` remain; prefer `*_text` at app call sites.
 let raw = encode_bytes(bytes)
 match decode_bytes(raw) {
     Ok(bytes) => {},

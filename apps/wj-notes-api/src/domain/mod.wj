@@ -19,3 +19,4 @@ pub use api::NotesApp
 pub use api::handle_request
 pub use api::format_access_log
 pub use api::gzip_decode_body
+pub use api::decode_note_export

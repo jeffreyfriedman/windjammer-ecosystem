@@ -4,6 +4,8 @@ use std::json
 use std::strings
 use std::http::HttpMethod
 
+use wj_base64::encode_text
+use wj_base64::decode_text
 use wj_compress::content_encoding_gzip
 use wj_compress::negotiate
 use wj_cors::allow_origin
@@ -309,7 +311,7 @@ impl NotesApp {
                                             match method {
                                                 HttpMethod::GET => {
                                                     match fetch_note(self.store, id) {
-                                                        Some(note) => note_get_reply(note, if_none_match),
+                                                        Some(note) => note_get_reply(note, if_none_match, query),
                                                         None => json_error(404, "note not found"),
                                                     }
                                                 },
@@ -362,11 +364,12 @@ impl NotesApp {
     }
 }
 
-fn note_get_reply(note: Note, if_none_match: string) -> HttpReply {
+fn note_get_reply(note: Note, if_none_match: string, query: string) -> HttpReply {
     // Keep formal owned (cargo-bin otherwise demotes to &str while callers pass String).
     let mut held: Vec<string> = Vec::new()
     held.push(if_none_match)
     let inm = held[0]
+    let want_base64 = query_wants_base64(query)
     let material = "${note.uid}:${note.title}:${note.body}"
     let tag = "\"${sha_digest(material)}\""
     if etag_matches(inm, tag) {
@@ -380,13 +383,26 @@ fn note_get_reply(note: Note, if_none_match: string) -> HttpReply {
         }
     }
     match json.to_string(note) {
-        Ok(text) => HttpReply {
-            status: 200,
-            body: text,
-            content_type: mime_json(),
-            allow_origin: "",
-            content_encoding: "",
-            extra_headers: etag_header_block(tag),
+        Ok(text) => {
+            if want_base64 {
+                HttpReply {
+                    status: 200,
+                    body: encode_note_json(text),
+                    content_type: "text/plain",
+                    allow_origin: "",
+                    content_encoding: "",
+                    extra_headers: etag_header_block(tag),
+                }
+            } else {
+                HttpReply {
+                    status: 200,
+                    body: text,
+                    content_type: mime_json(),
+                    allow_origin: "",
+                    content_encoding: "",
+                    extra_headers: etag_header_block(tag),
+                }
+            }
         },
         Err(_) => json_error(500, "serialization failed"),
     }
@@ -667,6 +683,25 @@ fn query_wants_pretty(query: string) -> bool {
         None => false,
         Some(text) => text == "1" || text == "true",
     }
+}
+
+fn query_wants_base64(query: string) -> bool {
+    let query = own(query)
+    match query_get(query, "encoding") {
+        None => false,
+        Some(text) => text == "base64",
+    }
+}
+
+fn encode_note_json(text: string) -> string {
+    let text = own(text)
+    encode_text(text)
+}
+
+/// Test/helper port for decoding base64 note exports.
+pub fn decode_note_export(text: string) -> Result<string, string> {
+    let text = own(text)
+    decode_text(text)
 }
 
 fn maybe_pretty_json(text: string, want_pretty: bool) -> string {

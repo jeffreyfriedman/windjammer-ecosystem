@@ -10,7 +10,9 @@ use wj_cors::allow_origin
 use wj_cors::preflight
 use wj_headers::defaults
 use wj_headers::format_headers
+use wj_mime::html as html_mime
 use wj_mime::json as json_mime
+use wj_template::render_html
 use wj_log::log_tagged
 use wj_rate_limit::check_key
 use wj_rate_limit::fixed_window
@@ -197,7 +199,12 @@ impl NotesApp {
     }
 
     fn dispatch(self, method: HttpMethod, path: string, body: string) -> HttpReply {
-        if path == "/health" || path == "/health/" {
+        if path == "/" {
+            match method {
+                HttpMethod::GET => welcome_page(),
+                _ => json_error(404, "not found"),
+            }
+        } else if path == "/health" || path == "/health/" {
             match method {
                 HttpMethod::GET => json_ok(),
                 _ => json_error(404, "not found"),
@@ -515,6 +522,32 @@ fn buckets_from_limit(buckets: HashMap<string, WindowBucket>) -> HashMap<string,
         })
     }
     out
+}
+
+fn welcome_page() -> HttpReply {
+    let mut vars = HashMap::new()
+    vars.insert("title", "wj-notes-api")
+    vars.insert(
+        "message",
+        "REST notes API: GET/POST /notes, GET/PUT/DELETE /notes/{id}, GET /health.",
+    )
+    let html = render_html(
+        "<!DOCTYPE html><html><head><title>{{title}}</title></head><body><h1>{{title}}</h1><p>{{message}}</p></body></html>",
+        vars,
+    )
+    HttpReply {
+        status: 200,
+        body: html,
+        content_type: mime_html(),
+        allow_origin: "",
+        content_encoding: "",
+        extra_headers: "",
+    }
+}
+
+fn mime_html() -> string {
+    let value = own(html_mime())
+    value
 }
 
 fn mime_json() -> string {

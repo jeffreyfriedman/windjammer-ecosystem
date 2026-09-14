@@ -16,6 +16,7 @@ wj_toml = { path = "../../packages/wj-toml/build" }
 wj_log = { path = "../../packages/wj-log/build" }
 wj_duration = { path = "../../packages/wj-duration/build" }
 wj_compress = { path = "../../packages/wj-compress/build" }
+wj_template = { path = "../../packages/wj-template/build" }
 
 [dev-dependencies]
 

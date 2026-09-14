@@ -1,4 +1,5 @@
 use crate::domain::NotesConfig
+use crate::domain::config_from_dotenv
 
 fn test_config_defaults() {
     let cfg = NotesConfig::defaults()
@@ -8,4 +9,32 @@ fn test_config_defaults() {
     assert_eq(cfg.window_ms, 60_000)
     assert_eq(cfg.max_title_len, 200)
     assert_eq(cfg.max_body_len, 10_000)
+}
+
+fn test_config_from_dotenv_overrides_defaults() {
+    let text = "CORS_ORIGIN=https://notes.example.com\nRATE_LIMIT=25\nRATE_WINDOW_MS=30000\nMAX_TITLE_LEN=80\nMAX_BODY_LEN=500\n"
+    let cfg = config_from_dotenv(text)
+    assert_eq(cfg.allowed_origins.len(), 1)
+    assert_eq(cfg.allowed_origins[0], "https://notes.example.com")
+    assert_eq(cfg.rate_limit, 25)
+    assert_eq(cfg.window_ms, 30_000)
+    assert_eq(cfg.max_title_len, 80)
+    assert_eq(cfg.max_body_len, 500)
+}
+
+fn test_config_from_dotenv_partial_keeps_defaults() {
+    let text = "CORS_ORIGIN=https://partial.example.com\n"
+    let cfg = config_from_dotenv(text)
+    assert_eq(cfg.allowed_origins[0], "https://partial.example.com")
+    assert_eq(cfg.rate_limit, 100)
+    assert_eq(cfg.window_ms, 60_000)
+    assert_eq(cfg.max_title_len, 200)
+    assert_eq(cfg.max_body_len, 10_000)
+}
+
+fn test_config_from_dotenv_skips_comments_and_blanks() {
+    let text = "# comment\n\nRATE_LIMIT=7\n"
+    let cfg = config_from_dotenv(text)
+    assert_eq(cfg.rate_limit, 7)
+    assert_eq(cfg.allowed_origins[0], "*")
 }

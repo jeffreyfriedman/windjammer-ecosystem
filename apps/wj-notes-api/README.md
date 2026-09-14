@@ -14,6 +14,7 @@ No Cargo crates, no `extern fn`, no `ffi/`. Domain routing and JSON live in Wind
 | **wj-rate-limit** | fixed-window per `X-Client-Key` (or `anonymous`) |
 | **wj-validate** | nonempty + max-len on note title/body |
 | **wj-mime** | `Content-Type` on `HttpReply` (JSON replies) |
+| **wj-dotenv** + **wj-config** | `config_from_dotenv` (defaults < env-file via `merge`) |
 
 ## Routes
 
@@ -62,7 +63,7 @@ Path dependencies must point at each package’s `build/` directory. Pre-build d
 unset CARGO_TARGET_DIR
 export WJ=~/.cargo/bin/wj   # or windjammer/target/release/wj
 
-for p in wj-router wj-cors wj-headers wj-rate-limit wj-validate wj-mime; do
+for p in wj-router wj-cors wj-headers wj-rate-limit wj-validate wj-mime wj-dotenv wj-config wj-toml; do
   cd packages/$p && $WJ build src --library --module-file
 done
 
@@ -79,3 +80,5 @@ Environment:
 - `MAX_TITLE_LEN` — max note title length (default `200`)
 - `MAX_BODY_LEN` — max note body length (default `10000`)
 - `PORT` (default `8080`)
+
+Also `config_from_dotenv(text)` merges the same keys from dotenv syntax (`CORS_ORIGIN=…`) over defaults.

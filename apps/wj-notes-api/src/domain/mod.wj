@@ -10,6 +10,7 @@ pub use store::fetch_note
 pub use parse::parse_positive_int
 pub use config::NotesConfig
 pub use config::config_from_env
+pub use config::config_from_dotenv
 pub use config::port_from_env
 pub use api::HttpReply
 pub use api::HttpRequest

@@ -15,6 +15,7 @@ fn default_config() -> NotesConfig {
         max_title_len: 200,
         max_body_len: 10_000,
         log_level: "info",
+        public_base_url: "http://localhost:8080",
     }
 }
 
@@ -39,6 +40,22 @@ fn test_post_creates_note_with_201() {
     assert_str_contains(reply.body, "hello")
     assert_str_contains(reply.body, "world")
     assert_str_contains(reply.content_type, "application/json")
+}
+
+fn test_post_sets_location_header() {
+    let mut app = NotesApp::new(default_config(), NoteStore::new())
+    let reply = app.handle(
+        "POST",
+        "/notes",
+        "",
+        "",
+        "",
+        0,
+        "{\"title\":\"hello\",\"body\":\"world\"}",
+    )
+    assert_eq(reply.status, 201)
+    assert_str_contains(reply.extra_headers, "Location:")
+    assert_str_contains(reply.extra_headers, "http://localhost:8080/notes/1")
 }
 
 fn test_post_includes_uuid_and_created_at() {

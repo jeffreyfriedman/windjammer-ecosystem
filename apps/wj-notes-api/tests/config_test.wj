@@ -11,6 +11,13 @@ fn test_config_defaults() {
     assert_eq(cfg.max_title_len, 200)
     assert_eq(cfg.max_body_len, 10_000)
     assert_eq(cfg.log_level, "info")
+    assert_eq(cfg.public_base_url, "http://localhost:8080")
+}
+
+fn test_config_from_toml_sets_public_base_url() {
+    let text = "public_base_url = \"https://notes.example.com\"\n"
+    let cfg = config_from_toml(text)
+    assert_eq(cfg.public_base_url, "https://notes.example.com")
 }
 
 fn test_config_from_toml_overrides_defaults() {

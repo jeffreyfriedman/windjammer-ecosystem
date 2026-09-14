@@ -25,6 +25,7 @@ No Cargo crates, no `extern fn`, no `ffi/`. Domain routing and JSON live in Wind
 | **wj-sha** | SHA-256 `ETag` on `GET /notes/:id` + `If-None-Match` → 304 |
 | **wj-json-util** | `GET /notes?pretty=1` indented JSON |
 | **wj-base64** | `GET /notes/:id?encoding=base64` (`encode_text`) |
+| **wj-url** | `Location` on `POST /notes` via `join_url` + `public_base_url` |
 | **wj-log** | `LOG_LEVEL` / `log_level` + tagged access lines (`[notes] GET /health -> 200`) |
 
 ## Routes
@@ -34,7 +35,7 @@ No Cargo crates, no `extern fn`, no `ffi/`. Domain routing and JSON live in Wind
 | `GET` | `/` | 200 HTML welcome (wj-template) |
 | `GET` | `/health` | 200 `{ "ok": true }` |
 | `GET` | `/notes` | 200 JSON array (optional `?limit=N`, `?pretty=1`) |
-| `POST` | `/notes` | 201 created / 400 invalid JSON or validation |
+| `POST` | `/notes` | 201 created (+ `Location`) / 400 invalid JSON or validation |
 | `GET` | `/notes/:id` | 200 / 304 (ETag / If-None-Match) / 404; optional `?encoding=base64` |
 | `PUT` | `/notes/:id` | 200 / 400 / 404 |
 | `DELETE` | `/notes/:id` | 204 / 404 |
@@ -75,7 +76,7 @@ Path dependencies must point at each package’s `build/` directory. Pre-build d
 unset CARGO_TARGET_DIR
 export WJ=~/.cargo/bin/wj   # or windjammer/target/release/wj
 
-for p in wj-router wj-cors wj-headers wj-rate-limit wj-validate wj-mime wj-dotenv wj-config wj-toml wj-log wj-duration wj-compress wj-template wj-querystring wj-uuid wj-timefmt wj-inflect wj-sha wj-json-util wj-base64; do
+for p in wj-router wj-cors wj-headers wj-rate-limit wj-validate wj-mime wj-dotenv wj-config wj-toml wj-log wj-duration wj-compress wj-template wj-querystring wj-uuid wj-timefmt wj-inflect wj-sha wj-json-util wj-base64 wj-url; do
   cd packages/$p && $WJ build src --library --module-file
 done
 
@@ -92,7 +93,9 @@ Environment:
 - `MAX_TITLE_LEN` — max note title length (default `200`)
 - `MAX_BODY_LEN` — max note body length (default `10000`)
 - `PORT` (default `8080`)
+- `PUBLIC_BASE_URL` — absolute base for `Location` on create (default `http://localhost:8080`)
+- `LOG_LEVEL` — access-log floor (`error`/`warn`/`info`/`debug`/`trace`; default `info`)
 
 Also `config_from_dotenv(text)` and `config_from_toml(text)` merge the same keys over defaults
-(`cors_origin`, `rate_limit`, `window_ms`, `max_title_len`, `max_body_len`, `log_level`; TOML also
-accepts `[limits]` section keys).
+(`cors_origin`, `rate_limit`, `window_ms`, `max_title_len`, `max_body_len`, `log_level`,
+`public_base_url`; TOML also accepts `[limits]` section keys).

@@ -1,0 +1,31 @@
+// wj-sync — idiomatic Windjammer concurrency (Go-style sync + CSP channels).
+// Public surface: Channel, Shared, Pending, Pool — never Arc/Mutex/async/spawn.
+
+pub mod channel
+pub mod shared
+pub mod coord
+
+pub use channel::IntReceiver
+pub use channel::IntSender
+pub use channel::recv_int
+pub use channel::send_int
+pub use channel::try_recv_int
+pub use channel::unbounded_int
+
+pub use shared::SharedInt
+pub use shared::shared_int
+pub use shared::shared_int_add
+pub use shared::shared_int_get
+
+pub use coord::Barrier
+pub use coord::Latch
+pub use coord::Once
+pub use coord::barrier_new
+pub use coord::barrier_wait
+pub use coord::barrier_waiting
+pub use coord::latch_count
+pub use coord::latch_countdown
+pub use coord::latch_is_open
+pub use coord::latch_new
+pub use coord::once_call
+pub use coord::once_new

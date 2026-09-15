@@ -1,0 +1,48 @@
+// Message-passing channels (CSP). Ownership moves with messages.
+
+use std::sync::mpsc
+
+/// Sender half of an unbounded int channel.
+pub struct IntSender {
+    tx: mpsc::Sender<int>,
+}
+
+/// Receiver half of an unbounded int channel.
+pub struct IntReceiver {
+    rx: mpsc::Receiver<int>,
+}
+
+/// Create an unbounded int channel.
+pub fn unbounded_int() -> (IntSender, IntReceiver) {
+    let pair = mpsc::channel()
+    (
+        IntSender { tx: pair.0 },
+        IntReceiver { rx: pair.1 },
+    )
+}
+
+/// Send an int; ownership moves to the channel.
+pub fn send_int(tx: IntSender, value: int) -> IntSender {
+    match tx.tx.send(value) {
+        Ok(_) => tx,
+        Err(_) => tx,
+    }
+}
+
+/// Blocking receive.
+pub fn recv_int(rx: IntReceiver) -> int {
+    let out = match rx.rx.recv() {
+        Ok(v) => v,
+        Err(_) => 0,
+    }
+    out
+}
+
+/// Non-blocking receive: `(true, value)` or `(false, 0)`.
+pub fn try_recv_int(rx: IntReceiver) -> (bool, int) {
+    let out = match rx.rx.try_recv() {
+        Ok(v) => (true, v),
+        Err(_) => (false, 0),
+    }
+    out
+}

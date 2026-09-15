@@ -12,6 +12,11 @@ pub struct IntReceiver {
     rx: mpsc::Receiver<int>,
 }
 
+/// Sender half of a bounded int channel (`sync_channel`).
+pub struct BoundedIntSender {
+    tx: mpsc::SyncSender<int>,
+}
+
 /// Create an unbounded int channel.
 pub fn unbounded_int() -> (IntSender, IntReceiver) {
     let pair = mpsc::channel()
@@ -20,6 +25,24 @@ pub fn unbounded_int() -> (IntSender, IntReceiver) {
         IntReceiver { rx: pair.1 },
     )
 }
+
+/// Create a bounded int channel with capacity `cap` (blocks send when full).
+pub fn bounded_int(cap: int) -> (BoundedIntSender, IntReceiver) {
+    let pair = mpsc::sync_channel(cap)
+    (
+        BoundedIntSender { tx: pair.0 },
+        IntReceiver { rx: pair.1 },
+    )
+}
+
+/// Send on a bounded sender; ownership returns for reuse.
+pub fn send_bounded(tx: BoundedIntSender, value: int) -> BoundedIntSender {
+    match tx.tx.send(value) {
+        Ok(_) => tx,
+        Err(_) => tx,
+    }
+}
+
 
 /// Send an int; ownership moves to the channel.
 pub fn send_int(tx: IntSender, value: int) -> IntSender {

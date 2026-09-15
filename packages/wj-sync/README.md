@@ -15,8 +15,7 @@ Idiomatic Windjammer concurrency — Go-style `sync` + CSP channels.
 | `SharedInt` / Counter, Once / Latch / Barrier | ✅ tested |
 | `SharedMap` insert/len/get/has | ✅ tested |
 | `parallel` / `Pending` | ✅ tested |
-| Pool | ⏭ next |
-
+| Pool (`pool_run_double`) | ✅ tested (per-job workers; shared-inbox ⏸ P3.294) |
 | Cross-crate handle loop reassign (`tx = send_int(tx, …)`) | ⏸ **P3.290** — use package helpers until green |
 
 ## Usage
@@ -30,13 +29,14 @@ send_int(txs.0, 1)
 send_int(txs.1, 2)
 let a = recv_int(pair.1)
 
-// Same-thread dogfood (Shared + Channel):
 let out = channel_sum_range(100)
+let p = parallel_add(2, 3)
+assert_eq(wait_int(p), 5)
 ```
 
 ## Graduation
 
-Candidate for future **`std::sync`** / channel primitives once `parallel` and bounded channels compile. Stay ecosystem until OS-thread + `sync_channel` wiring is green.
+Candidate for future **`std::sync`** / channel primitives. Stay ecosystem until Pool + cross-crate ownership stress are complete.
 
 ## License
 

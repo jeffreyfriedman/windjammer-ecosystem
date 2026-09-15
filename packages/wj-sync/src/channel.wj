@@ -29,20 +29,28 @@ pub fn send_int(tx: IntSender, value: int) -> IntSender {
     }
 }
 
-/// Blocking receive.
-pub fn recv_int(rx: IntReceiver) -> int {
+/// Blocking receive; returns (receiver, value) so the channel can be reused.
+pub fn recv_int(rx: IntReceiver) -> (IntReceiver, int) {
     let out = match rx.rx.recv() {
         Ok(v) => v,
         Err(_) => 0,
     }
-    out
+    (rx, out)
 }
 
-/// Non-blocking receive: `(true, value)` or `(false, 0)`.
-pub fn try_recv_int(rx: IntReceiver) -> (bool, int) {
-    let out = match rx.rx.try_recv() {
+/// Non-blocking receive: `(receiver, present, value)`.
+pub fn try_recv_int(rx: IntReceiver) -> (IntReceiver, bool, int) {
+    let result = match rx.rx.try_recv() {
         Ok(v) => (true, v),
         Err(_) => (false, 0),
     }
-    out
+    (rx, result.0, result.1)
+}
+
+/// Clone an unbounded sender (fan-out producers). Returns (original, clone).
+pub fn clone_sender(tx: IntSender) -> (IntSender, IntSender) {
+    let cloned = IntSender {
+        tx: tx.tx.clone(),
+    }
+    (tx, cloned)
 }

@@ -4,9 +4,12 @@
 pub mod channel
 pub mod shared
 pub mod coord
+// `pending` blocked on compiler P3.286 (`std::thread::spawn` wraps closures in `&(move ||…)`).
+// Idiomatic source kept at `src/pending.wj.blocked` + `tests/pending_test.wj.blocked` — rename back when green.
 
 pub use channel::IntReceiver
 pub use channel::IntSender
+pub use channel::clone_sender
 pub use channel::recv_int
 pub use channel::send_int
 pub use channel::try_recv_int

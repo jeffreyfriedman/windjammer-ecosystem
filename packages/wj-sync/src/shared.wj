@@ -86,26 +86,3 @@ pub fn shared_map_len(m: SharedMap) -> int {
     }
     out
 }
-
-/// Lookup key; returns (map, present, value).
-pub fn shared_map_get(m: SharedMap, key: string) -> (SharedMap, bool, int) {
-    let result = match m.inner.lock() {
-        Ok(g) => {
-            match g.data.get(key) {
-                Some(v) => (true, v),
-                None => (false, 0),
-            }
-        }
-        Err(_) => (false, 0),
-    }
-    (m, result.0, result.1)
-}
-
-/// True when key is present.
-pub fn shared_map_has(m: SharedMap, key: string) -> bool {
-    let out = match m.inner.lock() {
-        Ok(g) => g.data.contains_key(key),
-        Err(_) => false,
-    }
-    out
-}

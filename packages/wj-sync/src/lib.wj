@@ -28,8 +28,6 @@ pub use shared::counter_new
 pub use shared::shared_int
 pub use shared::shared_int_add
 pub use shared::shared_int_get
-pub use shared::shared_map_get
-pub use shared::shared_map_has
 pub use shared::shared_map_insert
 pub use shared::shared_map_len
 pub use shared::shared_map_new

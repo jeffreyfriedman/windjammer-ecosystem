@@ -1,6 +1,6 @@
-// Worker pool — Channel + parallel workers (int-specialized first slice).
-// Note: shared-inbox `move ||` still emits `spawn(&(move ||…))` on tip — use
-// per-job `parallel`-style workers (same pattern as `pending.wj`) until that gate greens.
+// Worker pool — Channel + parallel workers (int-specialized).
+// Shared-inbox blocked: tip strips `move` from `spawn(move ||)` (P3.295) → E0373.
+// Per-job workers (Pending-style) until that gate greens.
 
 use std::sync::mpsc
 

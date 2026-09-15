@@ -62,4 +62,5 @@ pub use pool::Pool
 pub use pool::pool_new
 pub use pool::pool_run_double
 pub use pool::pool_shutdown
+pub use pool::pool_sum_double
 

@@ -21,10 +21,8 @@ pub fn transform(job: Job) -> JobResult {
 /// Sum result values.
 pub fn sum_results(results: Vec<JobResult>) -> int {
     let mut total = 0
-    let mut i = 0
-    while i < results.len() {
-        total = total + results[i].value
-        i = i + 1
+    for r in results {
+        total = total + r.value
     }
     total
 }

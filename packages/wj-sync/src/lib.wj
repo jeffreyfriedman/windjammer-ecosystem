@@ -6,6 +6,7 @@ pub mod shared
 pub mod coord
 pub mod pipeline
 pub mod pending
+pub mod pool
 // App-side loop reassignment of channel handles blocked on P3.290 — use `channel_sum_range` until green.
 
 pub use channel::BoundedIntSender
@@ -56,4 +57,9 @@ pub use pending::parallel_add
 pub use pending::parallel_shared_add
 pub use pending::wait_int
 pub use pending::wait_shared
+
+pub use pool::Pool
+pub use pool::pool_new
+pub use pool::pool_run_double
+pub use pool::pool_shutdown
 

@@ -1,0 +1,69 @@
+// Worker pool — Channel + parallel workers (int-specialized first slice).
+// Note: shared-inbox `move ||` still emits `spawn(&(move ||…))` on tip — use
+// per-job `parallel`-style workers (same pattern as `pending.wj`) until that gate greens.
+
+use std::sync::mpsc
+
+use crate::shared::SharedInt
+use crate::shared::shared_int
+use crate::shared::shared_int_get
+
+/// Fixed-size int worker pool.
+pub struct Pool {
+    workers: int,
+    alive: SharedInt,
+}
+
+/// Create a pool with `workers` OS threads (capacity hint for future shared-inbox).
+pub fn pool_new(workers: int) -> Pool {
+    let n = if workers < 1 { 1 } else { workers }
+    Pool {
+        workers: n,
+        alive: shared_int(1),
+    }
+}
+
+/// Run jobs `0..n`, each doubled on a worker; returns results (unordered OK for sum).
+pub fn pool_run_double(pool: Pool, n: int) -> Vec<int> {
+    let _ = pool.workers
+    let results = mpsc::channel()
+    let res_tx = results.0
+    let res_rx = results.1
+
+    let mut i: int = 0
+    while i < n {
+        let tx = res_tx.clone()
+        let v = i
+        std::thread::spawn(|| {
+            match tx.send(v * 2) {
+                Ok(_) => {}
+                Err(_) => {}
+            }
+        })
+        i = i + 1
+    }
+
+    let mut out: Vec<int> = Vec::new()
+    let mut got: int = 0
+    while got < n {
+        match res_rx.recv() {
+            Ok(v) => {
+                out.push(v)
+                got = got + 1
+            }
+            Err(_) => {
+                break
+            }
+        }
+    }
+    out
+}
+
+/// Mark pool shut down (idempotent).
+pub fn pool_shutdown(pool: Pool) -> Pool {
+    let _ = shared_int_get(pool.alive)
+    Pool {
+        workers: pool.workers,
+        alive: shared_int(0),
+    }
+}

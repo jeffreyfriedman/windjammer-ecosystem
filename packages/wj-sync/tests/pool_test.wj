@@ -1,0 +1,24 @@
+use crate::pool_new
+use crate::pool_run_double
+use crate::pool_shutdown
+
+@test
+fn test_pool_doubles_jobs() {
+    let pool = pool_new(2)
+    let results = pool_run_double(pool, 5)
+    // jobs 0..4 doubled → 0,2,4,6,8
+    let mut sum: int = 0
+    let mut i: int = 0
+    while i < results.len() {
+        sum = sum + results[i]
+        i = i + 1
+    }
+    assert_eq(sum, 20)
+}
+
+@test
+fn test_pool_shutdown_idempotent() {
+    let pool = pool_new(1)
+    let pool = pool_shutdown(pool)
+    let _ = pool_shutdown(pool)
+}

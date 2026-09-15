@@ -1,4 +1,5 @@
 use crate::adapters::run::run_int_pipeline
+use crate::adapters::run::run_pool_pipeline
 use crate::domain::pipeline::Job
 use crate::domain::pipeline::JobResult
 use crate::domain::pipeline::sum_results
@@ -24,5 +25,13 @@ fn test_run_int_pipeline() {
     let out = run_int_pipeline(5)
     assert_eq(out.0, 5)
     // payloads 0..4 doubled → 0+2+4+6+8 = 20
+    assert_eq(out.1, 20)
+}
+
+@test
+fn test_run_pool_pipeline() {
+    let out = run_pool_pipeline(5)
+    assert_eq(out.0, 5)
+    // pool doubles 0..4 → sum 20
     assert_eq(out.1, 20)
 }

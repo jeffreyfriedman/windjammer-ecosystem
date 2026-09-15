@@ -59,6 +59,17 @@ pub fn pool_run_double(pool: Pool, n: int) -> Vec<int> {
     out
 }
 
+/// Create a pool, double `0..n` on workers, return `(count, sum)`.
+pub fn pool_sum_double(workers: int, n: int) -> (int, int) {
+    let pool = pool_new(workers)
+    let results = pool_run_double(pool, n)
+    let mut sum: int = 0
+    for v in results {
+        sum = sum + v
+    }
+    (n, sum)
+}
+
 /// Mark pool shut down (idempotent).
 pub fn pool_shutdown(pool: Pool) -> Pool {
     let _ = shared_int_get(pool.alive)

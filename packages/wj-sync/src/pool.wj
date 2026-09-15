@@ -1,6 +1,7 @@
 // Worker pool — Channel + parallel workers (int-specialized).
-// Shared-inbox blocked: tip strips `move` from `spawn(move ||)` (P3.295) → E0373.
-// Per-job workers (Pending-style) until that gate greens.
+// Shared-inbox blocked: tip multipass strips `move` from `spawn(move ||)`
+// in the Arc-clone + worker-loop pattern (E0373) — see P3.295 / P3.296.
+// Per-job workers (Pending-style) keep the package green.
 
 use std::sync::mpsc
 

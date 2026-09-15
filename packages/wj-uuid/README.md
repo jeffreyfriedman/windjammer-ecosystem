@@ -39,6 +39,10 @@ src/lib.wj
 tests/uuid_test.wj
 ```
 
+## Tip status
+
+❌ tip RED (P3.298) — `append_bytes(mut out: Vec<u8>, …) -> Vec<u8>` demotes to `&Vec<u8>`. Idiomatic sources kept; gate in `windjammer/tests/`.
+
 ## License
 
 MIT OR Apache-2.0

@@ -1,0 +1,67 @@
+// Pending work — `parallel` / `task` vocabulary (not spawn/async/go).
+
+use std::sync::mpsc
+
+use crate::shared::SharedInt
+use crate::shared::shared_int_add
+
+/// Unfinished int result from parallel work.
+pub struct PendingInt {
+    rx: mpsc::Receiver<int>,
+}
+
+/// Unfinished SharedInt result from parallel work.
+pub struct PendingShared {
+    rx: mpsc::Receiver<SharedInt>,
+}
+
+/// Run `a + b` on a parallel worker; wait with `wait_int`.
+pub fn parallel_add(a: int, b: int) -> PendingInt {
+    let pair = mpsc::channel()
+    let tx = pair.0
+    let rx = pair.1
+    std::thread::spawn(|| {
+        match tx.send(a + b) {
+            Ok(_) => {}
+            Err(_) => {}
+        }
+    })
+    PendingInt { rx: rx }
+}
+
+/// Block until parallel int work completes.
+pub fn wait_int(pending: PendingInt) -> int {
+    let out = match pending.rx.recv() {
+        Ok(v) => v,
+        Err(_) => 0,
+    }
+    out
+}
+
+/// Add `delta` to a SharedInt on a parallel worker.
+pub fn parallel_shared_add(s: SharedInt, delta: int) -> PendingShared {
+    let pair = mpsc::channel()
+    let tx = pair.0
+    let rx = pair.1
+    let shared = s
+    std::thread::spawn(|| {
+        let next = shared_int_add(shared, delta)
+        match tx.send(next) {
+            Ok(_) => {}
+            Err(_) => {}
+        }
+    })
+    PendingShared { rx: rx }
+}
+
+/// Block until parallel SharedInt work completes.
+pub fn wait_shared(pending: PendingShared) -> SharedInt {
+    let out = match pending.rx.recv() {
+        Ok(v) => v,
+        Err(_) => {
+            // Should not happen in well-formed tests; return empty shared cell.
+            crate::shared::shared_int(0)
+        }
+    }
+    out
+}

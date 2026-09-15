@@ -9,10 +9,13 @@ pub mod pipeline
 // Idiomatic source kept at `src/pending.wj.blocked` + `tests/pending_test.wj.blocked` — rename back when green.
 // App-side loop reassignment of channel handles blocked on P3.290 — use `channel_sum_range` until green.
 
+pub use channel::BoundedIntSender
 pub use channel::IntReceiver
 pub use channel::IntSender
+pub use channel::bounded_int
 pub use channel::clone_sender
 pub use channel::recv_int
+pub use channel::send_bounded
 pub use channel::send_int
 pub use channel::try_recv_int
 pub use channel::unbounded_int

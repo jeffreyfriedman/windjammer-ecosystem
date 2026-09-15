@@ -11,9 +11,9 @@ Idiomatic Windjammer concurrency — Go-style `sync` + CSP channels.
 |------|--------|
 | Unbounded int channels, `clone_sender` | ✅ tested |
 | Same-thread fan-out helpers (`channel_sum_range`) | ✅ tested |
-| Bounded channels (`sync_channel`) | ⏸ blocked on compiler **P3.287** |
+| Bounded channels (`bounded_int` / `BoundedIntSender`) | ✅ tested |
 | `SharedInt` / Counter, Once / Latch / Barrier | ✅ tested |
-| `SharedMap` insert/len | ✅ tested; get/has ⏸ **P3.288** |
+| `SharedMap` insert/len | ✅ tested; get/has ⏸ **P3.288** (idiomatic source in `shared_map_lookup.wj.blocked`) |
 | `parallel` / `Pending` / Pool | ⏸ blocked on compiler **P3.286** |
 | Cross-crate handle loop reassign (`tx = send_int(tx, …)`) | ⏸ **P3.290** — use package helpers until green |
 

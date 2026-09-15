@@ -24,6 +24,10 @@ src/lib.wj
 tests/duration_test.wj
 ```
 
+## Tip status
+
+❌ tip RED (P3.300) — `substring(s, i, i+1)` emits `(i + 1_i32) as usize`. Idiomatic sources kept; gate in `windjammer/tests/`.
+
 ## License
 
 MIT OR Apache-2.0

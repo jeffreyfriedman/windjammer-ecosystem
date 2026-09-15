@@ -1,0 +1,30 @@
+/// One pipeline job (int payload for sync dogfood).
+pub struct Job {
+    pub id: int,
+    pub payload: int,
+}
+
+/// Stage output.
+pub struct JobResult {
+    pub id: int,
+    pub value: int,
+}
+
+/// Pure stage: double the payload.
+pub fn transform(job: Job) -> JobResult {
+    JobResult {
+        id: job.id,
+        value: job.payload * 2,
+    }
+}
+
+/// Sum result values.
+pub fn sum_results(results: Vec<JobResult>) -> int {
+    let mut total = 0
+    let mut i = 0
+    while i < results.len() {
+        total = total + results[i].value
+        i = i + 1
+    }
+    total
+}

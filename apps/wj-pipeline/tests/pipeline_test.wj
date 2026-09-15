@@ -1,0 +1,28 @@
+use crate::adapters::run::run_int_pipeline
+use crate::domain::pipeline::Job
+use crate::domain::pipeline::JobResult
+use crate::domain::pipeline::sum_results
+use crate::domain::pipeline::transform
+
+@test
+fn test_transform_doubles() {
+    let r = transform(Job { id: 1, payload: 5 })
+    assert_eq(r.id, 1)
+    assert_eq(r.value, 10)
+}
+
+@test
+fn test_sum_results() {
+    let mut rs: Vec<JobResult> = Vec::new()
+    rs.push(transform(Job { id: 0, payload: 2 }))
+    rs.push(transform(Job { id: 1, payload: 3 }))
+    assert_eq(sum_results(rs), 10)
+}
+
+@test
+fn test_run_int_pipeline() {
+    let out = run_int_pipeline(5)
+    assert_eq(out.0, 5)
+    // payloads 0..4 doubled → 0+2+4+6+8 = 20
+    assert_eq(out.1, 20)
+}

@@ -1,0 +1,19 @@
+use crate::domain::pipeline::Job
+use crate::domain::pipeline::transform
+use wj_sync::channel_sum_range
+
+/// Same-thread pipeline: channel fan-out + Shared counter live in `wj_sync`
+/// (`channel_sum_range`) until P3.290 unlocks idiomatic cross-crate handle loops.
+/// Domain `transform` still runs here on the summed range (doubled payloads).
+pub fn run_int_pipeline(n: int) -> (int, int) {
+    let raw = channel_sum_range(n)
+    // raw.1 is sum of 0..n; transform doubles each → sum * 2
+    let mut i: int = 0
+    let mut sum: int = 0
+    while i < n {
+        let r = transform(Job { id: i, payload: i })
+        sum = sum + r.value
+        i = i + 1
+    }
+    (raw.0, sum)
+}

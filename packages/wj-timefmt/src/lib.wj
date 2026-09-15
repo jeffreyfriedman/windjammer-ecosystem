@@ -1,4 +1,15 @@
 use std::strings
+use std::time
+
+/// Current UTC time as RFC3339 text (thin-wraps `std::time.utc_now().to_rfc3339`).
+pub fn now_rfc3339() -> string {
+    time.utc_now().to_rfc3339()
+}
+
+/// Current UTC Unix epoch seconds (thin-wraps `std::time.utc_now().timestamp`).
+pub fn now_epoch_secs() -> int {
+    time.utc_now().timestamp() as int
+}
 
 /// RFC3339 timestamp with timezone offset.
 pub struct Rfc3339 {

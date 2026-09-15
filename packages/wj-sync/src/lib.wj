@@ -4,8 +4,10 @@
 pub mod channel
 pub mod shared
 pub mod coord
+pub mod pipeline
 // `pending` blocked on compiler P3.286 (`std::thread::spawn` wraps closures in `&(move ||…)`).
 // Idiomatic source kept at `src/pending.wj.blocked` + `tests/pending_test.wj.blocked` — rename back when green.
+// App-side loop reassignment of channel handles blocked on P3.290 — use `channel_sum_range` until green.
 
 pub use channel::IntReceiver
 pub use channel::IntSender
@@ -16,9 +18,16 @@ pub use channel::try_recv_int
 pub use channel::unbounded_int
 
 pub use shared::SharedInt
+pub use shared::SharedMap
+pub use shared::counter_get
+pub use shared::counter_inc
+pub use shared::counter_new
 pub use shared::shared_int
 pub use shared::shared_int_add
 pub use shared::shared_int_get
+pub use shared::shared_map_insert
+pub use shared::shared_map_len
+pub use shared::shared_map_new
 
 pub use coord::Barrier
 pub use coord::Latch
@@ -32,3 +41,7 @@ pub use coord::latch_is_open
 pub use coord::latch_new
 pub use coord::once_call
 pub use coord::once_new
+
+pub use pipeline::channel_sum_range
+pub use pipeline::drain_int_until_sentinel
+pub use pipeline::send_int_range_with_sentinel

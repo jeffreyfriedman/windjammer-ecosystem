@@ -1,0 +1,27 @@
+use crate::recv_int
+use crate::send_int
+use crate::try_recv_int
+use crate::unbounded_int
+
+@test
+fn test_unbounded_send_recv() {
+    let pair = unbounded_int()
+    send_int(pair.0, 42)
+    assert_eq(recv_int(pair.1), 42)
+}
+
+@test
+fn test_try_recv_empty() {
+    let pair = unbounded_int()
+    let got = try_recv_int(pair.1)
+    assert(!got.0, "empty channel has no value")
+}
+
+@test
+fn test_try_recv_after_send() {
+    let pair = unbounded_int()
+    send_int(pair.0, 7)
+    let got = try_recv_int(pair.1)
+    assert(got.0, "value present")
+    assert_eq(got.1, 7)
+}

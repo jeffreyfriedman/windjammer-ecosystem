@@ -1,0 +1,39 @@
+// Shared mutable state — Windjammer `Shared`, not Arc/Mutex in the public API.
+
+use std::sync::{Arc, Mutex}
+
+struct Cell {
+    n: int,
+}
+
+/// Shared integer cell (thread-safe).
+pub struct SharedInt {
+    inner: Arc<Mutex<Cell>>,
+}
+
+/// Create a shared int with initial value.
+pub fn shared_int(n: int) -> SharedInt {
+    SharedInt {
+        inner: Arc::new(Mutex::new(Cell { n: n })),
+    }
+}
+
+/// Add `delta` to the shared int; returns the same handle.
+pub fn shared_int_add(s: SharedInt, delta: int) -> SharedInt {
+    match s.inner.lock() {
+        Ok(mut g) => {
+            g.n = g.n + delta
+        }
+        Err(_) => {}
+    }
+    s
+}
+
+/// Read the current value.
+pub fn shared_int_get(s: SharedInt) -> int {
+    let out = match s.inner.lock() {
+        Ok(g) => g.n,
+        Err(_) => 0,
+    }
+    out
+}

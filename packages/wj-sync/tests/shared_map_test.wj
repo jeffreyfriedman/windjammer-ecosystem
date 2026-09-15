@@ -1,0 +1,28 @@
+use crate::shared_map_insert
+use crate::shared_map_len
+use crate::shared_map_new
+use crate::counter_get
+use crate::counter_inc
+use crate::counter_new
+
+@test
+fn test_shared_map_insert_len() {
+    let m = shared_map_new()
+    assert_eq(shared_map_len(m), 0)
+}
+
+@test
+fn test_shared_map_len_after_inserts() {
+    let m = shared_map_new()
+    let m = shared_map_insert(m, "x", 1)
+    let m = shared_map_insert(m, "y", 2)
+    assert_eq(shared_map_len(m), 2)
+}
+
+@test
+fn test_counter_inc() {
+    let c = counter_new(0)
+    let c = counter_inc(c)
+    let c = counter_inc(c)
+    assert_eq(counter_get(c), 2)
+}

@@ -5,8 +5,11 @@ use crate::from_epoch_secs
 use crate::is_after
 use crate::is_before
 use crate::is_leap_year
+use crate::now_epoch_secs
+use crate::now_rfc3339
 use crate::parse_rfc3339
 use crate::to_epoch_secs
+use std::strings
 
 @test
 fn test_parse_rfc3339_zulu() {
@@ -202,4 +205,16 @@ fn test_days_in_month() {
     assert_eq(days_in_month(2023, 2), 28)
     assert_eq(days_in_month(2024, 4), 30)
     assert_eq(days_in_month(2024, 12), 31)
+}
+
+@test
+fn test_now_rfc3339_shape() {
+    let s = now_rfc3339()
+    assert(strings.len(s) >= 20, "rfc3339 min length")
+    assert(strings.contains(s, "T"), "has T separator")
+}
+
+@test
+fn test_now_epoch_secs_positive() {
+    assert(now_epoch_secs() > 1_700_000_000, "after 2023")
 }

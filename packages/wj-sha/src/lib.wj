@@ -1,8 +1,9 @@
 use std::crypto
 
 /// SHA-256 hex digest of `text` (lowercase hex).
+/// Thin-wraps `std::crypto.sha256_hex`.
 pub fn hex(text: string) -> string {
-    crypto.sha256(text)
+    crypto.sha256_hex(text)
 }
 
 /// True when `hex(text)` equals `expected_hex` (exact string match).

@@ -1,0 +1,6 @@
+use crate::adapters::run::run_int_pipeline
+
+fn main() {
+    let out = run_int_pipeline(10)
+    println("processed=${out.0} sum=${out.1}")
+}

@@ -2,7 +2,7 @@
 
 Strong stdlib is the adoption lever. Ecosystem packages should **dogfood gaps** and **stay thin wrappers** once `std::*` is wired — not permanently duplicate platform primitives.
 
-Updated 2026-09-11 from ecosystem dogfooding.
+Updated 2026-09-14 from ecosystem dogfooding (`wj-sync` + graduation polish).
 
 ## Principle
 
@@ -19,11 +19,11 @@ Updated 2026-09-11 from ecosystem dogfooding.
 | Path join / basename / ext | `wj-path` (`join_path`/`basename` → `std::path`; normalize/dirname/extname sugar) | **`std::path`** | Wiring ✅; package keeps extra helpers |
 | MIME lookup | `wj-mime` thin-wraps **`std::mime`** | **`std::mime`** | HTTP static files — wiring ✅; charset parity ✅ P3.243 |
 | Base64 / hex / URL encode | `wj-base64` thin-wraps **`std::encoding`** | **`std::encoding`** string APIs | Encoding is platform — ✅ graduated |
-| UUID v4/v5/v7 | `wj-uuid` (v1/v4/v5/v7 + NIL/MAX; thin-wraps crypto/random/time) | **`std::uuid`** (new; wire v7 when ready) | Identity primitive — package ahead of std |
+| UUID v4/v5/v7 | `wj-uuid` (v1/v4/v5/v7 + NIL/MAX; **v4 thin-wraps `std::uuid`**) | **`std::uuid`** (new; wire v7 when ready) | Identity primitive — package ahead of std |
 | Random range | (via uuid) | **`std::random.range` → runtime `int_range`** | ✅ wired (WJ `range` name; runtime `int_range`) |
 | SHA-1 bytes / SHA-256 hex | `wj-sha` thin | **`std::crypto`** complete wiring | Crypto must be std |
-| UTC now / millis / RFC3339 | `wj-timefmt` subset | **`std::time`** | Clocks are std |
-| Human duration `1h30m` | `wj-duration` | **`std::time` Duration parse** *or* keep package | Borderline — prefer std |
+| UTC now / millis / RFC3339 | `wj-timefmt` (structured Rfc3339 + **`now_rfc3339`/`now_epoch_secs` via `std::time`**) | **`std::time`** | Clocks are std; structured parse stays package sugar |
+| Human duration `1h30m` | `wj-duration` | **`std::time` Duration parse** *or* keep package | Borderline — prefer std; gate `bug_std_time_parse_duration_ms_wiring_test` |
 | YAML config | `wj-yaml` thin-wraps **`std::yaml.to_json`**; getters sugar | **`std::yaml`** wiring ✅; empty-input parity ✅ P3.244 | PyYAML-scale ubiquity |
 | JWT HS256 | `wj-jwt` thin-wraps **`std::jwt`** | **`std::jwt`** | Auth primitive — ✅ graduated |
 | CSV parse/write | `wj-csv` thin-wraps **`std::csv`** parse/write | **`std::csv`** idiomatic API | Data interchange — ✅ graduated |
@@ -34,6 +34,7 @@ Updated 2026-09-11 from ecosystem dogfooding.
 
 | Package | Reason |
 |---|---|
+| `wj-sync` | Concurrency dogfood; graduate later → **`std::sync`** / channels once P3.286–P3.290 green |
 | `wj-validate` | App schema DSL; grows with products (zod-like) |
 | `wj-rate-limit` | Policy / storage backends vary |
 | `wj-headers` / helmet | Opinionated security defaults |
@@ -44,7 +45,16 @@ Updated 2026-09-11 from ecosystem dogfooding.
 | `wj-retry`, `wj-template`, `wj-inflect` | Convenience; not platform |
 | `wj-http-client`, `wj-json-util` | Ergonomic veneers over `std::http` / `std::json` |
 | `wj-glob` | Until `std::fs`/`path` gains match helpers |
-| Apps (`wj-todo-cli`, `wj-proxy`, …) | Never std |
+| Apps (`wj-todo-cli`, `wj-proxy`, `wj-pipeline`, …) | Never std |
+
+## Tip health (2026-09-14 local `wj`)
+
+| Package | Tests | Notes |
+|---|---|---|
+| `wj-path`, `wj-base64`, `wj-jwt`, `wj-csv`, `wj-yaml`, `wj-sha` | ✅ green | Thin-wraps complete |
+| `wj-sync` + `wj-pipeline` | ✅ green | Same-thread; OS threads / cross-crate loops parked (P3.286–290) |
+| `wj-mime` | ❌ tip RED | P3.291 `from_path` clone on `Into<String>` |
+| `wj-uuid`, `wj-timefmt`, `wj-duration` | ❌ tip RED | int-width / ownership tip regressions (`i += 1 as i32`, etc.) — idiomatic sources kept |
 
 ## Migration path (once gates go green)
 

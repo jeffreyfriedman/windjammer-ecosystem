@@ -1,5 +1,6 @@
 // Shared mutable state — Windjammer `Shared`, not Arc/Mutex in the public API.
 
+use std::collections::HashMap
 use std::sync::{Arc, Mutex}
 
 struct Cell {
@@ -33,6 +34,55 @@ pub fn shared_int_add(s: SharedInt, delta: int) -> SharedInt {
 pub fn shared_int_get(s: SharedInt) -> int {
     let out = match s.inner.lock() {
         Ok(g) => g.n,
+        Err(_) => 0,
+    }
+    out
+}
+
+/// Monotonic counter over SharedInt.
+pub fn counter_new(n: int) -> SharedInt {
+    shared_int(n)
+}
+
+pub fn counter_inc(c: SharedInt) -> SharedInt {
+    shared_int_add(c, 1)
+}
+
+pub fn counter_get(c: SharedInt) -> int {
+    shared_int_get(c)
+}
+
+struct MapCell {
+    data: HashMap<string, int>,
+}
+
+/// Shared string→int map (thread-safe).
+/// Lookup (`get`/`has`) blocked on P3.288 — key borrow through MutexGuard.
+pub struct SharedMap {
+    inner: Arc<Mutex<MapCell>>,
+}
+
+pub fn shared_map_new() -> SharedMap {
+    SharedMap {
+        inner: Arc::new(Mutex::new(MapCell {
+            data: HashMap::new(),
+        })),
+    }
+}
+
+pub fn shared_map_insert(m: SharedMap, key: string, value: int) -> SharedMap {
+    match m.inner.lock() {
+        Ok(mut g) => {
+            g.data.insert(key, value)
+        }
+        Err(_) => {}
+    }
+    m
+}
+
+pub fn shared_map_len(m: SharedMap) -> int {
+    let out = match m.inner.lock() {
+        Ok(g) => g.data.len() as int,
         Err(_) => 0,
     }
     out

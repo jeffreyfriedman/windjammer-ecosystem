@@ -3,6 +3,7 @@ use std::encoding
 use std::random
 use std::strings
 use std::time
+use std::uuid
 
 const UUID_EPOCH_100NS: i64 = 0x01B21DD213814000
 
@@ -17,14 +18,11 @@ pub const NIL: string = "00000000-0000-0000-0000-000000000000"
 /// All-ones UUID (RFC 9562 max UUID).
 pub const MAX: string = "ffffffff-ffff-ffff-ffff-ffffffffffff"
 
-/// Random RFC 4122 UUID version 4.
+/// Random RFC 4122 UUID version 4 (thin-wraps `std::uuid.v4`).
 pub fn v4() -> string {
-    let bytes = random_octets(16)
-    let hex = encoding.hex_encode(bytes)
-    let variant = variant_nibble_char()
-    let patched = patch_version_hex(hex, "4", variant)
-    insert_dashes(patched)
+    uuid.v4()
 }
+
 
 /// Time-based UUID version 1 using the current UTC clock.
 pub fn v1() -> Result<string, string> {

@@ -1,0 +1,15 @@
+use crate::channel_sum_range
+use std::time
+
+/// Same-thread channel+Shared throughput smoke (wall-clock, soft gate).
+@test
+fn test_channel_sum_range_bench_smoke() {
+    let start = time.utc_now().timestamp_millis()
+    let out = channel_sum_range(10_000)
+    let end = time.utc_now().timestamp_millis()
+    assert_eq(out.0, 10_000)
+    assert_eq(out.1, 49995000)
+    let elapsed = end - start
+    // Soft gate: 10k int roundtrips should finish under 5s on a laptop.
+    assert(elapsed < 5000, "channel_sum_range(10k) too slow")
+}

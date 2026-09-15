@@ -34,7 +34,7 @@ Updated 2026-09-14 from ecosystem dogfooding (`wj-sync` + graduation polish).
 
 | Package | Reason |
 |---|---|
-| `wj-sync` | Concurrency dogfood; graduate later → **`std::sync`** / channels (Pending/Pool live; shared-inbox ⏸ P3.294) |
+| `wj-sync` | Concurrency dogfood; graduate later → **`std::sync`** / channels (Pending/Pool live; shared-inbox ⏸ P3.297) |
 | `wj-validate` | App schema DSL; grows with products (zod-like) |
 | `wj-rate-limit` | Policy / storage backends vary |
 | `wj-headers` / helmet | Opinionated security defaults |
@@ -52,9 +52,9 @@ Updated 2026-09-14 from ecosystem dogfooding (`wj-sync` + graduation polish).
 | Package | Tests | Notes |
 |---|---|---|
 | `wj-path`, `wj-base64`, `wj-jwt`, `wj-csv`, `wj-yaml`, `wj-sha` | ✅ green | Thin-wraps complete |
-| `wj-sync` + `wj-pipeline` | ✅ green | Channels, Shared, coord, Pending, Pool, benches; shared-inbox ⏸ P3.294 |
-| `wj-mime` | ❌ tip RED | P3.291 `from_path` clone on `Into<String>` |
-| `wj-uuid`, `wj-timefmt`, `wj-duration` | ❌ tip RED | int-width / ownership tip regressions — idiomatic sources kept |
+| `wj-sync` + `wj-pipeline` | ✅ green | Channels, Shared, coord, Pending, Pool, benches; shared-inbox ⏸ P3.297 |
+| `wj-mime` | ✅ green | P3.291 thin-wrap `from_path` |
+| `wj-uuid`, `wj-timefmt`, `wj-duration` | ❌ tip RED | P3.298 Vec demote / P3.299 int≥0 usize mix — idiomatic sources kept |
 
 ## Migration path (once gates go green)
 

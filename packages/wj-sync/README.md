@@ -15,7 +15,7 @@ Idiomatic Windjammer concurrency — Go-style `sync` + CSP channels.
 | `SharedInt` / Counter, Once / Latch / Barrier | ✅ tested |
 | `SharedMap` insert/len | ✅ tested; get/has ⏸ tip P3.288 regression |
 | `parallel` / `Pending` | ✅ tested |
-| Pool (`pool_run_double` / `pool_sum_double`) | ✅ tested (per-job workers; shared-inbox ⏸ P3.295) |
+| Pool (`pool_run_double` / `pool_sum_double`) | ✅ tested (per-job workers; shared-inbox ⏸ P3.297) |
 
 ## Usage
 

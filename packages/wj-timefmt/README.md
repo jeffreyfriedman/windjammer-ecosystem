@@ -45,6 +45,10 @@ src/lib.wj
 tests/timefmt_test.wj
 ```
 
+## Tip status
+
+❌ tip RED (P3.299) — `int` find-pos `>= 0` emits `as usize >= 0_i64` (plus related int/usize loop arithmetic). Idiomatic sources kept; gate in `windjammer/tests/`.
+
 ## License
 
 MIT OR Apache-2.0

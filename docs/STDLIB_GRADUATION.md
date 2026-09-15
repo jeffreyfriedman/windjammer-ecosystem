@@ -51,10 +51,13 @@ Updated 2026-09-14 from ecosystem dogfooding (`wj-sync` + graduation polish).
 
 | Package | Tests | Notes |
 |---|---|---|
-| `wj-path`, `wj-base64`, `wj-jwt`, `wj-csv`, `wj-yaml`, `wj-sha` | ✅ green | Thin-wraps complete |
-| `wj-sync` + `wj-pipeline` | ✅ green | Channels, Shared, coord, Pending, Pool, benches; shared-inbox ⏸ P3.297 |
-| `wj-mime` | ✅ green | P3.291 thin-wrap `from_path` |
-| `wj-uuid`, `wj-timefmt`, `wj-duration` | ❌ tip RED | P3.298 Vec demote / P3.299 int≥0 usize mix — idiomatic sources kept |
+| `wj-path`, `wj-base64`, `wj-jwt`, `wj-csv`, `wj-yaml`, `wj-sha`, `wj-mime` | ✅ green | Thin-wraps complete |
+| `wj-dotenv`, `wj-cron` | ✅ green | Tip recheck |
+| `wj-sync` + `wj-pipeline` | ✅ green | Channels, Shared, coord, Pending, Pool; shared-inbox ⏸ P3.297 |
+| `wj-uuid` | ❌ tip RED | P3.298 `mut Vec<u8>` return demotes to `&Vec` |
+| `wj-timefmt` | ❌ tip RED | P3.299 int find-pos `>= 0` usize/i64 mix |
+| `wj-duration`, `wj-toml`, `wj-semver`, `wj-cli-args`, `wj-compress`, `wj-glob` | ❌ tip RED | P3.300 `substring(…, i, i+1)` → `(i + 1_i32) as usize` |
+| `wj-config` | ❌ tip RED | Path-dep on `wj-toml/build` (blocked until toml greens) |
 
 ## Migration path (once gates go green)
 

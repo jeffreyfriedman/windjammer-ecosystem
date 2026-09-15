@@ -13,10 +13,9 @@ Idiomatic Windjammer concurrency — Go-style `sync` + CSP channels.
 | Same-thread fan-out helpers (`channel_sum_range`) | ✅ tested |
 | Bounded channels (`bounded_int` / `BoundedIntSender`) | ✅ tested |
 | `SharedInt` / Counter, Once / Latch / Barrier | ✅ tested |
-| `SharedMap` insert/len/get/has | ✅ tested |
+| `SharedMap` insert/len | ✅ tested; get/has ⏸ tip P3.288 regression |
 | `parallel` / `Pending` | ✅ tested |
-| Pool (`pool_run_double` / `pool_sum_double`) | ✅ tested (per-job workers; shared-inbox ⏸ P3.294) |
-| Cross-crate handle loop reassign (`tx = send_int(tx, …)`) | ⏸ **P3.290** — use package helpers until green |
+| Pool (`pool_run_double` / `pool_sum_double`) | ✅ tested (per-job workers; shared-inbox ⏸ P3.295) |
 
 ## Usage
 
@@ -34,9 +33,21 @@ let p = parallel_add(2, 3)
 assert_eq(wait_int(p), 5)
 ```
 
+## Benches
+
+Soft wall-clock smoke tests in `tests/bench_smoke_test.wj` (10k channel/shared, 500 pool).
+
+Rust baseline (`benches/rust_baseline`, `cargo run --release`, 2026-09-15 laptop):
+
+| Bench | N | elapsed_ms |
+|------|---|------------|
+| channel_sum | 1_000_000 | ~20 |
+| shared_incs | 1_000_000 | ~8 |
+| pool_double (4 workers) | 20_000 | ~1–2 |
+
 ## Graduation
 
-Candidate for future **`std::sync`** / channel primitives. Stay ecosystem until Pool + cross-crate ownership stress are complete.
+Candidate for future **`std::sync`** / channel primitives.
 
 ## License
 

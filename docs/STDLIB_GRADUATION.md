@@ -51,12 +51,12 @@ Updated 2026-09-14 from ecosystem dogfooding (`wj-sync` + graduation polish).
 
 | Package | Tests | Notes |
 |---|---|---|
-| `wj-path`, `wj-base64`, `wj-jwt`, `wj-csv`, `wj-yaml`, `wj-sha`, `wj-mime` | ✅ green | Thin-wraps complete |
-| `wj-dotenv`, `wj-cron` | ✅ green | Tip recheck |
+| `wj-path`, `wj-base64`, `wj-jwt`, `wj-csv`, `wj-yaml`, `wj-sha`, `wj-mime`, `wj-cron` | ✅ green | Thin-wraps / tip recheck |
+| `wj-dotenv` | ❌ tip RED | P3.311 `parts[i]` loop `i += 1 as i32` onto usize |
 | `wj-sync` + `wj-pipeline` | ❌ tip RED | SharedMap get ✅ (P3.301); drain `rx.clone()` ⏸ P3.310; shared-inbox gate P3.297 ✅ (blocked behind P3.310) |
-| `wj-uuid` | ❌ tip RED | P3.298 `mut Vec<u8>` return demotes to `&Vec` |
-| `wj-timefmt` | ❌ tip RED | P3.299 int find-pos `>= 0` usize/i64 mix |
-| `wj-duration`, `wj-toml`, `wj-semver`, `wj-cli-args`, `wj-compress`, `wj-glob` | ❌ tip RED | P3.300 `substring(…, i, i+1)` → `(i + 1_i32) as usize` |
+| `wj-uuid` | ❌ tip RED | int/usize loop residuals (P3.298 Vec demote marked green; product still RED) |
+| `wj-timefmt` | ❌ tip RED | int/usize loop residuals (P3.299 find-pos marked green; product still RED) |
+| `wj-duration`, `wj-toml`, `wj-semver`, `wj-cli-args`, `wj-compress`, `wj-glob` | ❌ tip RED | int/usize index/substring residuals (P3.300 gate green; product still RED) |
 | `wj-config` | ❌ tip RED | Path-dep on `wj-toml/build` (blocked until toml greens) |
 
 ## Migration path (once gates go green)

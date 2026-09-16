@@ -35,3 +35,7 @@ $WJ test
 ## License
 
 MIT OR Apache-2.0
+
+## Tip status
+
+❌ tip RED (P3.311) — `while i < parts.len()` index loop emits `i += 1 as i32`. Idiomatic sources kept.

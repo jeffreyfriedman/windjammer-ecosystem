@@ -13,7 +13,7 @@ Idiomatic Windjammer concurrency — Go-style `sync` + CSP channels.
 | Same-thread fan-out helpers (`channel_sum_range`) | ✅ tested |
 | Bounded channels (`bounded_int` / `BoundedIntSender`) | ✅ tested |
 | `SharedInt` / Counter, Once / Latch / Barrier | ✅ tested |
-| `SharedMap` insert/len | ✅ tested; get/has ⏸ tip P3.288 product residual |
+| `SharedMap` insert/len/get/has | ✅ tested (P3.301 tip green) |
 | `parallel` / `Pending` | ✅ tested |
 | Pool (`pool_run_double` / `pool_sum_double`) | ✅ tested (per-job workers; shared-inbox ⏸ P3.297) |
 

@@ -1,5 +1,5 @@
-// Parked: tip regression re-emits `key.to_string()` through MutexGuard (P3.288).
-// Merge into shared.wj when bug_hashmap_get_through_mutex_guard gate is green again.
+// Parked: tip still emits `key.to_string()` through MutexGuard (P3.288 product residual).
+// Gate may GREEN on a weaker fixture; SharedMap get/has still RED on release wj.
 
 /// Lookup key; returns (map, present, value).
 pub fn shared_map_get(m: SharedMap, key: string) -> (SharedMap, bool, int) {

@@ -53,7 +53,7 @@ Updated 2026-09-14 from ecosystem dogfooding (`wj-sync` + graduation polish).
 |---|---|---|
 | `wj-path`, `wj-base64`, `wj-jwt`, `wj-csv`, `wj-yaml`, `wj-sha`, `wj-mime` | ✅ green | Thin-wraps complete |
 | `wj-dotenv`, `wj-cron` | ✅ green | Tip recheck |
-| `wj-sync` + `wj-pipeline` | ✅ green | Channels, Shared, coord, Pending, Pool; shared-inbox ⏸ P3.297 |
+| `wj-sync` + `wj-pipeline` | ✅ green | Channels, Shared, coord, Pending, Pool; shared-inbox ⏸ P3.297; SharedMap get ⏸ P3.301 |
 | `wj-uuid` | ❌ tip RED | P3.298 `mut Vec<u8>` return demotes to `&Vec` |
 | `wj-timefmt` | ❌ tip RED | P3.299 int find-pos `>= 0` usize/i64 mix |
 | `wj-duration`, `wj-toml`, `wj-semver`, `wj-cli-args`, `wj-compress`, `wj-glob` | ❌ tip RED | P3.300 `substring(…, i, i+1)` → `(i + 1_i32) as usize` |

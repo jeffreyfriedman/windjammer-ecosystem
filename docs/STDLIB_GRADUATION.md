@@ -57,7 +57,7 @@ Updated 2026-09-14 from ecosystem dogfooding (`wj-sync` + graduation polish).
 | `wj-validate` | ❌ tip RED | P3.314 `if i == 0` emits `0_i32` onto usize index (`all_ok`) |
 | `wj-uuid` | ❌ tip RED | int/usize loop residuals (P3.298 Vec demote marked green; product still RED) |
 | `wj-timefmt` | ❌ tip RED | int/usize loop residuals (P3.299 find-pos marked green; product still RED) |
-| `wj-duration`, `wj-toml`, `wj-semver`, `wj-cli-args`, `wj-compress`, `wj-glob` | ❌ tip RED | int/usize index/substring residuals (P3.300); range-end add ✅ P3.313 |
+| `wj-duration`, `wj-toml`, `wj-semver`, `wj-cli-args`, `wj-compress`, `wj-glob` | ❌ tip RED | duration mul-cast ⏸ P3.317; substring nested ✅ P3.315; range-end ✅ P3.313 |
 | `wj-config` | ❌ tip RED | Path-dep on `wj-toml/build` (blocked until toml greens) |
 
 ## Migration path (once gates go green)

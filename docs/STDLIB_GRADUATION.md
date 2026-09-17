@@ -56,7 +56,7 @@ Updated 2026-09-14 from ecosystem dogfooding (`wj-sync` + graduation polish).
 | `wj-duration` | ✅ green | P3.315 nested substring + P3.317 int mul tip GREEN (2026-09-16) |
 | `wj-validate` | ✅ green | P3.314 tip GREEN (2026-09-16) — 27 tests |
 | `wj-cli-args`, `wj-compress`, `wj-glob` | ✅ green | tip cargo-check / recheck (2026-09-16) |
-| `wj-sync` + `wj-pipeline` | ✅ green | P3.310 drain + shared-inbox Pool (`pool_shared_inbox_sum`) tip green (2026-09-16) |
+| `wj-sync` + `wj-pipeline` | ❌ tip RED | Generics-first channel API; blocked on P3.331 (`send` `&T`) + P3.332 (`recv` `rx.clone()`) |
 | `wj-uuid` | ✅ green | tip cargo-check (2026-09-16) |
 | `wj-timefmt` | ❌ tip RED | P3.329 product month `12_i32` / `&parts[1].to_string()` |
 | `wj-semver` | ❌ tip RED | P3.325 demoted `&str` + substring assign into `String` |

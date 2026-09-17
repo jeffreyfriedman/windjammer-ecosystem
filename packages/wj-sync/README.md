@@ -9,13 +9,15 @@ Idiomatic Windjammer concurrency — Go-style `sync` + CSP channels.
 
 | Area | Status |
 |------|--------|
-| Unbounded int channels, `clone_sender` | ✅ tested |
-| Same-thread fan-out helpers (`channel_sum_range`) | ✅ tested |
-| Bounded channels (`bounded_int` / `BoundedIntSender`) | ✅ tested |
-| `SharedInt` / Counter, Once / Latch / Barrier | ✅ tested |
-| `SharedMap` insert/len/get/has | ✅ tested (P3.301 tip green) |
-| `parallel` / `Pending` | ✅ tested |
-| Pool (`pool_run_double` / `pool_sum_double` / `pool_shared_inbox_sum`) | ✅ tested (shared-inbox tip green after P3.297) |
+| **Generic** `Sender<T>` / `Receiver<T>` / `send` / `recv` / `close` | ❌ tip RED — P3.331 (`value: &T`) + P3.332 (`rx.clone()`) |
+| Int aliases (`unbounded_int` / `send_int` / …) | ❌ tip RED (same gates; wrappers over generics) |
+| `SharedInt` / Counter, Once / Latch / Barrier | ✅ previously green (blocked while channel lib RED) |
+| `SharedMap` insert/len/get/has | ✅ previously green (blocked while channel lib RED) |
+| `parallel` / `Pending` | ✅ previously green (blocked while channel lib RED) |
+| Pool (`pool_run_double` / `pool_shared_inbox_sum`) | ✅ previously green (blocked while channel lib RED) |
+
+**Design:** `docs/superpowers/specs/2026-09-16-wj-sync-generics-stdlib-design.md` (Option B — generics before done).  
+**Do not** reshape packages to dodge P3.331/332 — fix is in the compiler.
 
 ## Usage
 

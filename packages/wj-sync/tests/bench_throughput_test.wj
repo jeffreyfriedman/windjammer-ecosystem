@@ -5,7 +5,8 @@ use crate::shared_int_add
 use crate::shared_int_get
 use std::time
 
-/// Larger wall-clock benches (vs `benches/rust_baseline`). Soft 5× gate vs prior smoke.
+/// Larger wall-clock benches (vs `benches/rust_baseline`). Soft ceiling only —
+/// fair ≤1.2× ratios require `benches/run_release.sh` (release+LTO).
 @test
 fn test_bench_channel_sum_100k() {
     let n = 100_000

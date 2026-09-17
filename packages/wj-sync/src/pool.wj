@@ -1,9 +1,8 @@
 // Worker pool — Channel + parallel workers (int-specialized).
-// Shared-inbox blocked: tip multipass strips `move` from `spawn(move ||)`
-// in the Arc-clone + worker-loop pattern (E0373) — see P3.295 / P3.296.
-// Per-job workers (Pending-style) keep the package green.
+// Shared-inbox uses Arc+Mutex around the job receiver (same boundary as Shared*).
 
 use std::sync::mpsc
+use std::sync::{Arc, Mutex}
 
 use crate::shared::SharedInt
 use crate::shared::shared_int
@@ -15,7 +14,7 @@ pub struct Pool {
     alive: SharedInt,
 }
 
-/// Create a pool with `workers` OS threads (capacity hint for future shared-inbox).
+/// Create a pool with `workers` OS threads.
 pub fn pool_new(workers: int) -> Pool {
     let n = if workers < 1 { 1 } else { workers }
     Pool {
@@ -58,6 +57,75 @@ pub fn pool_run_double(pool: Pool, n: int) -> Vec<int> {
         }
     }
     out
+}
+
+/// Shared-inbox: `workers` OS threads pull jobs from one channel, double each,
+/// push to a results channel. Returns `(n, sum of doubles)`.
+pub fn pool_shared_inbox_sum(workers: int, n: int) -> (int, int) {
+    let pool = pool_new(workers)
+    let jobs = mpsc::channel()
+    let job_tx = jobs.0
+    let job_rx = Arc::new(Mutex::new(jobs.1))
+    let results = mpsc::channel()
+    let res_tx = results.0
+    let res_rx = results.1
+
+    let mut w: int = 0
+    while w < pool.workers {
+        let inbox = job_rx.clone()
+        let tx = res_tx.clone()
+        std::thread::spawn(move || {
+            while true {
+                let locked = inbox.lock()
+                let msg = match locked {
+                    Ok(g) => g.recv(),
+                    Err(_) => {
+                        break
+                    },
+                }
+                match msg {
+                    Ok(v) => {
+                        match tx.send(v * 2) {
+                            Ok(_) => {}
+                            Err(_) => {
+                                break
+                            },
+                        }
+                    },
+                    Err(_) => {
+                        break
+                    },
+                }
+            }
+        })
+        w = w + 1
+    }
+
+    let mut i: int = 0
+    while i < n {
+        match job_tx.send(i) {
+            Ok(_) => {}
+            Err(_) => {}
+        }
+        i = i + 1
+    }
+    // Drop sender so workers see RecvError and exit.
+    drop(job_tx)
+
+    let mut sum: int = 0
+    let mut got: int = 0
+    while got < n {
+        match res_rx.recv() {
+            Ok(v) => {
+                sum = sum + v
+                got = got + 1
+            }
+            Err(_) => {
+                break
+            }
+        }
+    }
+    (n, sum)
 }
 
 /// Create a pool, double `0..n` on workers, return `(count, sum)`.

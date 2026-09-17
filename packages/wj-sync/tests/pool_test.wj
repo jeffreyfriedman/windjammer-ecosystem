@@ -1,5 +1,6 @@
 use crate::pool_new
 use crate::pool_run_double
+use crate::pool_shared_inbox_sum
 use crate::pool_shutdown
 use crate::pool_sum_double
 
@@ -27,6 +28,14 @@ fn test_pool_shutdown_idempotent() {
 @test
 fn test_pool_sum_double() {
     let out = pool_sum_double(2, 5)
+    assert_eq(out.0, 5)
+    assert_eq(out.1, 20)
+}
+
+@test
+fn test_pool_shared_inbox_sum() {
+    // Fixed workers pull from one inbox (shared-inbox); jobs 0..4 → sum of doubles = 20
+    let out = pool_shared_inbox_sum(3, 5)
     assert_eq(out.0, 5)
     assert_eq(out.1, 20)
 }

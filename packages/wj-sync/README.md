@@ -15,7 +15,7 @@ Idiomatic Windjammer concurrency — Go-style `sync` + CSP channels.
 | Pool + `pool_is_alive` / `pool_shutdown` / shared-inbox | ✅ |
 | Int helpers (`unbounded_int` / `send_int` / …) | ✅ |
 
-**Open compiler gate:** P3.334 (inject unbound `Sender<T>` on named assign from `clone_sender`/`send`). Tests avoid those binds.
+**Open compiler gate:** P3.342 (inject unbound `Sender<T>` on named assign from `clone_sender`/`send`). Tests avoid those binds.
 
 **Design:** `docs/superpowers/specs/2026-09-16-wj-sync-generics-stdlib-design.md`
 

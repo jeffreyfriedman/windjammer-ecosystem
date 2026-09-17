@@ -1,3 +1,5 @@
+use crate::Shared
+use crate::Pending
 use crate::parallel_add
 use crate::parallel_shared_add
 use crate::wait_int

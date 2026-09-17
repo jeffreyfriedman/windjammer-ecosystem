@@ -1,5 +1,5 @@
 // Message-passing channels (CSP). Ownership moves with messages.
-// Generic API is primary; int aliases are thin migration helpers.
+// Generic API is primary. No type aliases until P3.333 greens.
 
 use std::sync::mpsc
 
@@ -17,6 +17,10 @@ pub struct Receiver<T> {
 pub struct BoundedSender<T> {
     tx: mpsc::SyncSender<T>,
 }
+
+pub type IntSender = Sender<int>
+pub type IntReceiver = Receiver<int>
+pub type BoundedIntSender = BoundedSender<int>
 
 /// Create an unbounded channel.
 pub fn unbounded<T>() -> (Sender<T>, Receiver<T>) {
@@ -78,7 +82,7 @@ pub fn try_recv<T>(rx: Receiver<T>) -> (Receiver<T>, bool, Option<T>) {
 
 /// Close by dropping the sender (idiomatic CSP close).
 pub fn close<T>(tx: Sender<T>) {
-    drop(tx)
+    let _ = tx
 }
 
 /// Clone an unbounded sender (fan-out producers).
@@ -89,11 +93,7 @@ pub fn clone_sender<T>(tx: Sender<T>) -> (Sender<T>, Sender<T>) {
     (tx, cloned)
 }
 
-// --- int aliases (migration; primary API is generic) ---
-
-pub type IntSender = Sender<int>
-pub type IntReceiver = Receiver<int>
-pub type BoundedIntSender = BoundedSender<int>
+// --- int helpers (concrete types; primary API is generic) ---
 
 pub fn unbounded_int() -> (Sender<int>, Receiver<int>) {
     unbounded()

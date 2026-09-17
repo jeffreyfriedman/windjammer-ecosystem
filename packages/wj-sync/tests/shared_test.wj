@@ -1,3 +1,4 @@
+use crate::Shared
 use crate::shared_int
 use crate::shared_int_add
 use crate::shared_int_get

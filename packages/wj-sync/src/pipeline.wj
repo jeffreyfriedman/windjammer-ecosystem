@@ -1,5 +1,4 @@
-use crate::IntReceiver
-use crate::clone_sender
+use crate::Receiver
 use crate::counter_get
 use crate::counter_inc
 use crate::counter_new
@@ -9,22 +8,20 @@ use crate::unbounded_int
 
 /// Send `0..n` then sentinel `-1` on an unbounded int channel (same-thread).
 /// Returns the receiver for draining.
-pub fn send_int_range_with_sentinel(n: int) -> IntReceiver {
+pub fn send_int_range_with_sentinel(n: int) -> Receiver<int> {
     let pair = unbounded_int()
-    let txs = clone_sender(pair.0)
-    let mut tx = txs.0
-    let tx_done = txs.1
+    let mut tx = pair.0
     let mut i: int = 0
     while i < n {
         tx = send_int(tx, i)
         i = i + 1
     }
-    send_int(tx_done, -1)
+    send_int(tx, -1)
     pair.1
 }
 
 /// Drain until sentinel `< 0`. Returns (count, sum) using SharedInt counter.
-pub fn drain_int_until_sentinel(mut rx: IntReceiver) -> (int, int) {
+pub fn drain_int_until_sentinel(mut rx: Receiver<int>) -> (int, int) {
     let mut count = counter_new(0)
     let mut sum: int = 0
     while true {

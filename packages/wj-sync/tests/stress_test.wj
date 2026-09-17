@@ -1,3 +1,5 @@
+use crate::SharedMap
+use crate::Receiver
 use crate::channel_sum_range
 use crate::clone_sender
 use crate::recv_int
@@ -12,13 +14,10 @@ use crate::unbounded_int
 fn test_fan_in_three_senders() {
     let pair = unbounded_int()
     let c1 = clone_sender(pair.0)
-    let tx0 = c1.0
     let c2 = clone_sender(c1.1)
-    let tx1 = c2.0
-    let tx2 = c2.1
-    send_int(tx0, 10)
-    send_int(tx1, 20)
-    send_int(tx2, 30)
+    send_int(c1.0, 10)
+    send_int(c2.0, 20)
+    send_int(c2.1, 30)
     let a = recv_int(pair.1)
     let b = recv_int(a.0)
     let c = recv_int(b.0)

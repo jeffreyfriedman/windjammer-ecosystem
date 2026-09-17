@@ -1,3 +1,4 @@
+use crate::Receiver
 use crate::channel_sum_range
 use crate::drain_int_until_sentinel
 use crate::send_int_range_with_sentinel

@@ -1,4 +1,4 @@
-// Worker pool — Channel + parallel workers (int-specialized).
+// Worker pool — Channel + parallel workers (int-specialized jobs).
 // Shared-inbox uses Arc+Mutex around the job receiver (same boundary as Shared*).
 
 use std::sync::mpsc
@@ -109,7 +109,6 @@ pub fn pool_shared_inbox_sum(workers: int, n: int) -> (int, int) {
         }
         i = i + 1
     }
-    // Drop sender so workers see RecvError and exit.
     drop(job_tx)
 
     let mut sum: int = 0
@@ -141,9 +140,19 @@ pub fn pool_sum_double(workers: int, n: int) -> (int, int) {
 
 /// Mark pool shut down (idempotent).
 pub fn pool_shutdown(pool: Pool) -> Pool {
-    let _ = shared_int_get(pool.alive)
     Pool {
         workers: pool.workers,
         alive: shared_int(0),
     }
+}
+
+/// Returns `(pool, alive)` — alive is false after shutdown.
+pub fn pool_is_alive(pool: Pool) -> (Pool, bool) {
+    let n = shared_int_get(pool.alive)
+    let alive = n != 0
+    let restored = Pool {
+        workers: pool.workers,
+        alive: shared_int(if alive { 1 } else { 0 }),
+    }
+    (restored, alive)
 }

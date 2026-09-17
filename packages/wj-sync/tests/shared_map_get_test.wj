@@ -1,3 +1,4 @@
+use crate::SharedMap
 use crate::shared_map_get
 use crate::shared_map_has
 use crate::shared_map_insert

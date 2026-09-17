@@ -56,11 +56,11 @@ Updated 2026-09-14 from ecosystem dogfooding (`wj-sync` + graduation polish).
 | `wj-duration` | ✅ green | P3.315 nested substring + P3.317 int mul tip GREEN (2026-09-16) |
 | `wj-validate` | ✅ green | P3.314 tip GREEN (2026-09-16) — 27 tests |
 | `wj-cli-args`, `wj-compress`, `wj-glob` | ✅ green | tip cargo-check / recheck (2026-09-16) |
-| `wj-semver` | ❌ tip RED | P3.321 demoted `&str` + substring assign into `String` |
-| `wj-toml` | ❌ tip RED | P3.322 usize `start = i + 1` width cast (+ `&String` residuals) |
 | `wj-sync` + `wj-pipeline` | ✅ green | P3.310 drain + shared-inbox Pool (`pool_shared_inbox_sum`) tip green (2026-09-16) |
-| `wj-uuid` | ❌ tip RED | int/usize loop residuals (P3.298 Vec demote marked green; product still RED) |
-| `wj-timefmt` | ❌ tip RED | int/usize loop residuals (P3.299 find-pos marked green; product still RED) |
+| `wj-uuid` | ✅ green | tip cargo-check (2026-09-16) |
+| `wj-timefmt` | ❌ tip RED | P3.329 product month `12_i32` / `&parts[1].to_string()` |
+| `wj-semver` | ❌ tip RED | P3.325 demoted `&str` + substring assign into `String` |
+| `wj-toml` | ❌ tip RED | P3.326 usize `start = i + 1` width cast |
 | `wj-config` | ❌ tip RED | Path-dep on `wj-toml/build` (blocked until toml greens) |
 
 ## Migration path (once gates go green)

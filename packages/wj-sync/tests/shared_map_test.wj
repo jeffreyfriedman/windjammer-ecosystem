@@ -1,3 +1,5 @@
+use crate::Shared
+use crate::SharedMap
 use crate::shared_map_insert
 use crate::shared_map_len
 use crate::shared_map_new

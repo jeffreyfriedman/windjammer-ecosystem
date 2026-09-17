@@ -1,3 +1,4 @@
+use crate::Shared
 use crate::barrier_new
 use crate::barrier_wait
 use crate::barrier_waiting

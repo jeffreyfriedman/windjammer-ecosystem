@@ -1,29 +1,28 @@
-use crate::unbounded
-use crate::send
+use crate::Sender
+use crate::Receiver
+use crate::unbounded_int
+use crate::send_int
 use crate::recv
 use crate::clone_sender
-use crate::close
 use crate::try_recv
 
-/// Generic channel roundtrip (primary API). Tip RED on P3.331/P3.332 until green.
 @test
 fn test_generic_int_roundtrip() {
-    let pair = unbounded()
-    let tx = send(pair.0, 7)
+    let pair = unbounded_int()
+    let _ = send_int(pair.0, 7)
     let got = recv(pair.1)
     match got.1 {
         Some(v) => assert_eq(v, 7),
         None => assert(false, "missing value"),
     }
-    close(tx)
 }
 
 @test
 fn test_generic_clone_sender_fanout() {
-    let pair = unbounded()
+    let pair = unbounded_int()
     let txs = clone_sender(pair.0)
-    let _ = send(txs.0, 1)
-    let _ = send(txs.1, 2)
+    let _ = send_int(txs.0, 1)
+    let _ = send_int(txs.1, 2)
     let a = recv(pair.1)
     let b = recv(a.0)
     let mut sum = 0
@@ -40,7 +39,7 @@ fn test_generic_clone_sender_fanout() {
 
 @test
 fn test_generic_try_recv_empty() {
-    let pair = unbounded()
+    let pair = unbounded_int()
     let got = try_recv(pair.1)
     assert_eq(got.1, false)
 }

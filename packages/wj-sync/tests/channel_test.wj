@@ -32,10 +32,8 @@ fn test_try_recv_after_send() {
 fn test_clone_sender_fan_in() {
     let pair = unbounded_int()
     let cloned = clone_sender(pair.0)
-    let tx1 = cloned.0
-    let tx2 = cloned.1
-    send_int(tx1, 1)
-    send_int(tx2, 2)
+    send_int(cloned.0, 1)
+    send_int(cloned.1, 2)
     let first = recv_int(pair.1)
     let second = recv_int(first.0)
     let a = first.1

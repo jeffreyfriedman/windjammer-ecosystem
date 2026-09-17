@@ -53,12 +53,14 @@ Updated 2026-09-14 from ecosystem dogfooding (`wj-sync` + graduation polish).
 |---|---|---|
 | `wj-path`, `wj-base64`, `wj-jwt`, `wj-csv`, `wj-yaml`, `wj-sha`, `wj-mime`, `wj-cron` | ✅ green | Thin-wraps / tip recheck |
 | `wj-dotenv` | ✅ green | P3.311 tip GREEN (2026-09-16) |
-| `wj-sync` + `wj-pipeline` | ❌ tip RED | SharedMap get ✅ (P3.301); drain `rx.clone()` ⏸ P3.310; shared-inbox ⏸ behind P3.310 |
-| `wj-validate` | ❌ tip RED | P3.314 `if i == 0` emits `0_i32` onto usize index (`all_ok`) |
+| `wj-duration` | ✅ green | P3.315 nested substring + P3.317 int mul tip GREEN (2026-09-16) |
+| `wj-validate` | ✅ green | P3.314 tip GREEN (2026-09-16) — 27 tests |
+| `wj-cli-args`, `wj-compress`, `wj-glob` | ✅ green | tip cargo-check / recheck (2026-09-16) |
+| `wj-semver` | ❌ tip RED | P3.321 demoted `&str` + substring assign into `String` |
+| `wj-toml` | ❌ tip RED | P3.322 usize `start = i + 1` width cast (+ `&String` residuals) |
+| `wj-sync` + `wj-pipeline` | ✅ green | P3.310 tip GREEN — 32 sync tests (2026-09-16) |
 | `wj-uuid` | ❌ tip RED | int/usize loop residuals (P3.298 Vec demote marked green; product still RED) |
 | `wj-timefmt` | ❌ tip RED | int/usize loop residuals (P3.299 find-pos marked green; product still RED) |
-| `wj-duration` | ✅ green | P3.315 nested substring + P3.317 int mul tip GREEN (2026-09-16) |
-| `wj-toml`, `wj-semver`, `wj-cli-args`, `wj-compress`, `wj-glob` | ❌ tip RED | survey after duration green; may share residual int/usize patterns |
 | `wj-config` | ❌ tip RED | Path-dep on `wj-toml/build` (blocked until toml greens) |
 
 ## Migration path (once gates go green)

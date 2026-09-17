@@ -1,5 +1,6 @@
 // wj-sync — idiomatic Windjammer concurrency (Go-style sync + CSP channels).
 // Public surface: Channel, Shared, Pending, Pool — never Arc/Mutex/async/spawn.
+// Generics-first (2026-09-16 design); int helpers are migration aliases.
 
 pub mod channel
 pub mod shared
@@ -7,18 +8,27 @@ pub mod coord
 pub mod pipeline
 pub mod pending
 pub mod pool
-// App-side loop reassignment of channel handles blocked on P3.290 — use `channel_sum_range` until green.
 
+pub use channel::BoundedSender
+pub use channel::Receiver
+pub use channel::Sender
+pub use channel::bounded
+pub use channel::bounded_int
+pub use channel::clone_sender
+pub use channel::close
+pub use channel::recv
+pub use channel::recv_int
+pub use channel::send
+pub use channel::send_bounded
+pub use channel::send_int
+pub use channel::try_recv
+pub use channel::try_recv_int
+pub use channel::try_send_bounded
+pub use channel::unbounded
+pub use channel::unbounded_int
 pub use channel::BoundedIntSender
 pub use channel::IntReceiver
 pub use channel::IntSender
-pub use channel::bounded_int
-pub use channel::clone_sender
-pub use channel::recv_int
-pub use channel::send_bounded
-pub use channel::send_int
-pub use channel::try_recv_int
-pub use channel::unbounded_int
 
 pub use shared::SharedInt
 pub use shared::SharedMap

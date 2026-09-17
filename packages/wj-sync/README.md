@@ -39,23 +39,18 @@ assert_eq(wait_int(parallel_add(2, 3)), 5)
 
 Soft gates in `tests/bench_smoke_test.wj` + `tests/bench_throughput_test.wj` (100k channel/shared, 5k pool inbox).
 
-Measured **2026-09-17** on this laptop (WJ app **debug** build via tip `wj` 0.50.0; Rust `rustc -O` same-N):
+Measured **2026-09-17** (post pipeline hot-path opt — direct mpsc + local ints; WJ **debug** app; Rust `rustc -O` same-N / baseline):
 
 | Bench | N | WJ ms | Rust ms | ≈ ratio |
 |------|---|------:|--------:|--------:|
-| channel_sum | 100_000 | 14 | 2 | ~7× (soft >5×) |
-| shared_incs | 100_000 | 3 | <1 | ~3×+ |
+| channel_sum | 100_000 | 9 | 2 | ~4.5× |
+| channel_sum | 1_000_000 | 88 | ~21 | ~4.2× |
+| shared_incs | 100_000 | 3 | <1 | ~3×+ (Mutex; atomics blocked — see std adoption) |
 | pool shared-inbox (4 workers) | 5_000 | 3 | <1 | ~3×+ |
 
-Large-N Rust baseline (`benches/rust_baseline`, `cargo run --release`):
+Large-N Rust baseline (`benches/rust_baseline`, `cargo run --release`): channel 1e6 ~21ms, shared 1e6 ~8ms, pool 20k ~2ms.
 
-| Bench | N | elapsed_ms |
-|------|---|------------|
-| channel_sum | 1_000_000 | ~21 |
-| shared_incs | 1_000_000 | ~8 |
-| pool_double (4 workers) | 20_000 | ~2 |
-
-Design target: within ~2× Rust (warn), soft-fail note above 5×. Channel is the current outlier; re-measure with WJ **release** once tip `wj` builds cleanly.
+Design target: within ~2× Rust (warn), soft-fail above 5×. Channel is now under 5×. Next: AtomicI64 `Counter` once `std::sync::atomic` wires (`bug_std_sync_atomic_i64_wiring_test`).
 
 ## Graduation
 

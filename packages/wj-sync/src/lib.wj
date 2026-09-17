@@ -61,6 +61,7 @@ pub use pending::wait_shared
 pub use pool::Pool
 pub use pool::pool_new
 pub use pool::pool_run_double
+pub use pool::pool_shared_inbox_sum
 pub use pool::pool_shutdown
 pub use pool::pool_sum_double
 

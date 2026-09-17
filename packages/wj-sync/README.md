@@ -37,15 +37,25 @@ assert_eq(wait_int(parallel_add(2, 3)), 5)
 
 ## Benches
 
-Soft wall-clock smoke in `tests/bench_smoke_test.wj` (10k channel/shared, 500 pool).
+Soft gates in `tests/bench_smoke_test.wj` + `tests/bench_throughput_test.wj` (100k channel/shared, 5k pool inbox).
 
-Rust baseline (`benches/rust_baseline`, `cargo run --release`):
+Measured **2026-09-17** on this laptop (WJ app **debug** build via tip `wj` 0.50.0; Rust `rustc -O` same-N):
+
+| Bench | N | WJ ms | Rust ms | ≈ ratio |
+|------|---|------:|--------:|--------:|
+| channel_sum | 100_000 | 14 | 2 | ~7× (soft >5×) |
+| shared_incs | 100_000 | 3 | <1 | ~3×+ |
+| pool shared-inbox (4 workers) | 5_000 | 3 | <1 | ~3×+ |
+
+Large-N Rust baseline (`benches/rust_baseline`, `cargo run --release`):
 
 | Bench | N | elapsed_ms |
 |------|---|------------|
-| channel_sum | 1_000_000 | ~20 |
+| channel_sum | 1_000_000 | ~21 |
 | shared_incs | 1_000_000 | ~8 |
-| pool_double (4 workers) | 20_000 | ~1–2 |
+| pool_double (4 workers) | 20_000 | ~2 |
+
+Design target: within ~2× Rust (warn), soft-fail note above 5×. Channel is the current outlier; re-measure with WJ **release** once tip `wj` builds cleanly.
 
 ## Graduation
 

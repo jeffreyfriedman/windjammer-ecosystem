@@ -9,16 +9,15 @@ Idiomatic Windjammer concurrency — Go-style `sync` + CSP channels.
 
 | Area | Status |
 |------|--------|
-| Generic `Sender<T>` / `Receiver<T>` / `send` / `recv` / `close` | ✅ lib + 44 package tests |
+| Generic `Sender<T>` / `Receiver<T>` / `send` / `recv` / `close` | ✅ lib + package tests |
 | Generic `Shared<T>` / `SharedMap<K,V>` / `shared_new` / `shared_set` | ✅ + `SharedInt` / `SharedMapSI` aliases (P3.333b) |
 | Generic `Pending<T>` / `wait` / `parallel_int` / `task_int` | ✅ + `PendingInt` / `PendingShared` aliases |
 | Pool + `pool_is_alive` / `pool_shutdown` / shared-inbox | ✅ |
 | Int helpers (`unbounded_int` / `send_int` / …) | ✅ |
 
-**Open compiler gate:** P3.342 (inject unbound `Sender<T>` on named assign from `clone_sender`/`send`). Tests avoid those binds.
+**Open compiler gates:** AtomicI64 runtime re-export (`bug_std_sync_atomic_i64_wiring_test`). P3.350 (`wj build --release` → cargo `--release`) is tip GREEN — rebuild/install tip `wj` for dogfood.
 
 **Design:** `docs/superpowers/specs/2026-09-16-wj-sync-generics-stdlib-design.md`
-
 
 ## Usage
 
@@ -37,20 +36,21 @@ assert_eq(wait_int(parallel_add(2, 3)), 5)
 
 ## Benches
 
-Soft gates in `tests/bench_smoke_test.wj` + `tests/bench_throughput_test.wj` (100k channel/shared, 5k pool inbox).
+**Fair comparison = release vs release.** Soft smoke gates in `tests/bench_*_test.wj` run under `wj test` (debug) and are not ratio evidence.
 
-Measured **2026-09-17** (post pipeline hot-path opt — direct mpsc + local ints; WJ **debug** app; Rust `rustc -O` same-N / baseline):
+```bash
+packages/wj-sync/benches/run_release.sh
+```
+
+Measured **2026-09-17** (WJ `benches/wj_baseline` + Rust `benches/rust_baseline`, both `cargo build --release` + LTO on WJ):
 
 | Bench | N | WJ ms | Rust ms | ≈ ratio |
 |------|---|------:|--------:|--------:|
-| channel_sum | 100_000 | 9 | 2 | ~4.5× |
-| channel_sum | 1_000_000 | 88 | ~21 | ~4.2× |
-| shared_incs | 100_000 | 3 | <1 | ~3×+ (Mutex; atomics blocked — see std adoption) |
-| pool shared-inbox (4 workers) | 5_000 | 3 | <1 | ~3×+ |
+| channel_sum | 1_000_000 | 21–23 | 21–22 | **~1.0–1.05×** |
+| shared_incs (Mutex) | 1_000_000 | 9–10 | 8–9 | **~1.0–1.15×** |
+| pool shared-inbox (4 workers) | 20_000 | 2–3 | 2–3 | **~1.0×** |
 
-Large-N Rust baseline (`benches/rust_baseline`, `cargo run --release`): channel 1e6 ~21ms, shared 1e6 ~8ms, pool 20k ~2ms.
-
-Design target: within ~2× Rust (warn), soft-fail above 5×. Channel is now under 5×. Next: AtomicI64 `Counter` once `std::sync::atomic` wires (`bug_std_sync_atomic_i64_wiring_test`).
+**Target:** ≤1.2× Rust on release. Prior ~4× reports were debug WJ vs release Rust (fixed by P3.350 + `run_release.sh`). AtomicI64 `Counter` still blocked on runtime re-export (would beat Mutex baseline once wired).
 
 ## Graduation
 

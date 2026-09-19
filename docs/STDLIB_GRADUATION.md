@@ -23,7 +23,7 @@ Updated 2026-09-14 from ecosystem dogfooding (`wj-sync` + graduation polish).
 | Random range | (via uuid) | **`std::random.range` → runtime `int_range`** | ✅ wired (WJ `range` name; runtime `int_range`) |
 | SHA-1 bytes / SHA-256 hex | `wj-sha` thin | **`std::crypto`** complete wiring | Crypto must be std |
 | UTC now / millis / RFC3339 | `wj-timefmt` (structured Rfc3339 + **`now_rfc3339`/`now_epoch_secs` via `std::time`**) | **`std::time`** | Clocks are std; structured parse stays package sugar |
-| Human duration `1h30m` | `wj-duration` | **`std::time` Duration parse** *or* keep package | Borderline — prefer std; gate `bug_std_time_parse_duration_ms_wiring_test` |
+| Human duration `1h30m` | `wj-duration` thin-wraps **`std::time.parse_duration_ms`** / `format_duration_ms` | **`std::time`** | ✅ graduated (P3.391) |
 | YAML config | `wj-yaml` thin-wraps **`std::yaml.to_json`**; getters sugar | **`std::yaml`** wiring ✅; empty-input parity ✅ P3.244 | PyYAML-scale ubiquity |
 | JWT HS256 | `wj-jwt` thin-wraps **`std::jwt`** | **`std::jwt`** | Auth primitive — ✅ graduated |
 | CSV parse/write | `wj-csv` thin-wraps **`std::csv`** parse/write | **`std::csv`** idiomatic API | Data interchange — ✅ graduated |
@@ -53,7 +53,7 @@ Updated 2026-09-14 from ecosystem dogfooding (`wj-sync` + graduation polish).
 |---|---|---|
 | `wj-path`, `wj-base64`, `wj-jwt`, `wj-csv`, `wj-yaml`, `wj-sha`, `wj-mime`, `wj-cron` | ✅ green | Thin-wraps / tip recheck |
 | `wj-dotenv` | ✅ green | P3.311 tip GREEN |
-| `wj-duration` | ✅ green | P3.315 / P3.317 tip GREEN |
+| `wj-duration` | ✅ green | Thin-wrap `std::time` parse/format duration ms |
 | `wj-validate` | ✅ green | P3.314 tip GREEN — 27 tests |
 | `wj-cli-args`, `wj-compress`, `wj-glob` | ✅ green | tip cargo-check |
 | `wj-sync` + `wj-pipeline` | ✅ tip green | 49 tests; ≤1.2× Rust; `std::sync` thin-wrap |

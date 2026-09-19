@@ -30,6 +30,7 @@ pub use channel::BoundedIntSender
 pub use channel::IntReceiver
 pub use channel::IntSender
 
+pub use shared::Counter
 pub use shared::Shared
 pub use shared::SharedInt
 pub use shared::SharedMap

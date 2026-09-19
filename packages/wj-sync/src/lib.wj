@@ -35,6 +35,7 @@ pub use shared::Shared
 pub use shared::SharedInt
 pub use shared::SharedMap
 pub use shared::SharedMapSI
+pub use shared::counter_add
 pub use shared::counter_get
 pub use shared::counter_inc
 pub use shared::counter_new

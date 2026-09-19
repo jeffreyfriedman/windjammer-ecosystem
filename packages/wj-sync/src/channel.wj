@@ -1,6 +1,7 @@
 // Message-passing channels (CSP). Ownership moves with messages.
-// Generic API is primary. No type aliases until P3.333 greens.
+// `unbounded` / `bounded` thin-wrap `std::sync`; typed Sender/Receiver stay package sugar.
 
+use std::sync
 use std::sync::mpsc
 
 /// Sender half of an unbounded/bounded channel.
@@ -22,9 +23,9 @@ pub type IntSender = Sender<int>
 pub type IntReceiver = Receiver<int>
 pub type BoundedIntSender = BoundedSender<int>
 
-/// Create an unbounded channel.
+/// Create an unbounded channel (thin-wraps `std::sync::unbounded`).
 pub fn unbounded<T>() -> (Sender<T>, Receiver<T>) {
-    let pair = mpsc::channel()
+    let pair = sync.unbounded()
     (
         Sender { tx: pair.0 },
         Receiver { rx: pair.1 },
@@ -33,7 +34,7 @@ pub fn unbounded<T>() -> (Sender<T>, Receiver<T>) {
 
 /// Create a bounded channel with capacity `cap`.
 pub fn bounded<T>(cap: int) -> (BoundedSender<T>, Receiver<T>) {
-    let pair = mpsc::sync_channel(cap)
+    let pair = sync.sync_channel(cap)
     (
         BoundedSender { tx: pair.0 },
         Receiver { rx: pair.1 },

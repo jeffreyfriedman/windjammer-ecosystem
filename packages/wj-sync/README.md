@@ -43,22 +43,22 @@ assert_eq(wait_int(parallel_add(2, 3)), 5)
 packages/wj-sync/benches/run_release.sh
 ```
 
-Measured **2026-09-18** (tip wj, quiet median of 5 runs, release+LTO):
+Measured **2026-09-19** (tip wj, quiet median of 7 runs, release+LTO):
 
 | Bench | N | WJ ms | Rust ms | ≈ ratio |
 |------|---|------:|--------:|--------:|
-| channel_sum | 1_000_000 | ~28–40 | ~28–35 | **~1.0–1.4×** |
-| shared_incs (Mutex) | 1_000_000 | ~11 | ~10–12 | **~0.9–1.1×** |
-| counter_incs (AtomicI64, borrow) | 1_000_000 | ~3 | ~2 | **~1.5×** |
-| pool shared-inbox round-robin (4 workers) | 100_000 | ~8 | ~8 | **~1.0×** |
+| channel_sum | 1_000_000 | ~22 | ~21 | **~1.05×** |
+| shared_incs (Mutex) | 1_000_000 | ~9 | ~8 | **~1.12×** |
+| counter_incs (AtomicI64) | 10_000_000 | ~22 | ~22 | **~1.0×** |
+| pool shared-inbox round-robin (4 workers) | 100_000 | ~10 | ~10 | **~1.0×** |
 
-**Target:** ≤1.2× Rust on release. Channel / Mutex Shared / pool meet target under quiet load. AtomicI64 `Counter` ~1.5× after borrow-`counter_inc` (was ~2× with handle churn). Prior ~4× reports were debug WJ vs release Rust (P3.350).
+**Target:** ≤1.2× Rust on release — **met** for channel / Shared / Counter / pool under quiet load. Prior Counter ~1.5× at N=1M was ms-timer noise; N=10M shows parity. Prior ~4× reports were debug WJ vs release Rust (P3.350).
 
 ## Graduation
 
-**Package readiness:** green for idiomatic channel / Shared (Mutex) / Pending / Pool / AtomicI64 `Counter` once tip `wj` is installed (49 package tests).
+**Package readiness:** green for idiomatic channel / Shared (Mutex) / Pending / Pool / AtomicI64 `Counter` (49 package tests).
 
-**`std::sync` wrap:** tip GREEN for `unbounded`/`send`/`recv` + `shared`/`shared_add`/`shared_get` (`bug_std_sync_channel_shared_wiring_test`) and AtomicI64 (`bug_std_sync_atomic_i64_wiring_test`). Package `wj-sync` remains the richer Pending/Pool layer; stdlib is the thin vocabulary.
+**`std::sync` wrap:** tip GREEN for `unbounded`/`send`/`recv` + `shared`/`shared_add`/`shared_get` (`bug_std_sync_channel_shared_wiring_test`) and AtomicI64 (`bug_std_sync_atomic_i64_wiring_test`). `std/sync.wj` documents the vocabulary; `wj-sync` `unbounded`/`bounded` thin-wrap `std::sync`; Pending/Pool/generics stay package sugar.
 
 ## License
 

@@ -60,7 +60,7 @@ pub fn shared_int_get(s: SharedInt) -> int {
     }
 }
 
-/// Monotonic counter — Arc<AtomicI64> (hot path; not Mutex SharedInt).
+/// Monotonic counter — Arc<AtomicI64> (Clone handle; hot path borrows).
 pub struct Counter {
     inner: Arc<AtomicI64>,
 }
@@ -75,6 +75,11 @@ pub fn counter_new(n: int) -> Counter {
 /// Increment by 1 (hot path: borrow Counter, no handle churn).
 pub fn counter_inc(c: Counter) {
     c.inner.fetch_add(1, Ordering::Relaxed)
+}
+
+/// Add `delta` (hot path: borrow Counter).
+pub fn counter_add(c: Counter, delta: int) {
+    c.inner.fetch_add(delta, Ordering::Relaxed)
 }
 
 /// Read the current value.

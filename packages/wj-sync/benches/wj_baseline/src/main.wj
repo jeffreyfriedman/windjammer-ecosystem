@@ -40,7 +40,7 @@ fn main() {
         shared_ms,
     )
 
-    let n_counter = 1_000_000
+    let n_counter = 10_000_000
     let t1b = time.utc_now().timestamp_millis()
     let ctr = counter_new(0)
     let mut j: int = 0

@@ -72,10 +72,9 @@ pub fn counter_new(n: int) -> Counter {
     }
 }
 
-/// Increment by 1; returns the same handle.
-pub fn counter_inc(c: Counter) -> Counter {
+/// Increment by 1 (hot path: borrow Counter, no handle churn).
+pub fn counter_inc(c: Counter) {
     c.inner.fetch_add(1, Ordering::Relaxed)
-    c
 }
 
 /// Read the current value.

@@ -43,22 +43,22 @@ assert_eq(wait_int(parallel_add(2, 3)), 5)
 packages/wj-sync/benches/run_release.sh
 ```
 
-Measured **2026-09-18** (tip wj, WJ `benches/wj_baseline` + Rust `benches/rust_baseline`, both `cargo build --release` + LTO on WJ):
+Measured **2026-09-18** (tip wj, quiet median of 5 runs, release+LTO):
 
 | Bench | N | WJ ms | Rust ms | ≈ ratio |
 |------|---|------:|--------:|--------:|
-| channel_sum | 1_000_000 | 24 | 24 | **~1.0×** |
-| shared_incs (Mutex) | 1_000_000 | 12 | 21 | **~0.6×** |
-| counter_incs (AtomicI64) | 1_000_000 | 6 | 3 | **~2.0×** |
-| pool shared-inbox (4 workers) | 20_000 | 3 | 1 | **~3.0×** |
+| channel_sum | 1_000_000 | ~28–40 | ~28–35 | **~1.0–1.4×** |
+| shared_incs (Mutex) | 1_000_000 | ~11 | ~10–12 | **~0.9–1.1×** |
+| counter_incs (AtomicI64, borrow) | 1_000_000 | ~3 | ~2 | **~1.5×** |
+| pool shared-inbox round-robin (4 workers) | 100_000 | ~8 | ~8 | **~1.0×** |
 
-**Target:** ≤1.2× Rust on release. Channel + Mutex Shared meet target. AtomicI64 `Counter` is wired and correct but ~2× Rust on this host (still beats Mutex Shared). Pool shared-inbox still above target (investigate separately). Prior ~4× reports were debug WJ vs release Rust (fixed by P3.350 + `run_release.sh`).
+**Target:** ≤1.2× Rust on release. Channel / Mutex Shared / pool meet target under quiet load. AtomicI64 `Counter` ~1.5× after borrow-`counter_inc` (was ~2× with handle churn). Prior ~4× reports were debug WJ vs release Rust (P3.350).
 
 ## Graduation
 
 **Package readiness:** green for idiomatic channel / Shared (Mutex) / Pending / Pool / AtomicI64 `Counter` once tip `wj` is installed (49 package tests).
 
-**`std::sync` wrap:** still RED for thin stdlib channel/Shared (`bug_std_sync_channel_shared_wiring_test`). AtomicI64 path is tip GREEN (`bug_std_sync_atomic_i64_wiring_test`). Do not graduate `std::sync` until channel/Shared wiring lands.
+**`std::sync` wrap:** tip GREEN for `unbounded`/`send`/`recv` + `shared`/`shared_add`/`shared_get` (`bug_std_sync_channel_shared_wiring_test`) and AtomicI64 (`bug_std_sync_atomic_i64_wiring_test`). Package `wj-sync` remains the richer Pending/Pool layer; stdlib is the thin vocabulary.
 
 ## License
 

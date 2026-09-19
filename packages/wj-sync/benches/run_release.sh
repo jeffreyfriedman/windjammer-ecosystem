@@ -1,7 +1,6 @@
 #!/usr/bin/env bash
 # Fair release-vs-release wall clock: WJ hot path vs rust_baseline.
-# Prefer tip wj with P3.350 (`wj build --release` → cargo --release).
-# This script still passes --release to cargo explicitly and enables LTO.
+# Requires tip wj with P3.350 (--release) and generated LTO from wj.toml profile.
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
@@ -23,17 +22,12 @@ echo "== transpile WJ baseline bench =="
 BENCH="$ROOT/benches/wj_baseline"
 (cd "$BENCH" && "$WJ" build --no-cargo src -o build)
 
-# Tip Cargo.toml gen omits LTO; cross-crate Shared hot path needs it for ≤1.2×.
-python3 - "$BENCH/build/Cargo.toml" <<'PY'
-from pathlib import Path
-import sys
-p = Path(sys.argv[1])
-t = p.read_text()
-needle = "[profile.release]\nopt-level = 3\n"
-repl = "[profile.release]\nopt-level = 3\nlto = true\ncodegen-units = 1\n"
-if "lto" not in t and needle in t:
-    p.write_text(t.replace(needle, repl))
-PY
+# Assert CLI forwarded LTO (no python inject).
+if ! grep -q 'lto = true' "$BENCH/build/Cargo.toml"; then
+  echo "ERROR: generated Cargo.toml missing lto = true — rebuild tip wj with profile.release forwarding" >&2
+  cat "$BENCH/build/Cargo.toml" >&2
+  exit 1
+fi
 
 echo "== cargo --release WJ bench =="
 (cd "$BENCH/build" && cargo build --release -q)

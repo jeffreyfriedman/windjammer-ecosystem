@@ -15,9 +15,10 @@ pub struct Pending<T> {
 pub type PendingInt = Pending<int>
 pub type PendingShared = Pending<SharedInt>
 
-/// Block until pending work completes.
+/// Block until pending work completes (consumes the handle).
 pub fn wait<T>(pending: Pending<T>) -> Option<T> {
-    match pending.rx.recv() {
+    let Pending { rx } = pending
+    match rx.recv() {
         Ok(v) => Some(v),
         Err(_) => None,
     }
@@ -47,11 +48,12 @@ pub fn parallel_add(a: int, b: int) -> PendingInt {
     parallel_int(a, b)
 }
 
-/// Block until parallel int work completes.
+/// Block until parallel int work completes (consumes the handle).
 pub fn wait_int(pending: PendingInt) -> int {
-    match wait(pending) {
-        Some(v) => v,
-        None => 0,
+    let Pending { rx } = pending
+    match rx.recv() {
+        Ok(v) => v,
+        Err(_) => 0,
     }
 }
 
@@ -71,10 +73,11 @@ pub fn parallel_shared_add(s: SharedInt, delta: int) -> PendingShared {
     Pending { rx: rx }
 }
 
-/// Block until parallel Shared<int> work completes.
+/// Block until parallel Shared<int> work completes (consumes the handle).
 pub fn wait_shared(pending: PendingShared) -> SharedInt {
-    match wait(pending) {
-        Some(v) => v,
-        None => shared_int(0),
+    let Pending { rx } = pending
+    match rx.recv() {
+        Ok(v) => v,
+        Err(_) => shared_int(0),
     }
 }

@@ -2,6 +2,7 @@
 // Generics-first: Shared<T> / SharedMap<K,V>; int aliases after structs (P3.333b).
 
 use std::collections::HashMap
+use std::sync::atomic::{AtomicI64, Ordering}
 use std::sync::{Arc, Mutex}
 
 /// Thread-safe shared cell.
@@ -59,17 +60,27 @@ pub fn shared_int_get(s: SharedInt) -> int {
     }
 }
 
-/// Monotonic counter over SharedInt.
-pub fn counter_new(n: int) -> SharedInt {
-    shared_int(n)
+/// Monotonic counter — Arc<AtomicI64> (hot path; not Mutex SharedInt).
+pub struct Counter {
+    inner: Arc<AtomicI64>,
 }
 
-pub fn counter_inc(c: SharedInt) -> SharedInt {
-    shared_int_add(c, 1)
+/// Create a counter with initial value.
+pub fn counter_new(n: int) -> Counter {
+    Counter {
+        inner: Arc::new(AtomicI64::new(n)),
+    }
 }
 
-pub fn counter_get(c: SharedInt) -> int {
-    shared_int_get(c)
+/// Increment by 1; returns the same handle.
+pub fn counter_inc(c: Counter) -> Counter {
+    c.inner.fetch_add(1, Ordering::Relaxed)
+    c
+}
+
+/// Read the current value.
+pub fn counter_get(c: Counter) -> int {
+    c.inner.load(Ordering::Relaxed)
 }
 
 pub fn shared_map_new_kv<K, V>() -> SharedMap<K, V> {

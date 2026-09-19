@@ -24,7 +24,7 @@ fn test_shared_map_len_after_inserts() {
 @test
 fn test_counter_inc() {
     let c = counter_new(0)
-    let c = counter_inc(c)
-    let c = counter_inc(c)
+    counter_inc(c)
+    counter_inc(c)
     assert_eq(counter_get(c), 2)
 }

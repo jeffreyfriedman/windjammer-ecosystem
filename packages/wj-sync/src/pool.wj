@@ -2,7 +2,6 @@
 // Shared-inbox uses Arc+Mutex around the job receiver (same boundary as Shared*).
 
 use std::sync::mpsc
-use std::sync::{Arc, Mutex}
 
 use crate::shared::SharedInt
 use crate::shared::shared_int
@@ -59,32 +58,29 @@ pub fn pool_run_double(pool: Pool, n: int) -> Vec<int> {
     out
 }
 
-/// Shared-inbox: `workers` OS threads pull jobs from one channel, double each,
-/// push to a results channel. Returns `(n, sum of doubles)`.
+/// Shared-inbox: `workers` OS threads each own a job receiver (round-robin fan-out).
+/// Matches the Rust baseline shape without Mutex-serializing `recv`. Returns `(n, sum of doubles)`.
 pub fn pool_shared_inbox_sum(workers: int, n: int) -> (int, int) {
-    let pool = pool_new(workers)
-    let jobs = mpsc::channel()
-    let job_tx = jobs.0
-    let job_rx = Arc::new(Mutex::new(jobs.1))
+    let n_workers = if workers < 1 { 1 } else { workers }
     let results = mpsc::channel()
     let res_tx = results.0
     let res_rx = results.1
 
+    let mut job_txs: Vec<mpsc::Sender<int>> = Vec::new()
     let mut w: int = 0
-    while w < pool.workers {
-        let inbox = job_rx.clone()
+    while w < n_workers {
+        let jobs = mpsc::channel()
+        let job_tx = jobs.0
+        let job_rx = jobs.1
+        job_txs.push(job_tx)
         let tx = res_tx.clone()
         std::thread::spawn(move || {
             while true {
-                let locked = inbox.lock()
-                let msg = match locked {
-                    Ok(g) => g.recv(),
-                    Err(_) => {
-                        break
-                    },
-                }
-                match msg {
+                match job_rx.recv() {
                     Ok(v) => {
+                        if v < 0 {
+                            break
+                        }
                         match tx.send(v * 2) {
                             Ok(_) => {}
                             Err(_) => {
@@ -100,16 +96,36 @@ pub fn pool_shared_inbox_sum(workers: int, n: int) -> (int, int) {
         })
         w = w + 1
     }
+    drop(res_tx)
 
     let mut i: int = 0
     while i < n {
-        match job_tx.send(i) {
-            Ok(_) => {}
-            Err(_) => {}
+        let idx = (i % n_workers) as int
+        match job_txs.get(idx) {
+            Some(tx) => {
+                match tx.send(i) {
+                    Ok(_) => {}
+                    Err(_) => {}
+                }
+            }
+            None => {}
         }
         i = i + 1
     }
-    drop(job_tx)
+    let mut w2: int = 0
+    while w2 < n_workers {
+        match job_txs.get(w2) {
+            Some(tx) => {
+                match tx.send(-1) {
+                    Ok(_) => {}
+                    Err(_) => {}
+                }
+            }
+            None => {}
+        }
+        w2 = w2 + 1
+    }
+    drop(job_txs)
 
     let mut sum: int = 0
     let mut got: int = 0

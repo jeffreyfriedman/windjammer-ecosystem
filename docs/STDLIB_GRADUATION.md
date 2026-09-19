@@ -56,7 +56,7 @@ Updated 2026-09-14 from ecosystem dogfooding (`wj-sync` + graduation polish).
 | `wj-duration` | ✅ green | P3.315 nested substring + P3.317 int mul tip GREEN (2026-09-16) |
 | `wj-validate` | ✅ green | P3.314 tip GREEN (2026-09-16) — 27 tests |
 | `wj-cli-args`, `wj-compress`, `wj-glob` | ✅ green | tip cargo-check / recheck (2026-09-16) |
-| `wj-sync` + `wj-pipeline` | ✅ tip green (package) | 49 tests; AtomicI64 Counter wired (P3.380). `std::sync` channel/Shared wrap still RED |
+| `wj-sync` + `wj-pipeline` | ✅ tip green | 49 tests; AtomicI64 Counter; `std::sync` channel/Shared/atomic tip GREEN — ready to thin-wrap |
 | `wj-uuid` | ✅ green | tip cargo-check (2026-09-16) |
 | `wj-timefmt` | ❌ tip RED | P3.329 product month `12_i32` / `&parts[1].to_string()` |
 | `wj-semver` | ❌ tip RED | P3.325 demoted `&str` + substring assign into `String` |

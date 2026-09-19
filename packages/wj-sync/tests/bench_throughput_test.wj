@@ -45,10 +45,10 @@ fn test_bench_shared_incs_100k() {
 fn test_bench_counter_incs_100k() {
     let n: int = 100_000
     let start = time.utc_now().timestamp_millis()
-    let mut c = counter_new(0)
+    let c = counter_new(0)
     let mut i: int = 0
     while i < n {
-        c = counter_inc(c)
+        counter_inc(c)
         i = i + 1
     }
     let end = time.utc_now().timestamp_millis()

@@ -47,21 +47,21 @@ Updated 2026-09-14 from ecosystem dogfooding (`wj-sync` + graduation polish).
 | `wj-glob` | Until `std::fs`/`path` gains match helpers |
 | Apps (`wj-todo-cli`, `wj-proxy`, `wj-pipeline`, …) | Never std |
 
-## Tip health (2026-09-16 local `wj` 0.50.0)
+## Tip health (2026-09-19 local tip `wj` 0.50.0)
 
 | Package | Tests | Notes |
 |---|---|---|
 | `wj-path`, `wj-base64`, `wj-jwt`, `wj-csv`, `wj-yaml`, `wj-sha`, `wj-mime`, `wj-cron` | ✅ green | Thin-wraps / tip recheck |
-| `wj-dotenv` | ✅ green | P3.311 tip GREEN (2026-09-16) |
-| `wj-duration` | ✅ green | P3.315 nested substring + P3.317 int mul tip GREEN (2026-09-16) |
-| `wj-validate` | ✅ green | P3.314 tip GREEN (2026-09-16) — 27 tests |
-| `wj-cli-args`, `wj-compress`, `wj-glob` | ✅ green | tip cargo-check / recheck (2026-09-16) |
-| `wj-sync` + `wj-pipeline` | ✅ tip green | 49 tests; AtomicI64 Counter ≤1.2×; `std::sync` + `std/sync.wj` vocabulary; channel thin-wrap |
-| `wj-uuid` | ✅ green | tip cargo-check (2026-09-16) |
-| `wj-timefmt` | ❌ tip RED | P3.329 product month `12_i32` / `&parts[1].to_string()` |
-| `wj-semver` | ❌ tip RED | P3.325 demoted `&str` + substring assign into `String` |
-| `wj-toml` | ❌ tip RED | P3.326 usize `start = i + 1` width cast |
-| `wj-config` | ❌ tip RED | Path-dep on `wj-toml/build` (blocked until toml greens) |
+| `wj-dotenv` | ✅ green | P3.311 tip GREEN |
+| `wj-duration` | ✅ green | P3.315 / P3.317 tip GREEN |
+| `wj-validate` | ✅ green | P3.314 tip GREEN — 27 tests |
+| `wj-cli-args`, `wj-compress`, `wj-glob` | ✅ green | tip cargo-check |
+| `wj-sync` + `wj-pipeline` | ✅ tip green | 49 tests; ≤1.2× Rust; `std::sync` thin-wrap |
+| `wj-uuid` | ✅ green | tip cargo-check |
+| `wj-timefmt` | ✅ tip green | 20 tests (P3.329) |
+| `wj-semver` | ✅ tip green | 6 tests — owned→demoted `&str` borrow (eco gate) |
+| `wj-toml` | ✅ tip green | 17 tests — demoted key `.to_string()` into owned tuple push |
+| `wj-config` | ✅ tip green | 7 tests (path-dep on `wj-toml/build`) |
 
 ## Migration path (once gates go green)
 

@@ -38,6 +38,7 @@ fn shared_incs(n: i64) -> i64 {
 }
 
 fn counter_incs(n: i64) -> i64 {
+    // Match wj-sync Counter: Arc<AtomicI64>, hot path via Arc deref.
     let cell = Arc::new(AtomicI64::new(0));
     for _ in 0..n {
         cell.fetch_add(1, Ordering::Relaxed);
@@ -100,7 +101,7 @@ fn main() {
     let shared_ms = t1.elapsed().as_millis();
     println!("rust_shared_incs n={n_shared} value={s} elapsed_ms={shared_ms}");
 
-    let n_counter = 1_000_000i64;
+    let n_counter = 10_000_000i64;
     let t1b = Instant::now();
     let ctr = counter_incs(n_counter);
     let counter_ms = t1b.elapsed().as_millis();

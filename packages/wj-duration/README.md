@@ -2,6 +2,8 @@
 
 Parse and format human durations as milliseconds (`5ms`, `3s`, `1h30m`).
 
+Thin-wraps `std::time.parse_duration_ms` / `format_duration_ms`.
+
 ## API
 
 ```windjammer
@@ -26,7 +28,7 @@ tests/duration_test.wj
 
 ## Tip status
 
-❌ tip RED (P3.300) — `substring(s, i, i+1)` emits `(i + 1_i32) as usize`. Idiomatic sources kept; gate in `windjammer/tests/`.
+✅ tip green — thin-wrap over `std::time` (parse/format duration ms).
 
 ## License
 

@@ -1,7 +1,10 @@
 use std::collections::HashMap
-use wj_toml::parse
+use std::config
 
 /// Later map wins on shared keys. Keys only in `base` are kept.
+///
+/// Kept as pure WJ until tip `config.resolve` owned-HashMap call sites are GREEN
+/// (`bug_std_config_module_test::std_config_resolve_must_wire`).
 pub fn merge(base: HashMap<string, string>, overlay: HashMap<string, string>) -> HashMap<string, string> {
     let mut out = base
     for (key, value) in overlay {
@@ -21,14 +24,25 @@ pub fn overlay_matching(map: HashMap<string, string>, env_map: HashMap<string, s
     out
 }
 
-/// defaults < file < matching env keys. File maps come from `wj-dotenv::parse` / `load`.
+/// defaults < file < matching env keys.
 pub fn resolve(defaults: HashMap<string, string>, file: HashMap<string, string>, env_map: HashMap<string, string>) -> HashMap<string, string> {
     overlay_matching(merge(defaults, file), env_map)
 }
 
-/// Parse a TOML config subset into a flat string map (`wj-toml`).
+/// Parse TOML config text into a flat dotted-key string map (`std::config.parse_flat`).
 pub fn from_toml(text: string) -> HashMap<string, string> {
-    parse(text)
+    match config.parse_flat(text, "toml") {
+        Ok(map) => map,
+        Err(_) => HashMap::new(),
+    }
+}
+
+/// Parse YAML config text into a flat dotted-key string map (`std::config.parse_flat`).
+pub fn from_yaml(text: string) -> HashMap<string, string> {
+    match config.parse_flat(text, "yaml") {
+        Ok(map) => map,
+        Err(_) => HashMap::new(),
+    }
 }
 
 /// defaults < TOML file text < matching env keys.
@@ -38,4 +52,13 @@ pub fn resolve_toml(
     env_map: HashMap<string, string>,
 ) -> HashMap<string, string> {
     resolve(defaults, from_toml(toml_text), env_map)
+}
+
+/// defaults < YAML file text < matching env keys.
+pub fn resolve_yaml(
+    defaults: HashMap<string, string>,
+    yaml_text: string,
+    env_map: HashMap<string, string>,
+) -> HashMap<string, string> {
+    resolve(defaults, from_yaml(yaml_text), env_map)
 }

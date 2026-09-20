@@ -1,0 +1,47 @@
+// TDD: multipart Content-Type + body → ordered field pairs (week-one upload dogfood).
+
+use crate::domain::field_get
+use crate::domain::parse_form_fields
+use std::strings
+
+fn test_parse_json_rejected() {
+    match parse_form_fields("application/json", "{}") {
+        Ok(_) => assert(false, "json must fail"),
+        Err(e) => assert(strings.contains(e, "multipart"), "mentions multipart"),
+    }
+}
+
+fn test_parse_text_fields() {
+    let boundary = "----bound"
+    let ct = "multipart/form-data; boundary=${boundary}"
+    let body = "--${boundary}\r\nContent-Disposition: form-data; name=\"title\"\r\n\r\nHello\r\n--${boundary}\r\nContent-Disposition: form-data; name=\"body\"\r\n\r\nWorld\r\n--${boundary}--"
+    match parse_form_fields(ct, body) {
+        Ok(fields) => {
+            assert_eq(fields.len(), 2)
+            match field_get(fields, "title") {
+                Some(v) => assert_eq(v, "Hello"),
+                None => assert(false, "title"),
+            }
+            match field_get(fields, "body") {
+                Some(v) => assert_eq(v, "World"),
+                None => assert(false, "body"),
+            }
+        },
+        Err(e) => assert(false, "parse: ${e}"),
+    }
+}
+
+fn test_parse_file_part_included() {
+    let boundary = "----file"
+    let ct = "multipart/form-data; boundary=${boundary}"
+    let body = "--${boundary}\r\nContent-Disposition: form-data; name=\"upload\"; filename=\"a.txt\"\r\nContent-Type: text/plain\r\n\r\nhi\r\n--${boundary}--"
+    match parse_form_fields(ct, body) {
+        Ok(fields) => {
+            match field_get(fields, "upload") {
+                Some(v) => assert_eq(v, "hi"),
+                None => assert(false, "upload"),
+            }
+        },
+        Err(e) => assert(false, "file: ${e}"),
+    }
+}

@@ -1,6 +1,6 @@
 # wj-uuid
 
-RFC 4122 / RFC 9562 UUID helpers: **v1** (time-based), **v4** (random; thin-wraps `std::uuid.v4`), **v5** (name-based SHA-1), **v7** (Unix-ms time-ordered), plus **nil** / **max** constants.
+RFC 4122 / RFC 9562 UUID helpers: **v1** (time-based), **v4** (random; thin-wraps `std::uuid.v4`), **v5** (name-based SHA-1), **v7** (Unix-ms time-ordered; thin-wraps `std::uuid.v7` / `v7_from_timestamp`), plus **nil** / **max** constants.
 
 ## API
 

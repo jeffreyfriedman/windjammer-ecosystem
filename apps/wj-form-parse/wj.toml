@@ -1,11 +1,10 @@
 [package]
-name = "wj-config"
+name = "wj-form-parse"
 version = "0.1.0"
 edition = "2025"
 
-[lib]
-
 [dependencies]
+wj_multipart = { path = "../../packages/wj-multipart/build" }
 
 [dev-dependencies]
 

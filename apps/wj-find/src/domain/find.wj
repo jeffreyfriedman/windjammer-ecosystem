@@ -1,0 +1,30 @@
+use wj_fs_walk::walk_files
+use wj_glob::filter as glob_filter
+use std::strings
+
+/// Filter already-listed paths with a shell glob (`*`, `?`, `**`).
+pub fn find_matching(pattern: string, paths: Vec<string>) -> Vec<string> {
+    glob_filter(pattern, paths)
+}
+
+/// Walk `root` for files, then keep those matching `pattern`.
+pub fn find_under(root: string, pattern: string) -> Result<Vec<string>, string> {
+    match walk_files(root) {
+        Ok(paths) => Ok(find_matching(pattern, paths)),
+        Err(e) => Err(e),
+    }
+}
+
+/// One path per line for CLI output.
+pub fn format_hits(hits: Vec<string>) -> string {
+    let mut out = ""
+    let mut i = 0
+    while i < hits.len() {
+        if i > 0 {
+            out = "${out}\n"
+        }
+        out = "${out}${hits[i]}"
+        i = i + 1
+    }
+    out
+}

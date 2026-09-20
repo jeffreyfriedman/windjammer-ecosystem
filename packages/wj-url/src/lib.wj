@@ -1,3 +1,4 @@
+use std::encoding
 use std::strings
 
 pub struct Url {
@@ -120,6 +121,8 @@ pub fn join_url(base: string, relative: string) -> Result<string, string> {
 }
 
 /// First value for `key` in `a=1&b=2` query text (no leading `?`).
+/// Decodes `+` / `%HH` (form-urlencoded). Thin-wrap `wj-querystring` once
+/// cross-crate owned→`&str` demotion is tip-green.
 pub fn query_get(query: string, key: string) -> Option<string> {
     if strings.len(query) == 0 {
         return None
@@ -130,12 +133,12 @@ pub fn query_get(query: string, key: string) -> Option<string> {
         let pair = pairs[i]
         match split_once(pair, "=") {
             Some(kv) => {
-                if kv.0 == key {
-                    return Some(kv.1)
+                if decode_component(kv.0) == key {
+                    return Some(decode_component(kv.1))
                 }
             },
             None => {
-                if pair == key {
+                if decode_component(pair) == key {
                     return Some(empty_string())
                 }
             },
@@ -153,10 +156,12 @@ pub fn query_has(query: string, key: string) -> bool {
     }
 }
 
-/// Set `key=value` in query text, replacing any existing `key`.
+/// Set `key=value` in query text, replacing any existing `key` (form-encoded).
 pub fn query_set(query: string, key: string, value: string) -> string {
     let mut out_parts = Vec::new()
     let mut found = false
+    let enc_key = encode_component(key)
+    let enc_val = encode_component(value)
     if strings.len(query) > 0 {
         let pairs = strings.split(query, "&")
         let mut i = 0
@@ -165,16 +170,16 @@ pub fn query_set(query: string, key: string, value: string) -> string {
             if strings.len(pair) > 0 {
                 match split_once(pair, "=") {
                     Some(kv) => {
-                        if kv.0 == key {
-                            out_parts.push("${key}=${value}")
+                        if decode_component(kv.0) == key {
+                            out_parts.push("${enc_key}=${enc_val}")
                             found = true
                         } else {
                             out_parts.push(pair)
                         }
                     },
                     None => {
-                        if pair == key {
-                            out_parts.push("${key}=${value}")
+                        if decode_component(pair) == key {
+                            out_parts.push("${enc_key}=${enc_val}")
                             found = true
                         } else {
                             out_parts.push(pair)
@@ -186,7 +191,7 @@ pub fn query_set(query: string, key: string, value: string) -> string {
         }
     }
     if !found {
-        out_parts.push("${key}=${value}")
+        out_parts.push("${enc_key}=${enc_val}")
     }
     strings.join(out_parts, "&")
 }
@@ -204,12 +209,12 @@ pub fn query_remove(query: string, key: string) -> string {
         if strings.len(pair) > 0 {
             match split_once(pair, "=") {
                 Some(kv) => {
-                    if kv.0 != key {
+                    if decode_component(kv.0) != key {
                         out_parts.push(pair)
                     }
                 },
                 None => {
-                    if pair != key {
+                    if decode_component(pair) != key {
                         out_parts.push(pair)
                     }
                 },
@@ -281,66 +286,45 @@ fn split_authority_host_port(text: string) -> Result<(string, string, string), s
         if ch == "/" || ch == "?" || ch == "#" {
             auth_end = i
             found_end = true
-            i = n
-        } else {
-            i = i + 1
+            break
         }
+        i = i + 1
     }
-    if !found_end {
-        // Full string is authority; use n only as substring end alone.
-        if n == 0 {
-            return Err("empty host")
-        }
-        let mut colon_at = 0
-        let mut found_colon = false
-        let mut j = 0
-        while j < n {
-            if strings.substring(text, j, j + 1) == ":" {
-                colon_at = j
-                found_colon = true
-                j = n
-            } else {
-                j = j + 1
-            }
-        }
-        let host = if found_colon {
-            strings.substring(text, 0, colon_at)
-        } else {
-            strings.substring(text, 0, n)
-        }
-        let port = if found_colon {
-            strings.substring(text, colon_at + 1, n)
-        } else {
-            empty_string()
-        }
-        return Ok((host, port, empty_string()))
+    let authority = if found_end {
+        strings.substring(text, 0, auth_end)
+    } else {
+        strings.substring(text, 0, n)
     }
-    if auth_end == 0 {
+    let rest = if found_end {
+        strings.substring(text, auth_end, n)
+    } else {
+        empty_string()
+    }
+    let an = strings.len(authority)
+    if an == 0 {
         return Err("empty host")
     }
     let mut colon_at = 0
     let mut found_colon = false
     let mut j = 0
-    while j < auth_end {
-        if strings.substring(text, j, j + 1) == ":" {
+    while j < an {
+        if strings.substring(authority, j, j + 1) == ":" {
             colon_at = j
             found_colon = true
-            j = auth_end
-        } else {
-            j = j + 1
+            break
         }
+        j = j + 1
     }
     let host = if found_colon {
-        strings.substring(text, 0, colon_at)
+        strings.substring(authority, 0, colon_at)
     } else {
-        strings.substring(text, 0, auth_end)
+        strings.substring(authority, 0, an)
     }
     let port = if found_colon {
-        strings.substring(text, colon_at + 1, auth_end)
+        strings.substring(authority, colon_at + 1, an)
     } else {
         empty_string()
     }
-    let rest = strings.substring(text, auth_end, n)
     Ok((host, port, rest))
 }
 
@@ -360,10 +344,9 @@ fn split_path_query_fragment(text: string) -> Result<(string, string, string), s
         if ch == "#" {
             hash_at = i
             found_hash = true
-            i = n
-        } else {
-            i = i + 1
+            break
         }
+        i = i + 1
     }
     // Branch on flags only — do not mix `hash_at` (int) with `n` (usize) in one if/else.
     if found_query && found_hash {
@@ -406,4 +389,43 @@ fn split_once(text: string, sep: string) -> Option<(string, string)> {
         i = i + 1
     }
     None
+}
+
+fn encode_component(text: string) -> string {
+    let enc = encoding.url_encode(text)
+    replace_all(enc, "%20", "+")
+}
+
+fn decode_component(text: string) -> string {
+    let normalized = replace_all(text, "+", "%20")
+    match encoding.url_decode(normalized) {
+        Ok(s) => s,
+        Err(_) => text,
+    }
+}
+
+fn replace_all(text: string, from: string, to: string) -> string {
+    if strings.len(from) == 0 {
+        return text
+    }
+    let mut out = ""
+    let mut i = 0
+    let n = strings.len(text)
+    let fl = strings.len(from)
+    while i < n {
+        let end = i + fl
+        if end <= n {
+            if strings.substring(text, i, end) == from {
+                out = "${out}${to}"
+                i = end
+            } else {
+                out = "${out}${strings.substring(text, i, i + 1)}"
+                i = i + 1
+            }
+        } else {
+            out = "${out}${strings.substring(text, i, i + 1)}"
+            i = i + 1
+        }
+    }
+    out
 }

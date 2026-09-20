@@ -2,7 +2,7 @@
 
 Strong stdlib is the adoption lever. Ecosystem packages should **dogfood gaps** and **stay thin wrappers** once `std::*` is wired — not permanently duplicate platform primitives.
 
-Updated 2026-09-14 from ecosystem dogfooding (`wj-sync` + graduation polish).
+Updated 2026-09-19: `std::config` consolidates toml/yaml config; uuid v7 graduated.
 
 ## Principle
 
@@ -19,7 +19,7 @@ Updated 2026-09-14 from ecosystem dogfooding (`wj-sync` + graduation polish).
 | Path join / basename / ext | `wj-path` (`join_path`/`basename` → `std::path`; normalize/dirname/extname sugar) | **`std::path`** | Wiring ✅; package keeps extra helpers |
 | MIME lookup | `wj-mime` thin-wraps **`std::mime`** | **`std::mime`** | HTTP static files — wiring ✅; charset parity ✅ P3.243 |
 | Base64 / hex / URL encode | `wj-base64` thin-wraps **`std::encoding`** | **`std::encoding`** string APIs | Encoding is platform — ✅ graduated |
-| UUID v4/v5/v7 | `wj-uuid` (v1/v4/v5/v7 + NIL/MAX; **v4 thin-wraps `std::uuid`**) | **`std::uuid`** (new; wire v7 when ready) | Identity primitive — package ahead of std |
+| UUID v4/v5/v7 | `wj-uuid` (v1/v4/v5/v7 + NIL/MAX; **v4/v7 thin-wrap `std::uuid`**) | **`std::uuid`** (v4 + v7 ✅) | Identity primitive — v5 stays package |
 | Random range | (via uuid) | **`std::random.range` → runtime `int_range`** | ✅ wired (WJ `range` name; runtime `int_range`) |
 | SHA-1 bytes / SHA-256 hex | `wj-sha` thin | **`std::crypto`** complete wiring | Crypto must be std |
 | UTC now / millis / RFC3339 | `wj-timefmt` (structured Rfc3339 + **`now_rfc3339`/`now_epoch_secs` via `std::time`**) | **`std::time`** | Clocks are std; structured parse stays package sugar |
@@ -27,7 +27,11 @@ Updated 2026-09-14 from ecosystem dogfooding (`wj-sync` + graduation polish).
 | YAML config | `wj-yaml` thin-wraps **`std::yaml.to_json`**; getters sugar | **`std::yaml`** wiring ✅; empty-input parity ✅ P3.244 | PyYAML-scale ubiquity |
 | JWT HS256 | `wj-jwt` thin-wraps **`std::jwt`** | **`std::jwt`** | Auth primitive — ✅ graduated |
 | CSV parse/write | `wj-csv` thin-wraps **`std::csv`** parse/write | **`std::csv`** idiomatic API | Data interchange — ✅ graduated |
-| TOML config | `wj-toml` (arrays + dotted keys + inline tables) | **`std::toml`** later *or* keep package | Config ubiquity; compose with `wj-config` |
+| TOML/YAML config | `wj-config`: **parse** via `std::config.parse_flat`; merge/resolve local until tip HashMap ownership GREEN | **`std::config`** | Format is impl detail; tip `resolve`/`merge` call-site still RED |
+| Form-urlencoded | `wj-querystring` pure WJ over `url_encode` | **`std::encoding.form_parse` / `form_stringify`** | HTTP week-one; RED gate filed |
+| Glob match | `wj-glob` pure WJ | **`std::path.glob_match`** | fs walk / sitegen; RED gate filed |
+| Absolute URL parse/join | `wj-url` (pure WJ; query sugar local) | **`std::url`** | Week-one HTTP; RED gate filed (`STDLIB_URL_HANDOFF.md`) |
+
 | DB execute/query | migrate smoke via docker | **`std::db`** ergonomic apply path | Persistence |
 
 ## Keep as ecosystem packages
@@ -44,7 +48,9 @@ Updated 2026-09-14 from ecosystem dogfooding (`wj-sync` + graduation polish).
 | `wj-config` / `wj-dotenv` | Layering policy on `std::fs` / env |
 | `wj-retry`, `wj-template`, `wj-inflect` | Convenience; not platform |
 | `wj-http-client`, `wj-json-util` | Ergonomic veneers over `std::http` / `std::json` |
-| `wj-glob` | Until `std::fs`/`path` gains match helpers |
+| `wj-glob` | Until `std::path.glob_match` greens (RED gate filed) |
+| `wj-querystring` | Until `std::encoding.form_*` greens (RED gate filed); sugar `get`/`append` stays package |
+| `wj-url` | Until `std::url` greens; query_* sugar stays package |
 | Apps (`wj-todo-cli`, `wj-proxy`, `wj-pipeline`, …) | Never std |
 
 ## Tip health (2026-09-19 local tip `wj` 0.50.0)
@@ -61,7 +67,9 @@ Updated 2026-09-14 from ecosystem dogfooding (`wj-sync` + graduation polish).
 | `wj-timefmt` | ✅ tip green | 20 tests (P3.329) |
 | `wj-semver` | ✅ tip green | 6 tests — owned→demoted `&str` borrow (eco gate) |
 | `wj-toml` | ✅ tip green | 17 tests — demoted key `.to_string()` into owned tuple push |
-| `wj-config` | ✅ tip green | 7 tests (path-dep on `wj-toml/build`) |
+| `wj-config` | ✅ tip green | parse via `std::config`; merge/resolve package-local (tip HashMap ownership) |
+| `wj-url` | ✅ tip green | form-decode query_*; authority substring scan; tip owns `std::url` + int unify |
+| `wj-multipart` | ✅ tip green | split_once scanners; owned `parse`/`parse_multipart`; dogfooded by `wj-form-parse` |
 
 ## Migration path (once gates go green)
 
@@ -71,13 +79,12 @@ Updated 2026-09-14 from ecosystem dogfooding (`wj-sync` + graduation polish).
 
 ## What the other agent should prioritize
 
-See `windjammer/tests/STDLIB_ADOPTION_QUEUE.md` and failing `bug_std_*` tests. Order:
+See `windjammer/tests/STDLIB_ADOPTION_QUEUE.md` and failing `bug_std_*` tests. Current tip RED (beta blockers):
 
-1. Encoding string base64 + crypto sha1/sha256 hex (unblocks uuid/sha packages)
-2. random.range + time.utc_now/timestamp_millis (uuid v1/v4)
-3. mime + path module wiring (delete pure-WJ workarounds)
-4. jwt HS256 codegen → runtime (already implemented in runtime)
-5. yaml + csv idiomatic APIs
-6. db execute for migrate apply-in-WJ
+1. `std::config.resolve` / `merge` owned-HashMap call sites (`STDLIB_CONFIG_HANDOFF.md`)
+2. `std::encoding.form_parse` / `form_stringify` (`STDLIB_FORM_HANDOFF.md`)
+3. `std::path.glob_match` (same handoff)
+4. `strings.contains` owned interpolated needle demotion
+5. `std::url` parse/format/join + int/usize loop assign unify (`STDLIB_URL_HANDOFF.md`)
 
 **Do not** invent new ecosystem wrappers for the P0 rows above — write failing std repros and fix std/runtime.

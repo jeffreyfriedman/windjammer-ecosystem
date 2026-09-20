@@ -66,23 +66,15 @@ pub fn v5_url(name: string) -> Result<string, string> {
     v5("6ba7b811-9dad-11d1-80b4-00c04fd430c8", name)
 }
 
-/// Unix-ms time-ordered UUID version 7 (RFC 9562) using the current UTC clock.
+/// Unix-ms time-ordered UUID version 7 (RFC 9562; thin-wraps `std::uuid.v7`).
 pub fn v7() -> Result<string, string> {
-    let millis = time.utc_now().timestamp_millis()
-    let hex = encoding.hex_encode(random_octets(10))
-    v7_from_timestamp(millis, hex)
+    Ok(uuid.v7())
 }
 
 /// UUID version 7 from explicit Unix millis + 10 random bytes (20 hex digits).
+/// Thin-wraps `std::uuid.v7_from_timestamp`.
 pub fn v7_from_timestamp(unix_millis: i64, random_hex: string) -> Result<string, string> {
-    let compact = normalize(random_hex)
-    if strings.len(compact) != 20 {
-        return Err("random must be 20 hex digits")
-    }
-    match encoding.hex_decode(compact) {
-        Ok(rand) => Ok(format_uuid_bytes(v7_bytes(unix_millis, rand))),
-        Err(e) => Err(e),
-    }
+    uuid.v7_from_timestamp(unix_millis, random_hex)
 }
 
 /// Version nibble (`1`, `4`, `5`, `7`, …) when `text` is a supported UUID.
@@ -132,20 +124,6 @@ fn is_valid_normalized(id: string) -> bool {
         return false
     }
     canonical_dashes(id) && all_hex_or_dash(id)
-}
-
-fn v7_bytes(unix_millis: i64, rand: Vec<u8>) -> Vec<u8> {
-    let mut out = Vec::new()
-    out.push(((unix_millis >> 40) & 0xff) as u8)
-    out.push(((unix_millis >> 32) & 0xff) as u8)
-    out.push(((unix_millis >> 24) & 0xff) as u8)
-    out.push(((unix_millis >> 16) & 0xff) as u8)
-    out.push(((unix_millis >> 8) & 0xff) as u8)
-    out.push((unix_millis & 0xff) as u8)
-    out = append_bytes(out, rand)
-    out[6] = (out[6] & 0x0f) | 0x70
-    out[8] = (out[8] & 0x3f) | 0x80
-    out
 }
 
 /// Lowercase UUID formatting (dashes unchanged).

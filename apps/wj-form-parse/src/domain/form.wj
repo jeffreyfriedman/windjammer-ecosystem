@@ -1,0 +1,60 @@
+use wj_multipart::boundary_from_content_type
+use wj_multipart::parse_multipart
+use wj_multipart::Part
+use std::strings
+
+/// Parse multipart body into ordered `(name, body)` pairs (files included by field name).
+pub fn parse_form_fields(content_type: string, body: string) -> Result<Vec<(string, string)>, string> {
+    let ct = strings.trim(content_type)
+    if !strings.contains(ct, "multipart/") {
+        return Err("expected multipart content-type")
+    }
+    match boundary_from_content_type(ct) {
+        Ok(boundary) => {
+            match parse_multipart(boundary, body) {
+                Ok(parts) => Ok(parts_to_fields(parts)),
+                Err(e) => Err(e),
+            }
+        },
+        Err(e) => Err(e),
+    }
+}
+
+/// First value for `name`, or None.
+pub fn field_get(fields: Vec<(string, string)>, name: string) -> Option<string> {
+    let mut i = 0
+    while i < fields.len() {
+        let pair = fields[i]
+        if pair.0 == name {
+            return Some(pair.1)
+        }
+        i = i + 1
+    }
+    None
+}
+
+/// Render fields as `name=value` lines (demo / CLI output).
+pub fn format_fields(fields: Vec<(string, string)>) -> string {
+    let mut out = ""
+    let mut i = 0
+    while i < fields.len() {
+        let pair = fields[i]
+        if i > 0 {
+            out = "${out}\n"
+        }
+        out = "${out}${pair.0}=${pair.1}"
+        i = i + 1
+    }
+    out
+}
+
+fn parts_to_fields(parts: Vec<Part>) -> Vec<(string, string)> {
+    let mut fields = Vec::new()
+    let mut i = 0
+    while i < parts.len() {
+        let part = parts[i]
+        fields.push((part.name, part.body))
+        i = i + 1
+    }
+    fields
+}

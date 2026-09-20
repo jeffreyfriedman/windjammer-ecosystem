@@ -8,17 +8,21 @@ pub struct Part {
     pub body: string,
 }
 
+/// Owned parse input — prefer this at cross-crate call sites so tip does not demote
+/// `boundary: string` to `&str` while leaving `body` owned (E0308).
+pub struct MultipartBody {
+    pub boundary: string,
+    pub body: string,
+}
+
 /// Extract boundary token from a Content-Type header value.
 pub fn boundary_from_content_type(header: string) -> Result<string, string> {
     let trimmed = strings.trim(header)
     if !strings.contains(trimmed, "multipart/") {
         return Err("not multipart content-type")
     }
-    let marker = "boundary="
-    match find_index(trimmed, marker) {
-        Some(idx) => {
-            let start = idx + strings.len(marker)
-            let rest = strings.substring(trimmed, start, strings.len(trimmed))
+    match after_first(trimmed, "boundary=") {
+        Some(rest) => {
             let token = strip_quotes(take_until_semi(rest))
             if strings.len(token) == 0 {
                 return Err("empty boundary")
@@ -36,6 +40,16 @@ pub fn content_type_header(boundary: string) -> string {
 
 /// Parse a multipart body given an already-extracted boundary.
 pub fn parse_multipart(boundary: string, body: string) -> Result<Vec<Part>, string> {
+    parse(MultipartBody {
+        boundary: boundary,
+        body: body,
+    })
+}
+
+/// Cross-crate-friendly parse entry (owned struct; fields stay owned inside this crate).
+pub fn parse(input: MultipartBody) -> Result<Vec<Part>, string> {
+    let boundary = input.boundary
+    let body = input.body
     let delim = "--${boundary}"
     let close = "--${boundary}--"
     let normalized = strings.replace(body, "\r\n", "\n")
@@ -119,11 +133,10 @@ pub fn get_file(parts: Vec<Part>, name: string) -> Option<Part> {
 /// Returns `(headers, body)` then builds a `Part` — kept as one owned pipeline
 /// so demoted `&str` helpers do not fight owned locals at call sites.
 fn parse_part_headers_body(chunk: string) -> Result<Part, string> {
-    match find_index(chunk, "\n\n") {
-        Some(idx) => {
-            let headers = strings.substring(chunk, 0, idx)
-            let raw_body = strings.substring(chunk, idx + 2, strings.len(chunk))
-            let body = trim_trailing_newline(raw_body)
+    match split_once(chunk, "\n\n") {
+        Some(hb) => {
+            let headers = hb.0
+            let body = trim_trailing_newline(hb.1)
             let mut name = ""
             let mut filename = ""
             let mut content_type = ""
@@ -135,15 +148,15 @@ fn parse_part_headers_body(chunk: string) -> Result<Part, string> {
                 if strings.len(line) == 0 {
                     continue
                 }
-                let lower = to_lower(line)
+                let lower = to_lower("${line}")
                 if strings.starts_with(lower, "content-disposition:") {
-                    match disposition_attr(line, "name") {
+                    match disposition_attr("${line}", "name") {
                         Some(v) => {
                             name = v
                         },
                         None => {},
                     }
-                    match disposition_attr(line, "filename") {
+                    match disposition_attr("${line}", "filename") {
                         Some(v) => {
                             filename = v
                         },
@@ -151,7 +164,12 @@ fn parse_part_headers_body(chunk: string) -> Result<Part, string> {
                     }
                 }
                 if strings.starts_with(lower, "content-type:") {
-                    content_type = strings.trim(strings.substring(line, 13, strings.len(line)))
+                    match after_first("${line}", ":") {
+                        Some(rest) => {
+                            content_type = strings.trim(rest)
+                        },
+                        None => {},
+                    }
                 }
             }
             if strings.len(name) == 0 {
@@ -171,40 +189,41 @@ fn parse_part_headers_body(chunk: string) -> Result<Part, string> {
 fn trim_trailing_newline(text: string) -> string {
     let mut out = text
     if strings.ends_with(out, "\n") {
-        out = strings.substring(out, 0, strings.len(out) - 1)
+        out = drop_last(out)
     }
     if strings.ends_with(out, "\r") {
-        out = strings.substring(out, 0, strings.len(out) - 1)
+        out = drop_last(out)
     }
     out
 }
 
+fn drop_last(text: string) -> string {
+    if strings.len(text) == 0 {
+        return text
+    }
+    strings.substring(text, 0, strings.len(text) - 1)
+}
+
 fn strip_closing(body: string, close: string) -> string {
-    match find_index(body, close) {
-        Some(idx) => strings.substring(body, 0, idx),
+    match before_first(body, close) {
+        Some(prefix) => prefix,
         None => body,
     }
 }
 
 fn disposition_attr(header: string, key: string) -> Option<string> {
     let needle = "${key}=\""
-    match find_index(header, needle) {
-        Some(idx) => {
-            let start = idx + strings.len(needle)
-            let rest = strings.substring(header, start, strings.len(header))
-            match find_index(rest, "\"") {
-                Some(end) => Some(strings.substring(rest, 0, end)),
+    match after_first(header, needle) {
+        Some(rest) => {
+            match before_first(rest, "\"") {
+                Some(v) => Some(v),
                 None => None,
             }
         },
         None => {
             let bare = "${key}="
-            match find_index(header, bare) {
-                Some(idx) => {
-                    let start = idx + strings.len(bare)
-                    let rest = strings.substring(header, start, strings.len(header))
-                    Some(take_until_semi(strip_quotes(rest)))
-                },
+            match after_first(header, bare) {
+                Some(rest) => Some(take_until_semi(strip_quotes(rest))),
                 None => None,
             }
         },
@@ -212,8 +231,8 @@ fn disposition_attr(header: string, key: string) -> Option<string> {
 }
 
 fn take_until_semi(text: string) -> string {
-    match find_index(text, ";") {
-        Some(idx) => strings.trim(strings.substring(text, 0, idx)),
+    match before_first(text, ";") {
+        Some(prefix) => strings.trim(prefix),
         None => strings.trim(text),
     }
 }
@@ -221,24 +240,36 @@ fn take_until_semi(text: string) -> string {
 fn strip_quotes(text: string) -> string {
     let t = strings.trim(text)
     if strings.starts_with(t, "\"") && strings.ends_with(t, "\"") && strings.len(t) >= 2 {
-        return strings.substring(t, 1, strings.len(t) - 1)
+        return drop_last(strings.substring(t, 1, strings.len(t)))
     }
     t
 }
 
-fn find_index(hay: string, needle: string) -> Option<int> {
-    let nlen = strings.len(needle)
-    if nlen == 0 {
-        return Some(0)
+fn after_first(hay: string, needle: string) -> Option<string> {
+    match split_once(hay, needle) {
+        Some(parts) => Some(parts.1),
+        None => None,
     }
-    let hlen = strings.len(hay)
-    if nlen > hlen {
-        return None
+}
+
+fn before_first(hay: string, needle: string) -> Option<string> {
+    match split_once(hay, needle) {
+        Some(parts) => Some(parts.0),
+        None => None,
     }
+}
+
+fn split_once(text: string, sep: string) -> Option<(string, string)> {
     let mut i = 0
-    while i + nlen <= hlen {
-        if strings.substring(hay, i, i + nlen) == needle {
-            return Some(i)
+    while i < strings.len(text) {
+        let end = i + strings.len(sep)
+        if end <= strings.len(text) {
+            if strings.substring(text, i, end) == sep {
+                return Some((
+                    strings.substring(text, 0, i),
+                    strings.substring(text, end, strings.len(text)),
+                ))
+            }
         }
         i = i + 1
     }

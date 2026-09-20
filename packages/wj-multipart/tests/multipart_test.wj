@@ -3,7 +3,9 @@ use crate::content_type_header
 use crate::format_multipart
 use crate::get_field
 use crate::get_file
+use crate::parse
 use crate::parse_multipart
+use crate::MultipartBody
 use std::strings
 
 @test
@@ -36,6 +38,23 @@ fn test_parse_text_fields() {
             assert_eq(parts[1].body, "3")
         },
         Err(_) => assert(false, "parse text fields"),
+    }
+}
+
+@test
+fn test_parse_owned_input_roundtrip() {
+    let boundary = "----own"
+    let body = "--${boundary}\r\nContent-Disposition: form-data; name=\"a\"\r\n\r\n1\r\n--${boundary}--"
+    match parse(MultipartBody {
+        boundary: boundary,
+        body: body,
+    }) {
+        Ok(parts) => {
+            assert_eq(parts.len(), 1)
+            assert_eq(parts[0].name, "a")
+            assert_eq(parts[0].body, "1")
+        },
+        Err(_) => assert(false, "parse MultipartBody"),
     }
 }
 

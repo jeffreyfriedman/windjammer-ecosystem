@@ -2,7 +2,9 @@ use crate::merge
 use crate::overlay_matching
 use crate::resolve
 use crate::resolve_toml
+use crate::resolve_yaml
 use crate::from_toml
+use crate::from_yaml
 use std::collections::HashMap
 
 fn test_merge_overlay_wins_on_shared_keys() {
@@ -107,6 +109,19 @@ fn test_from_toml_flattens_sections() {
     }
 }
 
+fn test_from_yaml_flattens_nested() {
+    let text = "HOST: localhost\nserver:\n  PORT: 3000\n"
+    let file = from_yaml(text)
+    match file.get("HOST") {
+        Some(v) => assert_eq(v, "localhost"),
+        None => assert(false, "HOST from yaml"),
+    }
+    match file.get("server.PORT") {
+        Some(v) => assert_eq(v, "3000"),
+        None => assert(false, "server.PORT from yaml"),
+    }
+}
+
 fn test_resolve_toml_defaults_file_env() {
     let mut defaults = HashMap::new()
     defaults.insert("HOST", "localhost")
@@ -134,4 +149,25 @@ fn test_resolve_toml_defaults_file_env() {
         None => assert(false, "DEBUG from toml merge"),
     }
     assert(cfg.get("IGNORED").is_none(), "env must not invent keys")
+}
+
+fn test_resolve_yaml_defaults_file_env() {
+    let mut defaults = HashMap::new()
+    defaults.insert("HOST", "localhost")
+    defaults.insert("PORT", "8080")
+    let text = "PORT: 3000\nDEBUG: true\n"
+    let env_map = HashMap::new()
+    let cfg = resolve_yaml(defaults, text, env_map)
+    match cfg.get("HOST") {
+        Some(v) => assert_eq(v, "localhost"),
+        None => assert(false, "HOST defaults"),
+    }
+    match cfg.get("PORT") {
+        Some(v) => assert_eq(v, "3000"),
+        None => assert(false, "PORT from yaml"),
+    }
+    match cfg.get("DEBUG") {
+        Some(v) => assert_eq(v, "true"),
+        None => assert(false, "DEBUG from yaml"),
+    }
 }

@@ -1,0 +1,40 @@
+// TDD: walk + glob = week-one find (fd-style).
+
+use crate::domain::find_matching
+use crate::domain::format_hits
+use std::strings
+
+fn test_find_matching_star_suffix() {
+    let mut paths = Vec::new()
+    paths.push("src/main.wj")
+    paths.push("src/lib.rs")
+    paths.push("README.md")
+    let hits = find_matching("**/*.wj", paths)
+    assert_eq(hits.len(), 1)
+    assert_eq(hits[0], "src/main.wj")
+}
+
+fn test_find_matching_exact() {
+    let mut paths = Vec::new()
+    paths.push("a.md")
+    paths.push("b.txt")
+    let hits = find_matching("*.md", paths)
+    assert_eq(hits.len(), 1)
+    assert_eq(hits[0], "a.md")
+}
+
+fn test_find_matching_none() {
+    let mut paths = Vec::new()
+    paths.push("a.txt")
+    let hits = find_matching("*.md", paths)
+    assert_eq(hits.len(), 0)
+}
+
+fn test_format_hits_joins_lines() {
+    let mut hits = Vec::new()
+    hits.push("a.wj")
+    hits.push("b.wj")
+    let text = format_hits(hits)
+    assert(strings.contains(text, "a.wj"), "has a")
+    assert(strings.contains(text, "b.wj"), "has b")
+}

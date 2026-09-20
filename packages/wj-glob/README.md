@@ -26,6 +26,8 @@ let hits = filter("*.md", paths)
 | `is_match(pattern, path)` | Segment-aware glob match (`*`, `?`, `**`) |
 | `filter(pattern, paths)` | Matching subset |
 
+**Graduation:** tip RED gate `bug_std_path_glob_match_wiring_test` targets `std::path.glob_match`. Once GREEN, thin-wrap `is_match` and keep `filter` as package sugar. See `docs/STDLIB_FORM_HANDOFF.md`.
+
 ## Layout
 
 ```

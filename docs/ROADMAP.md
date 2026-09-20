@@ -15,6 +15,8 @@ Catalog of seed apps and packages for common Windjammer application work.
 | Name | Kind | Use case | Dependencies |
 |---|---|---|---|
 | `wj-hello` | app | Build-path smoke test | std only |
+| `wj-first-hour` | app | Std-only first-hour card (uuid/time/path/config/encoding) | tip-green std |
+| `wj-form-parse` | app | Multipart field parse dogfood | `wj-multipart` |
 | `wj-dotenv` | package | `.env` / `KEY=VALUE` loading | `std::fs`, `std::strings` |
 | `wj-fetch` | app | CLI HTTP GET + JSON | `std::http` / `std::cli` / `std::json`, or clap + ureq later |
 | `wj-notes-api` | app | Small CRUD REST API | HTTP std + in-memory; optional `std::db` |

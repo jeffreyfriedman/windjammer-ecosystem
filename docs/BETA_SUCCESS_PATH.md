@@ -58,17 +58,32 @@ cd build && cargo run --release
 
 Expect lines like `title=Hello` / `body=World`. Dogfoods `wj-multipart` without the notes-api dep graph.
 
-## 3. Week-one CLI (copy path)
+## 3. Week-one find (walk + glob)
+
+```bash
+cd packages/wj-fs-walk && $WJ build --release src && cd -
+cd packages/wj-glob && $WJ build --release src && cd -
+cd windjammer-ecosystem/apps/wj-find
+unset CARGO_TARGET_DIR
+$WJ test
+$WJ build --release src
+cd build && cargo run --release
+```
+
+Expect a `*.wj` path (demo walks `../wj-hello/src`). Uses package `wj-glob` until tip `path.glob_match` greens.
+
+## 4. Week-one CLI (copy path)
 
 `apps/wj-todo-cli` — file CRUD + `std::json` export. Dogfoods validation via `wj-validate` (ecosystem schema DSL — fine for products).
 
 ```bash
+cd packages/wj-validate && $WJ build --release src && cd -
 cd apps/wj-todo-cli
 $WJ test
 $WJ build --release src
 ```
 
-## 4. Week-one HTTP (copy path)
+## 5. Week-one HTTP (copy path)
 
 | App | What you learn |
 |---|---|
@@ -93,10 +108,8 @@ Until `std::url` greens: use `wj-url` (query helpers form-decode today).
 
 - [x] Hello + first-hour card green on pinned tip `wj`
 - [x] `wj-form-parse` multipart dogfood green (3 tests)
-- [ ] Todo CLI + one HTTP app green without rust-interop
 - [x] `wj-multipart` tip green (split_once + owned `parse_multipart` formals)
-- [ ] Form + glob + config.resolve tip GREEN (or documented package path)
-- [ ] `docs/STDLIB_GRADUATION.md` P0 rows all ✅
+- [x] `wj-find` walk+glob dogfood green (4 tests; package path until tip `glob_match`)
 - [ ] Todo CLI + one HTTP app green without rust-interop
 - [ ] Form + glob + config.resolve tip GREEN (or documented package path)
 - [ ] `docs/STDLIB_GRADUATION.md` P0 rows all ✅

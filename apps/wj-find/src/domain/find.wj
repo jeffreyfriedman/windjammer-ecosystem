@@ -1,6 +1,5 @@
 use wj_fs_walk::walk_files
 use wj_glob::filter as glob_filter
-use std::strings
 
 /// Filter already-listed paths with a shell glob (`*`, `?`, `**`).
 pub fn find_matching(pattern: string, paths: Vec<string>) -> Vec<string> {

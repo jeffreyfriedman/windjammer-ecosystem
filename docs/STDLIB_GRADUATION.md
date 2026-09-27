@@ -27,10 +27,10 @@ Updated 2026-09-19: `std::config` consolidates toml/yaml config; uuid v7 graduat
 | YAML config | `wj-yaml` thin-wraps **`std::yaml.to_json`**; getters sugar | **`std::yaml`** wiring ✅; empty-input parity ✅ P3.244 | PyYAML-scale ubiquity |
 | JWT HS256 | `wj-jwt` thin-wraps **`std::jwt`** | **`std::jwt`** | Auth primitive — ✅ graduated |
 | CSV parse/write | `wj-csv` thin-wraps **`std::csv`** parse/write | **`std::csv`** idiomatic API | Data interchange — ✅ graduated |
-| TOML/YAML config | `wj-config`: **parse** via `std::config.parse_flat`; merge/resolve local until tip HashMap ownership GREEN | **`std::config`** | Format is impl detail; tip `resolve`/`merge` call-site still RED |
-| Form-urlencoded | `wj-querystring` pure WJ over `url_encode` | **`std::encoding.form_parse` / `form_stringify`** | HTTP week-one; RED gate filed |
-| Glob match | `wj-glob` pure WJ | **`std::path.glob_match`** | fs walk / sitegen; RED gate filed |
-| Absolute URL parse/join | `wj-url` (pure WJ; query sugar local) | **`std::url`** | Week-one HTTP; RED gate filed (`STDLIB_URL_HANDOFF.md`) |
+| TOML/YAML config | `wj-config`: **parse** via `std::config.parse_flat`; `resolve` tip GREEN (p3515 cargo-check) | **`std::config`** | Format is impl detail; package keeps layering sugar |
+| Form-urlencoded | `wj-querystring` sugar over **`std::encoding.form_parse` / `form_stringify`** (tip GREEN p3515) | **`std::encoding.form_*`** | HTTP week-one; wiring cargo-check |
+| Glob match | `wj-glob` sugar over **`std::path.glob_match`** (tip GREEN p3515) | **`std::path.glob_match`** | fs walk / sitegen; wiring cargo-check |
+| Absolute URL parse/join | `wj-url` sugar over **`std::url`** (parse/join tip GREEN p3515) | **`std::url`** | Week-one HTTP; query_* sugar stays package |
 
 | DB execute/query | migrate smoke via docker | **`std::db`** ergonomic apply path | Persistence |
 
@@ -48,9 +48,9 @@ Updated 2026-09-19: `std::config` consolidates toml/yaml config; uuid v7 graduat
 | `wj-config` / `wj-dotenv` | Layering policy on `std::fs` / env |
 | `wj-retry`, `wj-template`, `wj-inflect` | Convenience; not platform |
 | `wj-http-client`, `wj-json-util` | Ergonomic veneers over `std::http` / `std::json` |
-| `wj-glob` | Until `std::path.glob_match` greens (RED gate filed) |
-| `wj-querystring` | Until `std::encoding.form_*` greens (RED gate filed); sugar `get`/`append` stays package |
-| `wj-url` | Until `std::url` greens; query_* sugar stays package |
+| `wj-glob` | Sugar over tip-green `std::path.glob_match` |
+| `wj-querystring` | Sugar `get`/`append` over tip-green `encoding.form_*` |
+| `wj-url` | Query_* sugar over tip-green `std::url` |
 | Apps (`wj-todo-cli`, `wj-proxy`, `wj-pipeline`, …) | Never std |
 
 ## Tip health (2026-09-19 local tip `wj` 0.50.0)
@@ -79,12 +79,8 @@ Updated 2026-09-19: `std::config` consolidates toml/yaml config; uuid v7 graduat
 
 ## What the other agent should prioritize
 
-See `windjammer/tests/STDLIB_ADOPTION_QUEUE.md` and failing `bug_std_*` tests. Current tip RED (beta blockers):
+See `windjammer/tests/STDLIB_ADOPTION_QUEUE.md`. Tip p3515 (18:31) **wiring cargo-check GREEN**: `encoding.form_parse` / `form_stringify`, `path.glob_match`, `url.parse` / `join`, `config.resolve`.
 
-1. `std::config.resolve` / `merge` owned-HashMap call sites (`STDLIB_CONFIG_HANDOFF.md`)
-2. `std::encoding.form_parse` / `form_stringify` (`STDLIB_FORM_HANDOFF.md`)
-3. `std::path.glob_match` (same handoff)
-4. `strings.contains` owned interpolated needle demotion
-5. `std::url` parse/format/join + int/usize loop assign unify (`STDLIB_URL_HANDOFF.md`)
+Still open: notes-api product `&mut query` (P3.514 isolate still E0596 after official mut-bind fixes); `std::db` apply path; package thin-wraps over the newly green std APIs.
 
-**Do not** invent new ecosystem wrappers for the P0 rows above — write failing std repros and fix std/runtime.
+**Do not** invent new ecosystem wrappers for those std rows — thin-wrap existing `wj-*` packages.

@@ -111,7 +111,7 @@ Until `std::url` greens: use `wj-url` (query helpers form-decode today).
 - [x] `wj-multipart` tip green (split_once + owned `parse_multipart` formals)
 - [x] `wj-find` walk+glob dogfood green (4 tests; package path until tip `glob_match`)
 - [x] Todo CLI green without rust-interop (60 tests)
-- [ ] One HTTP app green without rust-interop
+- [x] One HTTP app green without rust-interop (`wj-fetch` 31 tests; `wj-notes-api` still 2 tip E0308)
 - [ ] Form + glob + config.resolve tip GREEN (or documented package path)
 - [ ] `docs/STDLIB_GRADUATION.md` P0 rows all ✅
 

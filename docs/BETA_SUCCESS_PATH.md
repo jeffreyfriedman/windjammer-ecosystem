@@ -113,6 +113,6 @@ Until `std::url` greens: use `wj-url` (query helpers form-decode today).
 - [x] Todo CLI green without rust-interop (60 tests)
 - [x] One HTTP app green without rust-interop (`wj-fetch` 31 tests; `wj-notes-api` P3.520 isolate GREEN — product `handle_method(self)` P3.522, `&mut query` P3.518, adapter `find_char(&String)` P3.524)
 - [x] Form + glob + config.resolve tip GREEN (`form_parse`/`form_stringify`, `path.glob_match`, `url.parse`/`join`, `config.resolve` cargo-check on tip p3515)
-- [ ] `docs/STDLIB_GRADUATION.md` P0 rows all ✅ (DB apply path still open; form/glob/url/config.resolve wired)
+- [ ] `docs/STDLIB_GRADUATION.md` P0 rows all ✅ (DB apply path P3.527/P3.528; querystring thin-wrap blocked on P3.526)
 
 Cross-link: `STDLIB_GRADUATION.md`, `STDLIB_COVERAGE.md`, tip `tests/STDLIB_ADOPTION_QUEUE.md`.

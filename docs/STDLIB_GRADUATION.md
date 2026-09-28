@@ -28,7 +28,7 @@ Updated 2026-09-19: `std::config` consolidates toml/yaml config; uuid v7 graduat
 | JWT HS256 | `wj-jwt` thin-wraps **`std::jwt`** | **`std::jwt`** | Auth primitive — ✅ graduated |
 | CSV parse/write | `wj-csv` thin-wraps **`std::csv`** parse/write | **`std::csv`** idiomatic API | Data interchange — ✅ graduated |
 | TOML/YAML config | `wj-config`: **parse** via `std::config.parse_flat`; `resolve` tip GREEN (p3515 cargo-check) | **`std::config`** | Format is impl detail; package keeps layering sugar |
-| Form-urlencoded | `wj-querystring` thin-wraps **`std::encoding.form_parse` / `form_stringify`** (13/14; leftover P3.535 `?` strip) | **`std::encoding.form_*`** | HTTP week-one; wrap GREEN, `?` is std |
+| Form-urlencoded | `wj-querystring` thin-wraps **`std::encoding.form_parse` / `form_stringify`** (**14/14 GREEN** tip p3520) | **`std::encoding.form_*`** | HTTP week-one; wrap + `?` strip ✅ |
 | Glob match | `wj-glob.is_match` thin-wraps **`std::path.glob_match`** (14 tests tip p3515) | **`std::path.glob_match`** | fs walk / sitegen; package keeps `filter` |
 | Absolute URL parse/join | `wj-url.join_url` thin-wraps **`std::url.join`**; local `Url` kept (**P3.533 product 17/17 GREEN** p3505) | **`std::url`** | Week-one HTTP; query_* sugar stays package |
 
@@ -69,7 +69,7 @@ Updated 2026-09-19: `std::config` consolidates toml/yaml config; uuid v7 graduat
 | `wj-toml` | ✅ tip green | 17 tests — demoted key `.to_string()` into owned tuple push |
 | `wj-config` | ✅ tip green | parse via `std::config`; merge/resolve package-local (tip HashMap ownership) |
 | `wj-url` | ✅ tip green | 17 tests on p3505 (P3.533 local `Url`; `join_url` → `std::url.join`) |
-| `wj-querystring` | ⚠️ 13/14 | thin-wrap `form_*`; leftover P3.535 leading `?` |
+| `wj-querystring` | ✅ tip green | 14/14 thin-wrap `form_*` (P3.535 `?` strip GREEN) |
 | `wj-multipart` | ✅ tip green | split_once scanners; owned `parse`/`parse_multipart`; dogfooded by `wj-form-parse` |
 
 ## Migration path (once gates go green)
@@ -82,6 +82,6 @@ Updated 2026-09-19: `std::config` consolidates toml/yaml config; uuid v7 graduat
 
 See `windjammer/tests/STDLIB_ADOPTION_QUEUE.md`. Tip p3515 (18:31) **wiring cargo-check GREEN**: `encoding.form_parse` / `form_stringify`, `path.glob_match`, `url.parse` / `join`, `config.resolve`.
 
-Still open: notes-api P3.518 + P3.524; querystring wrap GREEN / P3.535 `form_parse` `?` strip; migrate P3.527/P3.528; `wj-url` P3.533 GREEN p3505; auth-api P3.532. P3.522 GREEN. `wj-cookie` 8/8.
+Still open: notes-api P3.518 + P3.524; querystring **14/14 GREEN** (P3.535); migrate P3.527/P3.528; `wj-url` P3.533 GREEN; auth-api P3.532 leftover (`&mut req` / find_char / resolve_token) + P3.537 build-path-dep get. P3.522 GREEN. `wj-cookie` 8/8.
 
 **Do not** invent new ecosystem wrappers for those std rows — thin-wrap existing `wj-*` packages.

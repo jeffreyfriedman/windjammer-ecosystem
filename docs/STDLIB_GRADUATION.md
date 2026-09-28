@@ -29,7 +29,7 @@ Updated 2026-09-19: `std::config` consolidates toml/yaml config; uuid v7 graduat
 | CSV parse/write | `wj-csv` thin-wraps **`std::csv`** parse/write | **`std::csv`** idiomatic API | Data interchange — ✅ graduated |
 | TOML/YAML config | `wj-config`: **parse** via `std::config.parse_flat`; `resolve` tip GREEN (p3515 cargo-check) | **`std::config`** | Format is impl detail; package keeps layering sugar |
 | Form-urlencoded | `wj-querystring` sugar over **`std::encoding.form_parse` / `form_stringify`** (tip GREEN p3515) | **`std::encoding.form_*`** | HTTP week-one; wiring cargo-check |
-| Glob match | `wj-glob` sugar over **`std::path.glob_match`** (tip GREEN p3515) | **`std::path.glob_match`** | fs walk / sitegen; wiring cargo-check |
+| Glob match | `wj-glob.is_match` thin-wraps **`std::path.glob_match`** (14 tests tip p3515) | **`std::path.glob_match`** | fs walk / sitegen; package keeps `filter` |
 | Absolute URL parse/join | `wj-url` sugar over **`std::url`** (parse/join tip GREEN p3515) | **`std::url`** | Week-one HTTP; query_* sugar stays package |
 
 | DB execute/query | migrate smoke via docker | **`std::db`** ergonomic apply path | Persistence |
@@ -48,7 +48,7 @@ Updated 2026-09-19: `std::config` consolidates toml/yaml config; uuid v7 graduat
 | `wj-config` / `wj-dotenv` | Layering policy on `std::fs` / env |
 | `wj-retry`, `wj-template`, `wj-inflect` | Convenience; not platform |
 | `wj-http-client`, `wj-json-util` | Ergonomic veneers over `std::http` / `std::json` |
-| `wj-glob` | Sugar over tip-green `std::path.glob_match` |
+| `wj-glob` | `is_match` thin-wraps `std::path.glob_match`; `filter` stays sugar |
 | `wj-querystring` | Sugar `get`/`append` over tip-green `encoding.form_*` |
 | `wj-url` | Query_* sugar over tip-green `std::url` |
 | Apps (`wj-todo-cli`, `wj-proxy`, `wj-pipeline`, …) | Never std |
@@ -81,6 +81,6 @@ Updated 2026-09-19: `std::config` consolidates toml/yaml config; uuid v7 graduat
 
 See `windjammer/tests/STDLIB_ADOPTION_QUEUE.md`. Tip p3515 (18:31) **wiring cargo-check GREEN**: `encoding.form_parse` / `form_stringify`, `path.glob_match`, `url.parse` / `join`, `config.resolve`.
 
-Still open: notes-api product `&mut query` (P3.514 isolate still E0596 after official mut-bind fixes); `std::db` apply path; package thin-wraps over the newly green std APIs.
+Still open: notes-api product `&mut query` (P3.518); `wj-migrate` apply (moved `applied` Vec + other E0308s); package thin-wraps for querystring/url over tip-green `encoding.form_*` / `std::url`. `wj-glob.is_match` now thin-wraps `path.glob_match`.
 
 **Do not** invent new ecosystem wrappers for those std rows — thin-wrap existing `wj-*` packages.

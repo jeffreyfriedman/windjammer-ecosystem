@@ -81,6 +81,6 @@ Updated 2026-09-19: `std::config` consolidates toml/yaml config; uuid v7 graduat
 
 See `windjammer/tests/STDLIB_ADOPTION_QUEUE.md`. Tip p3515 (18:31) **wiring cargo-check GREEN**: `encoding.form_parse` / `form_stringify`, `path.glob_match`, `url.parse` / `join`, `config.resolve`.
 
-Still open: notes-api P3.522 (`handle_method`/`handle_http` owned self + `&mut query` regression); `wj-migrate` apply; querystring/url thin-wraps. P3.520 `check_rate(&mut self)` isolate GREEN.
+Still open: notes-api P3.522 (`handle_method`/`handle_http` owned self), P3.518 (`&mut query`), P3.524 (adapter `find_char(text: &String)` vs `split_header_line(&str)`); `wj-migrate` apply; querystring/url thin-wraps. P3.520 `check_rate(&mut self)` isolate GREEN.
 
 **Do not** invent new ecosystem wrappers for those std rows — thin-wrap existing `wj-*` packages.

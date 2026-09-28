@@ -1,5 +1,6 @@
 use std::encoding
 use std::strings
+use std::url
 
 pub struct Url {
     pub scheme: string,
@@ -67,57 +68,7 @@ pub fn format_url(u: Url) -> string {
 /// Relative may include `?query` and `#fragment`.
 /// Named `join_url` to avoid clashing with `std::strings.join`.
 pub fn join_url(base: string, relative: string) -> Result<string, string> {
-    // Inline absolute check + owned copy (avoid demoted reuse after contains;
-    // see bug_match_none_arm_string_after_split_test).
-    let n = strings.len(relative)
-    let mut abs = false
-    let mut i = 0
-    while i < n {
-        let end = i + 3
-        if end <= n {
-            if strings.substring(relative, i, end) == "://" {
-                abs = true
-                i = n
-            } else {
-                i = i + 1
-            }
-        } else {
-            i = i + 1
-        }
-    }
-    let rel = strings.substring(relative, 0, n)
-    if abs {
-        return Ok(rel)
-    }
-    match parse(base) {
-        Ok(u) => {
-            match split_path_query_fragment(rel) {
-                Ok(pqf) => {
-                    let leaf = pqf.0
-                    let new_path = if strings.starts_with(leaf, "/") {
-                        leaf
-                    } else {
-                        let dir = dirname(u.path)
-                        if strings.len(dir) == 0 {
-                            "/${leaf}"
-                        } else {
-                            "${dir}/${leaf}"
-                        }
-                    }
-                    Ok(format_url(Url {
-                        scheme: u.scheme,
-                        host: u.host,
-                        port: u.port,
-                        path: new_path,
-                        query: pqf.1,
-                        fragment: pqf.2,
-                    }))
-                },
-                Err(e) => Err(e),
-            }
-        },
-        Err(e) => Err(e),
-    }
+    url.join(base, relative)
 }
 
 /// First value for `key` in `a=1&b=2` query text (no leading `?`).
@@ -239,26 +190,6 @@ pub fn with_query(u: Url, query: string) -> Url {
 
 fn empty_string() -> string {
     ""
-}
-
-fn dirname(path: string) -> string {
-    if strings.len(path) == 0 {
-        return empty_string()
-    }
-    let mut last_slash = 0
-    let mut found = false
-    let mut i = 0
-    while i < strings.len(path) {
-        if strings.substring(path, i, i + 1) == "/" {
-            last_slash = i
-            found = true
-        }
-        i = i + 1
-    }
-    if !found {
-        return empty_string()
-    }
-    strings.substring(path, 0, last_slash)
 }
 
 fn split_scheme(text: string) -> Result<(string, string), string> {

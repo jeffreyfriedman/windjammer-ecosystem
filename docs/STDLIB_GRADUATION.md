@@ -30,7 +30,7 @@ Updated 2026-09-19: `std::config` consolidates toml/yaml config; uuid v7 graduat
 | TOML/YAML config | `wj-config`: **parse** via `std::config.parse_flat`; `resolve` tip GREEN (p3515 cargo-check) | **`std::config`** | Format is impl detail; package keeps layering sugar |
 | Form-urlencoded | `wj-querystring` sugar over **`std::encoding.form_parse` / `form_stringify`** (tip GREEN p3515) | **`std::encoding.form_*`** | HTTP week-one; wiring cargo-check |
 | Glob match | `wj-glob.is_match` thin-wraps **`std::path.glob_match`** (14 tests tip p3515) | **`std::path.glob_match`** | fs walk / sitegen; package keeps `filter` |
-| Absolute URL parse/join | `wj-url` sugar over **`std::url`** (parse/join tip GREEN p3515) | **`std::url`** | Week-one HTTP; query_* sugar stays package |
+| Absolute URL parse/join | `wj-url.join_url` thin-wraps **`std::url.join`**; `use std::url` rewrites local `Url` (P3.530 RED) | **`std::url`** | Week-one HTTP; query_* sugar stays package |
 
 | DB execute/query | migrate smoke via docker | **`std::db`** ergonomic apply path | Persistence |
 
@@ -81,6 +81,6 @@ Updated 2026-09-19: `std::config` consolidates toml/yaml config; uuid v7 graduat
 
 See `windjammer/tests/STDLIB_ADOPTION_QUEUE.md`. Tip p3515 (18:31) **wiring cargo-check GREEN**: `encoding.form_parse` / `form_stringify`, `path.glob_match`, `url.parse` / `join`, `config.resolve`.
 
-Still open: notes-api P3.522/P3.518/P3.524; `wj-querystring` P3.526 (`starts_with` moves `t`); `wj-migrate` P3.527 (`i == 0_i64`) + P3.528 (`applied` moved in loop). Querystring/url thin-wraps blocked on P3.526. P3.520 `check_rate(&mut self)` isolate GREEN.
+Still open: notes-api P3.518 + P3.524; querystring P3.526; migrate P3.527/P3.528; `wj-url` P3.530 (local `Url` vs `use std::url`). P3.522 GREEN (tip 21:03). `wj-cookie` 8/8.
 
 **Do not** invent new ecosystem wrappers for those std rows — thin-wrap existing `wj-*` packages.

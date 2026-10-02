@@ -82,6 +82,10 @@ Updated 2026-09-19: `std::config` consolidates toml/yaml config; uuid v7 graduat
 
 See `windjammer/tests/STDLIB_ADOPTION_QUEUE.md`. Tip p3515 (18:31) **wiring cargo-check GREEN**: `encoding.form_parse` / `form_stringify`, `path.glob_match`, `url.parse` / `join`, `config.resolve`.
 
-Still open: notes-api P3.518 + P3.524; querystring **14/14 GREEN** (P3.535); migrate P3.527/P3.528; `wj-url` P3.533 GREEN; auth-api P3.532 leftover (`&mut req` / find_char / resolve_token) + P3.537 build-path-dep get. P3.522 GREEN. `wj-cookie` 8/8.
+Still open (2026-10-01 tip dogfood):
+- **migrate** ❌ P3.566 `use super::lib::Migration` E0432 (fix WIP other agent)
+- **auth-api** ❌ P3.568 `json_string_field` i64/`strings.len` usize E0308 (find_char P3.524/P3.565 AsRef landed)
+- **notes-api** ❌ P3.522 leftover: `&mut self` `handle_method` calls owned `self.dispatch` → E0507
+- querystring **14/14 GREEN**; `wj-url` 17/17 GREEN; `wj-cookie` 8/8
 
 **Do not** invent new ecosystem wrappers for those std rows — thin-wrap existing `wj-*` packages.

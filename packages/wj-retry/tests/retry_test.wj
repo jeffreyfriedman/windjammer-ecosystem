@@ -1,5 +1,6 @@
 use crate::Backoff
 use crate::delay_ms
+use crate::retry_delay
 use crate::should_retry
 use crate::pause_ms
 
@@ -39,4 +40,32 @@ fn test_should_retry_zero_max() {
 
 fn test_pause_ms_zero_is_noop() {
     pause_ms(0)
+}
+
+fn test_retry_delay_some_while_retries_remain() {
+    let b = Backoff {
+        initial_ms: 100,
+        multiplier: 2,
+        max_ms: 1000,
+    }
+    match retry_delay(b, 0, 3) {
+        Some(ms) => assert_eq(ms, 100),
+        None => assert(false, "attempt 0 should retry"),
+    }
+    match retry_delay(b, 2, 3) {
+        Some(ms) => assert_eq(ms, 400),
+        None => assert(false, "attempt 2 should retry"),
+    }
+}
+
+fn test_retry_delay_none_when_exhausted() {
+    let b = Backoff {
+        initial_ms: 100,
+        multiplier: 2,
+        max_ms: 1000,
+    }
+    match retry_delay(b, 3, 3) {
+        Some(_) => assert(false, "exhausted"),
+        None => {},
+    }
 }

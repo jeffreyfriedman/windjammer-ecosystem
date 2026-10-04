@@ -35,6 +35,14 @@ pub fn should_retry(attempt: int, max_attempts: int) -> bool {
     attempt < max_attempts
 }
 
+/// Delay for `attempt` when retries remain; `None` when `should_retry` is false.
+pub fn retry_delay(backoff: Backoff, attempt: int, max_attempts: int) -> Option<int> {
+    if !should_retry(attempt, max_attempts) {
+        return None
+    }
+    Some(delay_ms(backoff, attempt))
+}
+
 /// Blocking pause between retry attempts (milliseconds).
 /// Uses `std::time` spin-wait until `std::async_runtime::sleep_ms_blocking` import codegen is fixed.
 pub fn pause_ms(ms: int) {

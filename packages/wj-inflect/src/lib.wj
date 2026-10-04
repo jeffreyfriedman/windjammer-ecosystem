@@ -64,6 +64,11 @@ pub fn pascal_case(text: string) -> string {
     out
 }
 
+/// Convert camelCase / PascalCase / snake_case to kebab-case.
+pub fn kebab_case(text: string) -> string {
+    strings.replace(snake_case(text), "_", "-")
+}
+
 /// URL-safe slug: lowercase, non-alnum → `-`, collapse/trim hyphens.
 pub fn slugify(text: string) -> string {
     let mut out = ""

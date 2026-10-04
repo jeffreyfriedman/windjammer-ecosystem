@@ -82,10 +82,11 @@ Updated 2026-09-19: `std::config` consolidates toml/yaml config; uuid v7 graduat
 
 See `windjammer/tests/STDLIB_ADOPTION_QUEUE.md`. Tip p3515 (18:31) **wiring cargo-check GREEN**: `encoding.form_parse` / `form_stringify`, `path.glob_match`, `url.parse` / `join`, `config.resolve`.
 
-Still open (2026-10-03 tip p3610 dogfood):
-- **GREEN:** todo-cli 60, sync 49, uuid 20, fetch/pipeline/sitegen/find/form-parse/first-hour/hello
-- **Still RED:** proxy/notes/auth on P3.614 (for-in tuple); proxy P3.615 (client_key Into); auth P3.616 (`path.into().clone()`)
-- P3.614 borrow-tracking prerequisite landed (`049fd5f9`); cargo gates still 0/3 RED
+Still open (2026-10-04 tip eco-gates dogfood):
+- **GREEN:** notes-api 62; todo-cli/sync/uuid/fetch/pipeline/sitegen/find/form-parse/first-hour/hello
+- **Still RED:** proxy P3.615 (`client_key.into()`); auth P3.616 (`path.into().clone()`); for-in leftovers P3.614
+- **New RED:** scheduler P3.619 (`matches_cron(&mut cron)` / `next_run(&mut cron)` into owned CronExpr); webhook P3.620 (`emit(&mut bus)`); webhook P3.621 (`handle(method_label(…))` String→`&str`)
+- Cargo gates P3.619–621: **0 passed / 3 failed** (tip RED, as filed)
 - querystring **14/14 GREEN**; `wj-url` 17/17 GREEN; `wj-cookie` 8/8
 
 **Do not** invent new ecosystem wrappers for those std rows — thin-wrap existing `wj-*` packages.

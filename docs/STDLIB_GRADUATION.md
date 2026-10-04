@@ -85,9 +85,9 @@ See `windjammer/tests/STDLIB_ADOPTION_QUEUE.md`. Tip p3515 (18:31) **wiring carg
 Still open (2026-10-04 tip shared 12:02 dogfood):
 - **GREEN:** form-parse/find/sitegen/pipeline/toml; fetch 31
 - **GREEN (tip e6aeefa3):** cron 30; proxy 25; notes-api 62; scheduler 37 (after regen cron build/); P3.644 sync pool index; cargo P3.649–651 **3/3**
-- **Still RED:** todo-cli P3.642; sync SharedMap P3.660 (`g.get(key)` regression after index fix)
-- **GREEN (tip 18:24):** webhook/auth; toml P3.658; csv P3.645; hash P3.654; regex P3.655; mime P3.657; json-util P3.661 — cargo product gates **5/5**
-- Cargo: P3.660 `mutex_guard_hashmap_string_key_must_borrow` tip RED
+- **Still RED:** todo-cli P3.642 (snapshot reuse / first-use move)
+- **GREEN (tip 19:18):** sync SharedMap P3.660/P3.664 (`g.get(&key)`; 49 tests); prior borrow gates csv/hash/regex/mime/json-util/toml/webhook/auth
+- Cargo: P3.660 + P3.664 **2/2 GREEN**
 - querystring **14/14 GREEN**; `wj-url` 17/17 GREEN; `wj-cookie` 8/8
 
 **Do not** invent new ecosystem wrappers for those std rows — thin-wrap existing `wj-*` packages.

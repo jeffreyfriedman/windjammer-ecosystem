@@ -1,6 +1,8 @@
 use crate::parse_level
+use crate::level_label
 use crate::init_from_level_text
 use crate::log_tagged
+use std::log::LogLevel
 
 fn test_parse_level_accepts_info() {
     assert(parse_level("info").is_some(), "info parses")
@@ -27,4 +29,19 @@ fn test_init_from_level_text_accepts_debug() {
 
 fn test_log_tagged_info_runs() {
     log_tagged("info", "api", "started")
+}
+
+fn test_level_label_canonical() {
+    assert_eq(level_label(LogLevel::Trace), "trace")
+    assert_eq(level_label(LogLevel::Debug), "debug")
+    assert_eq(level_label(LogLevel::Info), "info")
+    assert_eq(level_label(LogLevel::Warn), "warn")
+    assert_eq(level_label(LogLevel::Error), "error")
+}
+
+fn test_parse_level_roundtrip_labels() {
+    match parse_level(level_label(LogLevel::Warn)) {
+        Some(level) => assert_eq(level_label(level), "warn"),
+        None => assert(false, "warn roundtrip"),
+    }
 }

@@ -1,5 +1,6 @@
 use crate::drain
 use crate::emit
+use crate::listener_count
 use crate::listener_ids
 use crate::match_pattern
 use crate::new_bus
@@ -9,8 +10,17 @@ use crate::unsubscribe
 @test
 fn test_new_bus_has_no_listeners() {
     let bus = new_bus()
+    assert_eq(listener_count(bus), 0)
     let ids = listener_ids(bus, "user.created")
     assert_eq(ids.len(), 0)
+}
+
+@test
+fn test_listener_count_tracks_subscribe_and_unsubscribe() {
+    let bus = subscribe(subscribe(new_bus(), "a", "x"), "b", "y")
+    assert_eq(listener_count(bus), 2)
+    let cleared = unsubscribe(bus, "a")
+    assert_eq(listener_count(cleared), 1)
 }
 
 @test

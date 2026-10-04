@@ -66,6 +66,10 @@ pub fn drain(bus: EventBus) -> (EventBus, Vec<Event>) {
     (next, taken)
 }
 
+pub fn listener_count(bus: EventBus) -> int {
+    bus.listeners.len()
+}
+
 pub fn listener_ids(bus: EventBus, event_name: string) -> Vec<string> {
     let mut out = Vec::new()
     let mut i = 0

@@ -20,6 +20,13 @@ pub fn defaults() -> SecurityHeaders {
     }
 }
 
+/// Like `defaults`, but with HSTS enabled for the given max-age (seconds).
+pub fn defaults_with_hsts(max_age_secs: int) -> SecurityHeaders {
+    let mut h = defaults()
+    h.hsts_max_age_secs = max_age_secs
+    h
+}
+
 /// Render headers as `Name: value` lines separated by newlines.
 pub fn format_headers(headers: SecurityHeaders) -> string {
     let mut out = "X-Content-Type-Options: ${headers.content_type_options}\nX-Frame-Options: ${headers.frame_options}\nReferrer-Policy: ${headers.referrer_policy}"
@@ -45,4 +52,9 @@ pub fn nosniff() -> string {
 /// `X-Frame-Options` with the given directive (`DENY`, `SAMEORIGIN`, …).
 pub fn frame_options(directive: string) -> string {
     "X-Frame-Options: ${directive}"
+}
+
+/// `Referrer-Policy` header line.
+pub fn referrer_policy(policy: string) -> string {
+    "Referrer-Policy: ${policy}"
 }

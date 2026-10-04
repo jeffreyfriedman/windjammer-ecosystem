@@ -1,8 +1,10 @@
 use crate::defaults
+use crate::defaults_with_hsts
 use crate::format_headers
 use crate::hsts
 use crate::nosniff
 use crate::frame_options
+use crate::referrer_policy
 use std::strings
 
 @test
@@ -54,4 +56,17 @@ fn test_hsts_optional_in_defaults() {
     let h = defaults()
     let text = format_headers(h)
     assert(!strings.contains(text, "Strict-Transport-Security"), "HSTS off by default")
+}
+
+@test
+fn test_referrer_policy_helper() {
+    assert_eq(referrer_policy("strict-origin"), "Referrer-Policy: strict-origin")
+}
+
+@test
+fn test_defaults_with_hsts_enables_header() {
+    let h = defaults_with_hsts(31536000)
+    let text = format_headers(h)
+    assert_str_contains(text, "Strict-Transport-Security: max-age=31536000")
+    assert_str_contains(text, "X-Content-Type-Options: nosniff")
 }

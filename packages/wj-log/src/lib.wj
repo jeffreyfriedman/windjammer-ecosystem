@@ -12,6 +12,17 @@ pub fn parse_level(text: string) -> Option<LogLevel> {
     }
 }
 
+/// Canonical lowercase label for a log level.
+pub fn level_label(level: LogLevel) -> string {
+    match level {
+        LogLevel::Trace => "trace",
+        LogLevel::Debug => "debug",
+        LogLevel::Info => "info",
+        LogLevel::Warn => "warn",
+        LogLevel::Error => "error",
+    }
+}
+
 /// Initialize logging at the given level text; returns an error when the level is unknown.
 pub fn init_from_level_text(text: string) -> Result<(), string> {
     match parse_level(text) {

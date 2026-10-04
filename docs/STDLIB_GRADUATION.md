@@ -83,9 +83,9 @@ Updated 2026-09-19: `std::config` consolidates toml/yaml config; uuid v7 graduat
 See `windjammer/tests/STDLIB_ADOPTION_QUEUE.md`. Tip p3515 (18:31) **wiring cargo-check GREEN**: `encoding.form_parse` / `form_stringify`, `path.glob_match`, `url.parse` / `join`, `config.resolve`.
 
 Still open (2026-10-04 tip shared 12:02 dogfood):
-- **GREEN:** scheduler 37; proxy 25; notes-api 62; fetch 31; form-parse/find/sitegen/pipeline/toml
-- **Still RED:** webhook P3.636; auth-api P3.637 (P3.639 adapter greened on tip); todo-cli P3.642; sync P3.644 (`.get(&(idx as usize))`); csv P3.645 (`csv::parse`/`write` bare owned)
-- Cargo gates P3.644–645: tip RED (as filed)
+- **GREEN:** form-parse/find/sitegen/pipeline/toml; fetch 31
+- **Still RED:** webhook P3.636; auth-api P3.637; todo-cli P3.642; sync P3.644; csv P3.645; cron/scheduler P3.649 (`parts.get(&N_usize)`); proxy P3.650 (`logs.remove(&0_usize)`); notes-api P3.651 (`store.get(&99_i64)`)
+- Cargo gates P3.649–651: tip RED — **0 passed / 3 failed** (verified 2026-10-04)
 - querystring **14/14 GREEN**; `wj-url` 17/17 GREEN; `wj-cookie` 8/8
 
 **Do not** invent new ecosystem wrappers for those std rows — thin-wrap existing `wj-*` packages.

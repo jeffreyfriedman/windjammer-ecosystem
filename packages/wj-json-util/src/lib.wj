@@ -45,6 +45,94 @@ pub fn path_get_str(text: string, path: string) -> Option<string> {
     }
 }
 
+/// Set JSON at a dotted object path (`user.name`). Creates intermediate objects.
+/// `value_text` is parsed as JSON. Array-index path segments are rejected.
+pub fn path_set(text: string, path: string, value_text: string) -> Result<string, string> {
+    if path.len() == 0 {
+        return Err("path_set requires a non-empty path")
+    }
+    match json.parse(text) {
+        Ok(root) => {
+            match json.parse(value_text) {
+                Ok(leaf) => {
+                    match apply_path_set(root, path, leaf) {
+                        Ok(updated) => json.stringify(updated),
+                        Err(e) => Err(e),
+                    }
+                },
+                Err(e) => Err(e),
+            }
+        },
+        Err(e) => Err(e),
+    }
+}
+
+fn apply_path_set(node: Value, path: string, leaf: Value) -> Result<Value, string> {
+    match split_once(path, ".") {
+        Some(pair) => {
+            let head = pair.0
+            let rest = pair.1
+            if head.len() == 0 || rest.len() == 0 {
+                return Err("path_set path segments must be non-empty")
+            }
+            match parse_nonneg_int(head) {
+                Some(_) => return Err("path_set does not support array indices"),
+                None => {},
+            }
+            let mut out = ensure_object(node)
+            let child = match json.get(out, head) {
+                Some(existing) => existing,
+                None => json.object(),
+            }
+            match apply_path_set(child, rest, leaf) {
+                Ok(updated_child) => {
+                    match json.set(out, head, updated_child) {
+                        Ok(_) => Ok(out),
+                        Err(e) => Err(e),
+                    }
+                },
+                Err(e) => Err(e),
+            }
+        },
+        None => {
+            match parse_nonneg_int(path) {
+                Some(_) => return Err("path_set does not support array indices"),
+                None => {},
+            }
+            let mut out = ensure_object(node)
+            match json.set(out, path, leaf) {
+                Ok(_) => Ok(out),
+                Err(e) => Err(e),
+            }
+        },
+    }
+}
+
+fn ensure_object(value: Value) -> Value {
+    if json.is_object(value) {
+        value
+    } else {
+        json.object()
+    }
+}
+
+fn split_once(text: string, sep: string) -> Option<(string, string)> {
+    let mut i = 0
+    while i < strings.len(text) {
+        let end = i + strings.len(sep)
+        if end <= strings.len(text) {
+            if strings.substring(text, i, end) == sep {
+                return Some((
+                    strings.substring(text, 0, i),
+                    strings.substring(text, end, strings.len(text)),
+                ))
+            }
+        }
+        i = i + 1
+    }
+    None
+}
+
 /// Deep-merge two JSON objects (text in / compact text out). Overlay wins on
 /// non-object conflicts; nested objects merge recursively.
 pub fn merge(base_text: string, overlay_text: string) -> Result<string, string> {

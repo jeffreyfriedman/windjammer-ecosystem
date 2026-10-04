@@ -3,6 +3,7 @@ use crate::render_strict
 use crate::render_with_defaults
 use crate::render_html
 use crate::escape_html
+use crate::has_placeholders
 use crate::missing_keys
 use std::collections::HashMap
 use std::strings
@@ -102,4 +103,16 @@ fn test_render_html_escapes_values() {
     vars.insert("body", "<b>hi</b>")
     let out = render_html("<p>{{body}}</p>", vars)
     assert_eq(out, "<p>&lt;b&gt;hi&lt;/b&gt;</p>")
+}
+
+fn test_has_placeholders_true() {
+    assert(has_placeholders("Hello {{name}}!"), "expected placeholders")
+}
+
+fn test_has_placeholders_false_for_plain() {
+    assert(!has_placeholders("plain text"), "expected no placeholders")
+}
+
+fn test_has_placeholders_false_for_unclosed() {
+    assert(!has_placeholders("Hello {{name"), "unclosed is not a placeholder")
 }

@@ -79,6 +79,11 @@ pub fn render_strict(template: string, vars: HashMap<string, string>) -> Result<
     Ok(render(template, vars))
 }
 
+/// True when `template` contains at least one well-formed `{{key}}` placeholder.
+pub fn has_placeholders(template: string) -> bool {
+    placeholder_names(template).len() > 0
+}
+
 /// Keys referenced as `{{key}}` in `template` that are absent from `vars`.
 pub fn missing_keys(template: string, vars: HashMap<string, string>) -> Vec<string> {
     let required = placeholder_names(template)

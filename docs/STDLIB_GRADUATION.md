@@ -82,10 +82,10 @@ Updated 2026-09-19: `std::config` consolidates toml/yaml config; uuid v7 graduat
 
 See `windjammer/tests/STDLIB_ADOPTION_QUEUE.md`. Tip p3515 (18:31) **wiring cargo-check GREEN**: `encoding.form_parse` / `form_stringify`, `path.glob_match`, `url.parse` / `join`, `config.resolve`.
 
-Still open (2026-10-03 tip eco-gates / p3610 dogfood):
-- **HTTP apps** ✅ migrate / auth / notes; **todo-cli 60/60** (P3.599/611); find 4/4; form-parse 3/3
-- **Packages greened** ✅ uuid 20/20 (P3.590), sync 49/49 (P3.594 Clone), cron/csv/toml/querystring/url/…
-- **Still RED:** `wj-proxy` P3.614 (borrowed for-in tuple field clone / `*pair.0 ==`) + P3.615 (`complete_proxy` `client_key: impl Into` move)
+Still open (2026-10-03 tip p3610 dogfood):
+- **HTTP apps** ✅ todo-cli 60/60, fetch 31, pipeline 6, sitegen 23; find/form-parse green
+- **Packages greened** ✅ uuid 20/20, sync 49/49, cron/csv/toml/querystring/url/…
+- **Still RED:** proxy P3.614/615; notes-api + auth-api P3.614 (headers for-in); auth also P3.616 (`path.into().clone()` E0282)
 - querystring **14/14 GREEN**; `wj-url` 17/17 GREEN; `wj-cookie` 8/8
 
 **Do not** invent new ecosystem wrappers for those std rows — thin-wrap existing `wj-*` packages.

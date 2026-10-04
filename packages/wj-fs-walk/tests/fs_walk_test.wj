@@ -2,6 +2,7 @@ use crate::is_hidden_name
 use crate::walk
 use crate::walk_files
 use crate::walk_dirs
+use crate::walk_files_skip_hidden
 use crate::walk_files_with_suffix
 use std::fs
 use std::strings
@@ -144,4 +145,33 @@ fn test_walk_missing_root_errors() {
         Ok(_) => assert(false, "expected Err"),
         Err(msg) => assert(msg.len() > 0, "error message"),
     }
+}
+
+fn test_walk_files_skip_hidden_excludes_dotfiles() {
+    let root = "/tmp/wj-fs-walk-tree-skip-hidden"
+    match setup_tree(root) {
+        Ok(_) => {},
+        Err(_) => assert(false, "setup failed"),
+    }
+    match walk_files_skip_hidden(root) {
+        Ok(paths) => {
+            assert(contains_path(paths, "${root}/a.txt"), "a.txt kept")
+            assert(contains_path(paths, "${root}/sub/b.md"), "b.md kept")
+            assert(!contains_path(paths, "${root}/.hidden"), "dotfile skipped")
+            for p in paths {
+                let name = basename(p)
+                assert(!is_hidden_name(name), "no hidden basenames")
+            }
+        },
+        Err(_) => assert(false, "walk_files_skip_hidden failed"),
+    }
+    teardown_tree(root)
+}
+
+fn basename(path: string) -> string {
+    let parts = strings.split(path, "/")
+    if parts.len() == 0 {
+        return path
+    }
+    parts[parts.len() - 1]
 }

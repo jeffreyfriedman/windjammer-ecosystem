@@ -143,6 +143,8 @@ Weekly build health for seed apps and packages.
 | 2 | 2026-10-04 | tip dogfood `wj-notes-api` | 0 | 0 | P3.666 qs_get key `.to_string()` | product `$WJ test` **4 E0308** tip RED |
 | 2 | 2026-10-04 | deepen `wj-cors` | 0 | 0 | — | `is_preflight_method` + `cors_header_lines`; **9/9** tip green |
 | 2 | 2026-10-04 | deepen `wj-headers` | 0 | 0 | — | `security_header_lines` for adapters; **12/12** tip green |
+| 2 | 2026-10-04 | deepen `wj-compress` | 0 | 0 | — | `vary_accept_encoding` + `should_compress`; **12/12** tip green |
+| 2 | 2026-10-04 | deepen `wj-dotenv` | 0 | 0 | — | `get_or` default lookup; **7/7** tip green |
 
 ## Weekly checklist
 

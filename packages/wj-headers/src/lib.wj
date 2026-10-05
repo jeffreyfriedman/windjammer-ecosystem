@@ -27,6 +27,11 @@ pub fn defaults_with_hsts(max_age_secs: int) -> SecurityHeaders {
     h
 }
 
+/// True when HSTS is enabled (`hsts_max_age_secs > 0`).
+pub fn hsts_enabled(headers: SecurityHeaders) -> bool {
+    headers.hsts_max_age_secs > 0
+}
+
 /// Security headers as individual lines (for HTTP adapters).
 pub fn security_header_lines(headers: SecurityHeaders) -> Vec<string> {
     let mut lines = Vec::new()

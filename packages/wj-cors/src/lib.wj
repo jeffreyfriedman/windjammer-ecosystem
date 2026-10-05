@@ -80,3 +80,19 @@ pub fn cors_header_lines(headers: CorsHeaders) -> Vec<string> {
     lines.push("Access-Control-Allow-Headers: ${headers.allow_headers}")
     lines
 }
+
+/// CORS response headers joined with newlines.
+pub fn format_cors_headers(headers: CorsHeaders) -> string {
+    let lines = cors_header_lines(headers)
+    let mut out = ""
+    let mut i = 0
+    while i < lines.len() {
+        if i == 0 {
+            out = lines[i]
+        } else {
+            out = "${out}\n${lines[i]}"
+        }
+        i = i + 1
+    }
+    out
+}

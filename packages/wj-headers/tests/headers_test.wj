@@ -2,6 +2,7 @@ use crate::defaults
 use crate::defaults_with_hsts
 use crate::format_headers
 use crate::hsts
+use crate::hsts_enabled
 use crate::nosniff
 use crate::frame_options
 use crate::referrer_policy
@@ -89,4 +90,10 @@ fn test_security_header_lines_with_hsts() {
     let lines = security_header_lines(h)
     assert_eq(lines.len(), 5)
     assert_eq(lines[4], "Strict-Transport-Security: max-age=60")
+}
+
+@test
+fn test_hsts_enabled() {
+    assert(!hsts_enabled(defaults()), "defaults HSTS off")
+    assert(hsts_enabled(defaults_with_hsts(60)), "with HSTS on")
 }

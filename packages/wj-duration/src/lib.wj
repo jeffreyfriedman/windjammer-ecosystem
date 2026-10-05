@@ -24,3 +24,13 @@ pub fn parse_secs(text: string) -> Result<int, string> {
 pub fn format_secs(secs: int) -> string {
     format_ms(secs * 1000)
 }
+
+/// Floor conversion from milliseconds to whole seconds.
+pub fn ms_to_secs(ms: int) -> int {
+    ms / 1000
+}
+
+/// Convert whole seconds to milliseconds.
+pub fn secs_to_ms(secs: int) -> int {
+    secs * 1000
+}

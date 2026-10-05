@@ -69,6 +69,11 @@ pub fn is_newer(a: SemVer, b: SemVer) -> bool {
     compare(a, b) > 0
 }
 
+/// True when `a` and `b` compare equal (build metadata ignored).
+pub fn is_equal(a: SemVer, b: SemVer) -> bool {
+    compare(a, b) == 0
+}
+
 /// True when `a` and `b` share the same major version (caret-compatible).
 pub fn is_compatible(a: SemVer, b: SemVer) -> bool {
     a.major == b.major

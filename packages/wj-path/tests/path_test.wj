@@ -5,6 +5,7 @@ use crate::has_extension
 use crate::is_absolute
 use crate::join_path
 use crate::normalize
+use crate::stem
 
 @test
 fn test_join_simple() {
@@ -68,4 +69,11 @@ fn test_has_extension() {
     assert(has_extension("foo.txt", ".txt"), "txt")
     assert(!has_extension("foo.txt", ".md"), "wrong ext")
     assert(!has_extension("Makefile", ".txt"), "no ext")
+}
+
+@test
+fn test_stem() {
+    assert_eq(stem("/tmp/foo.txt"), "foo")
+    assert_eq(stem("Makefile"), "Makefile")
+    assert_eq(stem("archive.tar.gz"), "archive.tar")
 }

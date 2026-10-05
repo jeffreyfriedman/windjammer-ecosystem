@@ -64,3 +64,17 @@ pub fn is_json(mime_type: string) -> bool {
     }
     false
 }
+
+/// True when `mime_type` is HTML (`text/html`, optional parameters).
+pub fn is_html(mime_type: string) -> bool {
+    let trimmed = strings.trim(mime_type)
+    if strings.starts_with(trimmed, "text/html") {
+        let rest_len = strings.len(trimmed) - 9
+        if rest_len == 0 {
+            return true
+        }
+        let next = strings.substring(trimmed, 9, 10)
+        return next == ";"
+    }
+    false
+}

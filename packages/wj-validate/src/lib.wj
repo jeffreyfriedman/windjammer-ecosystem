@@ -18,6 +18,14 @@ pub fn require_min_len(field: string, value: string, min: int) -> Result<string,
     Ok(trimmed)
 }
 
+/// Require `min <= len(trim(value)) <= max`.
+pub fn require_len_range(field: string, value: string, min: int, max: int) -> Result<string, string> {
+    match require_min_len(field, value, min) {
+        Ok(v) => require_max_len(field, v, max),
+        Err(e) => Err(e),
+    }
+}
+
 /// Require `value` length <= `max` (after trim).
 pub fn require_max_len(field: string, value: string, max: int) -> Result<string, string> {
     let trimmed = strings.trim(value)

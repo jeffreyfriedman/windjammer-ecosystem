@@ -2,8 +2,10 @@ use crate::compare
 use crate::days_in_month
 use crate::format_rfc3339
 use crate::from_epoch_secs
+use crate::add_secs
 use crate::is_after
 use crate::is_before
+use crate::is_equal
 use crate::is_leap_year
 use crate::now_epoch_secs
 use crate::now_rfc3339
@@ -217,4 +219,42 @@ fn test_now_rfc3339_shape() {
 @test
 fn test_now_epoch_secs_positive() {
     assert(now_epoch_secs() > 1_700_000_000, "after 2023")
+}
+
+@test
+fn test_is_equal() {
+    match parse_rfc3339("2024-01-15T12:00:00Z") {
+        Ok(a) => {
+            match parse_rfc3339("2024-01-15T12:00:00Z") {
+                Ok(b) => {
+                    assert(is_equal(a, b), "same instant")
+                    assert_eq(compare(a, b), 0)
+                },
+                Err(_) => assert(false, "b"),
+            }
+        },
+        Err(_) => assert(false, "a"),
+    }
+}
+
+@test
+fn test_add_secs() {
+    match parse_rfc3339("2024-01-15T12:00:00Z") {
+        Ok(t) => {
+            let later = add_secs(t, 90)
+            assert_eq(later.hour, 12)
+            assert_eq(later.minute, 1)
+            assert_eq(later.second, 30)
+        },
+        Err(_) => assert(false, "parse later"),
+    }
+    match parse_rfc3339("2024-01-15T12:00:00Z") {
+        Ok(t) => {
+            let earlier = add_secs(t, -30)
+            assert_eq(earlier.minute, 59)
+            assert_eq(earlier.second, 30)
+            assert_eq(earlier.hour, 11)
+        },
+        Err(_) => assert(false, "parse earlier"),
+    }
 }

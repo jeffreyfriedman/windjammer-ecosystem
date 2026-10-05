@@ -166,6 +166,10 @@ Weekly build health for seed apps and packages.
 | 2 | 2026-10-05 | deepen `wj-fs-walk` | 0 | 0 | — | `count_files`; **8/8** tip green |
 | 2 | 2026-10-05 | deepen `wj-dotenv` | 0 | 1 | P3.676 `Some(_)`→matches!+DEFER DROP | `has`/`require`; has uses bound arm until tip greens |
 | 2 | 2026-10-05 | deepen `wj-toml` | 0 | 0 | — | `get_or` / `has`; tip green |
+| 2 | 2026-10-05 | deepen `wj-timefmt` | 0 | 0 | — | `is_equal` / `add_secs`; **22/22** tip green |
+| 2 | 2026-10-05 | deepen `wj-validate` | 0 | 0 | — | `require_len_range`; **28/28** tip green |
+| 2 | 2026-10-05 | deepen `wj-event` | 0 | 0 | — | `has_pending`; **12/12** tip green |
+| 2 | 2026-10-05 | tip dogfood P3.671 | 0 | 0 | — | tip 18:38 `query.clone()` (no format!); GREEN |
 
 ## Weekly checklist
 

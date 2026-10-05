@@ -130,6 +130,15 @@ pub fn is_after(a: Rfc3339, b: Rfc3339) -> bool {
     compare(a, b) > 0
 }
 
+pub fn is_equal(a: Rfc3339, b: Rfc3339) -> bool {
+    compare(a, b) == 0
+}
+
+/// Shift `t` by `delta` seconds (UTC epoch arithmetic).
+pub fn add_secs(t: Rfc3339, delta: int) -> Rfc3339 {
+    from_epoch_secs(to_epoch_secs(t) + delta)
+}
+
 pub fn is_leap_year(year: int) -> bool {
     if year % 400 == 0 {
         return true

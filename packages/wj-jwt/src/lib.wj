@@ -62,3 +62,11 @@ pub fn extract_bearer(header: string) -> Option<string> {
     }
     Some(token)
 }
+
+/// True when `header` is an `Authorization: Bearer …` line.
+pub fn is_bearer_header(header: string) -> bool {
+    match extract_bearer(header) {
+        Some(_) => true,
+        None => false,
+    }
+}

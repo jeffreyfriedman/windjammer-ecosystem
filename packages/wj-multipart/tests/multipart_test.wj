@@ -3,6 +3,7 @@ use crate::content_type_header
 use crate::format_multipart
 use crate::get_field
 use crate::get_file
+use crate::has_field
 use crate::parse
 use crate::parse_multipart
 use crate::MultipartBody
@@ -141,5 +142,18 @@ fn test_parse_rejects_missing_boundary_marker() {
     match parse_multipart("----b", "not multipart") {
         Ok(_) => assert(false, "expected Err"),
         Err(_) => {},
+    }
+}
+
+@test
+fn test_has_field() {
+    let boundary = "----hf"
+    let body = "--${boundary}\r\nContent-Disposition: form-data; name=\"msg\"\r\n\r\nok\r\n--${boundary}--"
+    match parse_multipart(boundary, body) {
+        Ok(parts) => {
+            assert(has_field(parts, "msg"), "msg present")
+            assert(!has_field(parts, "missing"), "missing absent")
+        },
+        Err(_) => assert(false, "parse for has_field"),
     }
 }

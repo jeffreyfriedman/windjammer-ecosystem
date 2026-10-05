@@ -3,6 +3,7 @@ use crate::encode
 use crate::decode
 use crate::encode_bytes
 use crate::decode_bytes
+use crate::is_basic_auth_header
 
 fn test_encode_hello() {
     let text = "Hello"
@@ -67,4 +68,10 @@ fn test_encode_bytes_roundtrip() {
 fn test_basic_auth_header() {
     // user:pass → dXNlcjpwYXNz
     assert_eq(basic_auth_header("user", "pass"), "Authorization: Basic dXNlcjpwYXNz")
+}
+
+fn test_is_basic_auth_header() {
+    assert(is_basic_auth_header(basic_auth_header("user", "pass")), "basic yes")
+    assert(!is_basic_auth_header("Authorization: Bearer tok"), "bearer no")
+    assert(!is_basic_auth_header(""), "empty")
 }

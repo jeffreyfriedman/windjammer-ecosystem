@@ -123,6 +123,11 @@ pub fn placeholder_names(template: string) -> Vec<string> {
     names
 }
 
+/// Number of `{{key}}` placeholders in `template`.
+pub fn placeholder_count(template: string) -> int {
+    placeholder_names(template).len()
+}
+
 fn list_contains(items: Vec<string>, needle: string) -> bool {
     let mut i = 0
     while i < items.len() {

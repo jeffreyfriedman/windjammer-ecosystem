@@ -66,6 +66,17 @@ pub fn drain(bus: EventBus) -> (EventBus, Vec<Event>) {
     (next, taken)
 }
 
+pub fn queue_len(bus: EventBus) -> int {
+    bus.queue.len()
+}
+
+pub fn clear_queue(bus: EventBus) -> EventBus {
+    EventBus {
+        listeners: bus.listeners,
+        queue: Vec::new(),
+    }
+}
+
 pub fn listener_count(bus: EventBus) -> int {
     bus.listeners.len()
 }

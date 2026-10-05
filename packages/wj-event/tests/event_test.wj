@@ -1,9 +1,11 @@
+use crate::clear_queue
 use crate::drain
 use crate::emit
 use crate::listener_count
 use crate::listener_ids
 use crate::match_pattern
 use crate::new_bus
+use crate::queue_len
 use crate::subscribe
 use crate::unsubscribe
 
@@ -79,4 +81,24 @@ fn test_multiple_listeners_same_event() {
     let bus2 = subscribe(bus, "b", "tick")
     let ids = listener_ids(bus2, "tick")
     assert_eq(ids.len(), 2)
+}
+
+@test
+fn test_queue_len_tracks_emits() {
+    let bus = new_bus()
+    assert_eq(queue_len(bus), 0)
+    let queued = emit(emit(bus, "a", "1"), "b", "2")
+    assert_eq(queue_len(queued), 2)
+}
+
+@test
+fn test_clear_queue_keeps_listeners() {
+    let bus = subscribe(new_bus(), "audit", "user.*")
+    let queued = emit(bus, "user.created", "{}")
+    assert_eq(queue_len(queued), 1)
+    let cleared = clear_queue(queued)
+    assert_eq(queue_len(cleared), 0)
+    assert_eq(listener_count(cleared), 1)
+    let ids = listener_ids(cleared, "user.created")
+    assert_eq(ids.len(), 1)
 }

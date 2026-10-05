@@ -1,7 +1,9 @@
 use crate::format_cookie_header
 use crate::format_set_cookie
+use crate::get_cookie
 use crate::parse_cookie_header
 use crate::parse_set_cookie
+use crate::session_cookie
 use std::collections::HashMap
 use std::strings
 
@@ -111,4 +113,37 @@ fn test_parse_set_cookie_missing_equals() {
         Ok(_) => assert(false, "expected Err"),
         Err(_) => assert(true, "rejected"),
     }
+}
+
+@test
+fn test_get_cookie_returns_value() {
+    match parse_cookie_header("sid=abc; theme=dark") {
+        Ok(map) => {
+            match get_cookie(map, "sid") {
+                Some(v) => assert_eq(v, "abc"),
+                None => assert(false, "expected sid"),
+            }
+            match get_cookie(map, "missing") {
+                Some(_) => assert(false, "expected None"),
+                None => assert(true, "missing"),
+            }
+        },
+        Err(_) => assert(false, "parse for get"),
+    }
+}
+
+@test
+fn test_session_cookie_defaults() {
+    let c = session_cookie("sid", "xyz")
+    assert_eq(c.name, "sid")
+    assert_eq(c.value, "xyz")
+    assert_eq(c.path, "/")
+    assert(c.http_only, "HttpOnly")
+    assert(c.secure, "Secure")
+    assert_eq(c.same_site, "Lax")
+    let header = format_set_cookie(c)
+    assert_str_contains(header, "Path=/")
+    assert_str_contains(header, "HttpOnly")
+    assert_str_contains(header, "Secure")
+    assert_str_contains(header, "SameSite=Lax")
 }

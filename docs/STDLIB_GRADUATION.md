@@ -88,6 +88,6 @@ Still open (2026-10-04 tip shared cache 20:06 dogfood):
 - **GREEN (tip 20:06):** todo-cli P3.642 — first `decode_store(snapshot.clone())`; **60/60** tests (regen path-dep `wj-validate/build` after prune)
 - **GREEN (tip 19:18+):** sync SharedMap P3.660 (`g.get(&key)`; 49 tests); prior borrow gates csv/hash/regex/mime/json-util/toml/webhook/auth
 - Cargo: P3.660 isolate + product SharedMap get **2/2 GREEN**
-- querystring **14/14 GREEN**; `wj-url` 17/17 GREEN; `wj-cookie` 8/8; `wj-event` **11/11**; `wj-cli-args` **10/10**; `wj-rate-limit` **10/10** (`rate_limit_header_lines`)
+- querystring **14/14 GREEN**; `wj-url` 17/17 GREEN; `wj-cookie` **10/10** (`get_cookie` / `session_cookie`); `wj-event` **11/11**; `wj-cli-args` **10/10**; `wj-rate-limit` **10/10** (`rate_limit_header_lines`); proxy **25/25**
 
 **Do not** invent new ecosystem wrappers for those std rows — thin-wrap existing `wj-*` packages.

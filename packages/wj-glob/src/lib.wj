@@ -28,3 +28,8 @@ pub fn first_match(pattern: string, paths: Vec<string>) -> Option<string> {
     }
     Some(hits[0])
 }
+
+/// Number of paths that match `pattern`.
+pub fn match_count(pattern: string, paths: Vec<string>) -> int {
+    filter(pattern, paths).len()
+}

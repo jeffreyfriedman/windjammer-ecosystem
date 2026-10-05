@@ -1,5 +1,6 @@
 use crate::accepts_gzip
 use crate::content_encoding_gzip
+use crate::content_encoding_header
 use crate::gzip_decode
 use crate::gzip_encode
 use crate::negotiate
@@ -100,4 +101,10 @@ fn test_should_compress_respects_accept_and_min_size() {
     assert(!should_compress("gzip", 50, 100), "below min bytes")
     assert(!should_compress("deflate", 200, 100), "client rejects gzip")
     assert(!should_compress("", 200, 100), "empty accept")
+}
+
+@test
+fn test_content_encoding_header() {
+    assert_eq(content_encoding_header(), "Content-Encoding: gzip")
+    assert_eq(content_encoding_gzip(), "gzip")
 }

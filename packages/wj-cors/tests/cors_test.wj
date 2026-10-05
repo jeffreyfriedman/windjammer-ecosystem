@@ -1,5 +1,7 @@
 use crate::allow_origin
+use crate::cors_header_lines
 use crate::is_origin_allowed
+use crate::is_preflight_method
 use crate::preflight
 
 @test
@@ -64,5 +66,28 @@ fn test_preflight_headers() {
             assert_eq(h.allow_headers, "Content-Type")
         },
         None => assert(false, "expected preflight headers"),
+    }
+}
+
+@test
+fn test_is_preflight_method() {
+    assert(is_preflight_method("OPTIONS"), "OPTIONS")
+    assert(is_preflight_method("options"), "case-insensitive")
+    assert(!is_preflight_method("GET"), "GET is not preflight")
+}
+
+@test
+fn test_cors_header_lines() {
+    let mut allowed = Vec::new()
+    allowed.push("https://app.example.com")
+    match preflight("https://app.example.com", allowed, "GET,POST", "Content-Type") {
+        Some(h) => {
+            let lines = cors_header_lines(h)
+            assert_eq(lines.len(), 3)
+            assert_eq(lines[0], "Access-Control-Allow-Origin: https://app.example.com")
+            assert_eq(lines[1], "Access-Control-Allow-Methods: GET,POST")
+            assert_eq(lines[2], "Access-Control-Allow-Headers: Content-Type")
+        },
+        None => assert(false, "expected preflight for header lines"),
     }
 }

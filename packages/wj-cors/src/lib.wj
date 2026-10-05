@@ -1,3 +1,5 @@
+use std::strings
+
 /// CORS response header values for a successful allow.
 pub struct CorsHeaders {
     pub allow_origin: string,
@@ -63,4 +65,18 @@ pub fn preflight(
         }),
         None => None,
     }
+}
+
+/// True for the CORS preflight HTTP method (`OPTIONS`, case-insensitive).
+pub fn is_preflight_method(method: string) -> bool {
+    strings.to_upper(method) == "OPTIONS"
+}
+
+/// CORS response headers as individual lines (for HTTP adapters).
+pub fn cors_header_lines(headers: CorsHeaders) -> Vec<string> {
+    let mut lines = Vec::new()
+    lines.push("Access-Control-Allow-Origin: ${headers.allow_origin}")
+    lines.push("Access-Control-Allow-Methods: ${headers.allow_methods}")
+    lines.push("Access-Control-Allow-Headers: ${headers.allow_headers}")
+    lines
 }

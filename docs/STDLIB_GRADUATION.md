@@ -82,12 +82,12 @@ Updated 2026-09-19: `std::config` consolidates toml/yaml config; uuid v7 graduat
 
 See `windjammer/tests/STDLIB_ADOPTION_QUEUE.md`. Tip p3515 (18:31) **wiring cargo-check GREEN**: `encoding.form_parse` / `form_stringify`, `path.glob_match`, `url.parse` / `join`, `config.resolve`.
 
-Still open (2026-10-04 tip shared 12:02 dogfood):
+Still open (2026-10-04 tip game `.cargo-target-wj` 19:18 dogfood):
 - **GREEN:** form-parse/find/sitegen/pipeline/toml; fetch 31
 - **GREEN (tip e6aeefa3):** cron 30; proxy 25; notes-api 62; scheduler 37 (after regen cron build/); P3.644 sync pool index; cargo P3.649–651 **3/3**
-- **Still RED:** todo-cli P3.642 (snapshot reuse / first-use move)
-- **GREEN (tip 19:18):** sync SharedMap P3.660/P3.664 (`g.get(&key)`; 49 tests); prior borrow gates csv/hash/regex/mime/json-util/toml/webhook/auth
-- Cargo: P3.660 + P3.664 **2/2 GREEN**
-- querystring **14/14 GREEN**; `wj-url` 17/17 GREEN; `wj-cookie` 8/8
+- **Still RED:** todo-cli P3.642 (snapshot reuse / first-use move) — tip 19:18 product build still emits `decode_store(snapshot)` then later `.clone()`
+- **GREEN (tip 19:18):** sync SharedMap P3.660 (`g.get(&key)`; 49 tests); prior borrow gates csv/hash/regex/mime/json-util/toml/webhook/auth
+- Cargo: P3.660 isolate + product SharedMap get **2/2 GREEN**
+- querystring **14/14 GREEN**; `wj-url` 17/17 GREEN; `wj-cookie` 8/8; `wj-event` **11/11** (`queue_len` / `clear_queue`)
 
 **Do not** invent new ecosystem wrappers for those std rows — thin-wrap existing `wj-*` packages.

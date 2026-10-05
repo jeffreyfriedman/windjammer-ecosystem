@@ -135,6 +135,7 @@ Weekly build health for seed apps and packages.
 | 2 | 2026-09-14 | deepen `wj-notes-api` base64 | 0 | 0 | cargo-bin over-borrows cross-crate `encode` (repro P3.282); use `encode_text` | Dogfood `wj-base64` `?encoding=base64`; **58/58** on cargo-bin `wj` |
 | 2 | 2026-09-14 | deepen `wj-notes-api` url Location | 0 | 0 | import alias `query_get` steals `wj-url` Borrowed metadata (repro P3.283); alias as `qs_get` | Dogfood `wj-url` `Location` + `public_base_url`; **60/60** on cargo-bin `wj` |
 | 2 | 2026-09-14 | deepen `wj-notes-api` regex search | 0 | 0 | owned `Vec<Note>` filter helper demote+clone (repro P3.284); inline filter loop | Dogfood `wj-regex` `GET /notes?q=`; **62/62** on cargo-bin `wj` |
+| 2 | 2026-10-04 | deepen `wj-event` | 0 | 0 | — | `queue_len` / `clear_queue` keep listeners; **11/11** tip green |
 
 ## Weekly checklist
 

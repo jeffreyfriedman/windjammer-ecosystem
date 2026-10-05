@@ -1,9 +1,11 @@
 use crate::append
 use crate::get
 use crate::get_all
+use crate::get_or
 use crate::has
 use crate::parse
 use crate::remove
+use crate::set
 use crate::stringify
 use std::strings
 
@@ -114,4 +116,24 @@ fn test_stringify_encodes_ampersand_in_value() {
         Some(v) => assert_eq(v, "a&b"),
         None => assert(false, "roundtrip q"),
     }
+}
+
+@test
+fn test_set_replaces_existing_key() {
+    let text = set("a=1&b=2&a=3", "a", "9")
+    match get(text, "a") {
+        Some(v) => assert_eq(v, "9"),
+        None => assert(false, "set a"),
+    }
+    assert_eq(get_all(text, "a").len(), 1)
+    match get(text, "b") {
+        Some(v) => assert_eq(v, "2"),
+        None => assert(false, "keep b"),
+    }
+}
+
+@test
+fn test_get_or_default() {
+    assert_eq(get_or("a=1", "a", "0"), "1")
+    assert_eq(get_or("a=1", "b", "0"), "0")
 }

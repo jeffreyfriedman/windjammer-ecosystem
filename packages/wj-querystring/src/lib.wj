@@ -70,3 +70,16 @@ pub fn append(query: string, key: string, value: string) -> string {
     pairs.push((key, value))
     stringify(pairs)
 }
+
+/// Set `key=value`, replacing every existing occurrence of `key`.
+pub fn set(query: string, key: string, value: string) -> string {
+    append(remove(query, key), key, value)
+}
+
+/// First value for `key`, or `default` when missing.
+pub fn get_or(query: string, key: string, default: string) -> string {
+    match get(query, key) {
+        Some(v) => v,
+        None => default,
+    }
+}

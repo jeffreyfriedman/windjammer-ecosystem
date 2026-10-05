@@ -188,6 +188,20 @@ pub fn with_query(u: Url, query: string) -> Url {
     }
 }
 
+/// `scheme://host[:port]` (no path/query/fragment).
+pub fn origin(u: Url) -> string {
+    let mut out = "${u.scheme}://${u.host}"
+    if strings.len(u.port) > 0 {
+        out = "${out}:${u.port}"
+    }
+    out
+}
+
+/// True when scheme is `https` (case-sensitive, as parsed).
+pub fn is_https(u: Url) -> bool {
+    u.scheme == "https"
+}
+
 fn empty_string() -> string {
     ""
 }

@@ -68,8 +68,8 @@ Updated 2026-09-19: `std::config` consolidates toml/yaml config; uuid v7 graduat
 | `wj-semver` | ✅ tip green | 6 tests — owned→demoted `&str` borrow (eco gate) |
 | `wj-toml` | ✅ tip green | 17 tests — demoted key `.to_string()` into owned tuple push |
 | `wj-config` | ✅ tip green | parse via `std::config`; merge/resolve package-local (tip HashMap ownership) |
-| `wj-url` | ✅ tip green | 17 tests on p3505 (P3.533 local `Url`; `join_url` → `std::url.join`) |
-| `wj-querystring` | ✅ tip green | 14/14 thin-wrap `form_*` (P3.535 `?` strip GREEN) |
+| `wj-url` | ✅ tip green | 18 tests (`origin` / `is_https`; P3.533 local `Url`; `join_url` → `std::url.join`) |
+| `wj-querystring` | ✅ tip green | 16/16 thin-wrap `form_*` + `set` / `get_or` (P3.535 `?` strip GREEN) |
 | `wj-multipart` | ✅ tip green | split_once scanners; owned `parse`/`parse_multipart`; dogfooded by `wj-form-parse` |
 
 ## Migration path (once gates go green)
@@ -86,9 +86,9 @@ Still open (2026-10-04 tip shared cache 20:06 dogfood):
 - **GREEN:** form-parse/find/sitegen/pipeline/toml; fetch 31
 - **GREEN (tip e6aeefa3):** cron 30; proxy 25; notes-api 62; scheduler 37 (after regen cron build/); P3.644 sync pool index; cargo P3.649–651 **3/3**
 - **GREEN (tip 20:06):** todo-cli P3.642 — first `decode_store(snapshot.clone())`; **60/60** tests (regen path-dep `wj-validate/build` after prune)
-- **Still RED (tip 21:42):** notes-api P3.666 — `qs_get(…, "pretty".to_string())` into demoted `&str` key despite path-dep `key: &str` metadata (4 E0308)
+- **GREEN (tip 21:42):** notes-api P3.666 — `qs_get(…, "pretty"|"encoding"|"q"|"limit")` bare keys (no `.to_string()`); product transpile + cargo gates **3/3**
 - **GREEN (tip 19:18+):** sync SharedMap P3.660 (`g.get(&key)`; 49 tests); prior borrow gates csv/hash/regex/mime/json-util/toml/webhook/auth
 - Cargo: P3.660 isolate + product SharedMap get **2/2 GREEN**
-- querystring **14/14 GREEN**; `wj-url` 17/17 GREEN; `wj-cookie` **10/10**; `wj-event` **11/11**; `wj-cli-args` **10/10**; `wj-rate-limit` **10/10**; `wj-cors` **9/9**; `wj-headers` **12/12**; `wj-compress` **12/12**; `wj-dotenv` **7/7**; `wj-sha` **5/5**; `wj-mime` **14/14**; `wj-semver` **8/8**; `wj-glob` **16/16**; `wj-path` **12/12**; `wj-base64` **7/7**; `wj-jwt` **7/7** (`bearer_header`); `wj-duration` **14/14** (`parse_secs`); proxy **25/25**
+- querystring **16/16 GREEN** (`set`/`get_or`); `wj-url` **18/18 GREEN** (`origin`/`is_https`); `wj-retry` **9/9 GREEN** (`attempts_remaining`/`default_backoff`); `wj-cookie` **10/10**; `wj-event` **11/11**; `wj-cli-args` **10/10**; `wj-rate-limit` **10/10**; `wj-cors` **9/9**; `wj-headers` **12/12**; `wj-compress` **12/12**; `wj-dotenv` **7/7**; `wj-sha` **5/5**; `wj-mime` **14/14**; `wj-semver` **8/8**; `wj-glob` **16/16**; `wj-path` **12/12**; `wj-base64` **7/7**; `wj-jwt` **7/7** (`bearer_header`); `wj-duration` **14/14** (`parse_secs`); proxy **25/25**
 
 **Do not** invent new ecosystem wrappers for those std rows — thin-wrap existing `wj-*` packages.

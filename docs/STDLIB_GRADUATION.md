@@ -88,6 +88,6 @@ Still open (2026-10-04 tip game `.cargo-target-wj` 19:18 dogfood):
 - **Still RED:** todo-cli P3.642 (snapshot reuse / first-use move) — tip 19:18 product build still emits `decode_store(snapshot)` then later `.clone()`
 - **GREEN (tip 19:18):** sync SharedMap P3.660 (`g.get(&key)`; 49 tests); prior borrow gates csv/hash/regex/mime/json-util/toml/webhook/auth
 - Cargo: P3.660 isolate + product SharedMap get **2/2 GREEN**
-- querystring **14/14 GREEN**; `wj-url` 17/17 GREEN; `wj-cookie` 8/8; `wj-event` **11/11** (`queue_len` / `clear_queue`)
+- querystring **14/14 GREEN**; `wj-url` 17/17 GREEN; `wj-cookie` 8/8; `wj-event` **11/11** (`queue_len` / `clear_queue`); `wj-cli-args` **10/10** (`long_flag_value_or`)
 
 **Do not** invent new ecosystem wrappers for those std rows — thin-wrap existing `wj-*` packages.

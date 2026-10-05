@@ -124,3 +124,11 @@ pub fn require_first_positional(args: Vec<string>, usage: string) -> Result<stri
         None => Err(usage),
     }
 }
+
+/// Value from `--name` / `--name=value`, or `default` when the flag is absent.
+pub fn long_flag_value_or(args: Vec<string>, name: string, default: string) -> string {
+    match long_flag_value(args, name) {
+        Some(value) => value,
+        None => default,
+    }
+}

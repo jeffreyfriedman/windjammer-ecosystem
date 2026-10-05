@@ -37,6 +37,14 @@ pub fn walk_files_with_suffix(root: string, suffix: string) -> Result<Vec<string
     }
 }
 
+/// Number of files under `root` (includes hidden files).
+pub fn count_files(root: string) -> Result<int, string> {
+    match walk_files(root) {
+        Ok(paths) => Ok(paths.len() as int),
+        Err(e) => Err(e),
+    }
+}
+
 /// Like `walk_files`, but skips entries whose basename starts with `.`.
 pub fn walk_files_skip_hidden(root: string) -> Result<Vec<string>, string> {
     match walk_files(root) {

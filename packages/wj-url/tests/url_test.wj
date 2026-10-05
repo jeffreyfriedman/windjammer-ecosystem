@@ -1,6 +1,8 @@
 use crate::parse
 use crate::format_url
+use crate::is_https
 use crate::join_url
+use crate::origin
 use crate::query_get
 use crate::query_has
 use crate::query_remove
@@ -167,5 +169,23 @@ fn test_with_query_sets_on_url() {
             assert_eq(format_url(updated), "https://example.com/path?a=1&b=2#f")
         },
         Err(_) => assert(false, "parse for with_query"),
+    }
+}
+
+@test
+fn test_origin_and_is_https() {
+    match parse("https://example.com:8443/api") {
+        Ok(u) => {
+            assert(is_https(u), "https")
+            assert_eq(origin(u), "https://example.com:8443")
+        },
+        Err(_) => assert(false, "parse https"),
+    }
+    match parse("http://example.com/x") {
+        Ok(u) => {
+            assert(!is_https(u), "http")
+            assert_eq(origin(u), "http://example.com")
+        },
+        Err(_) => assert(false, "parse http"),
     }
 }

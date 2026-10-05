@@ -141,6 +141,7 @@ Weekly build health for seed apps and packages.
 | 2 | 2026-10-04 | tip dogfood `wj-todo-cli` | 0 | 0 | P3.642 tip GREEN (20:06) | snapshot first-use clone; **60/60** |
 | 2 | 2026-10-04 | deepen `wj-cookie` | 0 | 0 | — | `get_cookie` + `session_cookie` defaults; **10/10** tip green |
 | 2 | 2026-10-04 | tip dogfood `wj-notes-api` | 0 | 0 | P3.666 qs_get key `.to_string()` | product `$WJ test` **4 E0308** tip RED |
+| 2 | 2026-10-04 | tip dogfood `wj-notes-api` P3.666 | 0 | 0 | — | tip 21:42 bare qs_get keys GREEN (cargo 3/3 + transpile) |
 | 2 | 2026-10-04 | deepen `wj-cors` | 0 | 0 | — | `is_preflight_method` + `cors_header_lines`; **9/9** tip green |
 | 2 | 2026-10-04 | deepen `wj-headers` | 0 | 0 | — | `security_header_lines` for adapters; **12/12** tip green |
 | 2 | 2026-10-04 | deepen `wj-compress` | 0 | 0 | — | `vary_accept_encoding` + `should_compress`; **12/12** tip green |
@@ -153,6 +154,9 @@ Weekly build health for seed apps and packages.
 | 2 | 2026-10-04 | deepen `wj-base64` | 0 | 0 | — | `basic_auth_header`; **7/7** tip green |
 | 2 | 2026-10-04 | deepen `wj-jwt` | 0 | 0 | — | `bearer_header` + `extract_bearer`; **7/7** tip green |
 | 2 | 2026-10-04 | deepen `wj-duration` | 0 | 0 | — | `parse_secs` / `format_secs`; **14/14** tip green |
+| 2 | 2026-10-04 | deepen `wj-querystring` | 0 | 0 | — | `set` / `get_or`; **16/16** tip green |
+| 2 | 2026-10-04 | deepen `wj-url` | 0 | 0 | — | `origin` / `is_https`; **18/18** tip green |
+| 2 | 2026-10-04 | deepen `wj-retry` | 0 | 0 | — | `attempts_remaining` / `default_backoff`; **9/9** tip green |
 
 ## Weekly checklist
 

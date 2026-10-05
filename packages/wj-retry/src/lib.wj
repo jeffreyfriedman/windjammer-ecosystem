@@ -43,6 +43,27 @@ pub fn retry_delay(backoff: Backoff, attempt: int, max_attempts: int) -> Option<
     Some(delay_ms(backoff, attempt))
 }
 
+/// How many tries remain including the current `attempt` (0-based).
+/// Returns 0 when exhausted or when `max_attempts` is non-positive.
+pub fn attempts_remaining(attempt: int, max_attempts: int) -> int {
+    if max_attempts <= 0 {
+        return 0
+    }
+    if attempt >= max_attempts {
+        return 0
+    }
+    max_attempts - attempt
+}
+
+/// Sensible HTTP/client defaults: 100ms ×2, cap 30s.
+pub fn default_backoff() -> Backoff {
+    Backoff {
+        initial_ms: 100,
+        multiplier: 2,
+        max_ms: 30000,
+    }
+}
+
 /// Blocking pause between retry attempts (milliseconds).
 /// Uses `std::time` spin-wait until `std::async_runtime::sleep_ms_blocking` import codegen is fixed.
 pub fn pause_ms(ms: int) {

@@ -1,4 +1,6 @@
 use crate::Backoff
+use crate::attempts_remaining
+use crate::default_backoff
 use crate::delay_ms
 use crate::retry_delay
 use crate::should_retry
@@ -68,4 +70,21 @@ fn test_retry_delay_none_when_exhausted() {
         Some(_) => assert(false, "exhausted"),
         None => {},
     }
+}
+
+fn test_attempts_remaining() {
+    assert_eq(attempts_remaining(0, 3), 3)
+    assert_eq(attempts_remaining(2, 3), 1)
+    assert_eq(attempts_remaining(3, 3), 0)
+    assert_eq(attempts_remaining(5, 3), 0)
+    assert_eq(attempts_remaining(0, 0), 0)
+}
+
+fn test_default_backoff() {
+    let b = default_backoff()
+    assert_eq(b.initial_ms, 100)
+    assert_eq(b.multiplier, 2)
+    assert_eq(b.max_ms, 30000)
+    assert_eq(delay_ms(b, 0), 100)
+    assert_eq(delay_ms(b, 1), 200)
 }

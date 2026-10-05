@@ -87,6 +87,7 @@ Still open (2026-10-04 tip shared cache 20:06 dogfood):
 - **GREEN (tip e6aeefa3):** cron 30; proxy 25; notes-api 62; scheduler 37 (after regen cron build/); P3.644 sync pool index; cargo P3.649–651 **3/3**
 - **GREEN (tip 20:06):** todo-cli P3.642 — first `decode_store(snapshot.clone())`; **60/60** tests (regen path-dep `wj-validate/build` after prune)
 - **GREEN (tip 21:42):** notes-api P3.666 — `qs_get(…, "pretty"|"encoding"|"q"|"limit")` bare keys (no `.to_string()`); product transpile + cargo gates **3/3**
+- **Still RED (tip 21:42):** `wj-json-util` P3.669 — merge overlay loop moves owned `Value` into owned `take_field` (E0382); do not reshape package
 - **GREEN (tip 19:18+):** sync SharedMap P3.660 (`g.get(&key)`; 49 tests); prior borrow gates csv/hash/regex/mime/json-util/toml/webhook/auth
 - Cargo: P3.660 isolate + product SharedMap get **2/2 GREEN**
 - querystring **16/16 GREEN** (`set`/`get_or`); `wj-url` **18/18 GREEN** (`origin`/`is_https`); `wj-retry` **9/9 GREEN** (`attempts_remaining`/`default_backoff`); `wj-cookie` **10/10**; `wj-event` **11/11**; `wj-cli-args` **10/10**; `wj-rate-limit` **10/10**; `wj-cors` **9/9**; `wj-headers` **12/12**; `wj-compress` **12/12**; `wj-dotenv` **7/7**; `wj-sha` **5/5**; `wj-mime` **14/14**; `wj-semver` **8/8**; `wj-glob` **16/16**; `wj-path` **12/12**; `wj-base64` **7/7**; `wj-jwt` **7/7** (`bearer_header`); `wj-duration` **14/14** (`parse_secs`); proxy **25/25**

@@ -1,5 +1,7 @@
 use crate::parse_level
 use crate::level_label
+use crate::level_rank
+use crate::is_enabled
 use crate::init_from_level_text
 use crate::log_tagged
 use std::log::LogLevel
@@ -44,4 +46,18 @@ fn test_parse_level_roundtrip_labels() {
         Some(level) => assert_eq(level_label(level), "warn"),
         None => assert(false, "warn roundtrip"),
     }
+}
+
+fn test_level_rank_ordering() {
+    assert(level_rank(LogLevel::Trace) < level_rank(LogLevel::Debug), "trace < debug")
+    assert(level_rank(LogLevel::Debug) < level_rank(LogLevel::Info), "debug < info")
+    assert(level_rank(LogLevel::Info) < level_rank(LogLevel::Warn), "info < warn")
+    assert(level_rank(LogLevel::Warn) < level_rank(LogLevel::Error), "warn < error")
+}
+
+fn test_is_enabled_respects_minimum() {
+    assert(is_enabled(LogLevel::Error, LogLevel::Warn), "error >= warn")
+    assert(is_enabled(LogLevel::Warn, LogLevel::Warn), "warn >= warn")
+    assert(!is_enabled(LogLevel::Info, LogLevel::Warn), "info < warn")
+    assert(is_enabled(LogLevel::Trace, LogLevel::Trace), "trace >= trace")
 }

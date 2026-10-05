@@ -141,6 +141,7 @@ Weekly build health for seed apps and packages.
 | 2 | 2026-10-04 | tip dogfood `wj-todo-cli` | 0 | 0 | P3.642 tip GREEN (20:06) | snapshot first-use clone; **60/60** |
 | 2 | 2026-10-04 | deepen `wj-cookie` | 0 | 0 | — | `get_cookie` + `session_cookie` defaults; **10/10** tip green |
 | 2 | 2026-10-04 | tip dogfood `wj-notes-api` | 0 | 0 | P3.666 qs_get key `.to_string()` | product `$WJ test` **4 E0308** tip RED |
+| 2 | 2026-10-04 | deepen `wj-cors` | 0 | 0 | — | `is_preflight_method` + `cors_header_lines`; **9/9** tip green |
 
 ## Weekly checklist
 

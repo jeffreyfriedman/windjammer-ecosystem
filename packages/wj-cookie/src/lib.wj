@@ -36,6 +36,26 @@ pub fn parse_cookie_header(header: string) -> Result<HashMap<string, string>, st
     Ok(map)
 }
 
+/// Look up a cookie value by name from a parsed Cookie header map.
+pub fn get_cookie(map: HashMap<string, string>, name: string) -> Option<string> {
+    match map.get(name) {
+        Some(value) => Some(value),
+        None => None,
+    }
+}
+
+/// Secure session cookie defaults (`Path=/`, HttpOnly, Secure, SameSite=Lax).
+pub fn session_cookie(name: string, value: string) -> SetCookie {
+    SetCookie {
+        name: name,
+        value: value,
+        path: "/",
+        http_only: true,
+        secure: true,
+        same_site: "Lax",
+    }
+}
+
 /// Serialize cookies as a `Cookie` request header.
 pub fn format_cookie_header(map: HashMap<string, string>) -> string {
     let mut out = ""

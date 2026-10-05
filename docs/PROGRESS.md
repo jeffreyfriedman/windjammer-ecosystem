@@ -139,6 +139,7 @@ Weekly build health for seed apps and packages.
 | 2 | 2026-10-04 | deepen `wj-cli-args` | 0 | 0 | — | `long_flag_value_or` default fallback; **10/10** tip green |
 | 2 | 2026-10-04 | deepen `wj-rate-limit` | 0 | 0 | — | `rate_limit_header_lines` for adapters; **10/10** tip green |
 | 2 | 2026-10-04 | tip dogfood `wj-todo-cli` | 0 | 0 | P3.642 tip GREEN (20:06) | snapshot first-use clone; **60/60** |
+| 2 | 2026-10-04 | deepen `wj-cookie` | 0 | 0 | — | `get_cookie` + `session_cookie` defaults; **10/10** tip green |
 
 ## Weekly checklist
 

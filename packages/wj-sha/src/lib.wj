@@ -10,3 +10,8 @@ pub fn hex(text: string) -> string {
 pub fn verify(text: string, expected_hex: string) -> bool {
     hex(text) == expected_hex
 }
+
+/// Strong ETag value: quoted SHA-256 hex digest of `text`.
+pub fn etag(text: string) -> string {
+    "\"${hex(text)}\""
+}

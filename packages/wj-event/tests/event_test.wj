@@ -1,6 +1,7 @@
 use crate::clear_queue
 use crate::drain
 use crate::emit
+use crate::has_pending
 use crate::listener_count
 use crate::listener_ids
 use crate::match_pattern
@@ -101,4 +102,14 @@ fn test_clear_queue_keeps_listeners() {
     assert_eq(listener_count(cleared), 1)
     let ids = listener_ids(cleared, "user.created")
     assert_eq(ids.len(), 1)
+}
+
+@test
+fn test_has_pending() {
+    let empty = new_bus()
+    assert(!has_pending(empty), "empty")
+    let queued = emit(new_bus(), "x", "1")
+    assert(has_pending(queued), "queued")
+    let drained = drain(emit(new_bus(), "x", "1"))
+    assert(!has_pending(drained.0), "after drain")
 }

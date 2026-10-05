@@ -1,6 +1,7 @@
 use crate::all_ok
 use crate::require_email
 use crate::require_int_range
+use crate::require_len_range
 use crate::require_max_len
 use crate::require_min_len
 use crate::require_nonempty
@@ -239,5 +240,21 @@ fn test_require_uuid_rejects_non_hex() {
     match require_uuid("id", "550e8400-e29b-41d4-a716-44665544000g") {
         Ok(_) => assert(false, "expected Err"),
         Err(_) => assert(true, "bad hex"),
+    }
+}
+
+@test
+fn test_require_len_range() {
+    match require_len_range("name", "Ada", 2, 10) {
+        Ok(v) => assert_eq(v, "Ada"),
+        Err(_) => assert(false, "ok"),
+    }
+    match require_len_range("name", "A", 2, 10) {
+        Ok(_) => assert(false, "too short"),
+        Err(msg) => assert(strings.contains(msg, "name"), "field"),
+    }
+    match require_len_range("name", "abcdefghijk", 2, 10) {
+        Ok(_) => assert(false, "too long"),
+        Err(msg) => assert(strings.contains(msg, "name"), "field"),
     }
 }

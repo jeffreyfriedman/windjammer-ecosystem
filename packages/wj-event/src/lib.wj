@@ -70,6 +70,11 @@ pub fn queue_len(bus: EventBus) -> int {
     bus.queue.len()
 }
 
+/// True when the bus has at least one queued event.
+pub fn has_pending(bus: EventBus) -> bool {
+    queue_len(bus) > 0
+}
+
 pub fn clear_queue(bus: EventBus) -> EventBus {
     EventBus {
         listeners: bus.listeners,

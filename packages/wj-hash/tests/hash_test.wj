@@ -1,4 +1,5 @@
 use crate::hash_password
+use crate::looks_like_bcrypt
 use crate::verify_password
 use std::strings
 
@@ -7,6 +8,7 @@ fn test_hash_and_verify_roundtrip() {
     match hash_password("secret123") {
         Ok(digest) => {
             assert(strings.len(digest) > 0, "nonempty hash")
+            assert(looks_like_bcrypt(digest), "bcrypt prefix")
             match verify_password("secret123", digest) {
                 Ok(ok) => assert(ok, "valid password"),
                 Err(_) => assert(false, "verify ok"),
@@ -48,4 +50,12 @@ fn test_verify_rejects_garbage_hash() {
         Ok(ok) => assert(!ok, "garbage hash"),
         Err(_) => {},
     }
+}
+
+@test
+fn test_looks_like_bcrypt() {
+    assert(looks_like_bcrypt("$2b$12$abcdefghijklmnopqrstuv"), "2b")
+    assert(looks_like_bcrypt("$2a$10$abcdefghijklmnopqrstuv"), "2a")
+    assert(!looks_like_bcrypt("sha256:deadbeef"), "not bcrypt")
+    assert(!looks_like_bcrypt(""), "empty")
 }

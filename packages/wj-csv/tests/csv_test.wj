@@ -1,5 +1,7 @@
+use crate::column_count
 use crate::parse
 use crate::parse_with_headers
+use crate::row_count
 use crate::write
 use std::strings
 
@@ -89,4 +91,19 @@ fn test_write_empty_rows() {
         Ok(text) => assert_eq(text, ""),
         Err(_) => assert(false, "empty write"),
     }
+}
+
+@test
+fn test_row_count_and_column_count() {
+    let text = "a,b\n1,2\n3,4"
+    match parse(text) {
+        Ok(rows) => {
+            assert_eq(row_count(rows), 3)
+            assert_eq(column_count(rows), 2)
+        },
+        Err(_) => assert(false, "parse for counts"),
+    }
+    let empty = Vec::new()
+    assert_eq(row_count(empty), 0)
+    assert_eq(column_count(empty), 0)
 }

@@ -29,3 +29,16 @@ pub fn parse_with_headers(text: string) -> Result<(Vec<string>, Vec<Vec<string>>
 pub fn write(rows: Vec<Vec<string>>) -> Result<string, string> {
     csv.write(rows)
 }
+
+/// Number of rows in a parsed table.
+pub fn row_count(rows: Vec<Vec<string>>) -> int {
+    rows.len()
+}
+
+/// Column count from the first row (0 when empty).
+pub fn column_count(rows: Vec<Vec<string>>) -> int {
+    if rows.len() == 0 {
+        return 0
+    }
+    rows[0].len()
+}

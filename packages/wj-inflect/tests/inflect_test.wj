@@ -3,6 +3,7 @@ use crate::kebab_case
 use crate::pascal_case
 use crate::slugify
 use crate::snake_case
+use crate::title_case
 
 @test
 fn test_snake_from_camel() {
@@ -62,4 +63,19 @@ fn test_kebab_from_pascal() {
 @test
 fn test_kebab_already_kebab() {
     assert_eq(kebab_case("hello-world"), "hello-world")
+}
+
+@test
+fn test_title_case_from_snake() {
+    assert_eq(title_case("hello_world"), "Hello World")
+}
+
+@test
+fn test_title_case_from_kebab() {
+    assert_eq(title_case("hello-world"), "Hello World")
+}
+
+@test
+fn test_title_case_from_camel() {
+    assert_eq(title_case("helloWorld"), "Hello World")
 }

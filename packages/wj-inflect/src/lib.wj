@@ -69,6 +69,24 @@ pub fn kebab_case(text: string) -> string {
     strings.replace(snake_case(text), "_", "-")
 }
 
+/// Title Case: capitalize each word, space-separated.
+pub fn title_case(text: string) -> string {
+    let parts = split_words(text)
+    let mut out = ""
+    let mut first = true
+    for part in parts {
+        if strings.len(part) == 0 {
+            continue
+        }
+        if !first {
+            out = "${out} "
+        }
+        out = "${out}${capitalize(part)}"
+        first = false
+    }
+    out
+}
+
 /// URL-safe slug: lowercase, non-alnum → `-`, collapse/trim hyphens.
 pub fn slugify(text: string) -> string {
     let mut out = ""

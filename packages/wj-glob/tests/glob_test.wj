@@ -1,6 +1,7 @@
 use crate::filter
 use crate::first_match
 use crate::is_match
+use crate::match_count
 
 @test
 fn test_exact_match() {
@@ -114,4 +115,15 @@ fn test_first_match_none_when_empty() {
         Some(_) => assert(false, "expected None"),
         None => {},
     }
+}
+
+@test
+fn test_match_count() {
+    let mut paths = Vec::new()
+    paths.push("a.txt")
+    paths.push("b.md")
+    paths.push("c.md")
+    paths.push("d.txt")
+    assert_eq(match_count("*.md", paths), 2)
+    assert_eq(match_count("*.rs", paths), 0)
 }

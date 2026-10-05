@@ -32,6 +32,11 @@ pub fn content_encoding_gzip() -> string {
     "gzip"
 }
 
+/// Full `Content-Encoding: gzip` response header line.
+pub fn content_encoding_header() -> string {
+    "Content-Encoding: ${content_encoding_gzip()}"
+}
+
 /// Gzip-encode UTF-8 text; returns Base64 of compressed bytes (`std::compress`).
 pub fn gzip_encode(body: string) -> Result<string, string> {
     compress.gzip_encode(body)

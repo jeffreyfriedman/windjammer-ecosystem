@@ -179,6 +179,10 @@ Weekly build health for seed apps and packages.
 | 2 | 2026-10-05 | deepen `wj-mime` | 0 | 0 | — | `is_html`; **15/15** tip green |
 | 2 | 2026-10-05 | deepen `wj-semver` | 0 | 0 | — | `is_equal`; **9/9** tip green |
 | 2 | 2026-10-05 | deepen `wj-path` | 0 | 0 | — | `stem`; **13/13** tip green |
+| 2 | 2026-10-05 | deepen `wj-compress` | 0 | 0 | — | `content_encoding_header`; **13/13** tip green |
+| 2 | 2026-10-05 | deepen `wj-sha` | 0 | 1 | P3.679 while lit+substring | `looks_like_sha256_hex` (chars); **6/6** tip green |
+| 2 | 2026-10-05 | deepen `wj-glob` | 0 | 0 | — | `match_count`; **17/17** tip green |
+| 2 | 2026-10-05 | tip dogfood P3.679 | 0 | 0 | — | tip 18:38 `while i < 64_usize` RED; filed |
 
 ## Weekly checklist
 

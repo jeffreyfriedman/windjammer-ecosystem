@@ -48,3 +48,4 @@ tmp_*
 
 # Mutation testing
 **/mutants.out*/
+.cargo-home/

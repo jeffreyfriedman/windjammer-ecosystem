@@ -176,6 +176,9 @@ Weekly build health for seed apps and packages.
 | 2 | 2026-10-05 | deepen `wj-cors` | 0 | 0 | — | `format_cors_headers`; **10/10** tip green |
 | 2 | 2026-10-05 | deepen `wj-headers` | 0 | 0 | — | `hsts_enabled`; **13/13** tip green |
 | 2 | 2026-10-05 | deepen `wj-duration` | 0 | 0 | — | `ms_to_secs` / `secs_to_ms`; **15/15** tip green |
+| 2 | 2026-10-05 | deepen `wj-mime` | 0 | 0 | — | `is_html`; **15/15** tip green |
+| 2 | 2026-10-05 | deepen `wj-semver` | 0 | 0 | — | `is_equal`; **9/9** tip green |
+| 2 | 2026-10-05 | deepen `wj-path` | 0 | 0 | — | `stem`; **13/13** tip green |
 
 ## Weekly checklist
 

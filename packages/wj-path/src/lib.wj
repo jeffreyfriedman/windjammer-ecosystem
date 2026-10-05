@@ -125,6 +125,16 @@ pub fn has_extension(path: string, ext: string) -> bool {
     extname(path) == ext
 }
 
+/// Basename without the final extension (keeps compound stems like `archive.tar`).
+pub fn stem(path: string) -> string {
+    let base = basename(path)
+    let ext = extname(path)
+    if strings.len(ext) == 0 {
+        return base
+    }
+    strings.substring(base, 0, strings.len(base) - strings.len(ext))
+}
+
 fn strip_trailing_slashes(path: string) -> string {
     let mut out = path
     while strings.len(out) > 1 && strings.ends_with(out, "/") {

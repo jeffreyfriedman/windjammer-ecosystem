@@ -2,6 +2,7 @@ use crate::parse
 use crate::compare
 use crate::format_version
 use crate::is_compatible
+use crate::is_equal
 use crate::is_newer
 
 fn test_parse_simple_version() {
@@ -108,6 +109,22 @@ fn test_is_compatible_same_major() {
             }
             match parse("2.0.0") {
                 Ok(c) => assert(!is_compatible(a, c), "major bump breaks"),
+                Err(_) => assert(false, "parse c"),
+            }
+        },
+        Err(_) => assert(false, "parse a"),
+    }
+}
+
+fn test_is_equal_ignores_build() {
+    match parse("1.2.3+build1") {
+        Ok(a) => {
+            match parse("1.2.3+build2") {
+                Ok(b) => assert(is_equal(a, b), "build ignored"),
+                Err(_) => assert(false, "parse b"),
+            }
+            match parse("1.2.4") {
+                Ok(c) => assert(!is_equal(a, c), "patch differs"),
                 Err(_) => assert(false, "parse c"),
             }
         },

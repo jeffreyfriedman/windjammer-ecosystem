@@ -30,3 +30,9 @@ pub fn encode_bytes(data: Vec<u8>) -> string {
 pub fn decode_bytes(text: string) -> Result<Vec<u8>, string> {
     encoding.base64_decode(text)
 }
+
+/// HTTP `Authorization: Basic …` header for `user` / `pass`.
+pub fn basic_auth_header(user: string, pass: string) -> string {
+    let token = encode("${user}:${pass}")
+    "Authorization: Basic ${token}"
+}

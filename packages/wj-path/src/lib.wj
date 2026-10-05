@@ -115,6 +115,16 @@ pub fn extname(path: string) -> string {
     }
 }
 
+/// True when `path` is absolute (leading `/`).
+pub fn is_absolute(path: string) -> bool {
+    strings.starts_with(path, "/")
+}
+
+/// True when `path`'s extension equals `ext` (include the leading `.`).
+pub fn has_extension(path: string, ext: string) -> bool {
+    extname(path) == ext
+}
+
 fn strip_trailing_slashes(path: string) -> string {
     let mut out = path
     while strings.len(out) > 1 && strings.ends_with(out, "/") {

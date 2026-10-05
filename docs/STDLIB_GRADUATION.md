@@ -86,6 +86,7 @@ Still open (2026-10-04 tip shared cache 20:06 dogfood):
 - **GREEN:** form-parse/find/sitegen/pipeline/toml; fetch 31
 - **GREEN (tip e6aeefa3):** cron 30; proxy 25; notes-api 62; scheduler 37 (after regen cron build/); P3.644 sync pool index; cargo P3.649–651 **3/3**
 - **GREEN (tip 20:06):** todo-cli P3.642 — first `decode_store(snapshot.clone())`; **60/60** tests (regen path-dep `wj-validate/build` after prune)
+- **Still RED (tip 20:06):** notes-api P3.666 — `qs_get(…, "pretty".to_string())` into demoted `&str` key (P3.486 regression; 4 E0308)
 - **GREEN (tip 19:18+):** sync SharedMap P3.660 (`g.get(&key)`; 49 tests); prior borrow gates csv/hash/regex/mime/json-util/toml/webhook/auth
 - Cargo: P3.660 isolate + product SharedMap get **2/2 GREEN**
 - querystring **14/14 GREEN**; `wj-url` 17/17 GREEN; `wj-cookie` **10/10** (`get_cookie` / `session_cookie`); `wj-event` **11/11**; `wj-cli-args` **10/10**; `wj-rate-limit` **10/10** (`rate_limit_header_lines`); proxy **25/25**

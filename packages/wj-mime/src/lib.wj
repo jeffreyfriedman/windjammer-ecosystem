@@ -1,4 +1,5 @@
 use std::mime
+use std::strings
 
 /// Common MIME type for JSON responses.
 pub fn json() -> string {
@@ -43,4 +44,23 @@ pub fn is_audio(mime_type: string) -> bool {
 /// True for `video/*`.
 pub fn is_video(mime_type: string) -> bool {
     mime.is_video(mime_type)
+}
+
+/// `Content-Type` response header line for `mime_type`.
+pub fn content_type(mime_type: string) -> string {
+    "Content-Type: ${mime_type}"
+}
+
+/// True when `mime_type` is JSON (`application/json`, optional parameters).
+pub fn is_json(mime_type: string) -> bool {
+    let trimmed = strings.trim(mime_type)
+    if strings.starts_with(trimmed, "application/json") {
+        let rest_len = strings.len(trimmed) - 16
+        if rest_len == 0 {
+            return true
+        }
+        let next = strings.substring(trimmed, 16, 17)
+        return next == ";"
+    }
+    false
 }

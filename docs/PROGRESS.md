@@ -145,6 +145,8 @@ Weekly build health for seed apps and packages.
 | 2 | 2026-10-04 | deepen `wj-headers` | 0 | 0 | — | `security_header_lines` for adapters; **12/12** tip green |
 | 2 | 2026-10-04 | deepen `wj-compress` | 0 | 0 | — | `vary_accept_encoding` + `should_compress`; **12/12** tip green |
 | 2 | 2026-10-04 | deepen `wj-dotenv` | 0 | 0 | — | `get_or` default lookup; **7/7** tip green |
+| 2 | 2026-10-04 | deepen `wj-sha` | 0 | 0 | — | `etag` quoted digest; **5/5** tip green |
+| 2 | 2026-10-04 | deepen `wj-mime` | 0 | 0 | — | `content_type` + `is_json`; **14/14** tip green |
 
 ## Weekly checklist
 

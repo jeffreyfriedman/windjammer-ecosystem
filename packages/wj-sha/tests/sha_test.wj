@@ -1,3 +1,4 @@
+use crate::etag
 use crate::hex
 use crate::verify
 
@@ -21,4 +22,12 @@ fn test_verify_true() {
 @test
 fn test_verify_false() {
     assert(!verify("hello", "deadbeef"), "expected mismatch")
+}
+
+@test
+fn test_etag_quoted_digest() {
+    assert_eq(
+        etag("hello"),
+        "\"2cf24dba5fb0a30e26e83b2ac5b9e29e1b161e5c1fa7425e73043362938b9824\""
+    )
 }

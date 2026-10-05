@@ -1,7 +1,9 @@
+use crate::content_type
 use crate::from_extension
 use crate::from_path
 use crate::is_audio
 use crate::is_image
+use crate::is_json
 use crate::is_text
 use crate::is_video
 use crate::json
@@ -66,4 +68,16 @@ fn test_is_audio_mpeg() {
 @test
 fn test_is_video_mp4() {
     assert(is_video("video/mp4"), "mp4 mime")
+}
+
+@test
+fn test_content_type_header() {
+    assert_eq(content_type(json()), "Content-Type: application/json; charset=utf-8")
+}
+
+@test
+fn test_is_json() {
+    assert(is_json("application/json"), "bare json")
+    assert(is_json("application/json; charset=utf-8"), "with charset")
+    assert(!is_json("text/html"), "html is not json")
 }

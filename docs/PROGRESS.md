@@ -137,6 +137,8 @@ Weekly build health for seed apps and packages.
 | 2 | 2026-09-14 | deepen `wj-notes-api` regex search | 0 | 0 | owned `Vec<Note>` filter helper demote+clone (repro P3.284); inline filter loop | Dogfood `wj-regex` `GET /notes?q=`; **62/62** on cargo-bin `wj` |
 | 2 | 2026-10-04 | deepen `wj-event` | 0 | 0 | — | `queue_len` / `clear_queue` keep listeners; **11/11** tip green |
 | 2 | 2026-10-04 | deepen `wj-cli-args` | 0 | 0 | — | `long_flag_value_or` default fallback; **10/10** tip green |
+| 2 | 2026-10-04 | deepen `wj-rate-limit` | 0 | 0 | — | `rate_limit_header_lines` for adapters; **10/10** tip green |
+| 2 | 2026-10-04 | tip dogfood `wj-todo-cli` | 0 | 0 | P3.642 tip GREEN (20:06) | snapshot first-use clone; **60/60** |
 
 ## Weekly checklist
 

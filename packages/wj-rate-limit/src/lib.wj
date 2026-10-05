@@ -117,11 +117,30 @@ pub fn retry_after_header(retry_after_ms: int) -> string {
     "Retry-After: ${secs}"
 }
 
-/// Common rate-limit response headers (one header per line).
-pub fn rate_limit_headers(result: RateLimitResult) -> string {
-    let mut out = "X-RateLimit-Limit: ${result.limit}\nX-RateLimit-Remaining: ${result.remaining}\nX-RateLimit-Reset: ${result.reset_at_ms}"
+/// Rate-limit headers as individual lines (for middleware adapters).
+pub fn rate_limit_header_lines(result: RateLimitResult) -> Vec<string> {
+    let mut lines = Vec::new()
+    lines.push("X-RateLimit-Limit: ${result.limit}")
+    lines.push("X-RateLimit-Remaining: ${result.remaining}")
+    lines.push("X-RateLimit-Reset: ${result.reset_at_ms}")
     if !result.allowed {
-        out = "${out}\n${retry_after_header(result.retry_after_ms)}"
+        lines.push(retry_after_header(result.retry_after_ms))
+    }
+    lines
+}
+
+/// Common rate-limit response headers (joined with newlines).
+pub fn rate_limit_headers(result: RateLimitResult) -> string {
+    let lines = rate_limit_header_lines(result)
+    let mut out = ""
+    let mut i = 0
+    while i < lines.len() {
+        if i == 0 {
+            out = lines[i]
+        } else {
+            out = "${out}\n${lines[i]}"
+        }
+        i = i + 1
     }
     out
 }

@@ -5,6 +5,7 @@ use crate::require_first_positional
 use crate::has_long_flag
 use crate::long_flag_value
 use crate::long_flag_value_or
+use crate::positional_count
 use crate::positionals
 
 fn sample_args() -> Vec<string> {
@@ -98,4 +99,17 @@ fn test_long_flag_value_or_falls_back_to_default() {
     args.push("tool")
     args.push("--verbose")
     assert_eq(long_flag_value_or(args, "host", "127.0.0.1"), "127.0.0.1")
+}
+
+fn test_positional_count() {
+    let mut args = Vec::new()
+    args.push("tool")
+    args.push("alpha")
+    args.push("--verbose")
+    args.push("beta")
+    assert_eq(positional_count(args), 2)
+    let mut empty = Vec::new()
+    empty.push("tool")
+    empty.push("--verbose")
+    assert_eq(positional_count(empty), 0)
 }

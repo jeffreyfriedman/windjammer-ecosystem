@@ -1,6 +1,8 @@
+use crate::cookie_count
 use crate::format_cookie_header
 use crate::format_set_cookie
 use crate::get_cookie
+use crate::has_cookie
 use crate::parse_cookie_header
 use crate::parse_set_cookie
 use crate::session_cookie
@@ -146,4 +148,28 @@ fn test_session_cookie_defaults() {
     assert_str_contains(header, "HttpOnly")
     assert_str_contains(header, "Secure")
     assert_str_contains(header, "SameSite=Lax")
+}
+
+@test
+fn test_has_cookie_present_and_missing() {
+    match parse_cookie_header("sid=abc; theme=dark") {
+        Ok(map) => {
+            assert(has_cookie(map, "sid"), "sid present")
+            assert(has_cookie(map, "theme"), "theme present")
+            assert(!has_cookie(map, "missing"), "missing absent")
+        },
+        Err(_) => assert(false, "parse for has_cookie"),
+    }
+}
+
+@test
+fn test_cookie_count() {
+    match parse_cookie_header("a=1; b=2; c=3") {
+        Ok(map) => assert_eq(cookie_count(map), 3),
+        Err(_) => assert(false, "parse for count"),
+    }
+    match parse_cookie_header("") {
+        Ok(map) => assert_eq(cookie_count(map), 0),
+        Err(_) => assert(false, "parse empty for count"),
+    }
 }

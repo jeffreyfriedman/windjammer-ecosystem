@@ -103,6 +103,11 @@ pub fn positionals(args: Vec<string>) -> Vec<string> {
     out
 }
 
+/// Count of non-flag tokens after the program name.
+pub fn positional_count(args: Vec<string>) -> int {
+    positionals(args).len()
+}
+
 /// First positional token after the program name (skips `--` flags).
 pub fn first_positional(args: Vec<string>) -> Option<string> {
     let pos = positionals(args)

@@ -2,6 +2,7 @@ use crate::check_fixed_window
 use crate::check_key
 use crate::empty_bucket
 use crate::fixed_window
+use crate::peek_fixed_window
 use crate::retry_after_header
 use crate::rate_limit_headers
 use crate::rate_limit_header_lines
@@ -113,4 +114,23 @@ fn test_rate_limit_header_lines_denied_includes_retry() {
     let lines = rate_limit_header_lines(denied.1)
     assert_eq(lines.len(), 4)
     assert_str_contains(lines[3], "Retry-After:")
+}
+
+@test
+fn test_peek_fixed_window_does_not_consume() {
+    let lim = fixed_window(2, 60000)
+    let c1 = check_fixed_window(lim, empty_bucket(), 1000)
+    assert(c1.1.allowed, "first consumed")
+    assert_eq(c1.1.remaining, 1)
+    let peek = peek_fixed_window(lim, c1.0, 1000)
+    assert(peek.allowed, "peek still allowed")
+    assert_eq(peek.remaining, 1)
+    let peek2 = peek_fixed_window(lim, c1.0, 1000)
+    assert_eq(peek2.remaining, 1)
+    let c2 = check_fixed_window(lim, c1.0, 1000)
+    assert(c2.1.allowed, "second consumed")
+    assert_eq(c2.1.remaining, 0)
+    let peek_denied = peek_fixed_window(lim, c2.0, 1000)
+    assert(!peek_denied.allowed, "peek at limit denied")
+    assert_eq(peek_denied.remaining, 0)
 }

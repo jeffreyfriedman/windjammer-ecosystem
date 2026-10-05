@@ -44,6 +44,27 @@ pub fn get_cookie(map: HashMap<string, string>, name: string) -> Option<string> 
     }
 }
 
+/// True when `name` is present in the parsed Cookie header map.
+pub fn has_cookie(map: HashMap<string, string>, name: string) -> bool {
+    // Bound arm until P3.676 greens (`Some(_)` → matches! + DEFER DROP).
+    match map.get(name) {
+        Some(v) => {
+            let _keep = v
+            true
+        },
+        None => false,
+    }
+}
+
+/// Number of cookies in a parsed Cookie header map.
+pub fn cookie_count(map: HashMap<string, string>) -> int {
+    let mut n = 0
+    for (_k, _v) in map {
+        n = n + 1
+    }
+    n
+}
+
 /// Secure session cookie defaults (`Path=/`, HttpOnly, Secure, SameSite=Lax).
 pub fn session_cookie(name: string, value: string) -> SetCookie {
     SetCookie {

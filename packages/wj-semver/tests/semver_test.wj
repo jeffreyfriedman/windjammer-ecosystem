@@ -1,6 +1,8 @@
 use crate::parse
 use crate::compare
 use crate::format_version
+use crate::is_compatible
+use crate::is_newer
 
 fn test_parse_simple_version() {
     match parse("1.2.3") {
@@ -79,5 +81,36 @@ fn test_format_version_roundtrip() {
     match parse("3.4.5-beta.2+meta") {
         Ok(v) => assert_eq(format_version(v), "3.4.5-beta.2+meta"),
         Err(_) => assert(false, "parse roundtrip"),
+    }
+}
+
+fn test_is_newer() {
+    match parse("1.2.4") {
+        Ok(a) => {
+            match parse("1.2.3") {
+                Ok(b) => {
+                    assert(is_newer(a, b), "patch bump is newer")
+                    assert(!is_newer(b, a), "older is not newer")
+                },
+                Err(_) => assert(false, "parse b"),
+            }
+        },
+        Err(_) => assert(false, "parse a"),
+    }
+}
+
+fn test_is_compatible_same_major() {
+    match parse("1.2.3") {
+        Ok(a) => {
+            match parse("1.9.0") {
+                Ok(b) => assert(is_compatible(a, b), "same major"),
+                Err(_) => assert(false, "parse b"),
+            }
+            match parse("2.0.0") {
+                Ok(c) => assert(!is_compatible(a, c), "major bump breaks"),
+                Err(_) => assert(false, "parse c"),
+            }
+        },
+        Err(_) => assert(false, "parse a"),
     }
 }

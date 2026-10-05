@@ -19,3 +19,12 @@ pub fn filter(pattern: string, paths: Vec<string>) -> Vec<string> {
     }
     out
 }
+
+/// First path that matches `pattern`, or `None`.
+pub fn first_match(pattern: string, paths: Vec<string>) -> Option<string> {
+    let hits = filter(pattern, paths)
+    if hits.len() == 0 {
+        return None
+    }
+    Some(hits[0])
+}

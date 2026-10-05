@@ -64,6 +64,16 @@ pub fn format_version(v: SemVer) -> string {
     out
 }
 
+/// True when `a` is strictly newer than `b` (build metadata ignored).
+pub fn is_newer(a: SemVer, b: SemVer) -> bool {
+    compare(a, b) > 0
+}
+
+/// True when `a` and `b` share the same major version (caret-compatible).
+pub fn is_compatible(a: SemVer, b: SemVer) -> bool {
+    a.major == b.major
+}
+
 fn split_build(text: string) -> Result<(string, string), string> {
     let mut core = text
     let mut build = ""

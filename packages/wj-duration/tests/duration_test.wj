@@ -1,7 +1,9 @@
 use crate::format_ms
 use crate::format_secs
+use crate::ms_to_secs
 use crate::parse_ms
 use crate::parse_secs
+use crate::secs_to_ms
 
 @test
 fn test_parse_ms_unit() {
@@ -101,4 +103,12 @@ fn test_parse_secs() {
 @test
 fn test_format_secs() {
     assert_eq(format_secs(120), "2m")
+}
+
+@test
+fn test_ms_to_secs_and_secs_to_ms() {
+    assert_eq(ms_to_secs(2500), 2)
+    assert_eq(ms_to_secs(999), 0)
+    assert_eq(secs_to_ms(3), 3000)
+    assert_eq(format_ms(secs_to_ms(120)), "2m")
 }

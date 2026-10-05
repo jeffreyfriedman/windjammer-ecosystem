@@ -1,8 +1,10 @@
 use crate::allow_origin
 use crate::cors_header_lines
+use crate::format_cors_headers
 use crate::is_origin_allowed
 use crate::is_preflight_method
 use crate::preflight
+use std::strings
 
 @test
 fn test_origin_exact_match() {
@@ -89,5 +91,20 @@ fn test_cors_header_lines() {
             assert_eq(lines[2], "Access-Control-Allow-Headers: Content-Type")
         },
         None => assert(false, "expected preflight for header lines"),
+    }
+}
+
+@test
+fn test_format_cors_headers() {
+    let mut allowed = Vec::new()
+    allowed.push("https://app.example.com")
+    match preflight("https://app.example.com", allowed, "GET,POST", "Content-Type") {
+        Some(h) => {
+            let text = format_cors_headers(h)
+            assert(strings.contains(text, "Access-Control-Allow-Origin: https://app.example.com"), "origin")
+            assert(strings.contains(text, "Access-Control-Allow-Methods: GET,POST"), "methods")
+            assert(strings.contains(text, "Access-Control-Allow-Headers: Content-Type"), "headers")
+        },
+        None => assert(false, "expected preflight for format"),
     }
 }

@@ -162,6 +162,7 @@ Weekly build health for seed apps and packages.
 | 2 | 2026-10-04 | deepen `wj-log` | 0 | 0 | — | `level_rank` / `is_enabled`; **9/9** tip green |
 | 2 | 2026-10-04 | deepen `wj-hash` | 0 | 0 | — | `looks_like_bcrypt`; **5/5** tip green |
 | 2 | 2026-10-04 | deepen `wj-csv` | 0 | 0 | — | `row_count` / `column_count`; **7/7** tip green |
+| 2 | 2026-10-05 | deepen `wj-yaml` | 0 | 0 | — | `get_str_or` / `has_path`; **18/18** tip green |
 
 ## Weekly checklist
 

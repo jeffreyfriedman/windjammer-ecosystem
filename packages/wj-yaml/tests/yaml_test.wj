@@ -1,6 +1,8 @@
 use crate::get_bool
 use crate::get_int
 use crate::get_str
+use crate::get_str_or
+use crate::has_path
 use crate::to_json
 
 @test
@@ -151,4 +153,17 @@ fn test_literal_block_in_nested_map() {
         Some(v) => assert_eq(v, "alpha\nbeta\n"),
         None => assert(false, "expected note"),
     }
+}
+
+@test
+fn test_get_str_or_default() {
+    assert_eq(get_str_or("name: bob\n", "name", "anon"), "bob")
+    assert_eq(get_str_or("name: bob\n", "missing", "anon"), "anon")
+}
+
+@test
+fn test_has_path() {
+    assert(has_path("server:\n  host: localhost\n", "server.host"), "nested")
+    assert(!has_path("server:\n  host: localhost\n", "server.port"), "missing")
+    assert(has_path("ok: true\n", "ok"), "flat")
 }

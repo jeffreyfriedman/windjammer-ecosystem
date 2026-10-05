@@ -1,6 +1,8 @@
 use crate::basename
 use crate::dirname
 use crate::extname
+use crate::has_extension
+use crate::is_absolute
 use crate::join_path
 use crate::normalize
 
@@ -52,4 +54,18 @@ fn test_extname() {
 @test
 fn test_extname_none() {
     assert_eq(extname("Makefile"), "")
+}
+
+@test
+fn test_is_absolute() {
+    assert(is_absolute("/usr/bin"), "unix absolute")
+    assert(!is_absolute("rel/path"), "relative")
+    assert(!is_absolute(""), "empty")
+}
+
+@test
+fn test_has_extension() {
+    assert(has_extension("foo.txt", ".txt"), "txt")
+    assert(!has_extension("foo.txt", ".md"), "wrong ext")
+    assert(!has_extension("Makefile", ".txt"), "no ext")
 }

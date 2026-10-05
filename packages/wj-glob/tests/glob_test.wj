@@ -1,4 +1,5 @@
 use crate::filter
+use crate::first_match
 use crate::is_match
 
 @test
@@ -91,4 +92,26 @@ fn test_filter_with_double_star() {
     paths.push("readme.md")
     let hits = filter("src/**/*.wj", paths)
     assert_eq(hits.len(), 2)
+}
+
+@test
+fn test_first_match_returns_first_hit() {
+    let mut paths = Vec::new()
+    paths.push("a.txt")
+    paths.push("b.md")
+    paths.push("c.md")
+    match first_match("*.md", paths) {
+        Some(hit) => assert_eq(hit, "b.md"),
+        None => assert(false, "expected first md"),
+    }
+}
+
+@test
+fn test_first_match_none_when_empty() {
+    let mut paths = Vec::new()
+    paths.push("a.txt")
+    match first_match("*.md", paths) {
+        Some(_) => assert(false, "expected None"),
+        None => {},
+    }
 }

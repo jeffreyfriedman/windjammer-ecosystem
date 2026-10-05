@@ -5,6 +5,7 @@ use crate::render_html
 use crate::escape_html
 use crate::has_placeholders
 use crate::missing_keys
+use crate::placeholder_count
 use std::collections::HashMap
 use std::strings
 
@@ -115,4 +116,10 @@ fn test_has_placeholders_false_for_plain() {
 
 fn test_has_placeholders_false_for_unclosed() {
     assert(!has_placeholders("Hello {{name"), "unclosed is not a placeholder")
+}
+
+fn test_placeholder_count() {
+    assert_eq(placeholder_count("Hello {{name}}!"), 1)
+    assert_eq(placeholder_count("{{a}} {{b}} {{a}}"), 3)
+    assert_eq(placeholder_count("plain"), 0)
 }

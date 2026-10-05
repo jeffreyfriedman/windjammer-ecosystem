@@ -117,6 +117,14 @@ pub fn get_field(parts: Vec<Part>, name: string) -> Option<string> {
     None
 }
 
+/// True when a part named `name` is present.
+pub fn has_field(parts: Vec<Part>, name: string) -> bool {
+    match get_field(parts, name) {
+        Some(_) => true,
+        None => false,
+    }
+}
+
 /// First file part named `name` (requires non-empty filename).
 pub fn get_file(parts: Vec<Part>, name: string) -> Option<Part> {
     let mut i = 0

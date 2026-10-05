@@ -1,4 +1,5 @@
 use std::encoding
+use std::strings
 
 /// Base64-encode UTF-8 text.
 pub fn encode(text: string) -> string {
@@ -35,4 +36,9 @@ pub fn decode_bytes(text: string) -> Result<Vec<u8>, string> {
 pub fn basic_auth_header(user: string, pass: string) -> string {
     let token = encode("${user}:${pass}")
     "Authorization: Basic ${token}"
+}
+
+/// True when `header` is an `Authorization: Basic …` line.
+pub fn is_basic_auth_header(header: string) -> bool {
+    strings.starts_with(strings.trim(header), "Authorization: Basic ")
 }

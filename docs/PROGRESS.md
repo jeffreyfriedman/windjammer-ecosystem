@@ -183,6 +183,10 @@ Weekly build health for seed apps and packages.
 | 2 | 2026-10-05 | deepen `wj-sha` | 0 | 1 | P3.679 while lit+substring | `looks_like_sha256_hex` (chars); **6/6** tip green |
 | 2 | 2026-10-05 | deepen `wj-glob` | 0 | 0 | — | `match_count`; **17/17** tip green |
 | 2 | 2026-10-05 | tip dogfood P3.679 | 0 | 0 | — | tip 18:38 `while i < 64_usize` RED; filed |
+| 2 | 2026-10-05 | deepen `wj-base64` | 0 | 0 | — | `is_basic_auth_header`; **8/8** tip green |
+| 2 | 2026-10-05 | deepen `wj-jwt` | 0 | 0 | — | `is_bearer_header`; **8/8** tip green |
+| 2 | 2026-10-05 | deepen `wj-template` | 0 | 0 | — | `placeholder_count`; **17/17** tip green |
+| 2 | 2026-10-05 | deepen `wj-multipart` | 0 | 0 | — | `has_field`; **11/11** tip green |
 
 ## Weekly checklist
 

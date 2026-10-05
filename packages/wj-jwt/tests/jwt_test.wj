@@ -1,5 +1,6 @@
 use crate::bearer_header
 use crate::extract_bearer
+use crate::is_bearer_header
 use crate::sign
 use crate::sign_scoped
 use crate::verify
@@ -112,4 +113,11 @@ fn test_extract_bearer_rejects_non_bearer() {
         Some(_) => assert(false, "expected None"),
         None => {},
     }
+}
+
+@test
+fn test_is_bearer_header() {
+    assert(is_bearer_header("Authorization: Bearer abc"), "bearer yes")
+    assert(!is_bearer_header("Authorization: Basic abc"), "basic no")
+    assert(!is_bearer_header(""), "empty")
 }

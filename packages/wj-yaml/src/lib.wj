@@ -65,6 +65,27 @@ pub fn get_bool(text: string, path: string) -> Option<bool> {
     }
 }
 
+/// First string at `path`, or `default` when missing.
+pub fn get_str_or(text: string, path: string, default: string) -> string {
+    match get_str(text, path) {
+        Some(v) => v,
+        None => default,
+    }
+}
+
+/// True when a value exists at the dotted path.
+pub fn has_path(text: string, path: string) -> bool {
+    match load_root(text) {
+        Some(root) => {
+            match walk_path(root, path) {
+                Some(_) => true,
+                None => false,
+            }
+        },
+        None => false,
+    }
+}
+
 fn load_root(text: string) -> Option<Value> {
     match to_json(text) {
         Ok(j) => {

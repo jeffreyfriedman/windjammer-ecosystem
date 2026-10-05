@@ -157,6 +157,8 @@ Weekly build health for seed apps and packages.
 | 2 | 2026-10-04 | deepen `wj-querystring` | 0 | 0 | — | `set` / `get_or`; **16/16** tip green |
 | 2 | 2026-10-04 | deepen `wj-url` | 0 | 0 | — | `origin` / `is_https`; **18/18** tip green |
 | 2 | 2026-10-04 | deepen `wj-retry` | 0 | 0 | — | `attempts_remaining` / `default_backoff`; **9/9** tip green |
+| 2 | 2026-10-04 | tip dogfood `wj-json-util` P3.669 | 0 | 0 | — | tip 23:43 demote take_field; **15/15** tip green |
+| 2 | 2026-10-04 | deepen `wj-inflect` | 0 | 0 | — | `title_case`; **15/15** tip green |
 
 ## Weekly checklist
 

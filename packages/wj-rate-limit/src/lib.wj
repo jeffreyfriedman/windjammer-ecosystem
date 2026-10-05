@@ -84,6 +84,39 @@ pub fn check_fixed_window(
     )
 }
 
+/// Inspect whether the next request would be allowed without consuming a slot.
+pub fn peek_fixed_window(
+    lim: FixedWindow,
+    bucket: WindowBucket,
+    now_ms: int,
+) -> RateLimitResult {
+    let window_start = window_start_for(now_ms, lim.window_ms)
+    let mut count = bucket.count
+    if bucket.window_start_ms != window_start {
+        count = 0
+    }
+    let reset_at = window_start + lim.window_ms
+    if count >= lim.limit {
+        let retry = reset_at - now_ms
+        let safe_retry = if retry < 0 { 0 } else { retry }
+        return RateLimitResult {
+            allowed: false,
+            limit: lim.limit,
+            remaining: 0,
+            reset_at_ms: reset_at,
+            retry_after_ms: safe_retry,
+        }
+    }
+    let remaining = lim.limit - count
+    RateLimitResult {
+        allowed: true,
+        limit: lim.limit,
+        remaining: remaining,
+        reset_at_ms: reset_at,
+        retry_after_ms: 0,
+    }
+}
+
 /// Check and update per-key state in `store`.
 pub fn check_key(
     lim: FixedWindow,

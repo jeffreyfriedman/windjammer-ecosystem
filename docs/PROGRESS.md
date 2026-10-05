@@ -170,6 +170,9 @@ Weekly build health for seed apps and packages.
 | 2 | 2026-10-05 | deepen `wj-validate` | 0 | 0 | — | `require_len_range`; **28/28** tip green |
 | 2 | 2026-10-05 | deepen `wj-event` | 0 | 0 | — | `has_pending`; **12/12** tip green |
 | 2 | 2026-10-05 | tip dogfood P3.671 | 0 | 0 | — | tip 18:38 `query.clone()` (no format!); GREEN |
+| 2 | 2026-10-05 | deepen `wj-cookie` | 0 | 1 | P3.676 bound arm until tip greens | `has_cookie` / `cookie_count`; **12/12** tip green |
+| 2 | 2026-10-05 | deepen `wj-cli-args` | 0 | 0 | — | `positional_count`; **11/11** tip green |
+| 2 | 2026-10-05 | deepen `wj-rate-limit` | 0 | 0 | — | `peek_fixed_window`; **11/11** tip green |
 
 ## Weekly checklist
 

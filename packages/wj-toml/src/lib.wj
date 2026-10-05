@@ -43,6 +43,22 @@ pub fn get(text: string, key: string) -> Option<string> {
     }
 }
 
+/// Value for `key`, or `default` when missing.
+pub fn get_or(text: string, key: string, default: string) -> string {
+    match get(text, key) {
+        Some(v) => v,
+        None => default,
+    }
+}
+
+/// True when `key` is present after parse.
+pub fn has(text: string, key: string) -> bool {
+    match get(text, key) {
+        Some(_) => true,
+        None => false,
+    }
+}
+
 fn empty_string() -> string {
     ""
 }

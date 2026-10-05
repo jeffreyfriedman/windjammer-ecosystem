@@ -151,6 +151,8 @@ Weekly build health for seed apps and packages.
 | 2 | 2026-10-04 | deepen `wj-glob` | 0 | 0 | — | `first_match` for path lists; tip green |
 | 2 | 2026-10-04 | deepen `wj-path` | 0 | 0 | — | `is_absolute` + `has_extension`; **12/12** tip green |
 | 2 | 2026-10-04 | deepen `wj-base64` | 0 | 0 | — | `basic_auth_header`; **7/7** tip green |
+| 2 | 2026-10-04 | deepen `wj-jwt` | 0 | 0 | — | `bearer_header` + `extract_bearer`; **7/7** tip green |
+| 2 | 2026-10-04 | deepen `wj-duration` | 0 | 0 | — | `parse_secs` / `format_secs`; **14/14** tip green |
 
 ## Weekly checklist
 

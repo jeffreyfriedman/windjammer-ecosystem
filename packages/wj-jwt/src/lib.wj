@@ -1,4 +1,5 @@
 use std::jwt
+use std::strings
 
 /// Idiomatic claims view (mirrors `std::jwt::JwtClaims`).
 pub struct Claims {
@@ -41,4 +42,23 @@ pub fn verify(token: string, secret: string) -> Result<Claims, string> {
         }),
         Err(e) => Err(e),
     }
+}
+
+/// `Authorization: Bearer <token>` header line.
+pub fn bearer_header(token: string) -> string {
+    "Authorization: Bearer ${token}"
+}
+
+/// Extract the token from an `Authorization: Bearer …` header, if present.
+pub fn extract_bearer(header: string) -> Option<string> {
+    let trimmed = strings.trim(header)
+    let prefix = "Authorization: Bearer "
+    if !strings.starts_with(trimmed, prefix) {
+        return None
+    }
+    let token = strings.trim(strings.substring(trimmed, strings.len(prefix), strings.len(trimmed)))
+    if strings.len(token) == 0 {
+        return None
+    }
+    Some(token)
 }

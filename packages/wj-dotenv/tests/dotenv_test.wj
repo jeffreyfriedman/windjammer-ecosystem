@@ -1,3 +1,4 @@
+use crate::get_or
 use crate::parse
 use crate::load
 use std::fs
@@ -49,4 +50,11 @@ fn test_load_reads_file() {
         Err(_) => assert(false, "load should succeed"),
     }
     let _ = fs.remove_file(path)
+}
+
+fn test_get_or_returns_value_or_default() {
+    let map = parse("HOST=localhost\n")
+    assert_eq(get_or(map, "HOST", "127.0.0.1"), "localhost")
+    let missing = parse("HOST=localhost\n")
+    assert_eq(get_or(missing, "PORT", "8080"), "8080")
 }

@@ -52,6 +52,19 @@ pub fn prefer_identity(accept_encoding: string) -> bool {
     lower == "identity"
 }
 
+/// `Vary: Accept-Encoding` for compressed responses.
+pub fn vary_accept_encoding() -> string {
+    "Vary: Accept-Encoding"
+}
+
+/// True when the client accepts gzip and `body_len` meets `min_bytes`.
+pub fn should_compress(accept_encoding: string, body_len: int, min_bytes: int) -> bool {
+    if body_len < min_bytes {
+        return false
+    }
+    accepts_gzip(accept_encoding)
+}
+
 fn coding_allows_gzip(token: string) -> bool {
     if strings.len(token) == 0 {
         return false

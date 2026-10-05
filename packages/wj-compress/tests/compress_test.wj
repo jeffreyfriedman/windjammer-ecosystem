@@ -4,6 +4,8 @@ use crate::gzip_decode
 use crate::gzip_encode
 use crate::negotiate
 use crate::prefer_identity
+use crate::should_compress
+use crate::vary_accept_encoding
 
 @test
 fn test_accepts_gzip_simple() {
@@ -85,4 +87,17 @@ fn test_gzip_empty() {
         },
         Err(_) => assert(false, "encode empty"),
     }
+}
+
+@test
+fn test_vary_accept_encoding() {
+    assert_eq(vary_accept_encoding(), "Vary: Accept-Encoding")
+}
+
+@test
+fn test_should_compress_respects_accept_and_min_size() {
+    assert(should_compress("gzip", 200, 100), "gzip + large enough")
+    assert(!should_compress("gzip", 50, 100), "below min bytes")
+    assert(!should_compress("deflate", 200, 100), "client rejects gzip")
+    assert(!should_compress("", 200, 100), "empty accept")
 }

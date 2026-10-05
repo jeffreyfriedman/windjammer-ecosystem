@@ -42,3 +42,11 @@ pub fn load(path: string) -> Result<HashMap<string, string>, string> {
         Err(e) => Err(e),
     }
 }
+
+/// Look up `key`, or return `default` when missing.
+pub fn get_or(map: HashMap<string, string>, key: string, default: string) -> string {
+    match map.get(key) {
+        Some(value) => value,
+        None => default,
+    }
+}

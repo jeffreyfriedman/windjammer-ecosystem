@@ -1,4 +1,6 @@
 use crate::get
+use crate::get_or
+use crate::has
 use crate::parse
 
 @test
@@ -204,4 +206,13 @@ fn test_parse_inline_table_in_section() {
         Some(v) => assert_eq(v, "9090"),
         None => assert(false, "server.listen.port"),
     }
+}
+
+@test
+fn test_get_or_and_has() {
+    let text = "host = \"localhost\"\n"
+    assert_eq(get_or(text, "host", "127.0.0.1"), "localhost")
+    assert_eq(get_or(text, "port", "8080"), "8080")
+    assert(has(text, "host"), "has host")
+    assert(!has(text, "port"), "no port")
 }

@@ -1,3 +1,5 @@
+use crate::bearer_header
+use crate::extract_bearer
 use crate::sign
 use crate::sign_scoped
 use crate::verify
@@ -86,5 +88,28 @@ fn test_claims_exp_is_in_future() {
             }
         },
         Err(_) => assert(false, "sign"),
+    }
+}
+
+@test
+fn test_bearer_header_and_extract() {
+    match sign("user-1", "acme", "secret", 3600) {
+        Ok(token) => {
+            let header = bearer_header(token)
+            assert(strings.starts_with(header, "Authorization: Bearer "), "prefix")
+            match extract_bearer(header) {
+                Some(got) => assert_eq(got, token),
+                None => assert(false, "extract"),
+            }
+        },
+        Err(_) => assert(false, "sign"),
+    }
+}
+
+@test
+fn test_extract_bearer_rejects_non_bearer() {
+    match extract_bearer("Authorization: Basic abc") {
+        Some(_) => assert(false, "expected None"),
+        None => {},
     }
 }

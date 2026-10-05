@@ -11,3 +11,16 @@ pub fn parse_ms(text: string) -> Result<int, string> {
 pub fn format_ms(ms: int) -> string {
     time.format_duration_ms(ms)
 }
+
+/// Parse a duration string into whole seconds (floor of milliseconds / 1000).
+pub fn parse_secs(text: string) -> Result<int, string> {
+    match parse_ms(text) {
+        Ok(ms) => Ok(ms / 1000),
+        Err(e) => Err(e),
+    }
+}
+
+/// Format whole seconds as a compact duration.
+pub fn format_secs(secs: int) -> string {
+    format_ms(secs * 1000)
+}

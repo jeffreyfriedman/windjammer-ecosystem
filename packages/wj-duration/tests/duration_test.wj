@@ -1,5 +1,7 @@
 use crate::format_ms
+use crate::format_secs
 use crate::parse_ms
+use crate::parse_secs
 
 @test
 fn test_parse_ms_unit() {
@@ -86,4 +88,17 @@ fn test_format_ms_compound() {
 @test
 fn test_format_ms_small() {
     assert_eq(format_ms(5), "5ms")
+}
+
+@test
+fn test_parse_secs() {
+    match parse_secs("2m") {
+        Ok(v) => assert_eq(v, 120),
+        Err(_) => assert(false, "parse_secs 2m"),
+    }
+}
+
+@test
+fn test_format_secs() {
+    assert_eq(format_secs(120), "2m")
 }

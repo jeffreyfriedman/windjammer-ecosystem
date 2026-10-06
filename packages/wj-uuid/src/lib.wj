@@ -101,6 +101,14 @@ pub fn is_valid(text: string) -> bool {
     is_valid_normalized(normalize(text))
 }
 
+/// True when `text` is a valid UUID of the given `ver` (1, 4, 5, or 7).
+pub fn is_version(text: string, ver: int) -> bool {
+    match version(text) {
+        Some(v) => v == ver,
+        None => false,
+    }
+}
+
 /// True when `text` is the nil UUID (all zeros).
 pub fn is_nil(text: string) -> bool {
     normalize(text) == "00000000-0000-0000-0000-000000000000"

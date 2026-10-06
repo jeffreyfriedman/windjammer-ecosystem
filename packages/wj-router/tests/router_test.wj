@@ -1,4 +1,6 @@
 use crate::match_route
+use crate::matches_route
+use crate::param_or
 use std::collections::HashMap
 
 @test
@@ -73,5 +75,23 @@ fn test_root() {
     match match_route("/", "/") {
         Some(params) => assert_eq(params.len(), 0),
         None => assert(false, "root should match"),
+    }
+}
+
+@test
+fn test_matches_route() {
+    assert(matches_route("/users/:id", "/users/42"), "match")
+    assert(!matches_route("/users/:id", "/posts/42"), "mismatch")
+}
+
+@test
+fn test_param_or() {
+    match match_route("/users/:id", "/users/42") {
+        Some(params) => assert_eq(param_or(params, "id", "0"), "42"),
+        None => assert(false, "expected match for param_or id"),
+    }
+    match match_route("/users/:id", "/users/42") {
+        Some(params) => assert_eq(param_or(params, "missing", "none"), "none"),
+        None => assert(false, "expected match for param_or missing"),
     }
 }

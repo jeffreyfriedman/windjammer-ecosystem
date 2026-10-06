@@ -8,6 +8,7 @@ use crate::v7
 use crate::v7_from_timestamp
 use crate::version
 use crate::is_valid
+use crate::is_version
 use crate::is_nil
 use crate::is_max
 use crate::normalize
@@ -159,4 +160,18 @@ fn test_nil_and_max_constants() {
     assert(!is_nil("ffffffff-ffff-ffff-ffff-ffffffffffff"), "max is not nil")
     assert(!is_max("00000000-0000-0000-0000-000000000000"), "nil is not max")
     assert(is_max("FFFFFFFF-FFFF-FFFF-FFFF-FFFFFFFFFFFF"), "max uppercase")
+}
+
+fn test_is_version() {
+    let id = v4()
+    assert(is_version(id, 4), "v4")
+    assert(!is_version(id, 7), "not v7")
+    match v7() {
+        Ok(v7id) => {
+            assert(is_version(v7id, 7), "v7")
+            assert(!is_version(v7id, 4), "not v4")
+        },
+        Err(_) => assert(false, "v7 for is_version"),
+    }
+    assert(!is_version("not-a-uuid", 4), "invalid")
 }

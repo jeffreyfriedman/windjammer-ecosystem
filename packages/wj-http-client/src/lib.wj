@@ -16,6 +16,16 @@ pub fn status_is_success(status: u16) -> bool {
     status >= 200 && status < 300
 }
 
+/// True when `status` is in the 4xx range.
+pub fn status_is_client_error(status: u16) -> bool {
+    status >= 400 && status < 500
+}
+
+/// True when `status` is in the 5xx range.
+pub fn status_is_server_error(status: u16) -> bool {
+    status >= 500 && status < 600
+}
+
 /// Human-readable error for a failed response.
 pub fn error_message(status: u16, body: string) -> string {
     "HTTP ${status}: ${body}"

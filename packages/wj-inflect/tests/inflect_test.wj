@@ -1,4 +1,7 @@
 use crate::camel_case
+use crate::constant_case
+use crate::is_kebab_case
+use crate::is_snake_case
 use crate::kebab_case
 use crate::pascal_case
 use crate::slugify
@@ -78,4 +81,27 @@ fn test_title_case_from_kebab() {
 @test
 fn test_title_case_from_camel() {
     assert_eq(title_case("helloWorld"), "Hello World")
+}
+
+@test
+fn test_constant_case() {
+    assert_eq(constant_case("helloWorld"), "HELLO_WORLD")
+    assert_eq(constant_case("hello-world"), "HELLO_WORLD")
+    assert_eq(constant_case("HelloWorld"), "HELLO_WORLD")
+}
+
+@test
+fn test_is_snake_case() {
+    assert(is_snake_case("hello_world"), "snake")
+    assert(is_snake_case("a"), "single")
+    assert(!is_snake_case("helloWorld"), "camel")
+    assert(!is_snake_case("hello-world"), "kebab")
+}
+
+@test
+fn test_is_kebab_case() {
+    assert(is_kebab_case("hello-world"), "kebab")
+    assert(is_kebab_case("a"), "single")
+    assert(!is_kebab_case("hello_world"), "snake")
+    assert(!is_kebab_case("HelloWorld"), "pascal")
 }

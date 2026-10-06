@@ -125,6 +125,36 @@ pub fn has_field(parts: Vec<Part>, name: string) -> bool {
     }
 }
 
+/// Number of parts in a parsed multipart body.
+pub fn part_count(parts: Vec<Part>) -> int {
+    let mut n = 0
+    let mut i = 0
+    while i < parts.len() {
+        n = n + 1
+        i = i + 1
+    }
+    n
+}
+
+/// Part names in encounter order (duplicates preserved).
+pub fn field_names(parts: Vec<Part>) -> Vec<string> {
+    let mut out = Vec::new()
+    let mut i = 0
+    while i < parts.len() {
+        out.push(parts[i].name)
+        i = i + 1
+    }
+    out
+}
+
+/// First field body for `name`, or `default` when missing.
+pub fn get_field_or(parts: Vec<Part>, name: string, default: string) -> string {
+    match get_field(parts, name) {
+        Some(v) => v,
+        None => default,
+    }
+}
+
 /// First file part named `name` (requires non-empty filename).
 pub fn get_file(parts: Vec<Part>, name: string) -> Option<Part> {
     let mut i = 0

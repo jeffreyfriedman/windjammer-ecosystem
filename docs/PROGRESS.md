@@ -4,6 +4,7 @@ Weekly build health for seed apps and packages.
 
 | Week | Date | Apps / packages green | `extern fn` | Crates via interop | Compiler issues | Notes |
 |------|------|----------------------|-------------|--------------------|-----------------|-------|
+| 2 | 2026-10-06 | deepen `wj-inflect`/`wj-event`/`wj-multipart` | 0 | 0 | — | `constant_case`/`is_snake_case`/`is_kebab_case`, `is_empty`/`has_listeners`/`peek`, `part_count`/`field_names`/`get_field_or`; tip **18+14+13** green |
 | 2 | 2026-10-05 | deepen `wj-path`/`wj-cookie`/`wj-compress` | 0 | 0 | — | `is_relative`/`change_extension`/`ensure_leading_slash`, `get_cookie_or`/`is_empty`/`delete_cookie_header`, `default_min_bytes`/`should_compress_default`/`is_gzip_encoding`; tip **16+14+15** green |
 | 2 | 2026-10-05 | deepen `wj-mime`/`wj-headers`/`wj-hash` | 0 | 0 | — | `is_octet_stream`/`content_type_json|html`, `header_line_count`/`has_csp`/`with_csp`, `verify_ok`/`require_bcrypt`; tip **17+15+7** green |
 | 2 | 2026-10-05 | deepen `wj-duration`/`wj-querystring`/`wj-rate-limit` | 0 | 0 | — | `parse_ms_or`/`is_positive`/`clamp_ms`, `is_empty`/`pair_count`/`keys`, `is_allowed`/`is_denied`/`slots_used`; tip **18+18+13** green |

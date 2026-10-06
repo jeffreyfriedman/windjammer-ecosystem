@@ -1,11 +1,14 @@
 use crate::clear_queue
 use crate::drain
 use crate::emit
+use crate::has_listeners
 use crate::has_pending
+use crate::is_empty
 use crate::listener_count
 use crate::listener_ids
 use crate::match_pattern
 use crate::new_bus
+use crate::peek
 use crate::queue_len
 use crate::subscribe
 use crate::unsubscribe
@@ -112,4 +115,26 @@ fn test_has_pending() {
     assert(has_pending(queued), "queued")
     let drained = drain(emit(new_bus(), "x", "1"))
     assert(!has_pending(drained.0), "after drain")
+}
+
+@test
+fn test_is_empty_and_has_listeners() {
+    assert(is_empty(new_bus()), "no listeners")
+    assert(!has_listeners(new_bus()), "no listeners alias")
+    assert(!is_empty(subscribe(new_bus(), "a", "tick")), "has listener")
+    assert(has_listeners(subscribe(new_bus(), "a", "tick")), "has listeners")
+}
+
+@test
+fn test_peek_does_not_drain() {
+    let queued = emit(emit(new_bus(), "a", "1"), "b", "2")
+    let peeked = peek(queued)
+    match peeked.1 {
+        Some(ev) => {
+            assert_eq(ev.name, "a")
+            assert_eq(ev.payload, "1")
+        },
+        None => assert(false, "peek first"),
+    }
+    assert_eq(queue_len(peeked.0), 2)
 }

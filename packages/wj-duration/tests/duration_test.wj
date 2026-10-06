@@ -1,7 +1,10 @@
+use crate::clamp_ms
 use crate::format_ms
 use crate::format_secs
+use crate::is_positive
 use crate::ms_to_secs
 use crate::parse_ms
+use crate::parse_ms_or
 use crate::parse_secs
 use crate::secs_to_ms
 
@@ -111,4 +114,24 @@ fn test_ms_to_secs_and_secs_to_ms() {
     assert_eq(ms_to_secs(999), 0)
     assert_eq(secs_to_ms(3), 3000)
     assert_eq(format_ms(secs_to_ms(120)), "2m")
+}
+
+@test
+fn test_parse_ms_or_falls_back() {
+    assert_eq(parse_ms_or("5s", 0), 5000)
+    assert_eq(parse_ms_or("not-a-duration", 42), 42)
+}
+
+@test
+fn test_is_positive() {
+    assert(is_positive(1), "1ms positive")
+    assert(!is_positive(0), "zero not positive")
+    assert(!is_positive(-5), "negative not positive")
+}
+
+@test
+fn test_clamp_ms() {
+    assert_eq(clamp_ms(50, 0, 100), 50)
+    assert_eq(clamp_ms(-10, 0, 100), 0)
+    assert_eq(clamp_ms(200, 0, 100), 100)
 }

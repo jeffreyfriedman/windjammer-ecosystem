@@ -34,3 +34,27 @@ pub fn ms_to_secs(ms: int) -> int {
 pub fn secs_to_ms(secs: int) -> int {
     secs * 1000
 }
+
+/// Parse a duration string, or `default` when parsing fails.
+pub fn parse_ms_or(text: string, default: int) -> int {
+    match parse_ms(text) {
+        Ok(ms) => ms,
+        Err(_) => default,
+    }
+}
+
+/// True when `ms` is strictly greater than zero.
+pub fn is_positive(ms: int) -> bool {
+    ms > 0
+}
+
+/// Clamp `ms` into the inclusive range `[min_ms, max_ms]`.
+pub fn clamp_ms(ms: int, min_ms: int, max_ms: int) -> int {
+    if ms < min_ms {
+        return min_ms
+    }
+    if ms > max_ms {
+        return max_ms
+    }
+    ms
+}

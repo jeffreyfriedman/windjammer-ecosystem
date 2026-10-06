@@ -4,6 +4,7 @@ Weekly build health for seed apps and packages.
 
 | Week | Date | Apps / packages green | `extern fn` | Crates via interop | Compiler issues | Notes |
 |------|------|----------------------|-------------|--------------------|-----------------|-------|
+| 2 | 2026-10-05 | deepen `wj-duration`/`wj-querystring`/`wj-rate-limit` | 0 | 0 | — | `parse_ms_or`/`is_positive`/`clamp_ms`, `is_empty`/`pair_count`/`keys`, `is_allowed`/`is_denied`/`slots_used`; tip **18+18+13** green |
 | 2 | 2026-10-05 | deepen `wj-semver`/`wj-cors`/`wj-jwt` | 0 | 0 | — | `is_older`/`has_prerelease`/`has_build`/`bump_patch`, CORS defaults + `preflight_defaults`, `verify_bearer`; tip **12+12+9** green |
 | 2 | 2026-10-05 | deepen `wj-sha`/`wj-base64`/`wj-json-util` | 0 | 0 | — | `digest_hex_len`/`normalize_hex`/`verify_etag`, bearer auth + `decode_or`, `is_valid`/`compact`/`path_exists`; tip **8+10+18** green |
 | 2 | 2026-10-05 | deepen `wj-dotenv`/`wj-config`/`wj-cli-args` | 0 | 0 | — (P3.676 bound-arm `has` retained) | `keys`/`key_count`/`is_empty`, config `get_or`/`has`/`key_count`, `nth_positional`/`require_long_flag_value`; tip **11+11+13** green |

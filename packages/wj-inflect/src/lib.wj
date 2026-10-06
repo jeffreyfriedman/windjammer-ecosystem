@@ -108,6 +108,54 @@ pub fn slugify(text: string) -> string {
     out
 }
 
+/// SCREAMING_SNAKE_CASE from camel / kebab / pascal / snake input.
+pub fn constant_case(text: string) -> string {
+    let snake = snake_case(text)
+    let mut out = ""
+    for ch in strings.chars(snake) {
+        out = "${out}${to_upper_char(ch)}"
+    }
+    out
+}
+
+/// True when `text` is non-empty snake_case (`[a-z0-9_]+`, no uppercase / hyphens).
+pub fn is_snake_case(text: string) -> bool {
+    if strings.len(text) == 0 {
+        return false
+    }
+    for ch in strings.chars(text) {
+        if is_upper(ch) {
+            return false
+        }
+        if ch == '-' {
+            return false
+        }
+        if !(is_lower(ch) || is_digit_char(ch) || ch == '_') {
+            return false
+        }
+    }
+    true
+}
+
+/// True when `text` is non-empty kebab-case (`[a-z0-9-]+`, no uppercase / underscores).
+pub fn is_kebab_case(text: string) -> bool {
+    if strings.len(text) == 0 {
+        return false
+    }
+    for ch in strings.chars(text) {
+        if is_upper(ch) {
+            return false
+        }
+        if ch == '_' {
+            return false
+        }
+        if !(is_lower(ch) || is_digit_char(ch) || ch == '-') {
+            return false
+        }
+    }
+    true
+}
+
 fn split_words(text: string) -> Vec<string> {
     let snake = snake_case(text)
     let mut parts: Vec<string> = Vec::new()

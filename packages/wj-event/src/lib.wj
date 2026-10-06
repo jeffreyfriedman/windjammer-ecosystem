@@ -113,3 +113,22 @@ pub fn match_pattern(pattern: string, event_name: string) -> bool {
     }
     pattern == event_name
 }
+
+/// True when the bus has no subscribers.
+pub fn is_empty(bus: EventBus) -> bool {
+    listener_count(bus) == 0
+}
+
+/// True when the bus has at least one subscriber.
+pub fn has_listeners(bus: EventBus) -> bool {
+    !is_empty(bus)
+}
+
+/// Peek at the front queued event without draining (`(bus, Option<Event>)`).
+pub fn peek(bus: EventBus) -> (EventBus, Option<Event>) {
+    if bus.queue.len() == 0 {
+        return (bus, None)
+    }
+    let first = bus.queue[0]
+    (bus, Some(first))
+}

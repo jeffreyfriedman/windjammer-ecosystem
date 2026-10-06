@@ -5,6 +5,9 @@ use crate::resolve_toml
 use crate::resolve_yaml
 use crate::from_toml
 use crate::from_yaml
+use crate::get_or
+use crate::has
+use crate::key_count
 use std::collections::HashMap
 
 fn test_merge_overlay_wins_on_shared_keys() {
@@ -170,4 +173,28 @@ fn test_resolve_yaml_defaults_file_env() {
         Some(v) => assert_eq(v, "true"),
         None => assert(false, "DEBUG from yaml"),
     }
+}
+
+fn test_get_or_and_has() {
+    let mut map = HashMap::new()
+    map.insert("HOST", "localhost")
+    assert_eq(get_or(map, "HOST", "127.0.0.1"), "localhost")
+    let mut again = HashMap::new()
+    again.insert("HOST", "localhost")
+    assert_eq(get_or(again, "PORT", "8080"), "8080")
+    let mut has_map = HashMap::new()
+    has_map.insert("HOST", "localhost")
+    assert(has(has_map, "HOST"), "HOST")
+    let mut miss = HashMap::new()
+    miss.insert("HOST", "localhost")
+    assert(!has(miss, "PORT"), "PORT missing")
+}
+
+fn test_key_count() {
+    let mut map = HashMap::new()
+    map.insert("A", "1")
+    map.insert("B", "2")
+    assert_eq(key_count(map), 2)
+    let empty = HashMap::new()
+    assert_eq(key_count(empty), 0)
 }

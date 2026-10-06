@@ -117,6 +117,18 @@ pub fn first_positional(args: Vec<string>) -> Option<string> {
     Some(pos[0])
 }
 
+/// Positional at 0-based `index`, or None when out of range.
+pub fn nth_positional(args: Vec<string>, index: int) -> Option<string> {
+    let pos = positionals(args)
+    if index < 0 {
+        return None
+    }
+    if index >= pos.len() {
+        return None
+    }
+    Some(pos[index])
+}
+
 /// First positional or a usage error when none is present.
 pub fn require_first_positional(args: Vec<string>, usage: string) -> Result<string, string> {
     match first_positional(args) {
@@ -126,6 +138,14 @@ pub fn require_first_positional(args: Vec<string>, usage: string) -> Result<stri
             }
             Ok(value)
         },
+        None => Err(usage),
+    }
+}
+
+/// Value from `--name` / `--name=value`, or a usage error when absent.
+pub fn require_long_flag_value(args: Vec<string>, name: string, usage: string) -> Result<string, string> {
+    match long_flag_value(args, name) {
+        Some(value) => Ok(value),
         None => Err(usage),
     }
 }

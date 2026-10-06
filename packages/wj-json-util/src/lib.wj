@@ -14,6 +14,35 @@ pub fn pretty(text: string) -> string {
     }
 }
 
+/// Compact (minify) JSON text; return the original text when parsing fails.
+pub fn compact(text: string) -> string {
+    match json.parse(text) {
+        Ok(value) => {
+            match json.stringify(value) {
+                Ok(compact_text) => compact_text,
+                Err(_) => text,
+            }
+        },
+        Err(_) => text,
+    }
+}
+
+/// True when `text` parses as JSON.
+pub fn is_valid(text: string) -> bool {
+    match json.parse(text) {
+        Ok(_) => true,
+        Err(_) => false,
+    }
+}
+
+/// True when a dotted path resolves in the JSON document.
+pub fn path_exists(text: string, path: string) -> bool {
+    match path_get(text, path) {
+        Some(_) => true,
+        None => false,
+    }
+}
+
 /// Compact JSON for the value at a dotted path (`user.name`, `nums.0`).
 pub fn path_get(text: string, path: string) -> Option<string> {
     match json.parse(text) {

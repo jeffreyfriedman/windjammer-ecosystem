@@ -31,6 +31,21 @@ pub fn looks_like_sha256_hex(text: string) -> bool {
     true
 }
 
+/// Canonical SHA-256 hex length (64).
+pub fn digest_hex_len() -> int {
+    64
+}
+
+/// Lowercase hex for comparisons (`ABCD` → `abcd`).
+pub fn normalize_hex(text: string) -> string {
+    strings.to_lower(text)
+}
+
+/// True when `etag_value` equals `etag(text)` (quoted digest).
+pub fn verify_etag(text: string, etag_value: string) -> bool {
+    etag(text) == etag_value
+}
+
 fn is_hex_char(ch: char) -> bool {
     if ch == '0' { return true }
     if ch == '1' { return true }

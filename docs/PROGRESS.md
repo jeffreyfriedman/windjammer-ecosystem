@@ -4,6 +4,7 @@ Weekly build health for seed apps and packages.
 
 | Week | Date | Apps / packages green | `extern fn` | Crates via interop | Compiler issues | Notes |
 |------|------|----------------------|-------------|--------------------|-----------------|-------|
+| 2 | 2026-10-05 | deepen `wj-sha`/`wj-base64`/`wj-json-util` | 0 | 0 | — | `digest_hex_len`/`normalize_hex`/`verify_etag`, bearer auth + `decode_or`, `is_valid`/`compact`/`path_exists`; tip **8+10+18** green |
 | 2 | 2026-10-05 | deepen `wj-dotenv`/`wj-config`/`wj-cli-args` | 0 | 0 | — (P3.676 bound-arm `has` retained) | `keys`/`key_count`/`is_empty`, config `get_or`/`has`/`key_count`, `nth_positional`/`require_long_flag_value`; tip **11+11+13** green |
 | 2 | 2026-10-05 | deepen `wj-retry`/`wj-log`/`wj-fs-walk` | 0 | 0 | P3.681 (count-loop for `count_files`; drop `as int`) | `is_exhausted`/`total_delay_ms`, `is_error_level`/`parse_level_or`, `has_files`; tip **11+11+9** green |
 | 2 | 2026-10-05 | deepen `wj-router`/`wj-http-client`/`wj-uuid`/`wj-regex` | 0 | 0 | P3.681 `Ok(vec.len())`→`Result<int,_>` usize (filed; count-loop interim) | `matches_route`/`param_or`, client/server status predicates, `is_version`, `match_count`; tip 0.50.0 **9+7+21+10** green |

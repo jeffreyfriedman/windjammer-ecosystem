@@ -42,3 +42,21 @@ pub fn basic_auth_header(user: string, pass: string) -> string {
 pub fn is_basic_auth_header(header: string) -> bool {
     strings.starts_with(strings.trim(header), "Authorization: Basic ")
 }
+
+/// HTTP `Authorization: Bearer …` header for `token`.
+pub fn bearer_auth_header(token: string) -> string {
+    "Authorization: Bearer ${token}"
+}
+
+/// True when `header` is an `Authorization: Bearer …` line.
+pub fn is_bearer_auth_header(header: string) -> bool {
+    strings.starts_with(strings.trim(header), "Authorization: Bearer ")
+}
+
+/// Decode base64 text, or `default` when decoding fails.
+pub fn decode_or(text: string, default: string) -> string {
+    match decode(text) {
+        Ok(value) => value,
+        Err(_) => default,
+    }
+}

@@ -1,9 +1,12 @@
 use crate::basic_auth_header
+use crate::bearer_auth_header
+use crate::decode_or
 use crate::encode
 use crate::decode
 use crate::encode_bytes
 use crate::decode_bytes
 use crate::is_basic_auth_header
+use crate::is_bearer_auth_header
 
 fn test_encode_hello() {
     let text = "Hello"
@@ -74,4 +77,15 @@ fn test_is_basic_auth_header() {
     assert(is_basic_auth_header(basic_auth_header("user", "pass")), "basic yes")
     assert(!is_basic_auth_header("Authorization: Bearer tok"), "bearer no")
     assert(!is_basic_auth_header(""), "empty")
+}
+
+fn test_bearer_auth_header() {
+    assert_eq(bearer_auth_header("tok"), "Authorization: Bearer tok")
+    assert(is_bearer_auth_header(bearer_auth_header("abc")), "bearer yes")
+    assert(!is_bearer_auth_header(basic_auth_header("u", "p")), "basic no")
+}
+
+fn test_decode_or() {
+    assert_eq(decode_or("SGVsbG8=", "fallback"), "Hello")
+    assert_eq(decode_or("!!!", "fallback"), "fallback")
 }

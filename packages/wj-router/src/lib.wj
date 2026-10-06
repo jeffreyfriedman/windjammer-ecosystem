@@ -30,6 +30,22 @@ pub fn match_route(pattern: string, path: string) -> Option<HashMap<string, stri
     Some(params)
 }
 
+/// True when `path` matches `pattern` (same rules as `match_route`).
+pub fn matches_route(pattern: string, path: string) -> bool {
+    match match_route(pattern, path) {
+        Some(_) => true,
+        None => false,
+    }
+}
+
+/// Param value for `name`, or `default` when missing / unmatched.
+pub fn param_or(params: HashMap<string, string>, name: string, default: string) -> string {
+    match params.get(name) {
+        Some(value) => value,
+        None => default,
+    }
+}
+
 fn normalize_path(path: string) -> string {
     if strings.len(path) == 0 {
         return "/"

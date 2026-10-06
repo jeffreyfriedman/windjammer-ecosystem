@@ -4,6 +4,7 @@ Weekly build health for seed apps and packages.
 
 | Week | Date | Apps / packages green | `extern fn` | Crates via interop | Compiler issues | Notes |
 |------|------|----------------------|-------------|--------------------|-----------------|-------|
+| 2 | 2026-10-05 | deepen `wj-router`/`wj-http-client`/`wj-uuid`/`wj-regex` | 0 | 0 | P3.681 `Ok(vec.len())`→`Result<int,_>` usize (filed; count-loop interim) | `matches_route`/`param_or`, client/server status predicates, `is_version`, `match_count`; tip 0.50.0 **9+7+21+10** green |
 | 1 | 2026-08-15 | `wj-hello` | 0 | 0 | Multi-file CLI lib+bin (fixed upstream) | Initial skeleton |
 | 2 | 2026-08-16 | `wj-hello`, `wj-dotenv` | 0 | 0 | Flat `lib.wj` + `wj test`, `strings::join` Vec, `fs` AsRef path (fixed upstream) | Idiomatic package seed |
 | 2 | 2026-08-16 | + `wj-fetch` (domain + adapters) | 0 | 0 | `json.parse` borrow, HTTP status `u16`, `process::exit` path (fixed upstream) | Wave 1 CLI HTTP GET |

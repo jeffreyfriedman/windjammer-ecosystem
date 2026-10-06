@@ -2,6 +2,7 @@ use crate::escape
 use crate::find
 use crate::find_all
 use crate::is_match
+use crate::match_count
 use crate::replace
 use crate::replace_all
 use crate::split
@@ -101,5 +102,17 @@ fn test_invalid_pattern_errors() {
     match is_match("(", "x") {
         Ok(_) => assert(false, "expected Err"),
         Err(msg) => assert(msg != "", "err message"),
+    }
+}
+
+@test
+fn test_match_count() {
+    match match_count("\\d+", "a1b22c333") {
+        Ok(n) => assert_eq(n, 3),
+        Err(_) => assert(false, "match_count err"),
+    }
+    match match_count("\\d+", "abc") {
+        Ok(n) => assert_eq(n, 0),
+        Err(_) => assert(false, "match_count zero"),
     }
 }

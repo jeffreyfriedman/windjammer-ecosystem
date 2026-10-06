@@ -1,4 +1,6 @@
 use crate::HttpResult
+use crate::status_is_client_error
+use crate::status_is_server_error
 use crate::status_is_success
 use crate::require_ok
 use crate::error_message
@@ -12,6 +14,15 @@ fn test_status_is_success_accepts_2xx() {
     assert(!status_is_success(300), "300")
     assert(!status_is_success(404), "404")
     assert(!status_is_success(500), "500")
+}
+
+fn test_status_is_client_and_server_error() {
+    assert(status_is_client_error(400), "400")
+    assert(status_is_client_error(404), "404")
+    assert(!status_is_client_error(500), "500 not client")
+    assert(status_is_server_error(500), "500")
+    assert(status_is_server_error(503), "503")
+    assert(!status_is_server_error(404), "404 not server")
 }
 
 fn test_require_ok_returns_body_on_success() {

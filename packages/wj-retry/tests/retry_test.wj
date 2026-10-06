@@ -2,8 +2,10 @@ use crate::Backoff
 use crate::attempts_remaining
 use crate::default_backoff
 use crate::delay_ms
+use crate::is_exhausted
 use crate::retry_delay
 use crate::should_retry
+use crate::total_delay_ms
 use crate::pause_ms
 
 fn test_delay_ms_exponential() {
@@ -87,4 +89,23 @@ fn test_default_backoff() {
     assert_eq(b.max_ms, 30000)
     assert_eq(delay_ms(b, 0), 100)
     assert_eq(delay_ms(b, 1), 200)
+}
+
+fn test_is_exhausted() {
+    assert(!is_exhausted(0, 3), "first attempt")
+    assert(!is_exhausted(2, 3), "last in-range")
+    assert(is_exhausted(3, 3), "at max")
+    assert(is_exhausted(0, 0), "zero max")
+}
+
+fn test_total_delay_ms() {
+    let b = Backoff {
+        initial_ms: 100,
+        multiplier: 2,
+        max_ms: 1000,
+    }
+    // attempts 0..2 → 100 + 200 + 400
+    assert_eq(total_delay_ms(b, 3), 700)
+    assert_eq(total_delay_ms(b, 0), 0)
+    assert_eq(total_delay_ms(b, 1), 100)
 }

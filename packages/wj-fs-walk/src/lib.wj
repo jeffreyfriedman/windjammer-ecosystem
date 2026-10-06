@@ -40,7 +40,21 @@ pub fn walk_files_with_suffix(root: string, suffix: string) -> Result<Vec<string
 /// Number of files under `root` (includes hidden files).
 pub fn count_files(root: string) -> Result<int, string> {
     match walk_files(root) {
-        Ok(paths) => Ok(paths.len() as int),
+        Ok(paths) => {
+            let mut n = 0
+            for _path in paths {
+                n = n + 1
+            }
+            Ok(n)
+        },
+        Err(e) => Err(e),
+    }
+}
+
+/// True when `root` contains at least one file.
+pub fn has_files(root: string) -> Result<bool, string> {
+    match count_files(root) {
+        Ok(n) => Ok(n > 0),
         Err(e) => Err(e),
     }
 }

@@ -1,4 +1,5 @@
 use crate::count_files
+use crate::has_files
 use crate::is_hidden_name
 use crate::walk
 use crate::walk_files
@@ -188,6 +189,23 @@ fn test_count_files() {
         Err(_) => assert(false, "count_files failed"),
     }
     match count_files("/tmp/wj-fs-walk-does-not-exist-xyz") {
+        Ok(_) => assert(false, "expected Err"),
+        Err(msg) => assert(msg.len() > 0, "error message"),
+    }
+    teardown_tree(root)
+}
+
+fn test_has_files() {
+    let root = "/tmp/wj-fs-walk-tree-has"
+    match setup_tree(root) {
+        Ok(_) => {},
+        Err(_) => assert(false, "setup failed"),
+    }
+    match has_files(root) {
+        Ok(yes) => assert(yes, "tree has files"),
+        Err(_) => assert(false, "has_files failed"),
+    }
+    match has_files("/tmp/wj-fs-walk-does-not-exist-xyz") {
         Ok(_) => assert(false, "expected Err"),
         Err(msg) => assert(msg.len() > 0, "error message"),
     }

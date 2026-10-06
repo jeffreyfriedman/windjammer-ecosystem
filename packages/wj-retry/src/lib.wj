@@ -64,6 +64,25 @@ pub fn default_backoff() -> Backoff {
     }
 }
 
+/// True when `attempt` is at or past `max_attempts` (no retries left).
+pub fn is_exhausted(attempt: int, max_attempts: int) -> bool {
+    !should_retry(attempt, max_attempts)
+}
+
+/// Sum of `delay_ms` for attempts `0 .. max_attempts-1` (0 when non-positive).
+pub fn total_delay_ms(backoff: Backoff, max_attempts: int) -> int {
+    if max_attempts <= 0 {
+        return 0
+    }
+    let mut total = 0
+    let mut i = 0
+    while i < max_attempts {
+        total = total + delay_ms(backoff, i)
+        i = i + 1
+    }
+    total
+}
+
 /// Blocking pause between retry attempts (milliseconds).
 /// Uses `std::time` spin-wait until `std::async_runtime::sleep_ms_blocking` import codegen is fixed.
 pub fn pause_ms(ms: int) {

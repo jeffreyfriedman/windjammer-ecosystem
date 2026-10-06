@@ -70,3 +70,11 @@ pub fn is_bearer_header(header: string) -> bool {
         None => false,
     }
 }
+
+/// Extract bearer token from `header`, then verify with `secret`.
+pub fn verify_bearer(header: string, secret: string) -> Result<Claims, string> {
+    match extract_bearer(header) {
+        Some(token) => verify(token, secret),
+        None => Err("missing or invalid Authorization: Bearer header"),
+    }
+}

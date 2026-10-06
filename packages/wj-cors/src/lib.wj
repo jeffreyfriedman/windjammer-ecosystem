@@ -96,3 +96,18 @@ pub fn format_cors_headers(headers: CorsHeaders) -> string {
     }
     out
 }
+
+/// Default `Access-Control-Allow-Methods` value.
+pub fn default_allow_methods() -> string {
+    "GET,POST,PUT,PATCH,DELETE,OPTIONS"
+}
+
+/// Default `Access-Control-Allow-Headers` value.
+pub fn default_allow_headers() -> string {
+    "Content-Type,Authorization"
+}
+
+/// Preflight using `default_allow_methods` / `default_allow_headers`.
+pub fn preflight_defaults(origin: string, allowed: Vec<string>) -> Option<CorsHeaders> {
+    preflight(origin, allowed, default_allow_methods(), default_allow_headers())
+}

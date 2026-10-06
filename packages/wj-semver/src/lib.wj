@@ -69,6 +69,11 @@ pub fn is_newer(a: SemVer, b: SemVer) -> bool {
     compare(a, b) > 0
 }
 
+/// True when `a` is strictly older than `b` (build metadata ignored).
+pub fn is_older(a: SemVer, b: SemVer) -> bool {
+    compare(a, b) < 0
+}
+
 /// True when `a` and `b` compare equal (build metadata ignored).
 pub fn is_equal(a: SemVer, b: SemVer) -> bool {
     compare(a, b) == 0
@@ -77,6 +82,27 @@ pub fn is_equal(a: SemVer, b: SemVer) -> bool {
 /// True when `a` and `b` share the same major version (caret-compatible).
 pub fn is_compatible(a: SemVer, b: SemVer) -> bool {
     a.major == b.major
+}
+
+/// True when `v` has a non-empty prerelease identifier.
+pub fn has_prerelease(v: SemVer) -> bool {
+    strings.len(v.pre) > 0
+}
+
+/// True when `v` has non-empty build metadata.
+pub fn has_build(v: SemVer) -> bool {
+    strings.len(v.build) > 0
+}
+
+/// Increment patch; clears prerelease and build metadata.
+pub fn bump_patch(v: SemVer) -> SemVer {
+    SemVer {
+        major: v.major,
+        minor: v.minor,
+        patch: v.patch + 1,
+        pre: "",
+        build: "",
+    }
 }
 
 fn split_build(text: string) -> Result<(string, string), string> {

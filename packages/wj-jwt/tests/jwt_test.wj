@@ -4,6 +4,7 @@ use crate::is_bearer_header
 use crate::sign
 use crate::sign_scoped
 use crate::verify
+use crate::verify_bearer
 use std::strings
 
 @test
@@ -120,4 +121,22 @@ fn test_is_bearer_header() {
     assert(is_bearer_header("Authorization: Bearer abc"), "bearer yes")
     assert(!is_bearer_header("Authorization: Basic abc"), "basic no")
     assert(!is_bearer_header(""), "empty")
+}
+
+@test
+fn test_verify_bearer() {
+    match sign("user-1", "acme", "secret", 3600) {
+        Ok(token) => {
+            let header = bearer_header(token)
+            match verify_bearer(header, "secret") {
+                Ok(claims) => assert_eq(claims.sub, "user-1"),
+                Err(_) => assert(false, "verify_bearer"),
+            }
+        },
+        Err(_) => assert(false, "sign"),
+    }
+    match verify_bearer("Authorization: Basic abc", "secret") {
+        Ok(_) => assert(false, "expected Err"),
+        Err(msg) => assert(strings.len(msg) > 0, "error"),
+    }
 }

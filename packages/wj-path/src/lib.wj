@@ -135,6 +135,36 @@ pub fn stem(path: string) -> string {
     strings.substring(base, 0, strings.len(base) - strings.len(ext))
 }
 
+/// True when `path` is not absolute.
+pub fn is_relative(path: string) -> bool {
+    !is_absolute(path)
+}
+
+/// Replace the final extension of `path` with `ext` (include the leading `.`).
+pub fn change_extension(path: string, ext: string) -> string {
+    let dir = dirname(path)
+    let base = stem(path)
+    let renamed = "${base}${ext}"
+    if dir == "." {
+        return renamed
+    }
+    if dir == "/" {
+        return "/${renamed}"
+    }
+    "${dir}/${renamed}"
+}
+
+/// Ensure `path` starts with `/` (empty becomes `/`).
+pub fn ensure_leading_slash(path: string) -> string {
+    if strings.len(path) == 0 {
+        return "/"
+    }
+    if is_absolute(path) {
+        return path
+    }
+    "/${path}"
+}
+
 fn strip_trailing_slashes(path: string) -> string {
     let mut out = path
     while strings.len(out) > 1 && strings.ends_with(out, "/") {

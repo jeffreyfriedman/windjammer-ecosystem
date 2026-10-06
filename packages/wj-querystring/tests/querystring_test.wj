@@ -3,6 +3,9 @@ use crate::get
 use crate::get_all
 use crate::get_or
 use crate::has
+use crate::is_empty
+use crate::keys
+use crate::pair_count
 use crate::parse
 use crate::remove
 use crate::set
@@ -136,4 +139,21 @@ fn test_set_replaces_existing_key() {
 fn test_get_or_default() {
     assert_eq(get_or("a=1", "a", "0"), "1")
     assert_eq(get_or("a=1", "b", "0"), "0")
+}
+
+@test
+fn test_is_empty_and_pair_count() {
+    assert(is_empty(""), "empty string")
+    assert(is_empty("?"), "leading question only")
+    assert(!is_empty("a=1"), "has pair")
+    assert_eq(pair_count(""), 0)
+    assert_eq(pair_count("a=1&b=2&a=3"), 3)
+}
+
+@test
+fn test_keys_unique_in_order() {
+    let ks = keys("a=1&b=2&a=3")
+    assert_eq(ks.len(), 2)
+    assert_eq(ks[0], "a")
+    assert_eq(ks[1], "b")
 }

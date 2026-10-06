@@ -178,6 +178,21 @@ pub fn rate_limit_headers(result: RateLimitResult) -> string {
     out
 }
 
+/// True when the rate-limit check allowed the request.
+pub fn is_allowed(result: RateLimitResult) -> bool {
+    result.allowed
+}
+
+/// True when the rate-limit check denied the request.
+pub fn is_denied(result: RateLimitResult) -> bool {
+    !result.allowed
+}
+
+/// How many slots the bucket has consumed in its current window.
+pub fn slots_used(bucket: WindowBucket) -> int {
+    bucket.count
+}
+
 fn window_start_for(now_ms: int, window_ms: int) -> int {
     if window_ms <= 0 {
         return now_ms

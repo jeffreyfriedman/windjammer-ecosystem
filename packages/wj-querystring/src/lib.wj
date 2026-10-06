@@ -83,3 +83,43 @@ pub fn get_or(query: string, key: string, default: string) -> string {
         None => default,
     }
 }
+
+/// True when `query` has no key/value pairs.
+pub fn is_empty(query: string) -> bool {
+    pair_count(query) == 0
+}
+
+/// Number of key/value pairs in `query` (repeated keys count separately).
+pub fn pair_count(query: string) -> int {
+    let pairs = parse(query)
+    let mut n = 0
+    let mut i = 0
+    while i < pairs.len() {
+        n = n + 1
+        i = i + 1
+    }
+    n
+}
+
+/// Unique keys in first-seen order.
+pub fn keys(query: string) -> Vec<string> {
+    let pairs = parse(query)
+    let mut out = Vec::new()
+    let mut i = 0
+    while i < pairs.len() {
+        let key = pairs[i].0
+        let mut seen = false
+        let mut j = 0
+        while j < out.len() {
+            if out[j] == key {
+                seen = true
+            }
+            j = j + 1
+        }
+        if !seen {
+            out.push(key)
+        }
+        i = i + 1
+    }
+    out
+}

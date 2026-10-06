@@ -1,5 +1,7 @@
 use crate::hash_password
 use crate::looks_like_bcrypt
+use crate::require_bcrypt
+use crate::verify_ok
 use crate::verify_password
 use std::strings
 
@@ -58,4 +60,28 @@ fn test_looks_like_bcrypt() {
     assert(looks_like_bcrypt("$2a$10$abcdefghijklmnopqrstuv"), "2a")
     assert(!looks_like_bcrypt("sha256:deadbeef"), "not bcrypt")
     assert(!looks_like_bcrypt(""), "empty")
+}
+
+@test
+fn test_verify_ok() {
+    match hash_password("token") {
+        Ok(digest) => {
+            assert(verify_ok("token", digest), "match")
+            assert(!verify_ok("other", digest), "mismatch")
+        },
+        Err(_) => assert(false, "hash for verify_ok"),
+    }
+    assert(!verify_ok("pw", "not-a-bcrypt-hash"), "garbage false")
+}
+
+@test
+fn test_require_bcrypt() {
+    match require_bcrypt("$2b$12$abcdefghijklmnopqrstuv") {
+        Ok(h) => assert(looks_like_bcrypt(h), "accepted"),
+        Err(_) => assert(false, "should accept"),
+    }
+    match require_bcrypt("sha256:deadbeef") {
+        Ok(_) => assert(false, "should reject"),
+        Err(e) => assert(strings.len(e) > 0, "error message"),
+    }
 }

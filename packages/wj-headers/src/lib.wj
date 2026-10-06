@@ -82,3 +82,27 @@ pub fn frame_options(directive: string) -> string {
 pub fn referrer_policy(policy: string) -> string {
     "Referrer-Policy: ${policy}"
 }
+
+/// Number of header lines produced by `security_header_lines`.
+pub fn header_line_count(headers: SecurityHeaders) -> int {
+    let lines = security_header_lines(headers)
+    let mut n = 0
+    let mut i = 0
+    while i < lines.len() {
+        n = n + 1
+        i = i + 1
+    }
+    n
+}
+
+/// True when a Content-Security-Policy value is configured.
+pub fn has_csp(headers: SecurityHeaders) -> bool {
+    strings.len(headers.content_security_policy) > 0
+}
+
+/// Return `headers` with `content_security_policy` set to `policy`.
+pub fn with_csp(headers: SecurityHeaders, policy: string) -> SecurityHeaders {
+    let mut out = headers
+    out.content_security_policy = policy
+    out
+}

@@ -18,3 +18,19 @@ pub fn looks_like_bcrypt(hash: string) -> bool {
     }
     strings.starts_with(hash, "$2")
 }
+
+/// Verify a password; returns `false` on mismatch or verify errors.
+pub fn verify_ok(password: string, hash: string) -> bool {
+    match verify_password(password, hash) {
+        Ok(ok) => ok,
+        Err(_) => false,
+    }
+}
+
+/// Accept `hash` only when it looks like bcrypt; else return an error.
+pub fn require_bcrypt(hash: string) -> Result<string, string> {
+    if looks_like_bcrypt(hash) {
+        return Ok(hash)
+    }
+    Err("expected bcrypt hash")
+}

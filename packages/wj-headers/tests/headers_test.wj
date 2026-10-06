@@ -1,12 +1,15 @@
 use crate::defaults
 use crate::defaults_with_hsts
 use crate::format_headers
+use crate::has_csp
+use crate::header_line_count
 use crate::hsts
 use crate::hsts_enabled
 use crate::nosniff
 use crate::frame_options
 use crate::referrer_policy
 use crate::security_header_lines
+use crate::with_csp
 use std::strings
 
 @test
@@ -96,4 +99,22 @@ fn test_security_header_lines_with_hsts() {
 fn test_hsts_enabled() {
     assert(!hsts_enabled(defaults()), "defaults HSTS off")
     assert(hsts_enabled(defaults_with_hsts(60)), "with HSTS on")
+}
+
+@test
+fn test_header_line_count() {
+    assert_eq(header_line_count(defaults()), 4)
+    assert_eq(header_line_count(defaults_with_hsts(60)), 5)
+}
+
+@test
+fn test_has_csp_and_with_csp() {
+    let h = defaults()
+    assert(has_csp(h), "defaults CSP set")
+    let cleared = with_csp(h, "")
+    assert(!has_csp(cleared), "empty CSP off")
+    let custom = with_csp(defaults(), "default-src 'self'")
+    assert(has_csp(custom), "custom CSP on")
+    let text = format_headers(custom)
+    assert_str_contains(text, "Content-Security-Policy: default-src 'self'")
 }

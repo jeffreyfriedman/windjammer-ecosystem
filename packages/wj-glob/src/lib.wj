@@ -33,3 +33,19 @@ pub fn first_match(pattern: string, paths: Vec<string>) -> Option<string> {
 pub fn match_count(pattern: string, paths: Vec<string>) -> int {
     filter(pattern, paths).len()
 }
+
+/// True when at least one path matches `pattern`.
+pub fn any_match(pattern: string, paths: Vec<string>) -> bool {
+    match_count(pattern, paths) > 0
+}
+
+/// True when no path matches `pattern`.
+pub fn none_match(pattern: string, paths: Vec<string>) -> bool {
+    !any_match(pattern, paths)
+}
+
+/// True when every path matches `pattern` (true for an empty path list).
+pub fn all_match(pattern: string, paths: Vec<string>) -> bool {
+    let total = paths.len()
+    match_count(pattern, paths) == total
+}

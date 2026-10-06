@@ -42,3 +42,38 @@ pub fn column_count(rows: Vec<Vec<string>>) -> int {
     }
     rows[0].len()
 }
+
+/// True when the table has no rows.
+pub fn is_empty(rows: Vec<Vec<string>>) -> bool {
+    row_count(rows) == 0
+}
+
+/// Cell at `(row, col)`, or `None` when out of bounds.
+pub fn get_cell(rows: Vec<Vec<string>>, row: int, col: int) -> Option<string> {
+    if row < 0 {
+        return None
+    }
+    if col < 0 {
+        return None
+    }
+    if row >= rows.len() {
+        return None
+    }
+    let line = rows[row]
+    if col >= line.len() {
+        return None
+    }
+    Some(line[col])
+}
+
+/// True when `headers` contains `name` exactly.
+pub fn has_column(headers: Vec<string>, name: string) -> bool {
+    let mut i = 0
+    while i < headers.len() {
+        if headers[i] == name {
+            return true
+        }
+        i = i + 1
+    }
+    false
+}

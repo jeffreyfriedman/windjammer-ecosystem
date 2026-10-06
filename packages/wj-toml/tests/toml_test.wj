@@ -1,6 +1,9 @@
 use crate::get
 use crate::get_or
 use crate::has
+use crate::is_empty
+use crate::key_count
+use crate::keys
 use crate::parse
 
 @test
@@ -215,4 +218,35 @@ fn test_get_or_and_has() {
     assert_eq(get_or(text, "port", "8080"), "8080")
     assert(has(text, "host"), "has host")
     assert(!has(text, "port"), "no port")
+}
+
+@test
+fn test_is_empty_and_key_count() {
+    assert(is_empty(""), "empty text")
+    assert(is_empty("# only comment\n"), "comments only")
+    let text = "host = \"localhost\"\nport = 8080\n"
+    assert(!is_empty(text), "nonempty")
+    assert_eq(key_count(text), 2)
+    assert_eq(key_count(""), 0)
+}
+
+@test
+fn test_keys_contains_parsed_names() {
+    let text = "host = \"localhost\"\nport = 8080\n"
+    let ks = keys(text)
+    assert_eq(ks.len(), 2)
+    let mut saw_host = false
+    let mut saw_port = false
+    let mut i = 0
+    while i < ks.len() {
+        if ks[i] == "host" {
+            saw_host = true
+        }
+        if ks[i] == "port" {
+            saw_port = true
+        }
+        i = i + 1
+    }
+    assert(saw_host, "host key")
+    assert(saw_port, "port key")
 }

@@ -59,6 +59,31 @@ pub fn has(text: string, key: string) -> bool {
     }
 }
 
+/// Number of keys after parse.
+pub fn key_count(text: string) -> int {
+    let map = parse(text)
+    let mut n = 0
+    for (_k, _v) in map {
+        n = n + 1
+    }
+    n
+}
+
+/// True when parse yields no keys.
+pub fn is_empty(text: string) -> bool {
+    key_count(text) == 0
+}
+
+/// All keys after parse (order is map iteration order).
+pub fn keys(text: string) -> Vec<string> {
+    let map = parse(text)
+    let mut out = Vec::new()
+    for (k, _v) in map {
+        out.push(k)
+    }
+    out
+}
+
 fn empty_string() -> string {
     ""
 }

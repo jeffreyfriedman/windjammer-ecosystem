@@ -1,7 +1,10 @@
+use crate::all_match
+use crate::any_match
 use crate::filter
 use crate::first_match
 use crate::is_match
 use crate::match_count
+use crate::none_match
 
 @test
 fn test_exact_match() {
@@ -126,4 +129,39 @@ fn test_match_count() {
     paths.push("d.txt")
     assert_eq(match_count("*.md", paths), 2)
     assert_eq(match_count("*.rs", paths), 0)
+}
+
+@test
+fn test_any_and_none_match() {
+    let mut md_paths = Vec::new()
+    md_paths.push("a.txt")
+    md_paths.push("b.md")
+    assert(any_match("*.md", md_paths), "has md")
+    let mut no_rs = Vec::new()
+    no_rs.push("a.txt")
+    no_rs.push("b.md")
+    assert(!any_match("*.rs", no_rs), "no rs")
+    let mut none_rs = Vec::new()
+    none_rs.push("a.txt")
+    none_rs.push("b.md")
+    assert(none_match("*.rs", none_rs), "none rs")
+    let mut has_md = Vec::new()
+    has_md.push("a.txt")
+    has_md.push("b.md")
+    assert(!none_match("*.md", has_md), "has md so not none")
+}
+
+@test
+fn test_all_match() {
+    let mut all_md = Vec::new()
+    all_md.push("a.md")
+    all_md.push("b.md")
+    assert(all_match("*.md", all_md), "all md")
+    let mut mixed = Vec::new()
+    mixed.push("a.md")
+    mixed.push("b.md")
+    mixed.push("c.txt")
+    assert(!all_match("*.md", mixed), "txt breaks all")
+    let empty = Vec::new()
+    assert(all_match("*.md", empty), "vacuous truth")
 }

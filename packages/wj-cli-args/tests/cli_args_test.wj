@@ -1,12 +1,15 @@
 use crate::read_argv
 use crate::tail
 use crate::first_positional
+use crate::nth_positional
 use crate::require_first_positional
+use crate::require_long_flag_value
 use crate::has_long_flag
 use crate::long_flag_value
 use crate::long_flag_value_or
 use crate::positional_count
 use crate::positionals
+use std::strings
 
 fn sample_args() -> Vec<string> {
     let mut args = Vec::new()
@@ -112,4 +115,49 @@ fn test_positional_count() {
     empty.push("tool")
     empty.push("--verbose")
     assert_eq(positional_count(empty), 0)
+}
+
+fn test_nth_positional() {
+    let mut args = Vec::new()
+    args.push("tool")
+    args.push("alpha")
+    args.push("--verbose")
+    args.push("beta")
+    match nth_positional(args, 0) {
+        Some(v) => assert_eq(v, "alpha"),
+        None => assert(false, "0th"),
+    }
+    let mut again = Vec::new()
+    again.push("tool")
+    again.push("alpha")
+    again.push("--verbose")
+    again.push("beta")
+    match nth_positional(again, 1) {
+        Some(v) => assert_eq(v, "beta"),
+        None => assert(false, "1st"),
+    }
+    let mut miss = Vec::new()
+    miss.push("tool")
+    miss.push("alpha")
+    match nth_positional(miss, 5) {
+        Some(_) => assert(false, "oob"),
+        None => {},
+    }
+}
+
+fn test_require_long_flag_value() {
+    let mut args = Vec::new()
+    args.push("tool")
+    args.push("--port=9090")
+    match require_long_flag_value(args, "port", "usage: --port <n>") {
+        Ok(v) => assert_eq(v, "9090"),
+        Err(_) => assert(false, "port present"),
+    }
+    let mut missing = Vec::new()
+    missing.push("tool")
+    missing.push("--verbose")
+    match require_long_flag_value(missing, "port", "usage: --port <n>") {
+        Ok(_) => assert(false, "expected Err"),
+        Err(msg) => assert(strings.contains(msg, "port"), "usage mentions port"),
+    }
 }

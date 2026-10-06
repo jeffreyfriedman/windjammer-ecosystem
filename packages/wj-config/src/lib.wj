@@ -62,3 +62,31 @@ pub fn resolve_yaml(
 ) -> HashMap<string, string> {
     resolve(defaults, from_yaml(yaml_text), env_map)
 }
+
+/// Look up `key`, or return `default` when missing.
+pub fn get_or(map: HashMap<string, string>, key: string, default: string) -> string {
+    match map.get(key) {
+        Some(value) => value,
+        None => default,
+    }
+}
+
+/// True when `key` is present (even if value is empty).
+pub fn has(map: HashMap<string, string>, key: string) -> bool {
+    match map.get(key) {
+        Some(v) => {
+            let _present = v
+            true
+        },
+        None => false,
+    }
+}
+
+/// Number of entries in `map`.
+pub fn key_count(map: HashMap<string, string>) -> int {
+    let mut n = 0
+    for (_key, _value) in map {
+        n = n + 1
+    }
+    n
+}

@@ -1,8 +1,11 @@
 use crate::cookie_count
+use crate::delete_cookie_header
 use crate::format_cookie_header
 use crate::format_set_cookie
 use crate::get_cookie
+use crate::get_cookie_or
 use crate::has_cookie
+use crate::is_empty
 use crate::parse_cookie_header
 use crate::parse_set_cookie
 use crate::session_cookie
@@ -172,4 +175,28 @@ fn test_cookie_count() {
         Ok(map) => assert_eq(cookie_count(map), 0),
         Err(_) => assert(false, "parse empty for count"),
     }
+}
+
+@test
+fn test_get_cookie_or_and_is_empty() {
+    match parse_cookie_header("sid=abc") {
+        Ok(map) => {
+            assert_eq(get_cookie_or(map, "sid", "none"), "abc")
+            assert_eq(get_cookie_or(map, "missing", "none"), "none")
+            assert(!is_empty(map), "nonempty")
+        },
+        Err(_) => assert(false, "parse for get_or"),
+    }
+    match parse_cookie_header("") {
+        Ok(map) => assert(is_empty(map), "empty map"),
+        Err(_) => assert(false, "parse empty"),
+    }
+}
+
+@test
+fn test_delete_cookie_header() {
+    let header = delete_cookie_header("sid")
+    assert_str_contains(header, "sid=")
+    assert_str_contains(header, "Max-Age=0")
+    assert_str_contains(header, "Path=/")
 }

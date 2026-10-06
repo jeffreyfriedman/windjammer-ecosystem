@@ -65,6 +65,24 @@ pub fn cookie_count(map: HashMap<string, string>) -> int {
     n
 }
 
+/// True when the parsed Cookie header map has no entries.
+pub fn is_empty(map: HashMap<string, string>) -> bool {
+    cookie_count(map) == 0
+}
+
+/// Look up a cookie value by name, or `default` when missing.
+pub fn get_cookie_or(map: HashMap<string, string>, name: string, default: string) -> string {
+    match get_cookie(map, name) {
+        Some(v) => v,
+        None => default,
+    }
+}
+
+/// `Set-Cookie` header that clears `name` (`Max-Age=0`, `Path=/`).
+pub fn delete_cookie_header(name: string) -> string {
+    "${name}=; Path=/; Max-Age=0"
+}
+
 /// Secure session cookie defaults (`Path=/`, HttpOnly, Secure, SameSite=Lax).
 pub fn session_cookie(name: string, value: string) -> SetCookie {
     SetCookie {

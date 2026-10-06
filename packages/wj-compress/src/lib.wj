@@ -70,6 +70,21 @@ pub fn should_compress(accept_encoding: string, body_len: int, min_bytes: int) -
     accepts_gzip(accept_encoding)
 }
 
+/// Default minimum body size (bytes) before gzip is worthwhile.
+pub fn default_min_bytes() -> int {
+    1024
+}
+
+/// `should_compress` using `default_min_bytes()`.
+pub fn should_compress_default(accept_encoding: string, body_len: int) -> bool {
+    should_compress(accept_encoding, body_len, default_min_bytes())
+}
+
+/// True when a `Content-Encoding` value is gzip.
+pub fn is_gzip_encoding(content_encoding: string) -> bool {
+    strings.to_lower(strings.trim(content_encoding)) == "gzip"
+}
+
 fn coding_allows_gzip(token: string) -> bool {
     if strings.len(token) == 0 {
         return false

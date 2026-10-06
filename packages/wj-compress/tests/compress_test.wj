@@ -1,11 +1,14 @@
 use crate::accepts_gzip
 use crate::content_encoding_gzip
 use crate::content_encoding_header
+use crate::default_min_bytes
 use crate::gzip_decode
 use crate::gzip_encode
+use crate::is_gzip_encoding
 use crate::negotiate
 use crate::prefer_identity
 use crate::should_compress
+use crate::should_compress_default
 use crate::vary_accept_encoding
 
 @test
@@ -107,4 +110,20 @@ fn test_should_compress_respects_accept_and_min_size() {
 fn test_content_encoding_header() {
     assert_eq(content_encoding_header(), "Content-Encoding: gzip")
     assert_eq(content_encoding_gzip(), "gzip")
+}
+
+@test
+fn test_default_min_bytes_and_should_compress_default() {
+    assert_eq(default_min_bytes(), 1024)
+    assert(should_compress_default("gzip", 2048), "above default min")
+    assert(!should_compress_default("gzip", 100), "below default min")
+    assert(!should_compress_default("identity", 2048), "no gzip")
+}
+
+@test
+fn test_is_gzip_encoding() {
+    assert(is_gzip_encoding("gzip"), "bare")
+    assert(is_gzip_encoding(" gzip "), "trimmed")
+    assert(!is_gzip_encoding("deflate"), "deflate")
+    assert(!is_gzip_encoding(""), "empty")
 }

@@ -1,7 +1,9 @@
 use crate::parse_level
+use crate::parse_level_or
 use crate::level_label
 use crate::level_rank
 use crate::is_enabled
+use crate::is_error_level
 use crate::init_from_level_text
 use crate::log_tagged
 use std::log::LogLevel
@@ -60,4 +62,15 @@ fn test_is_enabled_respects_minimum() {
     assert(is_enabled(LogLevel::Warn, LogLevel::Warn), "warn >= warn")
     assert(!is_enabled(LogLevel::Info, LogLevel::Warn), "info < warn")
     assert(is_enabled(LogLevel::Trace, LogLevel::Trace), "trace >= trace")
+}
+
+fn test_is_error_level() {
+    assert(is_error_level(LogLevel::Error), "error")
+    assert(!is_error_level(LogLevel::Warn), "warn")
+    assert(!is_error_level(LogLevel::Info), "info")
+}
+
+fn test_parse_level_or_falls_back() {
+    assert_eq(level_label(parse_level_or("INFO", LogLevel::Error)), "info")
+    assert_eq(level_label(parse_level_or("nope", LogLevel::Warn)), "warn")
 }

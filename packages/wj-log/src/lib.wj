@@ -39,6 +39,22 @@ pub fn is_enabled(level: LogLevel, minimum: LogLevel) -> bool {
     level_rank(level) >= level_rank(minimum)
 }
 
+/// True when `level` is Error.
+pub fn is_error_level(level: LogLevel) -> bool {
+    match level {
+        LogLevel::Error => true,
+        _ => false,
+    }
+}
+
+/// Parse `text`, or return `fallback` when unknown.
+pub fn parse_level_or(text: string, fallback: LogLevel) -> LogLevel {
+    match parse_level(text) {
+        Some(level) => level,
+        None => fallback,
+    }
+}
+
 /// Initialize logging at the given level text; returns an error when the level is unknown.
 pub fn init_from_level_text(text: string) -> Result<(), string> {
     match parse_level(text) {

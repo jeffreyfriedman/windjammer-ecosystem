@@ -54,3 +54,17 @@ pub fn all_match(pattern: string, paths: Vec<string>) -> bool {
 pub fn exactly_one_match(pattern: string, paths: Vec<string>) -> bool {
     match_count(pattern, paths) == 1
 }
+
+/// Last path that matches `pattern`, or `None`.
+pub fn last_match(pattern: string, paths: Vec<string>) -> Option<string> {
+    let hits = filter(pattern, paths)
+    if hits.len() == 0 {
+        return None
+    }
+    Some(hits[hits.len() - 1])
+}
+
+/// True when at least `n` paths match `pattern`.
+pub fn at_least_n_matches(pattern: string, paths: Vec<string>, n: int) -> bool {
+    match_count(pattern, paths) >= n
+}

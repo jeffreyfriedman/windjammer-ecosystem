@@ -1,9 +1,11 @@
 use crate::all_match
 use crate::any_match
+use crate::at_least_n_matches
 use crate::exactly_one_match
 use crate::filter
 use crate::first_match
 use crate::is_match
+use crate::last_match
 use crate::match_count
 use crate::none_match
 
@@ -180,4 +182,23 @@ fn test_exactly_one_match() {
     let mut none = Vec::new()
     none.push("a.txt")
     assert(!exactly_one_match("*.md", none), "zero")
+}
+
+@test
+fn test_last_match_and_at_least_n() {
+    let mut paths = Vec::new()
+    paths.push("a.txt")
+    paths.push("b.md")
+    paths.push("c.md")
+    match last_match("*.md", paths) {
+        Some(v) => assert_eq(v, "c.md"),
+        None => assert(false, "last md"),
+    }
+    match last_match("*.rs", paths) {
+        Some(_) => assert(false, "no rs"),
+        None => {},
+    }
+    assert(at_least_n_matches("*.md", paths, 2), ">=2 md")
+    assert(!at_least_n_matches("*.md", paths, 3), "<3 md")
+    assert(at_least_n_matches("*.txt", paths, 1), "one txt")
 }

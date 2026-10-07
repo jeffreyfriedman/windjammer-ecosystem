@@ -2,10 +2,13 @@ use crate::clear_listeners
 use crate::clear_queue
 use crate::drain
 use crate::emit
+use crate::event_name
+use crate::event_payload
 use crate::has_listener
 use crate::has_listeners
 use crate::has_pending
 use crate::is_empty
+use crate::is_idle
 use crate::listener_count
 use crate::listener_ids
 use crate::match_pattern
@@ -158,4 +161,19 @@ fn test_has_listener_and_clear_listeners() {
     let cleared = clear_listeners(bus)
     assert(is_empty(cleared), "no listeners")
     assert_eq(listener_count(cleared), 0)
+}
+
+@test
+fn test_is_idle_and_event_accessors() {
+    assert(is_idle(new_bus()), "empty is idle")
+    let queued = emit(new_bus(), "tick", "payload-1")
+    assert(!is_idle(queued), "queued not idle")
+    let peeked = peek(queued)
+    match peeked.1 {
+        Some(ev) => {
+            assert_eq(event_name(ev), "tick")
+            assert_eq(event_payload(ev), "payload-1")
+        },
+        None => assert(false, "peek event"),
+    }
 }

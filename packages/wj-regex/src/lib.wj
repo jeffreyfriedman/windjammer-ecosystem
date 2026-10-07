@@ -88,3 +88,29 @@ pub fn find_or(pattern: string, text: string, default: string) -> string {
         Err(_) => default,
     }
 }
+
+/// True when `pattern` has at least `n` non-overlapping matches in `text`.
+pub fn at_least_n_matches(pattern: string, text: string, n: int) -> Result<bool, string> {
+    match match_count(pattern, text) {
+        Ok(count) => Ok(count >= n),
+        Err(e) => Err(e),
+    }
+}
+
+/// First match substring, or `Err` when missing / invalid pattern.
+pub fn require_match(pattern: string, text: string) -> Result<string, string> {
+    match find(pattern, text) {
+        Ok(opt) => {
+            match opt {
+                Some(v) => Ok(v),
+                None => Err("no match"),
+            }
+        },
+        Err(e) => Err(e),
+    }
+}
+
+/// True when `pattern` does not compile.
+pub fn is_invalid_pattern(pattern: string) -> bool {
+    !is_valid_pattern(pattern)
+}

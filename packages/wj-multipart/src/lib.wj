@@ -201,6 +201,32 @@ pub fn has_file(parts: Vec<Part>, name: string) -> bool {
         None => false,
     }
 }
+
+/// True when `parts` has at least one part.
+pub fn has_parts(parts: Vec<Part>) -> bool {
+    !is_empty(parts)
+}
+
+/// Number of parts without a filename (plain form fields).
+pub fn text_count(parts: Vec<Part>) -> int {
+    let mut n = 0
+    let mut i = 0
+    while i < parts.len() {
+        if strings.len(parts[i].filename) == 0 {
+            n = n + 1
+        }
+        i = i + 1
+    }
+    n
+}
+
+/// File part named `name`, or `Err` naming the missing file field.
+pub fn require_file(parts: Vec<Part>, name: string) -> Result<Part, string> {
+    match get_file(parts, name) {
+        Some(part) => Ok(part),
+        None => Err("missing file: ${name}"),
+    }
+}
 /// Returns `(headers, body)` then builds a `Part` — kept as one owned pipeline
 /// so demoted `&str` helpers do not fight owned locals at call sites.
 fn parse_part_headers_body(chunk: string) -> Result<Part, string> {

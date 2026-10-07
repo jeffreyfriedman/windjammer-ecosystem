@@ -8,11 +8,14 @@ use crate::get_field_or
 use crate::get_file
 use crate::has_field
 use crate::has_file
+use crate::has_parts
 use crate::is_empty
 use crate::parse
 use crate::parse_multipart
 use crate::part_count
 use crate::require_field
+use crate::require_file
+use crate::text_count
 use crate::MultipartBody
 use crate::Part
 use std::strings
@@ -238,5 +241,29 @@ fn test_require_field_and_has_file() {
             }
         },
         Err(_) => assert(false, "parse missing"),
+    }
+}
+
+@test
+fn test_text_count_has_parts_and_require_file() {
+    let empty = Vec::new()
+    assert(!has_parts(empty), "empty has no parts")
+    let boundary = "----tc"
+    let body = "--${boundary}\r\nContent-Disposition: form-data; name=\"f\"; filename=\"a.txt\"\r\n\r\ndata\r\n--${boundary}\r\nContent-Disposition: form-data; name=\"msg\"\r\n\r\nok\r\n--${boundary}--"
+    match parse_multipart(boundary, body) {
+        Ok(parts) => {
+            assert(has_parts(parts), "has parts")
+            assert_eq(text_count(parts), 1)
+            assert_eq(file_count(parts), 1)
+            match require_file(parts, "f") {
+                Ok(part) => assert_eq(part.filename, "a.txt"),
+                Err(_) => assert(false, "require file f"),
+            }
+            match require_file(parts, "msg") {
+                Ok(_) => assert(false, "msg not file"),
+                Err(msg) => assert(strings.contains(msg, "msg"), "mentions name"),
+            }
+        },
+        Err(_) => assert(false, "parse"),
     }
 }

@@ -1,0 +1,9 @@
+use crate::domain::SchedulerConfig
+use crate::domain::is_day_budget
+use crate::domain::max_minutes_of
+
+fn test_config_defaults_and_accessors() {
+    let cfg = SchedulerConfig::defaults()
+    assert_eq(max_minutes_of(cfg), 1440)
+    assert(is_day_budget(SchedulerConfig::defaults()), "day budget")
+}

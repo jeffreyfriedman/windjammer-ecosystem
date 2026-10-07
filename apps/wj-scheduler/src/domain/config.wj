@@ -13,3 +13,12 @@ impl SchedulerConfig {
 pub fn config_from_env() -> SchedulerConfig {
     SchedulerConfig::defaults()
 }
+
+pub fn max_minutes_of(cfg: SchedulerConfig) -> int {
+    cfg.default_max_minutes
+}
+
+/// True when the default budget is a full day (1440 minutes).
+pub fn is_day_budget(cfg: SchedulerConfig) -> bool {
+    cfg.default_max_minutes == 1440
+}

@@ -36,6 +36,18 @@ pub fn can_forward_method(method: string) -> bool {
     false
 }
 
+/// True for methods that are safe / cacheable under HTTP semantics.
+pub fn is_safe_method(method: string) -> bool {
+    let method = own(method)
+    method == "GET" || method == "HEAD"
+}
+
+/// True for methods that mutate server state when forwarded.
+pub fn is_mutating_method(method: string) -> bool {
+    let method = own(method)
+    method == "POST" || method == "PUT" || method == "PATCH" || method == "DELETE"
+}
+
 pub struct HttpReply {
     pub status: u16,
     pub body: string,

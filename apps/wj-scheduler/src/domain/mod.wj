@@ -22,6 +22,11 @@ pub use format::format_list
 pub use format::format_due
 pub use config::SchedulerConfig
 pub use config::config_from_env
+pub use config::is_day_budget
+pub use config::max_minutes_of
 pub use crontab::parse_crontab_line
 pub use crontab::parse_crontab
 pub use crontab::due_schedules
+pub use crontab::due_count
+pub use crontab::expr_count
+pub use crontab::is_empty_exprs

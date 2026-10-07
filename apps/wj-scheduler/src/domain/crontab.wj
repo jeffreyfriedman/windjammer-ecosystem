@@ -61,3 +61,22 @@ pub fn due_schedules(exprs: Vec<string>, at: CivilTime) -> Result<Vec<string>, s
     }
     Ok(due)
 }
+
+pub fn expr_count(exprs: Vec<string>) -> int {
+    let mut n = 0
+    for _ in exprs {
+        n = n + 1
+    }
+    n
+}
+
+pub fn is_empty_exprs(exprs: Vec<string>) -> bool {
+    expr_count(exprs) == 0
+}
+
+pub fn due_count(exprs: Vec<string>, at: CivilTime) -> Result<int, string> {
+    match due_schedules(exprs, at) {
+        Ok(due) => Ok(expr_count(due)),
+        Err(e) => Err(e),
+    }
+}

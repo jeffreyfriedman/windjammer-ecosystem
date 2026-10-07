@@ -1,4 +1,7 @@
 use crate::domain::WebhookConfig
+use crate::domain::has_allowed_origins
+use crate::domain::is_dev_secret
+use crate::domain::max_event_len_of
 
 fn test_config_defaults() {
     let cfg = WebhookConfig::defaults()
@@ -6,4 +9,17 @@ fn test_config_defaults() {
     assert_eq(cfg.allowed_origins.len(), 0)
     assert_eq(cfg.max_event_len, 128)
     assert_eq(cfg.max_id_len, 128)
+}
+
+fn test_config_predicates() {
+    assert(is_dev_secret(WebhookConfig::defaults()), "dev secret")
+    assert(!has_allowed_origins(WebhookConfig::defaults()), "no cors")
+    assert_eq(max_event_len_of(WebhookConfig::defaults()), 128)
+    let mut cfg = WebhookConfig::defaults()
+    cfg.secret = "prod"
+    cfg.allowed_origins.push("https://example.com")
+    assert(!is_dev_secret(cfg), "prod secret")
+    let mut with_cors = WebhookConfig::defaults()
+    with_cors.allowed_origins.push("https://example.com")
+    assert(has_allowed_origins(with_cors), "has cors")
 }

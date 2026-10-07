@@ -59,3 +59,19 @@ pub fn find_result_by_id(results: Vec<JobResult>, id: int) -> Option<JobResult> 
     }
     None
 }
+
+pub fn min_result_value(results: Vec<JobResult>) -> int {
+    let mut min = 0
+    let mut seen = false
+    for r in results {
+        if !seen || r.value < min {
+            min = r.value
+            seen = true
+        }
+    }
+    min
+}
+
+pub fn has_results(results: Vec<JobResult>) -> bool {
+    !is_empty_results(results)
+}

@@ -6,6 +6,8 @@ use crate::domain::format_hits
 use crate::domain::has_hits
 use crate::domain::hit_count
 use crate::domain::is_empty_hits
+use crate::domain::last_hit
+use crate::domain::require_first_hit
 use std::strings
 
 fn test_find_matching_star_suffix() {
@@ -64,5 +66,25 @@ fn test_hit_helpers() {
     match first_hit(find_matching("*.xyz", sample_paths())) {
         Some(_) => assert(false, "none"),
         None => {},
+    }
+}
+
+fn test_last_hit_and_require_first() {
+    let mut paths = Vec::new()
+    paths.push("a.md")
+    paths.push("b.md")
+    paths.push("c.txt")
+    let hits = find_matching("*.md", paths)
+    match last_hit(hits) {
+        Some(p) => assert_eq(p, "b.md"),
+        None => assert(false, "last"),
+    }
+    match require_first_hit(find_matching("*.md", paths)) {
+        Ok(p) => assert_eq(p, "a.md"),
+        Err(_) => assert(false, "require"),
+    }
+    match require_first_hit(find_matching("*.xyz", paths)) {
+        Ok(_) => assert(false, "empty must Err"),
+        Err(msg) => assert(strings.contains(msg, "hit"), "mentions hit"),
     }
 }

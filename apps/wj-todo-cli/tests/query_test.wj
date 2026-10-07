@@ -3,10 +3,13 @@ use crate::domain::done_count
 use crate::domain::filter_pending
 use crate::domain::filter_done
 use crate::domain::find_by_id
+use crate::domain::has_done
+use crate::domain::has_pending
 use crate::domain::is_empty_todos
 use crate::domain::pending_count
 use crate::domain::sort_todos_by_id
 use crate::domain::count_todos
+use crate::domain::total_count
 
 fn make_todo(id: int, title: string, done: bool) -> Todo {
     Todo {
@@ -80,4 +83,13 @@ fn test_pending_done_find_and_empty() {
         Some(_) => assert(false, "missing"),
         None => {},
     }
+}
+
+fn test_has_pending_done_and_total() {
+    assert(has_pending(sample_todos()), "pending")
+    assert(has_done(sample_todos()), "done")
+    assert_eq(total_count(sample_todos()), 3)
+    assert(!has_pending(Vec::new()), "empty no pending")
+    assert(!has_done(Vec::new()), "empty no done")
+    assert_eq(total_count(Vec::new()), 0)
 }

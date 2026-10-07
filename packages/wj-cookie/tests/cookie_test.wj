@@ -9,14 +9,17 @@ use crate::format_set_cookie
 use crate::get_cookie
 use crate::get_cookie_or
 use crate::has_cookie
+use crate::has_cookies
 use crate::is_empty
 use crate::is_http_only
 use crate::is_lax_same_site
 use crate::is_secure
+use crate::is_strict_same_site
 use crate::parse_cookie_header
 use crate::parse_set_cookie
 use crate::require_cookie
 use crate::session_cookie
+use crate::with_same_site
 use std::collections::HashMap
 use std::strings
 
@@ -271,4 +274,19 @@ fn test_require_cookie() {
         },
         Err(_) => assert(false, "parse missing"),
     }
+}
+
+@test
+fn test_has_cookies_and_strict_same_site() {
+    match parse_cookie_header("sid=abc") {
+        Ok(map) => assert(has_cookies(map), "has cookies"),
+        Err(_) => assert(false, "parse"),
+    }
+    assert(!has_cookies(HashMap::new()), "empty")
+    let lax = session_cookie("sid", "abc")
+    assert(is_lax_same_site(lax), "lax default")
+    assert(!is_strict_same_site(lax), "not strict")
+    let strict = with_same_site(lax, "Strict")
+    assert(is_strict_same_site(strict), "strict")
+    assert(!is_lax_same_site(strict), "not lax")
 }

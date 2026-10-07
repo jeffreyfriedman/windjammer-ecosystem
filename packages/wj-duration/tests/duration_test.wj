@@ -4,18 +4,22 @@ use crate::clamp_ms
 use crate::format_ms
 use crate::format_secs
 use crate::is_negative
+use crate::is_nonzero
 use crate::is_positive
 use crate::is_zero
 use crate::max_ms
 use crate::min_ms
 use crate::ms_to_secs
+use crate::outside_ms
 use crate::parse_ms
 use crate::parse_ms_or
 use crate::parse_secs
 use crate::parse_secs_or
+use crate::require_positive
 use crate::secs_to_ms
 use crate::sub_ms
 use crate::within_ms
+use std::strings
 
 @test
 fn test_parse_ms_unit() {
@@ -178,4 +182,26 @@ fn test_min_max_within_ms() {
     assert(within_ms(100, 0, 100), "hi")
     assert(!within_ms(-1, 0, 100), "below")
     assert(!within_ms(101, 0, 100), "above")
+}
+
+@test
+fn test_is_nonzero_outside_and_require_positive() {
+    assert(is_nonzero(1), "pos")
+    assert(is_nonzero(-1), "neg")
+    assert(!is_nonzero(0), "zero")
+    assert(outside_ms(-1, 0, 100), "below")
+    assert(outside_ms(101, 0, 100), "above")
+    assert(!outside_ms(50, 0, 100), "inside")
+    match require_positive(10) {
+        Ok(n) => assert_eq(n, 10),
+        Err(_) => assert(false, "positive"),
+    }
+    match require_positive(0) {
+        Ok(_) => assert(false, "zero must Err"),
+        Err(msg) => assert(strings.contains(msg, "positive"), "mentions positive"),
+    }
+    match require_positive(-5) {
+        Ok(_) => assert(false, "neg must Err"),
+        Err(msg) => assert(strings.contains(msg, "positive"), "mentions positive"),
+    }
 }

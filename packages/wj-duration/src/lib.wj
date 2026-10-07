@@ -109,6 +109,24 @@ pub fn max_ms(a: int, b: int) -> int {
     b
 }
 
+/// True when `ms` is not zero.
+pub fn is_nonzero(ms: int) -> bool {
+    !is_zero(ms)
+}
+
+/// True when `ms` is outside the inclusive `[lo, hi]` range.
+pub fn outside_ms(ms: int, lo: int, hi: int) -> bool {
+    !within_ms(ms, lo, hi)
+}
+
+/// Accept `ms` only when positive; else return an error.
+pub fn require_positive(ms: int) -> Result<int, string> {
+    if is_positive(ms) {
+        return Ok(ms)
+    }
+    Err("expected positive duration")
+}
+
 /// Inclusive range check: `lo <= ms <= hi`.
 pub fn within_ms(ms: int, lo: int, hi: int) -> bool {
     ms >= lo && ms <= hi

@@ -3,6 +3,7 @@ use crate::content_type_css
 use crate::content_type_html
 use crate::content_type_javascript
 use crate::content_type_json
+use crate::content_type_png
 use crate::content_type_xml
 use crate::css
 use crate::from_extension
@@ -15,6 +16,7 @@ use crate::is_json
 use crate::is_javascript
 use crate::is_octet_stream
 use crate::is_plain
+use crate::is_png
 use crate::is_text
 use crate::is_video
 use crate::is_xml
@@ -23,6 +25,7 @@ use crate::json
 use crate::html
 use crate::octet_stream
 use crate::plain
+use crate::png
 use crate::content_type_plain
 use crate::xml
 
@@ -152,4 +155,14 @@ fn test_css_xml_constants_and_headers() {
     assert_eq(content_type_css(), "Content-Type: text/css; charset=utf-8")
     assert_eq(content_type_xml(), "Content-Type: application/xml; charset=utf-8")
     assert_eq(content_type_javascript(), "Content-Type: application/javascript; charset=utf-8")
+}
+
+@test
+fn test_png_helpers() {
+    assert_eq(png(), "image/png")
+    assert(is_png(png()), "png const")
+    assert(is_png("image/png"), "bare png")
+    assert(is_png("image/png; charset=binary"), "png params")
+    assert(!is_png("image/jpeg"), "not png")
+    assert_eq(content_type_png(), "Content-Type: image/png")
 }

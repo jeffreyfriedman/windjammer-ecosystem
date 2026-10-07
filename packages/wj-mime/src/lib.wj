@@ -206,3 +206,27 @@ pub fn is_javascript(mime_type: string) -> bool {
     }
     false
 }
+
+/// Common MIME type for PNG images.
+pub fn png() -> string {
+    "image/png"
+}
+
+/// `Content-Type` header line for PNG.
+pub fn content_type_png() -> string {
+    content_type(png())
+}
+
+/// True when `mime_type` is PNG (`image/png`, optional parameters).
+pub fn is_png(mime_type: string) -> bool {
+    let trimmed = strings.trim(mime_type)
+    if strings.starts_with(trimmed, "image/png") {
+        let rest_len = strings.len(trimmed) - 9
+        if rest_len == 0 {
+            return true
+        }
+        let next = strings.substring(trimmed, 9, 10)
+        return next == ";"
+    }
+    false
+}

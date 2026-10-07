@@ -12,6 +12,8 @@ use crate::referrer_policy
 use crate::security_header_lines
 use crate::with_csp
 use crate::with_frame_options
+use crate::with_hsts
+use crate::with_referrer
 use crate::without_csp
 use std::strings
 
@@ -133,4 +135,14 @@ fn test_without_csp_and_frame_helpers() {
     assert(!is_frame_deny(same), "not deny")
     let text = format_headers(same)
     assert_str_contains(text, "X-Frame-Options: SAMEORIGIN")
+}
+
+@test
+fn test_with_referrer_and_with_hsts() {
+    let refp = with_referrer(defaults(), "strict-origin")
+    let text = format_headers(refp)
+    assert_str_contains(text, "Referrer-Policy: strict-origin")
+    let secured = with_hsts(defaults(), 120)
+    assert(hsts_enabled(secured), "hsts on")
+    assert_eq(header_line_count(secured), 5)
 }

@@ -126,6 +126,22 @@ pub fn require_str(text: string, path: string) -> Result<string, string> {
     }
 }
 
+/// Look up int path, or `Err` naming the missing path.
+pub fn require_int(text: string, path: string) -> Result<int, string> {
+    match get_int(text, path) {
+        Some(v) => Ok(v),
+        None => Err("missing yaml path: ${path}"),
+    }
+}
+
+/// Look up bool path, or `Err` naming the missing path.
+pub fn require_bool(text: string, path: string) -> Result<bool, string> {
+    match get_bool(text, path) {
+        Some(v) => Ok(v),
+        None => Err("missing yaml path: ${path}"),
+    }
+}
+
 fn load_root(text: string) -> Option<Value> {
     match to_json(text) {
         Ok(j) => {

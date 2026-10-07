@@ -5,10 +5,14 @@ use crate::resolve_toml
 use crate::resolve_yaml
 use crate::from_toml
 use crate::from_yaml
+use crate::get
 use crate::get_or
 use crate::has
+use crate::is_empty
 use crate::key_count
+use crate::require
 use std::collections::HashMap
+use std::strings
 
 fn test_merge_overlay_wins_on_shared_keys() {
     let mut defaults = HashMap::new()
@@ -197,4 +201,35 @@ fn test_key_count() {
     assert_eq(key_count(map), 2)
     let empty = HashMap::new()
     assert_eq(key_count(empty), 0)
+}
+
+fn test_get_require_is_empty() {
+    let mut map = HashMap::new()
+    map.insert("HOST", "localhost")
+    match get(map, "HOST") {
+        Some(v) => assert_eq(v, "localhost"),
+        None => assert(false, "HOST"),
+    }
+    let mut miss = HashMap::new()
+    miss.insert("HOST", "localhost")
+    match get(miss, "PORT") {
+        Some(_) => assert(false, "missing"),
+        None => {},
+    }
+    let mut req = HashMap::new()
+    req.insert("HOST", "localhost")
+    match require(req, "HOST") {
+        Ok(v) => assert_eq(v, "localhost"),
+        Err(_) => assert(false, "require ok"),
+    }
+    let mut bad = HashMap::new()
+    bad.insert("HOST", "localhost")
+    match require(bad, "PORT") {
+        Ok(_) => assert(false, "require err"),
+        Err(msg) => assert(strings.contains(msg, "PORT"), "mentions key"),
+    }
+    assert(is_empty(HashMap::new()), "empty")
+    let mut nonempty = HashMap::new()
+    nonempty.insert("A", "1")
+    assert(!is_empty(nonempty), "nonempty")
 }

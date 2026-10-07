@@ -161,6 +161,25 @@ pub fn require_fully_bound(template: string, vars: HashMap<string, string>) -> R
     Err("unbound placeholders")
 }
 
+/// True when `template` has no well-formed placeholders.
+pub fn is_plain(template: string) -> bool {
+    !has_placeholders(template)
+}
+
+/// True when at least one placeholder is unbound in `vars`.
+pub fn has_missing(template: string, vars: HashMap<string, string>) -> bool {
+    missing_count(template, vars) > 0
+}
+
+/// First `{{key}}` name in `template`, or `None` when plain.
+pub fn first_placeholder(template: string) -> Option<string> {
+    let names = placeholder_names(template)
+    if names.len() == 0 {
+        return None
+    }
+    Some(names[0])
+}
+
 fn list_contains(items: Vec<string>, needle: string) -> bool {
     let mut i = 0
     while i < items.len() {

@@ -1,10 +1,13 @@
+use crate::first_placeholder
 use crate::render
 use crate::render_strict
 use crate::render_with_defaults
 use crate::render_html
 use crate::escape_html
+use crate::has_missing
 use crate::has_placeholders
 use crate::is_fully_bound
+use crate::is_plain
 use crate::missing_count
 use crate::missing_keys
 use crate::placeholder_count
@@ -148,5 +151,22 @@ fn test_missing_count_and_require_fully_bound() {
     match require_fully_bound("Hello {{name}}!", empty) {
         Ok(_) => assert(false, "unbound must Err"),
         Err(msg) => assert(strings.contains(msg, "unbound"), "mentions unbound"),
+    }
+}
+
+@test
+fn test_is_plain_has_missing_and_first_placeholder() {
+    assert(is_plain("Hello world"), "plain")
+    assert(!is_plain("Hello {{name}}!"), "has placeholder")
+    let empty = HashMap::new()
+    assert(has_missing("Hello {{name}}!", empty), "missing")
+    assert(!has_missing("Hello {{name}}!", vars_one()), "bound")
+    match first_placeholder("Hello {{name}}!") {
+        Some(n) => assert_eq(n, "name"),
+        None => assert(false, "first name"),
+    }
+    match first_placeholder("plain") {
+        Some(_) => assert(false, "plain has none"),
+        None => {},
     }
 }

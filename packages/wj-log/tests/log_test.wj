@@ -5,6 +5,7 @@ use crate::level_rank
 use crate::is_debug_level
 use crate::is_enabled
 use crate::is_error_level
+use crate::is_info_level
 use crate::is_warn_level
 use crate::init_from_level_text
 use crate::log_tagged
@@ -82,4 +83,9 @@ fn test_is_warn_and_debug_level() {
     assert(!is_warn_level(LogLevel::Error), "error not warn")
     assert(is_debug_level(LogLevel::Debug), "debug")
     assert(!is_debug_level(LogLevel::Info), "info not debug")
+}
+
+fn test_is_info_level() {
+    assert(is_info_level(LogLevel::Info), "info")
+    assert(!is_info_level(LogLevel::Warn), "warn not info")
 }

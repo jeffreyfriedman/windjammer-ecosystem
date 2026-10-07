@@ -8,6 +8,7 @@ use crate::retry_delay
 use crate::should_retry
 use crate::total_delay_ms
 use crate::pause_ms
+use crate::with_initial_ms
 use crate::with_max_ms
 
 fn test_delay_ms_exponential() {
@@ -125,4 +126,13 @@ fn test_with_max_ms() {
     assert_eq(capped.multiplier, 2)
     assert_eq(capped.max_ms, 250)
     assert_eq(delay_ms(capped, 3), 250)
+}
+
+fn test_with_initial_ms() {
+    let b = default_backoff()
+    let bumped = with_initial_ms(b, 50)
+    assert_eq(bumped.initial_ms, 50)
+    assert_eq(bumped.multiplier, 2)
+    assert_eq(bumped.max_ms, 30000)
+    assert_eq(delay_ms(bumped, 0), 50)
 }

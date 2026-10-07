@@ -103,6 +103,15 @@ pub fn with_max_ms(backoff: Backoff, max_ms: int) -> Backoff {
     }
 }
 
+/// Copy of `backoff` with `initial_ms` replaced.
+pub fn with_initial_ms(backoff: Backoff, initial_ms: int) -> Backoff {
+    Backoff {
+        initial_ms: initial_ms,
+        multiplier: backoff.multiplier,
+        max_ms: backoff.max_ms,
+    }
+}
+
 /// Blocking pause between retry attempts (milliseconds).
 /// Uses `std::time` spin-wait until `std::async_runtime::sleep_ms_blocking` import codegen is fixed.
 pub fn pause_ms(ms: int) {

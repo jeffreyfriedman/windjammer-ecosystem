@@ -225,6 +225,23 @@ pub fn has_fragment(u: Url) -> bool {
     strings.len(u.fragment) > 0
 }
 
+/// True when the URL has a non-empty query string.
+pub fn has_query(u: Url) -> bool {
+    strings.len(u.query) > 0
+}
+
+/// Return a copy of `u` with the fragment cleared.
+pub fn without_fragment(u: Url) -> Url {
+    Url {
+        scheme: u.scheme,
+        host: u.host,
+        port: u.port,
+        path: u.path,
+        query: u.query,
+        fragment: "",
+    }
+}
+
 fn empty_string() -> string {
     ""
 }

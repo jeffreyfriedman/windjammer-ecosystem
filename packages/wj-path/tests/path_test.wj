@@ -7,10 +7,12 @@ use crate::extname
 use crate::has_extension
 use crate::is_absolute
 use crate::is_relative
+use crate::is_root
 use crate::join_path
 use crate::normalize
 use crate::stem
 use crate::without_extension
+use crate::without_trailing_slash
 
 @test
 fn test_join_simple() {
@@ -111,4 +113,16 @@ fn test_without_extension_and_trailing_slash() {
     assert_eq(ensure_trailing_slash("/api/v1"), "/api/v1/")
     assert_eq(ensure_trailing_slash("/api/v1/"), "/api/v1/")
     assert_eq(ensure_trailing_slash(""), "/")
+}
+
+@test
+fn test_without_trailing_slash_and_is_root() {
+    assert_eq(without_trailing_slash("/api/v1/"), "/api/v1")
+    assert_eq(without_trailing_slash("/api/v1"), "/api/v1")
+    assert_eq(without_trailing_slash("/"), "/")
+    assert_eq(without_trailing_slash(""), "")
+    assert(is_root("/"), "slash root")
+    assert(is_root(""), "empty as root")
+    assert(!is_root("/api"), "not root")
+    assert(!is_root("/api/"), "trailing not root")
 }

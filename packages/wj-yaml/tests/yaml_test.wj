@@ -5,8 +5,11 @@ use crate::get_int_or
 use crate::get_str
 use crate::get_str_or
 use crate::has_path
+use crate::is_empty
 use crate::is_valid
+use crate::require_str
 use crate::to_json
+use std::strings
 
 @test
 fn test_to_json_flat_scalars() {
@@ -184,4 +187,19 @@ fn test_get_int_or_and_get_bool_or() {
 fn test_is_valid() {
     assert(is_valid("name: bob\n"), "valid yaml")
     assert(!is_valid(""), "empty rejected")
+}
+
+@test
+fn test_is_empty_and_require_str() {
+    assert(is_empty(""), "empty string")
+    assert(is_empty("   \n"), "whitespace only")
+    assert(!is_empty("name: bob\n"), "non-empty")
+    match require_str("name: bob\n", "name") {
+        Ok(v) => assert_eq(v, "bob"),
+        Err(_) => assert(false, "require name"),
+    }
+    match require_str("name: bob\n", "missing") {
+        Ok(_) => assert(false, "missing must Err"),
+        Err(msg) => assert(strings.contains(msg, "missing"), "mentions path"),
+    }
 }

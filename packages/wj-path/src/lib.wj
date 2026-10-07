@@ -189,6 +189,25 @@ pub fn ensure_trailing_slash(path: string) -> string {
     "${path}/"
 }
 
+/// Drop a single trailing `/` (root `/` and empty stay unchanged).
+pub fn without_trailing_slash(path: string) -> string {
+    if strings.len(path) == 0 {
+        return path
+    }
+    if path == "/" {
+        return path
+    }
+    if strings.ends_with(path, "/") {
+        return strings.substring(path, 0, strings.len(path) - 1)
+    }
+    path
+}
+
+/// True when `path` is `/` or empty (filesystem root / cwd root).
+pub fn is_root(path: string) -> bool {
+    path == "/" || strings.len(path) == 0
+}
+
 fn strip_trailing_slashes(path: string) -> string {
     let mut out = path
     while strings.len(out) > 1 && strings.ends_with(out, "/") {

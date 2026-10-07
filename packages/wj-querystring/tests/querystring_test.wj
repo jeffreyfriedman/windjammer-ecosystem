@@ -8,6 +8,7 @@ use crate::keys
 use crate::pair_count
 use crate::parse
 use crate::remove
+use crate::require
 use crate::set
 use crate::stringify
 use crate::unique_key_count
@@ -167,4 +168,16 @@ fn test_unique_key_count_and_value_count() {
     assert_eq(value_count("a=1&b=2&a=3", "a"), 2)
     assert_eq(value_count("a=1&b=2&a=3", "b"), 1)
     assert_eq(value_count("a=1&b=2&a=3", "z"), 0)
+}
+
+@test
+fn test_require() {
+    match require("a=1&b=2", "a") {
+        Ok(v) => assert_eq(v, "1"),
+        Err(_) => assert(false, "require a"),
+    }
+    match require("a=1&b=2", "z") {
+        Ok(_) => assert(false, "missing must Err"),
+        Err(msg) => assert(strings.contains(msg, "z"), "mentions key"),
+    }
 }

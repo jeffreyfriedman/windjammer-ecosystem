@@ -154,6 +154,23 @@ pub fn is_stable(v: SemVer) -> bool {
     !has_prerelease(v)
 }
 
+pub fn major_of(v: SemVer) -> int {
+    v.major
+}
+
+pub fn minor_of(v: SemVer) -> int {
+    v.minor
+}
+
+pub fn patch_of(v: SemVer) -> int {
+    v.patch
+}
+
+/// True when major, minor, and patch are all zero.
+pub fn is_zero_version(v: SemVer) -> bool {
+    v.major == 0 && v.minor == 0 && v.patch == 0
+}
+
 fn split_build(text: string) -> Result<(string, string), string> {
     let mut core = text
     let mut build = ""

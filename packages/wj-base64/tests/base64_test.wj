@@ -5,6 +5,7 @@ use crate::encode
 use crate::decode
 use crate::encode_bytes
 use crate::decode_bytes
+use crate::ensure_padding
 use crate::is_basic_auth_header
 use crate::is_bearer_auth_header
 use crate::has_padding
@@ -110,4 +111,11 @@ fn test_has_padding_and_strip_padding() {
     assert_eq(strip_padding("SGVsbG8="), "SGVsbG8")
     assert_eq(strip_padding("YQ=="), "YQ")
     assert_eq(strip_padding("YQ"), "YQ")
+}
+
+fn test_ensure_padding() {
+    assert_eq(ensure_padding("SGVsbG8"), "SGVsbG8=")
+    assert_eq(ensure_padding("YQ"), "YQ==")
+    assert_eq(ensure_padding("SGVsbG8="), "SGVsbG8=")
+    assert_eq(ensure_padding("YQ=="), "YQ==")
 }

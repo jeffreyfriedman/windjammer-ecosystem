@@ -78,3 +78,25 @@ pub fn verify_bearer(header: string, secret: string) -> Result<Claims, string> {
         None => Err("missing or invalid Authorization: Bearer header"),
     }
 }
+
+/// True when `token` has three non-empty `.`-separated segments (JWT shape).
+pub fn looks_like_jwt(token: string) -> bool {
+    let trimmed = strings.trim(token)
+    if strings.len(trimmed) == 0 {
+        return false
+    }
+    let parts = strings.split(trimmed, ".")
+    if parts.len() != 3 {
+        return false
+    }
+    if strings.len(parts[0]) == 0 {
+        return false
+    }
+    if strings.len(parts[1]) == 0 {
+        return false
+    }
+    if strings.len(parts[2]) == 0 {
+        return false
+    }
+    true
+}

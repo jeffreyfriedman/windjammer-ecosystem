@@ -128,6 +128,25 @@ pub fn placeholder_count(template: string) -> int {
     placeholder_names(template).len()
 }
 
+/// Number of distinct `{{key}}` names in `template`.
+pub fn unique_placeholder_count(template: string) -> int {
+    let names = placeholder_names(template)
+    let mut seen = Vec::new()
+    let mut i = 0
+    while i < names.len() {
+        if !list_contains(seen, names[i]) {
+            seen.push(names[i])
+        }
+        i = i + 1
+    }
+    seen.len()
+}
+
+/// True when every placeholder in `template` has a binding in `vars`.
+pub fn is_fully_bound(template: string, vars: HashMap<string, string>) -> bool {
+    missing_keys(template, vars).len() == 0
+}
+
 fn list_contains(items: Vec<string>, needle: string) -> bool {
     let mut i = 0
     while i < items.len() {

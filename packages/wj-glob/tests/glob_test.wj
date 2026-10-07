@@ -1,5 +1,6 @@
 use crate::all_match
 use crate::any_match
+use crate::exactly_one_match
 use crate::filter
 use crate::first_match
 use crate::is_match
@@ -164,4 +165,19 @@ fn test_all_match() {
     assert(!all_match("*.md", mixed), "txt breaks all")
     let empty = Vec::new()
     assert(all_match("*.md", empty), "vacuous truth")
+}
+
+@test
+fn test_exactly_one_match() {
+    let mut one = Vec::new()
+    one.push("a.txt")
+    one.push("b.md")
+    assert(exactly_one_match("*.md", one), "one md")
+    let mut two = Vec::new()
+    two.push("a.md")
+    two.push("b.md")
+    assert(!exactly_one_match("*.md", two), "two md")
+    let mut none = Vec::new()
+    none.push("a.txt")
+    assert(!exactly_one_match("*.md", none), "zero")
 }

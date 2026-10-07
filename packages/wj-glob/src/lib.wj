@@ -49,3 +49,8 @@ pub fn all_match(pattern: string, paths: Vec<string>) -> bool {
     let total = paths.len()
     match_count(pattern, paths) == total
 }
+
+/// True when exactly one path matches `pattern`.
+pub fn exactly_one_match(pattern: string, paths: Vec<string>) -> bool {
+    match_count(pattern, paths) == 1
+}

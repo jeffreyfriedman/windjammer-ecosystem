@@ -4,6 +4,7 @@ Weekly build health for seed apps and packages.
 
 | Week | Date | Apps / packages green | `extern fn` | Crates via interop | Compiler issues | Notes |
 |------|------|----------------------|-------------|--------------------|-----------------|-------|
+| 2 | 2026-10-06 | deepen `wj-toml`/`wj-glob`/`wj-csv` | 0 | 0 | — | `require`/`values`, `exactly_one_match`, `column_index`; tip **21+20+11** green |
 | 2 | 2026-10-06 | deepen `wj-config`/`wj-cron` | 0 | 0 | — | `get`/`require`/`is_empty`, `every_minute`/`format_cron`/`is_wildcard_field`; tip **12+31** green |
 | 2 | 2026-10-06 | deepen `wj-path`/`wj-compress`/`wj-cli-args` | 0 | 0 | ENOSPC ~10–12Gi free; isolated target | `without_extension`/`ensure_trailing_slash`, `is_identity_encoding`/`meets_min_bytes`, `last_positional`/`has_any_long_flag`; tip **17+16+14** green |
 | 2 | 2026-10-06 | deepen `wj-duration`/`wj-querystring`/`wj-rate-limit` | 0 | 0 | private `CARGO_HOME` under ENOSPC | `parse_secs_or`/`is_zero`/`add_ms`, `unique_key_count`/`value_count`, `remaining_slots`/`slots_remaining`; tip **19+19+14** green |

@@ -242,6 +242,35 @@ pub fn without_fragment(u: Url) -> Url {
     }
 }
 
+/// Return a copy of `u` with the query cleared.
+pub fn without_query(u: Url) -> Url {
+    Url {
+        scheme: u.scheme,
+        host: u.host,
+        port: u.port,
+        path: u.path,
+        query: "",
+        fragment: u.fragment,
+    }
+}
+
+/// Return a copy of `u` with `fragment` replaced.
+pub fn with_fragment(u: Url, fragment: string) -> Url {
+    Url {
+        scheme: u.scheme,
+        host: u.host,
+        port: u.port,
+        path: u.path,
+        query: u.query,
+        fragment: fragment,
+    }
+}
+
+/// True when path is empty or exactly `/`.
+pub fn is_root_path(u: Url) -> bool {
+    strings.len(u.path) == 0 || u.path == "/"
+}
+
 fn empty_string() -> string {
     ""
 }

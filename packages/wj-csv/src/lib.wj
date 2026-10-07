@@ -108,3 +108,24 @@ pub fn get_row(rows: Vec<Vec<string>>, index: int) -> Option<Vec<string>> {
     }
     Some(rows[index])
 }
+
+/// True when the table has at least one row.
+pub fn has_rows(rows: Vec<Vec<string>>) -> bool {
+    !is_empty(rows)
+}
+
+/// Row at `index`, or `Err` naming the missing index.
+pub fn require_row(rows: Vec<Vec<string>>, index: int) -> Result<Vec<string>, string> {
+    match get_row(rows, index) {
+        Some(row) => Ok(row),
+        None => Err("missing row: ${index}"),
+    }
+}
+
+/// Cell at `(row, col)`, or `default` when out of bounds.
+pub fn cell_or(rows: Vec<Vec<string>>, row: int, col: int, default: string) -> string {
+    match get_cell(rows, row, col) {
+        Some(v) => v,
+        None => default,
+    }
+}

@@ -5,6 +5,7 @@ use crate::has_port
 use crate::has_query
 use crate::is_http
 use crate::is_https
+use crate::is_root_path
 use crate::join_url
 use crate::origin
 use crate::query_get
@@ -12,8 +13,10 @@ use crate::query_get_or
 use crate::query_has
 use crate::query_remove
 use crate::query_set
+use crate::with_fragment
 use crate::with_query
 use crate::without_fragment
+use crate::without_query
 use std::strings
 
 @test
@@ -237,5 +240,29 @@ fn test_has_query_and_without_fragment() {
     match parse("https://example.com/api") {
         Ok(u) => assert(!has_query(u), "no query"),
         Err(_) => assert(false, "parse bare"),
+    }
+}
+
+@test
+fn test_without_query_with_fragment_and_is_root_path() {
+    match parse("https://example.com/api?x=1#top") {
+        Ok(u) => {
+            let no_q = without_query(u)
+            assert(!has_query(no_q), "query cleared")
+            assert(has_fragment(no_q), "fragment kept")
+            assert_eq(format_url(no_q), "https://example.com/api#top")
+            let with_f = with_fragment(no_q, "bottom")
+            assert_eq(with_f.fragment, "bottom")
+            assert(!is_root_path(with_f), "api is not root")
+        },
+        Err(_) => assert(false, "parse"),
+    }
+    match parse("https://example.com/") {
+        Ok(u) => assert(is_root_path(u), "slash is root"),
+        Err(_) => assert(false, "parse root slash"),
+    }
+    match parse("https://example.com") {
+        Ok(u) => assert(is_root_path(u), "empty path is root"),
+        Err(_) => assert(false, "parse no path"),
     }
 }

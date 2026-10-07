@@ -4,6 +4,7 @@ Weekly build health for seed apps and packages.
 
 | Week | Date | Apps / packages green | `extern fn` | Crates via interop | Compiler issues | Notes |
 |------|------|----------------------|-------------|--------------------|-----------------|-------|
+| 2 | 2026-10-07 | deepen `wj-csv`/`wj-url`/`wj-yaml` | 0 | 0 | private CARGO_HOME | `has_rows`/`require_row`/`cell_or`, `without_query`/`with_fragment`/`is_root_path`, `require_int`/`require_bool`; tip **13+22+22** green |
 | 2 | 2026-10-07 | deepen `wj-uuid`/`wj-cors`/`wj-json-util` | 0 | 0 | private CARGO_HOME | `with_hyphens`/`require_version`, `is_empty_allow_list`/`has_origins`, `is_nullish`/`is_empty_object`/`is_empty_array`; tip **25+17+22** green |
 | 2 | 2026-10-07 | deepen `wj-dotenv`/`wj-timefmt`/`wj-inflect` | 0 | 0 | private CARGO_HOME | `has_keys`/`value_count`, `year_of`/`month_of`/`day_of`/`hour_of`/`is_zulu`, `is_slug`/`is_title_case`; tip **14+26+21** green |
 | 2 | 2026-10-07 | deepen `wj-sha`/`wj-base64`/`wj-semver` | 0 | 0 | private CARGO_HOME | `require_etag`, `ensure_padding`, `major_of`/`minor_of`/`patch_of`/`is_zero_version`; tip **11+13+17** green |

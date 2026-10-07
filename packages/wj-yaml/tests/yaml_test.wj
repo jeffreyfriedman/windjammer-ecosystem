@@ -7,6 +7,8 @@ use crate::get_str_or
 use crate::has_path
 use crate::is_empty
 use crate::is_valid
+use crate::require_bool
+use crate::require_int
 use crate::require_str
 use crate::to_json
 use std::strings
@@ -200,6 +202,27 @@ fn test_is_empty_and_require_str() {
     }
     match require_str("name: bob\n", "missing") {
         Ok(_) => assert(false, "missing must Err"),
+        Err(msg) => assert(strings.contains(msg, "missing"), "mentions path"),
+    }
+}
+
+@test
+fn test_require_int_and_require_bool() {
+    let text = "port: 8080\nenabled: true\n"
+    match require_int(text, "port") {
+        Ok(n) => assert_eq(n, 8080),
+        Err(_) => assert(false, "require port"),
+    }
+    match require_int(text, "missing") {
+        Ok(_) => assert(false, "missing int must Err"),
+        Err(msg) => assert(strings.contains(msg, "missing"), "mentions path"),
+    }
+    match require_bool(text, "enabled") {
+        Ok(b) => assert(b, "enabled true"),
+        Err(_) => assert(false, "require enabled"),
+    }
+    match require_bool(text, "missing") {
+        Ok(_) => assert(false, "missing bool must Err"),
         Err(msg) => assert(strings.contains(msg, "missing"), "mentions path"),
     }
 }

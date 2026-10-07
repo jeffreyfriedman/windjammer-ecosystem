@@ -1,12 +1,15 @@
+use crate::cell_or
 use crate::column_count
 use crate::column_index
 use crate::get_cell
 use crate::get_row
 use crate::has_column
+use crate::has_rows
 use crate::is_empty
 use crate::parse
 use crate::parse_with_headers
 use crate::require_column
+use crate::require_row
 use crate::row_count
 use crate::write
 use std::strings
@@ -207,4 +210,29 @@ fn test_require_column_and_get_row() {
         },
         Err(_) => assert(false, "parse rows"),
     }
+}
+
+@test
+fn test_has_rows_require_row_and_cell_or() {
+    match parse("a,b\n1,2") {
+        Ok(rows) => {
+            assert(has_rows(rows), "has rows")
+            match require_row(rows, 1) {
+                Ok(row) => {
+                    assert_eq(row[0], "1")
+                    assert_eq(row[1], "2")
+                },
+                Err(_) => assert(false, "require row 1"),
+            }
+            match require_row(rows, 9) {
+                Ok(_) => assert(false, "oob must Err"),
+                Err(msg) => assert(strings.contains(msg, "9"), "mentions index"),
+            }
+            assert_eq(cell_or(rows, 1, 0, "x"), "1")
+            assert_eq(cell_or(rows, 9, 0, "fallback"), "fallback")
+        },
+        Err(_) => assert(false, "parse"),
+    }
+    let empty: Vec<Vec<string>> = Vec::new()
+    assert(!has_rows(empty), "empty has no rows")
 }

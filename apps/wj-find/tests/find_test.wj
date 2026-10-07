@@ -1,7 +1,11 @@
 // TDD: walk + glob = week-one find (fd-style).
 
 use crate::domain::find_matching
+use crate::domain::first_hit
 use crate::domain::format_hits
+use crate::domain::has_hits
+use crate::domain::hit_count
+use crate::domain::is_empty_hits
 use std::strings
 
 fn test_find_matching_star_suffix() {
@@ -37,4 +41,28 @@ fn test_format_hits_joins_lines() {
     let text = format_hits(hits)
     assert(strings.contains(text, "a.wj"), "has a")
     assert(strings.contains(text, "b.wj"), "has b")
+}
+
+fn sample_paths() -> Vec<string> {
+    let mut paths = Vec::new()
+    paths.push("src/main.wj")
+    paths.push("src/lib.rs")
+    paths.push("README.md")
+    paths
+}
+
+fn test_hit_helpers() {
+    let hits = find_matching("**/*.wj", sample_paths())
+    assert_eq(hit_count(hits), 1)
+    assert(has_hits(find_matching("**/*.wj", sample_paths())), "has hits")
+    assert(!has_hits(find_matching("*.xyz", sample_paths())), "no hits")
+    assert(is_empty_hits(find_matching("*.xyz", sample_paths())), "empty")
+    match first_hit(find_matching("**/*.wj", sample_paths())) {
+        Some(p) => assert_eq(p, "src/main.wj"),
+        None => assert(false, "first"),
+    }
+    match first_hit(find_matching("*.xyz", sample_paths())) {
+        Some(_) => assert(false, "none"),
+        None => {},
+    }
 }

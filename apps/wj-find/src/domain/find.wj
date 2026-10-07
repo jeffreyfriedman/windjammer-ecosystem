@@ -27,3 +27,26 @@ pub fn format_hits(hits: Vec<string>) -> string {
     }
     out
 }
+
+pub fn hit_count(hits: Vec<string>) -> int {
+    let mut n = 0
+    for _ in hits {
+        n = n + 1
+    }
+    n
+}
+
+pub fn has_hits(hits: Vec<string>) -> bool {
+    hit_count(hits) > 0
+}
+
+pub fn is_empty_hits(hits: Vec<string>) -> bool {
+    hit_count(hits) == 0
+}
+
+pub fn first_hit(hits: Vec<string>) -> Option<string> {
+    if hits.len() == 0 {
+        return None
+    }
+    Some(hits[0])
+}

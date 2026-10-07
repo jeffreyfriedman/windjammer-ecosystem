@@ -4,6 +4,7 @@ Weekly build health for seed apps and packages.
 
 | Week | Date | Apps / packages green | `extern fn` | Crates via interop | Compiler issues | Notes |
 |------|------|----------------------|-------------|--------------------|-----------------|-------|
+| 2 | 2026-10-06 | deepen `wj-find`/`wj-pipeline`/`wj-first-hour` | 0 | 0 | ENOSPC ~6Gi; private CARGO_HOME | `hit_count`/`has_hits`/`first_hit`, `result_count`/`max_result_value`/`find_result_by_id`, `card_app`/`card_port`/`is_default_port`/`card_summary`; tip **5+7+4** green |
 | 2 | 2026-10-06 | deepen `wj-form-parse`/`wj-todo-cli`/`wj-fetch` | 0 | 0 | ENOSPC ~3.5Gi; private CARGO_HOME; package deps via `wj build src` | `field_count`/`has_field`/`field_get_or`/`require_field`, `pending_count`/`done_count`/`find_by_id`/`is_empty_todos`, `is_success_status`/`is_client_error_status`; tip **4+61+32** green |
 | 2 | 2026-10-06 | deepen `wj-migrate` + `wj-hello` | 0 | 0 | ENOSPC ~9–10Gi; private CARGO_HOME | `migration_count`/`latest_version`/`pending_count`/`is_pending`; hello `crate_name`/`semver`; tip **19+3** green |
 | 2 | 2026-10-06 | deepen `wj-log`/`wj-retry`/`wj-http-client` | 0 | 0 | ENOSPC ~9–10Gi; private CARGO_HOME | `is_trace_level`/`more_severe`, `with_multiplier`/`initial_of`/`multiplier_of`/`max_of`, `status_is_created`/`status_is_no_content`/`body_len`/`is_empty_body`; tip **14+15+9** green |

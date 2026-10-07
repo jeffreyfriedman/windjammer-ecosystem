@@ -132,3 +132,8 @@ pub fn peek(bus: EventBus) -> (EventBus, Option<Event>) {
     let first = bus.queue[0]
     (bus, Some(first))
 }
+
+/// Number of queued events (alias of `queue_len`).
+pub fn pending_count(bus: EventBus) -> int {
+    queue_len(bus)
+}

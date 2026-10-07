@@ -168,6 +168,23 @@ pub fn get_file(parts: Vec<Part>, name: string) -> Option<Part> {
     None
 }
 
+/// True when `parts` is empty.
+pub fn is_empty(parts: Vec<Part>) -> bool {
+    part_count(parts) == 0
+}
+
+/// Number of parts that include a filename (file uploads).
+pub fn file_count(parts: Vec<Part>) -> int {
+    let mut n = 0
+    let mut i = 0
+    while i < parts.len() {
+        if strings.len(parts[i].filename) > 0 {
+            n = n + 1
+        }
+        i = i + 1
+    }
+    n
+}
 /// Returns `(headers, body)` then builds a `Part` — kept as one owned pipeline
 /// so demoted `&str` helpers do not fight owned locals at call sites.
 fn parse_part_headers_body(chunk: string) -> Result<Part, string> {

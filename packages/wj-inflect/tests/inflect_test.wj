@@ -1,5 +1,6 @@
 use crate::camel_case
 use crate::constant_case
+use crate::is_constant_case
 use crate::is_kebab_case
 use crate::is_snake_case
 use crate::kebab_case
@@ -104,4 +105,12 @@ fn test_is_kebab_case() {
     assert(is_kebab_case("a"), "single")
     assert(!is_kebab_case("hello_world"), "snake")
     assert(!is_kebab_case("HelloWorld"), "pascal")
+}
+
+@test
+fn test_is_constant_case() {
+    assert(is_constant_case("HELLO_WORLD"), "constant")
+    assert(is_constant_case("A"), "single")
+    assert(!is_constant_case("hello_world"), "snake lower")
+    assert(!is_constant_case("HELLO-WORLD"), "kebab upper")
 }

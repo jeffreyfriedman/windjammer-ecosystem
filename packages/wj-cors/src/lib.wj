@@ -159,3 +159,11 @@ pub fn allowed_origin_count(allowed: Vec<string>) -> int {
     }
     n
 }
+
+pub fn is_empty_allow_list(allowed: Vec<string>) -> bool {
+    allowed_origin_count(allowed) == 0
+}
+
+pub fn has_origins(allowed: Vec<string>) -> bool {
+    !is_empty_allow_list(allowed)
+}

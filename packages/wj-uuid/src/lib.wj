@@ -169,6 +169,20 @@ pub fn without_hyphens(text: string) -> string {
     strings.replace(text, "-", "")
 }
 
+/// Insert canonical hyphens into a 32-char hex UUID (already-dashed input unchanged).
+pub fn with_hyphens(text: string) -> string {
+    let bare = without_hyphens(normalize(text))
+    if strings.len(bare) != 32 {
+        return text
+    }
+    let a = strings.substring(bare, 0, 8)
+    let b = strings.substring(bare, 8, 12)
+    let c = strings.substring(bare, 12, 16)
+    let d = strings.substring(bare, 16, 20)
+    let e = strings.substring(bare, 20, 32)
+    "${a}-${b}-${c}-${d}-${e}"
+}
+
 /// Normalize and validate `text`, or `Err` when not a UUID.
 pub fn require_valid(text: string) -> Result<string, string> {
     let id = normalize(text)
@@ -176,6 +190,19 @@ pub fn require_valid(text: string) -> Result<string, string> {
         return Ok(id)
     }
     Err("invalid uuid")
+}
+
+/// Require a valid UUID of the given version number.
+pub fn require_version(text: string, ver: int) -> Result<string, string> {
+    match require_valid(text) {
+        Ok(id) => {
+            if is_version(id, ver) {
+                return Ok(id)
+            }
+            Err("uuid version mismatch")
+        },
+        Err(e) => Err(e),
+    }
 }
 
 fn v1_bytes(unix_millis: i64, clock_seq: int, node: Vec<u8>) -> Vec<u8> {

@@ -1,11 +1,14 @@
+use crate::add_ms
 use crate::clamp_ms
 use crate::format_ms
 use crate::format_secs
 use crate::is_positive
+use crate::is_zero
 use crate::ms_to_secs
 use crate::parse_ms
 use crate::parse_ms_or
 use crate::parse_secs
+use crate::parse_secs_or
 use crate::secs_to_ms
 
 @test
@@ -134,4 +137,14 @@ fn test_clamp_ms() {
     assert_eq(clamp_ms(50, 0, 100), 50)
     assert_eq(clamp_ms(-10, 0, 100), 0)
     assert_eq(clamp_ms(200, 0, 100), 100)
+}
+
+@test
+fn test_parse_secs_or_is_zero_add_ms() {
+    assert_eq(parse_secs_or("2m", 0), 120)
+    assert_eq(parse_secs_or("bad", 9), 9)
+    assert(is_zero(0), "zero")
+    assert(!is_zero(1), "nonzero")
+    assert_eq(add_ms(100, 50), 150)
+    assert_eq(add_ms(100, -30), 70)
 }

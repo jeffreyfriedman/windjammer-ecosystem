@@ -4,6 +4,7 @@ Weekly build health for seed apps and packages.
 
 | Week | Date | Apps / packages green | `extern fn` | Crates via interop | Compiler issues | Notes |
 |------|------|----------------------|-------------|--------------------|-----------------|-------|
+| 2 | 2026-10-06 | deepen `wj-duration`/`wj-querystring`/`wj-rate-limit` | 0 | 0 | private `CARGO_HOME` under ENOSPC | `parse_secs_or`/`is_zero`/`add_ms`, `unique_key_count`/`value_count`, `remaining_slots`/`slots_remaining`; tip **19+19+14** green |
 | 2 | 2026-10-06 | deepen `wj-template`/`wj-hash`/`wj-jwt` | 0 | 0 | private `CARGO_HOME` under ENOSPC | `unique_placeholder_count`/`is_fully_bound`, `is_bcrypt_prefix`, `looks_like_jwt`; tip **18+8+10** green |
 | 2 | 2026-10-06 | deepen `wj-regex`/`wj-http-client` | 0 | 0 | private `CARGO_HOME` under ENOSPC | `has_matches`/`none_match`, `status_is_ok`/`status_is_redirect`/`status_is_informational`; tip **11+8** green |
 | 2 | 2026-10-06 | deepen `wj-log`/`wj-dotenv`/`wj-fs-walk` | 0 | 0 | shared `.cargo-home` syn corruption under ENOSPC → private `CARGO_HOME` | `is_warn_level`/`is_debug_level`, `get`/`values`, `count_dirs`/`has_dirs`; tip **12+12+10** green |

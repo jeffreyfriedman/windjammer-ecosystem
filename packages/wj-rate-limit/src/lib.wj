@@ -193,6 +193,20 @@ pub fn slots_used(bucket: WindowBucket) -> int {
     bucket.count
 }
 
+/// Remaining slots reported by a check/peek result.
+pub fn remaining_slots(result: RateLimitResult) -> int {
+    result.remaining
+}
+
+/// How many slots remain before `limit` given current `bucket.count`.
+pub fn slots_remaining(lim: FixedWindow, bucket: WindowBucket) -> int {
+    let used = slots_used(bucket)
+    if used >= lim.limit {
+        return 0
+    }
+    lim.limit - used
+}
+
 fn window_start_for(now_ms: int, window_ms: int) -> int {
     if window_ms <= 0 {
         return now_ms

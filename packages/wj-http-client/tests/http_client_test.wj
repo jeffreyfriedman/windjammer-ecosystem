@@ -1,6 +1,10 @@
 use crate::HttpResult
+use crate::body_len
+use crate::is_empty_body
 use crate::status_is_client_error
+use crate::status_is_created
 use crate::status_is_informational
+use crate::status_is_no_content
 use crate::status_is_ok
 use crate::status_is_redirect
 use crate::status_is_server_error
@@ -74,4 +78,17 @@ fn test_status_is_ok_redirect_informational() {
     assert(!status_is_redirect(200), "200 not redirect")
     assert(status_is_informational(100), "100")
     assert(!status_is_informational(200), "200 not 1xx")
+}
+
+fn test_created_no_content_and_body_helpers() {
+    assert(status_is_created(201), "201")
+    assert(!status_is_created(200), "200 not created")
+    assert(status_is_no_content(204), "204")
+    assert(!status_is_no_content(200), "200 not no-content")
+    let filled = from_parts(200, "hello")
+    assert_eq(body_len(filled), 5)
+    assert(!is_empty_body(filled), "has body")
+    let empty = from_parts(204, "")
+    assert_eq(body_len(empty), 0)
+    assert(is_empty_body(empty), "empty body")
 }

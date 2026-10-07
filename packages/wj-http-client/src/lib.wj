@@ -1,4 +1,5 @@
 use std::http
+use std::strings
 
 /// Status code + response body text from an HTTP call.
 pub struct HttpResult {
@@ -29,6 +30,26 @@ pub fn status_is_server_error(status: u16) -> bool {
 /// True when `status` is exactly `200 OK`.
 pub fn status_is_ok(status: u16) -> bool {
     status == 200
+}
+
+/// True when `status` is exactly `201 Created`.
+pub fn status_is_created(status: u16) -> bool {
+    status == 201
+}
+
+/// True when `status` is exactly `204 No Content`.
+pub fn status_is_no_content(status: u16) -> bool {
+    status == 204
+}
+
+/// Body length of `result`.
+pub fn body_len(result: HttpResult) -> int {
+    strings.len(result.body)
+}
+
+/// True when `result` has an empty body.
+pub fn is_empty_body(result: HttpResult) -> bool {
+    body_len(result) == 0
 }
 
 /// True when `status` is in the 3xx range.

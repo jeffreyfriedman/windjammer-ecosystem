@@ -112,6 +112,30 @@ pub fn with_initial_ms(backoff: Backoff, initial_ms: int) -> Backoff {
     }
 }
 
+/// Copy of `backoff` with `multiplier` replaced.
+pub fn with_multiplier(backoff: Backoff, multiplier: int) -> Backoff {
+    Backoff {
+        initial_ms: backoff.initial_ms,
+        multiplier: multiplier,
+        max_ms: backoff.max_ms,
+    }
+}
+
+/// Initial delay in milliseconds.
+pub fn initial_of(backoff: Backoff) -> int {
+    backoff.initial_ms
+}
+
+/// Multiplier applied per attempt.
+pub fn multiplier_of(backoff: Backoff) -> int {
+    backoff.multiplier
+}
+
+/// Maximum delay cap in milliseconds.
+pub fn max_of(backoff: Backoff) -> int {
+    backoff.max_ms
+}
+
 /// Blocking pause between retry attempts (milliseconds).
 /// Uses `std::time` spin-wait until `std::async_runtime::sleep_ms_blocking` import codegen is fixed.
 pub fn pause_ms(ms: int) {

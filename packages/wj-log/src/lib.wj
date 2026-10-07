@@ -47,6 +47,22 @@ pub fn is_error_level(level: LogLevel) -> bool {
     }
 }
 
+/// True when `level` is Warn.
+pub fn is_warn_level(level: LogLevel) -> bool {
+    match level {
+        LogLevel::Warn => true,
+        _ => false,
+    }
+}
+
+/// True when `level` is Debug.
+pub fn is_debug_level(level: LogLevel) -> bool {
+    match level {
+        LogLevel::Debug => true,
+        _ => false,
+    }
+}
+
 /// Parse `text`, or return `fallback` when unknown.
 pub fn parse_level_or(text: string, fallback: LogLevel) -> LogLevel {
     match parse_level(text) {

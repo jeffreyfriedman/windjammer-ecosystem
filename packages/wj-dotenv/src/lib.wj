@@ -94,3 +94,20 @@ pub fn key_count(map: HashMap<string, string>) -> int {
 pub fn is_empty(map: HashMap<string, string>) -> bool {
     key_count(map) == 0
 }
+
+/// Look up `key` as `Option` (None when missing).
+pub fn get(map: HashMap<string, string>, key: string) -> Option<string> {
+    match map.get(key) {
+        Some(value) => Some(value),
+        None => None,
+    }
+}
+
+/// All values in `map` (order not guaranteed).
+pub fn values(map: HashMap<string, string>) -> Vec<string> {
+    let mut out = Vec::new()
+    for (_key, value) in map {
+        out.push(value)
+    }
+    out
+}

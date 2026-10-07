@@ -1,4 +1,6 @@
+use crate::count_dirs
 use crate::count_files
+use crate::has_dirs
 use crate::has_files
 use crate::is_hidden_name
 use crate::walk
@@ -208,6 +210,24 @@ fn test_has_files() {
     match has_files("/tmp/wj-fs-walk-does-not-exist-xyz") {
         Ok(_) => assert(false, "expected Err"),
         Err(msg) => assert(msg.len() > 0, "error message"),
+    }
+    teardown_tree(root)
+}
+
+fn test_count_dirs_and_has_dirs() {
+    // Unique root — parallel tests share /tmp and must not collide under ENOSPC.
+    let root = "/tmp/wj-fs-walk-tree-dirs-solo"
+    match setup_tree(root) {
+        Ok(_) => {},
+        Err(e) => assert(false, "setup failed: ${e}"),
+    }
+    match count_dirs(root) {
+        Ok(n) => assert(n >= 2, "sub + nested"),
+        Err(e) => assert(false, "count_dirs: ${e}"),
+    }
+    match has_dirs(root) {
+        Ok(yes) => assert(yes, "has dirs"),
+        Err(e) => assert(false, "has_dirs: ${e}"),
     }
     teardown_tree(root)
 }

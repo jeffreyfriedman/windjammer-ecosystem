@@ -2,8 +2,10 @@ use crate::parse_level
 use crate::parse_level_or
 use crate::level_label
 use crate::level_rank
+use crate::is_debug_level
 use crate::is_enabled
 use crate::is_error_level
+use crate::is_warn_level
 use crate::init_from_level_text
 use crate::log_tagged
 use std::log::LogLevel
@@ -73,4 +75,11 @@ fn test_is_error_level() {
 fn test_parse_level_or_falls_back() {
     assert_eq(level_label(parse_level_or("INFO", LogLevel::Error)), "info")
     assert_eq(level_label(parse_level_or("nope", LogLevel::Warn)), "warn")
+}
+
+fn test_is_warn_and_debug_level() {
+    assert(is_warn_level(LogLevel::Warn), "warn")
+    assert(!is_warn_level(LogLevel::Error), "error not warn")
+    assert(is_debug_level(LogLevel::Debug), "debug")
+    assert(!is_debug_level(LogLevel::Info), "info not debug")
 }

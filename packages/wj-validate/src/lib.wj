@@ -104,6 +104,27 @@ pub fn all_ok(errors: Vec<string>) -> Result<(), string> {
     Err(out)
 }
 
+/// True when `errors` is non-empty.
+pub fn has_errors(errors: Vec<string>) -> bool {
+    errors.len() > 0
+}
+
+/// Predicate form of `require_email` (no field name).
+pub fn is_email(value: string) -> bool {
+    match require_email("email", value) {
+        Ok(_) => true,
+        Err(_) => false,
+    }
+}
+
+/// Require `value > 0`.
+pub fn require_positive(field: string, value: int) -> Result<int, string> {
+    if value <= 0 {
+        return Err("${field} must be positive")
+    }
+    Ok(value)
+}
+
 /// Require an absolute `http://` or `https://` URL with a non-empty host.
 pub fn require_url(field: string, value: string) -> Result<string, string> {
     let trimmed = strings.trim(value)

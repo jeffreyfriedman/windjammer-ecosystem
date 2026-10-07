@@ -202,6 +202,29 @@ pub fn is_https(u: Url) -> bool {
     u.scheme == "https"
 }
 
+/// True when scheme is `http` (case-sensitive, as parsed).
+pub fn is_http(u: Url) -> bool {
+    u.scheme == "http"
+}
+
+/// First query value for `key`, or `default` when missing.
+pub fn query_get_or(query: string, key: string, default: string) -> string {
+    match query_get(query, key) {
+        Some(v) => v,
+        None => default,
+    }
+}
+
+/// True when the URL has an explicit port.
+pub fn has_port(u: Url) -> bool {
+    strings.len(u.port) > 0
+}
+
+/// True when the URL has a non-empty fragment.
+pub fn has_fragment(u: Url) -> bool {
+    strings.len(u.fragment) > 0
+}
+
 fn empty_string() -> string {
     ""
 }

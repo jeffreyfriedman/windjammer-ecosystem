@@ -4,6 +4,7 @@ Weekly build health for seed apps and packages.
 
 | Week | Date | Apps / packages green | `extern fn` | Crates via interop | Compiler issues | Notes |
 |------|------|----------------------|-------------|--------------------|-----------------|-------|
+| 2 | 2026-10-06 | deepen `wj-yaml`/`wj-url`/`wj-validate` | 0 | 0 | P3.687 shared-verify contention (isolated target for url) | `get_int_or`/`get_bool_or`/`is_valid`, `query_get_or`/`has_port`/`has_fragment`/`is_http`, `is_email`/`require_positive`/`has_errors`; tip **20+20+31** green |
 | 2 | 2026-10-06 | deepen `wj-csv`/`wj-glob`/`wj-toml` | 0 | 0 | P3.687 (shared-verify Doc-tests E0463; isolated target GREEN) | `is_empty`/`get_cell`/`has_column`, `any_match`/`none_match`/`all_match`, `key_count`/`is_empty`/`keys`; tip **10+19+20** green |
 | 2 | 2026-10-06 | deepen `wj-inflect`/`wj-event`/`wj-multipart` | 0 | 0 | — | `constant_case`/`is_snake_case`/`is_kebab_case`, `is_empty`/`has_listeners`/`peek`, `part_count`/`field_names`/`get_field_or`; tip **18+14+13** green |
 | 2 | 2026-10-05 | deepen `wj-path`/`wj-cookie`/`wj-compress` | 0 | 0 | — | `is_relative`/`change_extension`/`ensure_leading_slash`, `get_cookie_or`/`is_empty`/`delete_cookie_header`, `default_min_bytes`/`should_compress_default`/`is_gzip_encoding`; tip **16+14+15** green |

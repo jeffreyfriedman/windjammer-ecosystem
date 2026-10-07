@@ -51,3 +51,19 @@ pub fn match_count(pattern: string, text: string) -> Result<int, string> {
         Err(e) => Err(e),
     }
 }
+
+/// True when `pattern` matches at least once in `text`.
+pub fn has_matches(pattern: string, text: string) -> Result<bool, string> {
+    match match_count(pattern, text) {
+        Ok(n) => Ok(n > 0),
+        Err(e) => Err(e),
+    }
+}
+
+/// True when `pattern` matches zero times in `text`.
+pub fn none_match(pattern: string, text: string) -> Result<bool, string> {
+    match match_count(pattern, text) {
+        Ok(n) => Ok(n == 0),
+        Err(e) => Err(e),
+    }
+}

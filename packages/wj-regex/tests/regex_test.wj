@@ -1,8 +1,10 @@
 use crate::escape
 use crate::find
 use crate::find_all
+use crate::has_matches
 use crate::is_match
 use crate::match_count
+use crate::none_match
 use crate::replace
 use crate::replace_all
 use crate::split
@@ -114,5 +116,21 @@ fn test_match_count() {
     match match_count("\\d+", "abc") {
         Ok(n) => assert_eq(n, 0),
         Err(_) => assert(false, "match_count zero"),
+    }
+}
+
+@test
+fn test_has_matches_and_none_match() {
+    match has_matches("\\d+", "a1b") {
+        Ok(yes) => assert(yes, "has"),
+        Err(_) => assert(false, "has err"),
+    }
+    match none_match("\\d+", "abc") {
+        Ok(yes) => assert(yes, "none"),
+        Err(_) => assert(false, "none err"),
+    }
+    match none_match("\\d+", "a1") {
+        Ok(yes) => assert(!yes, "has digits"),
+        Err(_) => assert(false, "none digits err"),
     }
 }

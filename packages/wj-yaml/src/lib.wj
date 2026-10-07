@@ -86,6 +86,33 @@ pub fn has_path(text: string, path: string) -> bool {
     }
 }
 
+/// Integer at `path`, or `default` when missing / not an int.
+pub fn get_int_or(text: string, path: string, default: int) -> int {
+    match get_int(text, path) {
+        Some(v) => v,
+        None => default,
+    }
+}
+
+/// Boolean at `path`, or `default` when missing / not a bool.
+pub fn get_bool_or(text: string, path: string, default: bool) -> bool {
+    match get_bool(text, path) {
+        Some(v) => v,
+        None => default,
+    }
+}
+
+/// True when `text` parses as YAML (non-empty and convertible to JSON).
+pub fn is_valid(text: string) -> bool {
+    if strings.len(strings.trim(text)) == 0 {
+        return false
+    }
+    match to_json(text) {
+        Ok(_) => true,
+        Err(_) => false,
+    }
+}
+
 fn load_root(text: string) -> Option<Value> {
     match to_json(text) {
         Ok(j) => {

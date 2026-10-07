@@ -1,9 +1,13 @@
 use crate::parse
 use crate::format_url
+use crate::has_fragment
+use crate::has_port
+use crate::is_http
 use crate::is_https
 use crate::join_url
 use crate::origin
 use crate::query_get
+use crate::query_get_or
 use crate::query_has
 use crate::query_remove
 use crate::query_set
@@ -187,5 +191,31 @@ fn test_origin_and_is_https() {
             assert_eq(origin(u), "http://example.com")
         },
         Err(_) => assert(false, "parse http"),
+    }
+}
+
+@test
+fn test_query_get_or() {
+    assert_eq(query_get_or("a=1&b=2", "a", "0"), "1")
+    assert_eq(query_get_or("a=1&b=2", "z", "0"), "0")
+}
+
+@test
+fn test_has_port_and_fragment_and_is_http() {
+    match parse("https://example.com:8443/api#top") {
+        Ok(u) => {
+            assert(has_port(u), "port set")
+            assert(has_fragment(u), "fragment set")
+            assert(!is_http(u), "not http")
+        },
+        Err(_) => assert(false, "parse with port+frag"),
+    }
+    match parse("http://example.com/x") {
+        Ok(u) => {
+            assert(!has_port(u), "no port")
+            assert(!has_fragment(u), "no fragment")
+            assert(is_http(u), "http")
+        },
+        Err(_) => assert(false, "parse http bare"),
     }
 }

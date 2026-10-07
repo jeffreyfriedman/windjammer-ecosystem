@@ -123,3 +123,17 @@ pub fn with_frame_options(headers: SecurityHeaders, directive: string) -> Securi
 pub fn is_frame_deny(headers: SecurityHeaders) -> bool {
     headers.frame_options == "DENY"
 }
+
+/// Return `headers` with `referrer_policy` set.
+pub fn with_referrer(headers: SecurityHeaders, policy: string) -> SecurityHeaders {
+    let mut out = headers
+    out.referrer_policy = policy
+    out
+}
+
+/// Return `headers` with HSTS max-age set (`0` disables).
+pub fn with_hsts(headers: SecurityHeaders, max_age_secs: int) -> SecurityHeaders {
+    let mut out = headers
+    out.hsts_max_age_secs = max_age_secs
+    out
+}

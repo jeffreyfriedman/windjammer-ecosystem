@@ -4,6 +4,7 @@ Weekly build health for seed apps and packages.
 
 | Week | Date | Apps / packages green | `extern fn` | Crates via interop | Compiler issues | Notes |
 |------|------|----------------------|-------------|--------------------|-----------------|-------|
+| 2 | 2026-10-06 | deepen `wj-headers`/`wj-uuid`/`wj-cors` | 0 | 0 | private CARGO_HOME | `with_referrer`/`with_hsts`, `is_v1`/`is_v5`, `allowed_origin_count`; tip **17+23+15** green |
 | 2 | 2026-10-06 | deepen `wj-inflect`/`wj-event`/`wj-multipart` | 0 | 0 | eco `.cargo-home` syn/`cc` corruption → private CARGO_HOME; Part import for empty Vec | `is_constant_case`, `pending_count`, `is_empty`/`file_count`; tip **19+15+14** green |
 | 2 | 2026-10-06 | deepen `wj-toml`/`wj-glob`/`wj-csv` | 0 | 0 | — | `require`/`values`, `exactly_one_match`, `column_index`; tip **21+20+11** green |
 | 2 | 2026-10-06 | deepen `wj-config`/`wj-cron` | 0 | 0 | — | `get`/`require`/`is_empty`, `every_minute`/`format_cron`/`is_wildcard_field`; tip **12+31** green |

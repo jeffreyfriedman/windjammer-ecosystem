@@ -1,4 +1,5 @@
 use crate::allow_origin
+use crate::allowed_origin_count
 use crate::allows_wildcard
 use crate::cors_header_lines
 use crate::cors_line_count
@@ -157,4 +158,14 @@ fn test_cors_line_count() {
         Some(h) => assert_eq(cors_line_count(h), 3),
         None => assert(false, "preflight"),
     }
+}
+
+@test
+fn test_allowed_origin_count() {
+    let mut allowed = Vec::new()
+    allowed.push("https://a.example")
+    allowed.push("https://b.example")
+    assert_eq(allowed_origin_count(allowed), 2)
+    let empty = Vec::new()
+    assert_eq(allowed_origin_count(empty), 0)
 }

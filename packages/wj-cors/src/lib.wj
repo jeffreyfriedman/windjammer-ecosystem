@@ -140,3 +140,14 @@ pub fn cors_line_count(headers: CorsHeaders) -> int {
     }
     n
 }
+
+/// Number of entries in an allow-list (including `*`).
+pub fn allowed_origin_count(allowed: Vec<string>) -> int {
+    let mut n = 0
+    let mut i = 0
+    while i < allowed.len() {
+        n = n + 1
+        i = i + 1
+    }
+    n
+}

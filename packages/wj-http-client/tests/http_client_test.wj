@@ -1,14 +1,19 @@
 use crate::HttpResult
 use crate::body_len
+use crate::body_of
+use crate::has_body
 use crate::is_empty_body
 use crate::status_is_client_error
 use crate::status_is_created
 use crate::status_is_informational
 use crate::status_is_no_content
+use crate::status_is_not_found
 use crate::status_is_ok
 use crate::status_is_redirect
 use crate::status_is_server_error
 use crate::status_is_success
+use crate::status_is_unauthorized
+use crate::status_of
 use crate::require_ok
 use crate::error_message
 use crate::from_parts
@@ -91,4 +96,17 @@ fn test_created_no_content_and_body_helpers() {
     let empty = from_parts(204, "")
     assert_eq(body_len(empty), 0)
     assert(is_empty_body(empty), "empty body")
+}
+
+fn test_status_auth_not_found_and_accessors() {
+    assert(status_is_unauthorized(401), "401")
+    assert(!status_is_unauthorized(403), "403 not unauthorized")
+    assert(status_is_not_found(404), "404")
+    assert(!status_is_not_found(400), "400 not not-found")
+    let result = from_parts(200, "hello")
+    assert_eq(status_of(result), 200)
+    assert_eq(body_of(result), "hello")
+    assert(has_body(result), "has body")
+    let empty = from_parts(204, "")
+    assert(!has_body(empty), "no body")
 }

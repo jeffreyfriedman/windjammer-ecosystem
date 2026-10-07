@@ -62,6 +62,31 @@ pub fn status_is_informational(status: u16) -> bool {
     status >= 100 && status < 200
 }
 
+/// True when `status` is exactly `401 Unauthorized`.
+pub fn status_is_unauthorized(status: u16) -> bool {
+    status == 401
+}
+
+/// True when `status` is exactly `404 Not Found`.
+pub fn status_is_not_found(status: u16) -> bool {
+    status == 404
+}
+
+/// Status code accessor.
+pub fn status_of(result: HttpResult) -> u16 {
+    result.status
+}
+
+/// Body text accessor.
+pub fn body_of(result: HttpResult) -> string {
+    result.body
+}
+
+/// True when `result` has a non-empty body.
+pub fn has_body(result: HttpResult) -> bool {
+    !is_empty_body(result)
+}
+
 /// Human-readable error for a failed response.
 pub fn error_message(status: u16, body: string) -> string {
     "HTTP ${status}: ${body}"

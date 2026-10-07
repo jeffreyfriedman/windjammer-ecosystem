@@ -84,6 +84,19 @@ pub fn more_severe(left: LogLevel, right: LogLevel) -> bool {
     level_rank(left) > level_rank(right)
 }
 
+/// True when `left` is strictly less severe than `right`.
+pub fn less_severe(left: LogLevel, right: LogLevel) -> bool {
+    level_rank(left) < level_rank(right)
+}
+
+/// Parse `text` as a log level, or `Err` naming the unknown text.
+pub fn require_level(text: string) -> Result<LogLevel, string> {
+    match parse_level(text) {
+        Some(level) => Ok(level),
+        None => Err("unknown log level: ${text}"),
+    }
+}
+
 /// Parse `text`, or return `fallback` when unknown.
 pub fn parse_level_or(text: string, fallback: LogLevel) -> LogLevel {
     match parse_level(text) {

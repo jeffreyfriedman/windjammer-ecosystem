@@ -67,3 +67,24 @@ pub fn none_match(pattern: string, text: string) -> Result<bool, string> {
         Err(e) => Err(e),
     }
 }
+
+/// True when `pattern` compiles (probed via `is_match` against empty text).
+pub fn is_valid_pattern(pattern: string) -> bool {
+    match is_match(pattern, "") {
+        Ok(_) => true,
+        Err(_) => false,
+    }
+}
+
+/// First match substring, or `default` when missing / invalid pattern.
+pub fn find_or(pattern: string, text: string, default: string) -> string {
+    match find(pattern, text) {
+        Ok(opt) => {
+            match opt {
+                Some(v) => v,
+                None => default,
+            }
+        },
+        Err(_) => default,
+    }
+}

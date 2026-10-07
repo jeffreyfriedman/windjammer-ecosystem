@@ -7,13 +7,16 @@ use crate::get_field
 use crate::get_field_or
 use crate::get_file
 use crate::has_field
+use crate::has_file
 use crate::is_empty
 use crate::parse
 use crate::parse_multipart
 use crate::part_count
+use crate::require_field
 use crate::MultipartBody
 use crate::Part
 use std::strings
+
 
 @test
 fn test_boundary_from_content_type() {
@@ -209,5 +212,31 @@ fn test_is_empty_and_file_count() {
             assert_eq(file_count(parts), 1)
         },
         Err(_) => assert(false, "parse"),
+    }
+}
+
+@test
+fn test_require_field_and_has_file() {
+    let boundary = "----rf"
+    let body = "--${boundary}\r\nContent-Disposition: form-data; name=\"f\"; filename=\"a.txt\"\r\n\r\ndata\r\n--${boundary}\r\nContent-Disposition: form-data; name=\"msg\"\r\n\r\nok\r\n--${boundary}--"
+    match parse_multipart(boundary, body) {
+        Ok(parts) => {
+            match require_field(parts, "msg") {
+                Ok(v) => assert_eq(v, "ok"),
+                Err(_) => assert(false, "require msg"),
+            }
+            assert(has_file(parts, "f"), "file f")
+            assert(!has_file(parts, "msg"), "msg not file")
+        },
+        Err(_) => assert(false, "parse"),
+    }
+    match parse_multipart(boundary, body) {
+        Ok(parts) => {
+            match require_field(parts, "missing") {
+                Ok(_) => assert(false, "missing must Err"),
+                Err(msg) => assert(strings.contains(msg, "missing"), "mentions field"),
+            }
+        },
+        Err(_) => assert(false, "parse missing"),
     }
 }

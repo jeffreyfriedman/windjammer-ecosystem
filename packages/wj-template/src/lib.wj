@@ -147,6 +147,20 @@ pub fn is_fully_bound(template: string, vars: HashMap<string, string>) -> bool {
     missing_keys(template, vars).len() == 0
 }
 
+/// Number of unbound placeholder names in `template`.
+pub fn missing_count(template: string, vars: HashMap<string, string>) -> int {
+    missing_keys(template, vars).len()
+}
+
+/// Return `template` when fully bound, or `Err` listing unbound placeholders.
+pub fn require_fully_bound(template: string, vars: HashMap<string, string>) -> Result<string, string> {
+    let missing = missing_keys(template, vars)
+    if missing.len() == 0 {
+        return Ok(template)
+    }
+    Err("unbound placeholders")
+}
+
 fn list_contains(items: Vec<string>, needle: string) -> bool {
     let mut i = 0
     while i < items.len() {

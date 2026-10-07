@@ -58,3 +58,21 @@ pub fn clamp_ms(ms: int, min_ms: int, max_ms: int) -> int {
     }
     ms
 }
+
+/// Parse a duration string into whole seconds, or `default` when parsing fails.
+pub fn parse_secs_or(text: string, default: int) -> int {
+    match parse_secs(text) {
+        Ok(secs) => secs,
+        Err(_) => default,
+    }
+}
+
+/// True when `ms` is exactly zero.
+pub fn is_zero(ms: int) -> bool {
+    ms == 0
+}
+
+/// Add `delta_ms` to `ms` (may be negative).
+pub fn add_ms(ms: int, delta_ms: int) -> int {
+    ms + delta_ms
+}

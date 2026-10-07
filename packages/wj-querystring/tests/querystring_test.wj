@@ -10,6 +10,8 @@ use crate::parse
 use crate::remove
 use crate::set
 use crate::stringify
+use crate::unique_key_count
+use crate::value_count
 use std::strings
 
 @test
@@ -156,4 +158,13 @@ fn test_keys_unique_in_order() {
     assert_eq(ks.len(), 2)
     assert_eq(ks[0], "a")
     assert_eq(ks[1], "b")
+}
+
+@test
+fn test_unique_key_count_and_value_count() {
+    assert_eq(unique_key_count("a=1&b=2&a=3"), 2)
+    assert_eq(unique_key_count(""), 0)
+    assert_eq(value_count("a=1&b=2&a=3", "a"), 2)
+    assert_eq(value_count("a=1&b=2&a=3", "b"), 1)
+    assert_eq(value_count("a=1&b=2&a=3", "z"), 0)
 }

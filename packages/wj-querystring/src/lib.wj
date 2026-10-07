@@ -123,3 +123,27 @@ pub fn keys(query: string) -> Vec<string> {
     }
     out
 }
+
+/// Number of unique keys in `query`.
+pub fn unique_key_count(query: string) -> int {
+    let ks = keys(query)
+    let mut n = 0
+    let mut i = 0
+    while i < ks.len() {
+        n = n + 1
+        i = i + 1
+    }
+    n
+}
+
+/// How many values are associated with `key` (including duplicates).
+pub fn value_count(query: string, key: string) -> int {
+    let vals = get_all(query, key)
+    let mut n = 0
+    let mut i = 0
+    while i < vals.len() {
+        n = n + 1
+        i = i + 1
+    }
+    n
+}

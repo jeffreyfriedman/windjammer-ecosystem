@@ -62,6 +62,43 @@ pub fn require_field(fields: Vec<(string, string)>, name: string) -> Result<stri
     }
 }
 
+/// True when the field list is empty.
+pub fn is_empty_fields(fields: Vec<(string, string)>) -> bool {
+    fields.len() == 0
+}
+
+/// Name of the first field, or None when empty.
+pub fn first_field_name(fields: Vec<(string, string)>) -> Option<string> {
+    if fields.len() == 0 {
+        return None
+    }
+    let pair = fields[0]
+    Some(pair.0)
+}
+
+/// Name of the last field, or None when empty.
+pub fn last_field_name(fields: Vec<(string, string)>) -> Option<string> {
+    let n = fields.len()
+    if n == 0 {
+        return None
+    }
+    let pair = fields[n - 1]
+    Some(pair.0)
+}
+
+/// True when any field value equals `value`.
+pub fn has_value(fields: Vec<(string, string)>, value: string) -> bool {
+    let mut i = 0
+    while i < fields.len() {
+        let pair = fields[i]
+        if pair.1 == value {
+            return true
+        }
+        i = i + 1
+    }
+    false
+}
+
 /// Render fields as `name=value` lines (demo / CLI output).
 pub fn format_fields(fields: Vec<(string, string)>) -> string {
     let mut out = ""

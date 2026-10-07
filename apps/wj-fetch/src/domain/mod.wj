@@ -11,6 +11,9 @@ pub use format::format_body
 pub use format::format_fetch_result
 pub use format::format_fetch_error
 pub use format::is_client_error_status
+pub use format::is_informational_status
+pub use format::is_redirect_status
+pub use format::is_server_error_status
 pub use format::is_success_status
 pub use format::resolve_fetch_output
 pub use config::FetchConfig

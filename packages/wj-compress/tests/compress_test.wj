@@ -1,4 +1,5 @@
 use crate::accepts_gzip
+use crate::accepts_identity
 use crate::below_min_bytes
 use crate::content_encoding_gzip
 use crate::content_encoding_header
@@ -12,6 +13,7 @@ use crate::is_identity_encoding
 use crate::meets_min_bytes
 use crate::negotiate
 use crate::negotiate_or_identity
+use crate::prefer_gzip
 use crate::prefer_identity
 use crate::should_compress
 use crate::should_compress_default
@@ -157,4 +159,16 @@ fn test_below_min_and_negotiate_or_identity() {
     assert_eq(negotiate_or_identity("gzip"), "gzip")
     assert_eq(negotiate_or_identity("deflate"), "identity")
     assert_eq(negotiate_or_identity(""), "identity")
+}
+
+@test
+fn test_accepts_identity_and_prefer_gzip() {
+    assert(accepts_identity("identity"), "bare")
+    assert(accepts_identity("gzip, identity"), "listed")
+    assert(accepts_identity("*"), "star")
+    assert(!accepts_identity("gzip"), "gzip only")
+    assert(prefer_gzip("gzip"), "gzip")
+    assert(prefer_gzip("gzip, deflate"), "gzip first")
+    assert(!prefer_gzip("identity"), "identity")
+    assert(!prefer_gzip(""), "empty")
 }

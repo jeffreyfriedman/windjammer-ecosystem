@@ -6,7 +6,9 @@ use crate::get_or
 use crate::has
 use crate::has_pairs
 use crate::is_empty
+use crate::is_singleton
 use crate::keys
+use crate::last_key
 use crate::pair_count
 use crate::parse
 use crate::remove
@@ -197,4 +199,19 @@ fn test_has_pairs_and_first_key() {
         Some(_) => assert(false, "none"),
         None => {},
     }
+}
+
+@test
+fn test_last_key_and_is_singleton() {
+    match last_key("a=1&b=2") {
+        Some(k) => assert_eq(k, "b"),
+        None => assert(false, "last"),
+    }
+    match last_key("") {
+        Some(_) => assert(false, "empty"),
+        None => {},
+    }
+    assert(is_singleton("a=1"), "one pair")
+    assert(!is_singleton("a=1&b=2"), "two pairs")
+    assert(!is_singleton(""), "empty")
 }

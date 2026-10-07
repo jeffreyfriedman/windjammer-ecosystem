@@ -169,3 +169,17 @@ pub fn first_key(query: string) -> Option<string> {
     }
     Some(ks[0])
 }
+
+/// Last unique key in parse order, if any.
+pub fn last_key(query: string) -> Option<string> {
+    let ks = keys(query)
+    if ks.len() == 0 {
+        return None
+    }
+    Some(ks[ks.len() - 1])
+}
+
+/// True when the query has exactly one key/value pair.
+pub fn is_singleton(query: string) -> bool {
+    pair_count(query) == 1
+}

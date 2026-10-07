@@ -157,3 +157,18 @@ pub fn clear_listeners(bus: EventBus) -> EventBus {
         queue: bus.queue,
     }
 }
+
+/// True when the bus has no queued events.
+pub fn is_idle(bus: EventBus) -> bool {
+    !has_pending(bus)
+}
+
+/// Event name accessor.
+pub fn event_name(event: Event) -> string {
+    event.name
+}
+
+/// Event payload accessor.
+pub fn event_payload(event: Event) -> string {
+    event.payload
+}

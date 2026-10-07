@@ -1,5 +1,8 @@
+use crate::has_param
+use crate::is_param_pattern
 use crate::match_route
 use crate::matches_route
+use crate::param_count
 use crate::param_or
 use std::collections::HashMap
 
@@ -94,4 +97,29 @@ fn test_param_or() {
         Some(params) => assert_eq(param_or(params, "missing", "none"), "none"),
         None => assert(false, "expected match for param_or missing"),
     }
+}
+
+@test
+fn test_has_param_and_param_count() {
+    match match_route("/orgs/:org/repos/:repo", "/orgs/acme/repos/api") {
+        Some(params) => {
+            assert(has_param(params, "org"), "org")
+            assert(has_param(params, "repo"), "repo")
+            assert(!has_param(params, "id"), "no id")
+            assert_eq(param_count(params), 2)
+        },
+        None => assert(false, "multi"),
+    }
+    match match_route("/health", "/health") {
+        Some(params) => assert_eq(param_count(params), 0),
+        None => assert(false, "exact"),
+    }
+}
+
+@test
+fn test_is_param_pattern() {
+    assert(is_param_pattern("/users/:id"), "has param")
+    assert(is_param_pattern("/:a/:b"), "two")
+    assert(!is_param_pattern("/health"), "static")
+    assert(!is_param_pattern("/"), "root")
 }

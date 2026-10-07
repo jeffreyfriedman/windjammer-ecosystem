@@ -4,6 +4,7 @@ Weekly build health for seed apps and packages.
 
 | Week | Date | Apps / packages green | `extern fn` | Crates via interop | Compiler issues | Notes |
 |------|------|----------------------|-------------|--------------------|-----------------|-------|
+| 2 | 2026-10-06 | deepen `wj-router`/`wj-mime`/`wj-cookie` | 0 | 0 | ENOSPC corrupted `.cargo-home` registry (re-fetched src) | `has_param`/`param_count`/`is_param_pattern`, `plain`/`is_css`/`is_xml`, `cookie_names`/`is_secure`/`is_http_only`; tip **11+18+16** green |
 | 2 | 2026-10-06 | deepen `wj-json-util`/`wj-base64`/`wj-sha` | 0 | 0 | — | `path_get_or`/`is_objectish`/`is_arrayish`, `looks_like_base64`/`is_encoded`, `digest_equals`/`is_etag`; tip **20+11+9** green |
 | 2 | 2026-10-06 | deepen `wj-cors`/`wj-headers`/`wj-uuid` | 0 | 0 | — | `allows_wildcard`/`is_wildcard_origin`/`cors_line_count`, `without_csp`/`with_frame_options`/`is_frame_deny`, `is_v4`/`is_v7`/`is_canonical`; tip **14+16+22** green |
 | 2 | 2026-10-06 | deepen `wj-timefmt`/`wj-semver`/`wj-retry` | 0 | 0 | — | `diff_secs`/`sub_secs`/`is_same_day`, `bump_minor`/`bump_major`/`clear_prerelease`, `clamp_delay_ms`/`with_max_ms`; tip **24+14+13** green |

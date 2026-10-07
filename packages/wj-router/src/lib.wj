@@ -46,6 +46,40 @@ pub fn param_or(params: HashMap<string, string>, name: string, default: string) 
     }
 }
 
+/// True when `name` was captured in `params`.
+pub fn has_param(params: HashMap<string, string>, name: string) -> bool {
+    match params.get(name) {
+        Some(v) => {
+            let _keep = v
+            true
+        },
+        None => false,
+    }
+}
+
+/// Number of captured route params.
+pub fn param_count(params: HashMap<string, string>) -> int {
+    let mut n = 0
+    for (_k, _v) in params {
+        n = n + 1
+    }
+    n
+}
+
+/// True when `pattern` contains at least one `:param` segment.
+pub fn is_param_pattern(pattern: string) -> bool {
+    let segs = split_segments(normalize_path(pattern))
+    let mut i = 0
+    while i < segs.len() {
+        if strings.starts_with(segs[i], ":") {
+            return true
+        }
+        i = i + 1
+    }
+    false
+}
+
+
 fn normalize_path(path: string) -> string {
     if strings.len(path) == 0 {
         return "/"

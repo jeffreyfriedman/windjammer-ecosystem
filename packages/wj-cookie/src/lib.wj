@@ -70,6 +70,25 @@ pub fn is_empty(map: HashMap<string, string>) -> bool {
     cookie_count(map) == 0
 }
 
+/// Cookie names present in a parsed Cookie header map (HashMap iteration order).
+pub fn cookie_names(map: HashMap<string, string>) -> Vec<string> {
+    let mut names = Vec::new()
+    for (k, _v) in map {
+        names.push(k)
+    }
+    names
+}
+
+/// True when `Set-Cookie` has the Secure attribute.
+pub fn is_secure(cookie: SetCookie) -> bool {
+    cookie.secure
+}
+
+/// True when `Set-Cookie` has the HttpOnly attribute.
+pub fn is_http_only(cookie: SetCookie) -> bool {
+    cookie.http_only
+}
+
 /// Look up a cookie value by name, or `default` when missing.
 pub fn get_cookie_or(map: HashMap<string, string>, name: string, default: string) -> string {
     match get_cookie(map, name) {

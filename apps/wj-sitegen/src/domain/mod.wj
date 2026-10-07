@@ -6,6 +6,9 @@ pub use render::SiteDirs
 pub use render::GeneratedPage
 pub use render::html_filename
 pub use render::html_output_path
+pub use render::is_html_path
+pub use render::is_markdown_path
+pub use render::page_count
 pub use render::relative_path_from_root
 pub use render::title_from_markdown
 pub use render::markdown_to_html

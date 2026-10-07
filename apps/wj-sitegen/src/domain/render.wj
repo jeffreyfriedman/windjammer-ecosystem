@@ -89,6 +89,22 @@ pub fn html_filename(path: string) -> string {
     html_output_path(name)
 }
 
+pub fn is_markdown_path(path: string) -> bool {
+    strings.ends_with(path, ".md")
+}
+
+pub fn is_html_path(path: string) -> bool {
+    strings.ends_with(path, ".html")
+}
+
+pub fn page_count(pages: Vec<GeneratedPage>) -> int {
+    let mut n = 0
+    for _ in pages {
+        n = n + 1
+    }
+    n
+}
+
 fn parse_markdown(source: string) -> (string, string) {
     let lines = strings.split_lines(source)
     let mut title = "Untitled"

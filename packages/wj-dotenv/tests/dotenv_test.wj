@@ -4,6 +4,7 @@ use crate::has
 use crate::is_empty
 use crate::key_count
 use crate::keys
+use crate::merge
 use crate::parse
 use crate::load
 use crate::require
@@ -111,4 +112,14 @@ fn test_get_and_values() {
     }
     let vals = values(parse("HOST=localhost\nPORT=8080\n"))
     assert_eq(vals.len(), 2)
+}
+
+fn test_merge_overlay_wins() {
+    let base = parse("HOST=localhost\nPORT=8080\n")
+    let overlay = parse("PORT=9090\nDEBUG=1\n")
+    let merged = merge(base, overlay)
+    assert_eq(get_or(merged, "HOST", ""), "localhost")
+    assert_eq(get_or(merged, "PORT", ""), "9090")
+    assert_eq(get_or(merged, "DEBUG", ""), "1")
+    assert_eq(key_count(merged), 3)
 }

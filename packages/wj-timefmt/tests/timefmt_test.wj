@@ -9,6 +9,8 @@ use crate::is_before
 use crate::is_equal
 use crate::is_leap_year
 use crate::is_same_day
+use crate::is_same_month
+use crate::is_same_year
 use crate::now_epoch_secs
 use crate::now_rfc3339
 use crate::parse_rfc3339
@@ -291,6 +293,36 @@ fn test_is_same_day() {
             match parse_rfc3339("2024-01-16T00:00:00Z") {
                 Ok(c) => assert(!is_same_day(a, c), "next day"),
                 Err(_) => assert(false, "parse c"),
+            }
+        },
+        Err(_) => assert(false, "parse a"),
+    }
+}
+
+@test
+fn test_is_same_month_and_year() {
+    match parse_rfc3339("2024-01-15T12:00:00Z") {
+        Ok(a) => {
+            match parse_rfc3339("2024-01-31T00:00:00Z") {
+                Ok(b) => {
+                    assert(is_same_month(a, b), "same month")
+                    assert(is_same_year(a, b), "same year")
+                },
+                Err(_) => assert(false, "parse b"),
+            }
+            match parse_rfc3339("2024-02-01T00:00:00Z") {
+                Ok(c) => {
+                    assert(!is_same_month(a, c), "next month")
+                    assert(is_same_year(a, c), "same year across months")
+                },
+                Err(_) => assert(false, "parse c"),
+            }
+            match parse_rfc3339("2025-01-15T00:00:00Z") {
+                Ok(d) => {
+                    assert(!is_same_month(a, d), "different year")
+                    assert(!is_same_year(a, d), "next year")
+                },
+                Err(_) => assert(false, "parse d"),
             }
         },
         Err(_) => assert(false, "parse a"),

@@ -11,6 +11,8 @@ use crate::bump_major
 use crate::bump_minor
 use crate::bump_patch
 use crate::clear_prerelease
+use crate::clear_build
+use crate::is_stable
 
 fn test_parse_simple_version() {
     match parse("1.2.3") {
@@ -207,5 +209,32 @@ fn test_clear_prerelease() {
             assert(has_build(cleared), "build kept")
         },
         Err(_) => assert(false, "parse"),
+    }
+}
+
+fn test_clear_build() {
+    match parse("1.2.3-rc.1+build") {
+        Ok(v) => {
+            let cleared = clear_build(v)
+            assert_eq(format_version(cleared), "1.2.3-rc.1")
+            assert(has_prerelease(cleared), "pre kept")
+            assert(!has_build(cleared), "build cleared")
+        },
+        Err(_) => assert(false, "parse"),
+    }
+}
+
+fn test_is_stable() {
+    match parse("1.2.3") {
+        Ok(v) => assert(is_stable(v), "release is stable"),
+        Err(_) => assert(false, "parse release"),
+    }
+    match parse("1.2.3-beta") {
+        Ok(v) => assert(!is_stable(v), "prerelease not stable"),
+        Err(_) => assert(false, "parse pre"),
+    }
+    match parse("1.2.3+meta") {
+        Ok(v) => assert(is_stable(v), "build-only still stable"),
+        Err(_) => assert(false, "parse build"),
     }
 }

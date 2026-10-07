@@ -138,6 +138,22 @@ pub fn clear_prerelease(v: SemVer) -> SemVer {
     }
 }
 
+/// Drop build metadata; keep prerelease identifier.
+pub fn clear_build(v: SemVer) -> SemVer {
+    SemVer {
+        major: v.major,
+        minor: v.minor,
+        patch: v.patch,
+        pre: v.pre,
+        build: "",
+    }
+}
+
+/// True when `v` has no prerelease (build metadata allowed).
+pub fn is_stable(v: SemVer) -> bool {
+    !has_prerelease(v)
+}
+
 fn split_build(text: string) -> Result<(string, string), string> {
     let mut core = text
     let mut build = ""

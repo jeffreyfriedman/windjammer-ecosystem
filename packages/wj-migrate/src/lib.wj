@@ -168,3 +168,44 @@ pub fn migrations_from_filenames(filenames: Vec<string>) -> Result<Vec<Migration
     }
     Ok(sort_migrations(items))
 }
+
+/// Number of migrations in `items`.
+pub fn migration_count(items: Vec<Migration>) -> int {
+    let mut n = 0
+    for _m in items {
+        n = n + 1
+    }
+    n
+}
+
+/// Highest version in `items`, or `0` when empty.
+pub fn latest_version(items: Vec<Migration>) -> int {
+    let sorted = sort_migrations(items)
+    if sorted.len() == 0 {
+        return 0
+    }
+    sorted[sorted.len() - 1].version
+}
+
+/// Number of migrations in `all` not yet in `applied`.
+pub fn pending_count(all: Vec<Migration>, applied: Vec<int>) -> int {
+    let left = pending(all, applied)
+    let mut n = 0
+    for _m in left {
+        n = n + 1
+    }
+    n
+}
+
+/// True when `version` exists in `all` and is not yet applied.
+pub fn is_pending(all: Vec<Migration>, applied: Vec<int>, version: int) -> bool {
+    if version_applied(applied, version) {
+        return false
+    }
+    for m in all {
+        if m.version == version {
+            return true
+        }
+    }
+    false
+}

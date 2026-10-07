@@ -102,6 +102,20 @@ pub fn require(text: string, key: string) -> Result<string, string> {
     }
 }
 
+/// Merge `overlay` onto `base`; overlay keys win. Returns flat TOML text.
+pub fn merge(base: string, overlay: string) -> string {
+    let mut map = parse(base)
+    let over = parse(overlay)
+    for (key, value) in over {
+        map.insert(key, value)
+    }
+    let mut out = ""
+    for (key, value) in map {
+        out = "${out}${key} = \"${value}\"\n"
+    }
+    out
+}
+
 fn empty_string() -> string {
     ""
 }

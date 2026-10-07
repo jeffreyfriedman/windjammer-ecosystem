@@ -67,6 +67,20 @@ pub fn is_etag(value: string) -> bool {
     looks_like_sha256_hex(inner)
 }
 
+/// SHA-256 hex digest of `text` in uppercase.
+pub fn hex_upper(text: string) -> string {
+    strings.to_upper(hex(text))
+}
+
+/// Accept a SHA-256 hex digest (any case), or `Err` when the shape is wrong.
+pub fn require_digest(text: string) -> Result<string, string> {
+    let normalized = normalize_hex(text)
+    if looks_like_sha256_hex(normalized) {
+        return Ok(normalized)
+    }
+    Err("invalid sha256 digest")
+}
+
 fn is_hex_char(ch: char) -> bool {
     if ch == '0' { return true }
     if ch == '1' { return true }

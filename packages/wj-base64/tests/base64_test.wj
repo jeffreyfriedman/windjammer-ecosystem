@@ -7,8 +7,10 @@ use crate::encode_bytes
 use crate::decode_bytes
 use crate::is_basic_auth_header
 use crate::is_bearer_auth_header
+use crate::has_padding
 use crate::is_encoded
 use crate::looks_like_base64
+use crate::strip_padding
 
 fn test_encode_hello() {
     let text = "Hello"
@@ -99,4 +101,13 @@ fn test_looks_like_base64_and_is_encoded() {
     assert(!looks_like_base64("!!!"), "junk")
     assert(is_encoded("SGVsbG8="), "round-trips")
     assert(!is_encoded("!!!"), "not encoded")
+}
+
+fn test_has_padding_and_strip_padding() {
+    assert(has_padding("SGVsbG8="), "one pad")
+    assert(has_padding("YQ=="), "two pad")
+    assert(!has_padding("YQ"), "no pad")
+    assert_eq(strip_padding("SGVsbG8="), "SGVsbG8")
+    assert_eq(strip_padding("YQ=="), "YQ")
+    assert_eq(strip_padding("YQ"), "YQ")
 }

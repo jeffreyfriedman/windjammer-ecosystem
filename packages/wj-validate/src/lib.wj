@@ -125,6 +125,14 @@ pub fn require_positive(field: string, value: int) -> Result<int, string> {
     Ok(value)
 }
 
+/// Require `value >= 0`.
+pub fn require_nonneg(field: string, value: int) -> Result<int, string> {
+    if value < 0 {
+        return Err("${field} must be non-negative")
+    }
+    Ok(value)
+}
+
 /// Require an absolute `http://` or `https://` URL with a non-empty host.
 pub fn require_url(field: string, value: string) -> Result<string, string> {
     let trimmed = strings.trim(value)

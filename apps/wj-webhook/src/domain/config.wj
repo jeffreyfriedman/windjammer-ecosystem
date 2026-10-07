@@ -40,6 +40,18 @@ pub fn port_from_env() -> int {
     }
 }
 
+pub fn is_dev_secret(cfg: WebhookConfig) -> bool {
+    cfg.secret == "dev-secret"
+}
+
+pub fn has_allowed_origins(cfg: WebhookConfig) -> bool {
+    cfg.allowed_origins.len() > 0
+}
+
+pub fn max_event_len_of(cfg: WebhookConfig) -> int {
+    cfg.max_event_len
+}
+
 fn secret_from_env() -> string {
     match env.get("WEBHOOK_SECRET") {
         Some(value) => value,

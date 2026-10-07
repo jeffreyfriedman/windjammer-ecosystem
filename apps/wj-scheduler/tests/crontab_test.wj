@@ -1,6 +1,9 @@
 use crate::domain::parse_crontab_line
 use crate::domain::parse_crontab
+use crate::domain::due_count
 use crate::domain::due_schedules
+use crate::domain::expr_count
+use crate::domain::is_empty_exprs
 use crate::domain::parse_civil
 
 fn test_parse_crontab_line_skips_blank() {
@@ -80,5 +83,27 @@ fn test_due_schedules_empty_when_none_match() {
             }
         },
         Err(_e) => assert(false, "civil"),
+    }
+}
+
+fn sample_exprs() -> Vec<string> {
+    let mut exprs = Vec::new()
+    exprs.push("@hourly")
+    exprs.push("*/5 * * * *")
+    exprs
+}
+
+fn test_expr_helpers_and_due_count() {
+    assert_eq(expr_count(sample_exprs()), 2)
+    assert(!is_empty_exprs(sample_exprs()), "nonempty")
+    assert(is_empty_exprs(Vec::new()), "empty")
+    match parse_civil("2026-01-01T09:00") {
+        Ok(at) => {
+            match due_count(sample_exprs(), at) {
+                Ok(n) => assert_eq(n, 2),
+                Err(e) => assert(false, e),
+            }
+        },
+        Err(_) => assert(false, "civil"),
     }
 }

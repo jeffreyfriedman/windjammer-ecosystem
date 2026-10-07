@@ -4,6 +4,7 @@ Weekly build health for seed apps and packages.
 
 | Week | Date | Apps / packages green | `extern fn` | Crates via interop | Compiler issues | Notes |
 |------|------|----------------------|-------------|--------------------|-----------------|-------|
+| 2 | 2026-10-06 | deepen `wj-scheduler`/`wj-proxy`/`wj-webhook` | 0 | 0 | ENOSPC ~0.3–2Gi; private CARGO_HOME; Library verify prune Permission denied | `expr_count`/`due_count`/`is_day_budget`, `is_safe_method`/`is_mutating_method`/`has_strip_prefix`/`is_unlimited_log`, `is_dev_secret`/`has_allowed_origins`/`max_event_len_of`; tip **39+27+16** green |
 | 2 | 2026-10-06 | deepen `wj-find`/`wj-pipeline`/`wj-first-hour` | 0 | 0 | ENOSPC ~6Gi; private CARGO_HOME | `hit_count`/`has_hits`/`first_hit`, `result_count`/`max_result_value`/`find_result_by_id`, `card_app`/`card_port`/`is_default_port`/`card_summary`; tip **5+7+4** green |
 | 2 | 2026-10-06 | deepen `wj-form-parse`/`wj-todo-cli`/`wj-fetch` | 0 | 0 | ENOSPC ~3.5Gi; private CARGO_HOME; package deps via `wj build src` | `field_count`/`has_field`/`field_get_or`/`require_field`, `pending_count`/`done_count`/`find_by_id`/`is_empty_todos`, `is_success_status`/`is_client_error_status`; tip **4+61+32** green |
 | 2 | 2026-10-06 | deepen `wj-migrate` + `wj-hello` | 0 | 0 | ENOSPC ~9–10Gi; private CARGO_HOME | `migration_count`/`latest_version`/`pending_count`/`is_pending`; hello `crate_name`/`semver`; tip **19+3** green |

@@ -43,6 +43,15 @@ pub fn port_from_env() -> int {
     }
 }
 
+pub fn has_strip_prefix(cfg: ProxyConfig) -> bool {
+    strings.len(cfg.strip_prefix) > 0
+}
+
+/// True when `log_max` is 0 (no ring-buffer cap).
+pub fn is_unlimited_log(cfg: ProxyConfig) -> bool {
+    cfg.log_max == 0
+}
+
 fn upstream_from_env() -> string {
     match env.get("PROXY_UPSTREAM") {
         Some(value) => value,

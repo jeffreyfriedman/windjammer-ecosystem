@@ -105,6 +105,25 @@ pub fn page_count(pages: Vec<GeneratedPage>) -> int {
     n
 }
 
+/// True when at least one page was generated.
+pub fn has_pages(pages: Vec<GeneratedPage>) -> bool {
+    page_count(pages) > 0
+}
+
+/// True when the page list is empty.
+pub fn is_empty_pages(pages: Vec<GeneratedPage>) -> bool {
+    page_count(pages) == 0
+}
+
+/// Ok(path) when `path` ends in `.md`; otherwise Err.
+pub fn require_markdown_path(path: string) -> Result<string, string> {
+    if is_markdown_path(path) {
+        Ok(path)
+    } else {
+        Err("expected markdown path (.md)")
+    }
+}
+
 fn parse_markdown(source: string) -> (string, string) {
     let lines = strings.split_lines(source)
     let mut title = "Untitled"

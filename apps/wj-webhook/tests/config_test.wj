@@ -23,3 +23,28 @@ fn test_config_predicates() {
     with_cors.allowed_origins.push("https://example.com")
     assert(has_allowed_origins(with_cors), "has cors")
 }
+
+fn test_secret_origin_and_id_helpers() {
+    use crate::domain::is_production_secret
+    use crate::domain::max_id_len_of
+    use crate::domain::origin_count
+    use crate::domain::secret_of
+    assert_eq(secret_of(WebhookConfig::defaults()), "dev-secret")
+    assert(!is_production_secret(WebhookConfig::defaults()), "defaults are not prod")
+    assert_eq(origin_count(WebhookConfig::defaults()), 0)
+    assert_eq(max_id_len_of(WebhookConfig::defaults()), 128)
+    let mut cfg = WebhookConfig::defaults()
+    cfg.secret = "prod-key"
+    cfg.allowed_origins.push("https://a.example")
+    cfg.allowed_origins.push("https://b.example")
+    assert_eq(secret_of(cfg), "prod-key")
+    let mut cfg2 = WebhookConfig::defaults()
+    cfg2.secret = "prod-key"
+    cfg2.allowed_origins.push("https://a.example")
+    cfg2.allowed_origins.push("https://b.example")
+    assert(is_production_secret(cfg2), "prod secret")
+    let mut cfg3 = WebhookConfig::defaults()
+    cfg3.allowed_origins.push("https://a.example")
+    cfg3.allowed_origins.push("https://b.example")
+    assert_eq(origin_count(cfg3), 2)
+}

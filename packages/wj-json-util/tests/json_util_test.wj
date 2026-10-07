@@ -1,7 +1,10 @@
 use crate::pretty
 use crate::compact
+use crate::is_arrayish
+use crate::is_objectish
 use crate::is_valid
 use crate::path_get
+use crate::path_get_or
 use crate::path_get_str
 use crate::path_exists
 use crate::path_set
@@ -160,4 +163,18 @@ fn test_path_exists() {
     assert(path_exists("{\"nums\":[10]}", "nums.0"), "index")
     assert(!path_exists("{\"a\":1}", "b"), "missing")
     assert(!path_exists("not-json", "a"), "invalid doc")
+}
+
+fn test_path_get_or() {
+    assert_eq(path_get_or("{\"a\":1}", "a", "0"), "1")
+    assert_eq(path_get_or("{\"a\":1}", "b", "0"), "0")
+}
+
+fn test_is_objectish_and_arrayish() {
+    assert(is_objectish("{\"a\":1}"), "object")
+    assert(!is_objectish("[1]"), "array not object")
+    assert(is_arrayish("[1,2]"), "array")
+    assert(!is_arrayish("{\"a\":1}"), "object not array")
+    assert(!is_objectish("not-json"), "garbage")
+    assert(!is_arrayish(""), "empty")
 }

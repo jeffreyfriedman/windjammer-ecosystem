@@ -7,6 +7,8 @@ use crate::encode_bytes
 use crate::decode_bytes
 use crate::is_basic_auth_header
 use crate::is_bearer_auth_header
+use crate::is_encoded
+use crate::looks_like_base64
 
 fn test_encode_hello() {
     let text = "Hello"
@@ -88,4 +90,13 @@ fn test_bearer_auth_header() {
 fn test_decode_or() {
     assert_eq(decode_or("SGVsbG8=", "fallback"), "Hello")
     assert_eq(decode_or("!!!", "fallback"), "fallback")
+}
+
+fn test_looks_like_base64_and_is_encoded() {
+    assert(looks_like_base64("SGVsbG8="), "padding")
+    assert(looks_like_base64("YQ=="), "short")
+    assert(!looks_like_base64(""), "empty")
+    assert(!looks_like_base64("!!!"), "junk")
+    assert(is_encoded("SGVsbG8="), "round-trips")
+    assert(!is_encoded("!!!"), "not encoded")
 }

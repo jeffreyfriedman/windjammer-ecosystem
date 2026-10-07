@@ -74,6 +74,40 @@ pub fn path_get_str(text: string, path: string) -> Option<string> {
     }
 }
 
+/// Compact JSON at `path`, or `default` when missing / invalid.
+pub fn path_get_or(text: string, path: string, default: string) -> string {
+    match path_get(text, path) {
+        Some(v) => v,
+        None => default,
+    }
+}
+
+/// True when valid JSON whose top-level value is an object.
+pub fn is_objectish(text: string) -> bool {
+    match json.parse(text) {
+        Ok(v) => {
+            match json.stringify(v) {
+                Ok(s) => strings.starts_with(strings.trim(s), "{"),
+                Err(_) => false,
+            }
+        },
+        Err(_) => false,
+    }
+}
+
+/// True when valid JSON whose top-level value is an array.
+pub fn is_arrayish(text: string) -> bool {
+    match json.parse(text) {
+        Ok(v) => {
+            match json.stringify(v) {
+                Ok(s) => strings.starts_with(strings.trim(s), "["),
+                Err(_) => false,
+            }
+        },
+        Err(_) => false,
+    }
+}
+
 /// Set JSON at a dotted object path (`user.name`). Creates intermediate objects.
 /// `value_text` is parsed as JSON. Array-index path segments are rejected.
 pub fn path_set(text: string, path: string, value_text: string) -> Result<string, string> {

@@ -4,6 +4,7 @@ Weekly build health for seed apps and packages.
 
 | Week | Date | Apps / packages green | `extern fn` | Crates via interop | Compiler issues | Notes |
 |------|------|----------------------|-------------|--------------------|-----------------|-------|
+| 2 | 2026-10-07 | deepen `wj-cron`/`wj-fs-walk`/`wj-retry` | 0 | 0 | private CARGO_HOME | `is_every_hour`/`source_of`, `count_visible_files`/`has_suffix_files`/`is_empty_tree`, `new_backoff`/`is_default_backoff`/`attempts_used`; tip **33+12+16** green |
 | 2 | 2026-10-07 | deepen `wj-http-client`/`wj-log`/`wj-jwt` | 0 | 0 | private CARGO_HOME | `status_is_unauthorized`/`status_is_not_found`/`status_of`/`body_of`/`has_body`, `less_severe`/`require_level`, `expires_at`/`has_email`; tip **10+15+12** green |
 | 2 | 2026-10-07 | deepen `wj-event`/`wj-regex`/`wj-multipart` | 0 | 0 | private CARGO_HOME | `is_idle`/`event_name`/`event_payload`, `at_least_n_matches`/`require_match`/`is_invalid_pattern`, `has_parts`/`text_count`/`require_file`; tip **17+13+16** green |
 | 2 | 2026-10-07 | deepen `wj-hash`/`wj-config`/`wj-template` | 0 | 0 | private CARGO_HOME | `bcrypt_cost`/`is_empty_hash`, `has_keys`/`has_entries`, `is_plain`/`has_missing`/`first_placeholder`; tip **10+14+20** green |

@@ -1,9 +1,12 @@
 use crate::count_dirs
 use crate::count_entries
 use crate::count_files
+use crate::count_visible_files
 use crate::has_dirs
 use crate::has_entries
 use crate::has_files
+use crate::has_suffix_files
+use crate::is_empty_tree
 use crate::is_hidden_name
 use crate::walk
 use crate::walk_files
@@ -249,4 +252,35 @@ fn test_count_entries_and_has_entries() {
         Err(e) => assert(false, "has_entries: ${e}"),
     }
     teardown_tree(root)
+}
+
+fn test_visible_suffix_and_empty_tree() {
+    let root = "/tmp/wj-fs-walk-tree-visible-solo"
+    match setup_tree(root) {
+        Ok(_) => {},
+        Err(e) => assert(false, "setup failed: ${e}"),
+    }
+    match count_visible_files(root) {
+        Ok(n) => assert(n >= 1, "visible files"),
+        Err(e) => assert(false, "count_visible: ${e}"),
+    }
+    match has_suffix_files(root, ".txt") {
+        Ok(yes) => assert(yes, "has txt"),
+        Err(e) => assert(false, "has_suffix: ${e}"),
+    }
+    match is_empty_tree(root) {
+        Ok(yes) => assert(!yes, "tree not empty"),
+        Err(e) => assert(false, "is_empty_tree: ${e}"),
+    }
+    teardown_tree(root)
+    let empty_root = "/tmp/wj-fs-walk-empty-solo"
+    match fs.create_dir_all(empty_root) {
+        Ok(_) => {},
+        Err(_) => assert(false, "create empty"),
+    }
+    match is_empty_tree(empty_root) {
+        Ok(yes) => assert(yes, "empty dir"),
+        Err(e) => assert(false, "empty check: ${e}"),
+    }
+    teardown_tree(empty_root)
 }

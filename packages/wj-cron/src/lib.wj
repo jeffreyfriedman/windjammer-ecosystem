@@ -242,6 +242,16 @@ pub fn is_every_minute(expr: CronExpr) -> bool {
     format_cron(expr) == "* * * * *"
 }
 
+/// True when `expr` is the every-hour schedule (`0 * * * *`).
+pub fn is_every_hour(expr: CronExpr) -> bool {
+    format_cron(expr) == "0 * * * *"
+}
+
+/// Original source text preserved on `expr`.
+pub fn source_of(expr: CronExpr) -> string {
+    expr.source
+}
+
 /// Format five cron fields as a space-separated expression.
 pub fn format_cron(expr: CronExpr) -> string {
     "${expr.minute} ${expr.hour} ${expr.day_of_month} ${expr.month} ${expr.day_of_week}"

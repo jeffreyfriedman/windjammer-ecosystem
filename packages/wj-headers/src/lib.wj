@@ -159,3 +159,18 @@ pub fn is_no_referrer(headers: SecurityHeaders) -> bool {
 pub fn referrer_of(headers: SecurityHeaders) -> string {
     headers.referrer_policy
 }
+
+/// `X-Frame-Options` value accessor.
+pub fn frame_of(headers: SecurityHeaders) -> string {
+    headers.frame_options
+}
+
+/// `Content-Security-Policy` value accessor.
+pub fn csp_of(headers: SecurityHeaders) -> string {
+    headers.content_security_policy
+}
+
+/// Alias of `hsts_enabled`.
+pub fn has_hsts(headers: SecurityHeaders) -> bool {
+    hsts_enabled(headers)
+}

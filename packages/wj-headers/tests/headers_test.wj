@@ -1,7 +1,10 @@
+use crate::csp_of
 use crate::defaults
 use crate::defaults_with_hsts
 use crate::format_headers
+use crate::frame_of
 use crate::has_csp
+use crate::has_hsts
 use crate::has_nosniff
 use crate::header_line_count
 use crate::hsts
@@ -172,4 +175,15 @@ fn test_nosniff_and_referrer_accessors() {
     let custom = with_referrer(defaults(), "strict-origin")
     assert(!is_no_referrer(custom), "custom")
     assert_eq(referrer_of(custom), "strict-origin")
+}
+
+@test
+fn test_frame_csp_and_has_hsts() {
+    assert_eq(frame_of(defaults()), "DENY")
+    assert_eq(csp_of(defaults()), "default-src 'none'")
+    assert(!has_hsts(defaults()), "no hsts default")
+    let secured = with_hsts(defaults(), 60)
+    assert(has_hsts(secured), "hsts on")
+    let with_csp_policy = with_csp(defaults(), "default-src 'self'")
+    assert_eq(csp_of(with_csp_policy), "default-src 'self'")
 }

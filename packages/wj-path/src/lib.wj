@@ -221,6 +221,24 @@ pub fn is_dot(path: string) -> bool {
     path == "."
 }
 
+/// True when `path` is exactly `..` (parent directory).
+pub fn is_dot_dot(path: string) -> bool {
+    path == ".."
+}
+
+/// True when `path` starts with `/`.
+pub fn has_leading_slash(path: string) -> bool {
+    strings.starts_with(path, "/")
+}
+
+/// Accept `path` only when absolute; else return an error.
+pub fn require_absolute(path: string) -> Result<string, string> {
+    if is_absolute(path) {
+        return Ok(path)
+    }
+    Err("expected absolute path")
+}
+
 fn strip_trailing_slashes(path: string) -> string {
     let mut out = path
     while strings.len(out) > 1 && strings.ends_with(out, "/") {

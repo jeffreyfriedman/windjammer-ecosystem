@@ -4,8 +4,10 @@ use crate::render_with_defaults
 use crate::render_html
 use crate::escape_html
 use crate::has_placeholders
+use crate::is_fully_bound
 use crate::missing_keys
 use crate::placeholder_count
+use crate::unique_placeholder_count
 use std::collections::HashMap
 use std::strings
 
@@ -122,4 +124,13 @@ fn test_placeholder_count() {
     assert_eq(placeholder_count("Hello {{name}}!"), 1)
     assert_eq(placeholder_count("{{a}} {{b}} {{a}}"), 3)
     assert_eq(placeholder_count("plain"), 0)
+}
+
+fn test_unique_placeholder_count_and_is_fully_bound() {
+    assert_eq(unique_placeholder_count("{{a}} {{b}} {{a}}"), 2)
+    assert_eq(unique_placeholder_count("plain"), 0)
+    assert(is_fully_bound("Hello {{name}}!", vars_one()), "bound")
+    let empty = HashMap::new()
+    assert(!is_fully_bound("Hello {{name}}!", empty), "unbound")
+    assert(is_fully_bound("plain", empty), "no placeholders")
 }

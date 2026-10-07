@@ -1,4 +1,5 @@
 use crate::hash_password
+use crate::is_bcrypt_prefix
 use crate::looks_like_bcrypt
 use crate::require_bcrypt
 use crate::verify_ok
@@ -84,4 +85,11 @@ fn test_require_bcrypt() {
         Ok(_) => assert(false, "should reject"),
         Err(e) => assert(strings.len(e) > 0, "error message"),
     }
+}
+
+@test
+fn test_is_bcrypt_prefix() {
+    assert(is_bcrypt_prefix("$2b$12$abcdefghijklmnopqrstuv"), "2b")
+    assert(is_bcrypt_prefix("$2a$10$x"), "2a")
+    assert(!is_bcrypt_prefix("plain"), "plain")
 }

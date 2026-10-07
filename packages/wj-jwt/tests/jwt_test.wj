@@ -1,6 +1,7 @@
 use crate::bearer_header
 use crate::extract_bearer
 use crate::is_bearer_header
+use crate::looks_like_jwt
 use crate::sign
 use crate::sign_scoped
 use crate::verify
@@ -139,4 +140,15 @@ fn test_verify_bearer() {
         Ok(_) => assert(false, "expected Err"),
         Err(msg) => assert(strings.len(msg) > 0, "error"),
     }
+}
+
+@test
+fn test_looks_like_jwt() {
+    match sign("user-1", "acme", "secret", 3600) {
+        Ok(token) => assert(looks_like_jwt(token), "signed token"),
+        Err(_) => assert(false, "sign"),
+    }
+    assert(!looks_like_jwt(""), "empty")
+    assert(!looks_like_jwt("only.two"), "two parts")
+    assert(!looks_like_jwt("a.b.c.d"), "four parts")
 }

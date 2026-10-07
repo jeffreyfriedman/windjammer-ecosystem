@@ -34,3 +34,8 @@ pub fn require_bcrypt(hash: string) -> Result<string, string> {
     }
     Err("expected bcrypt hash")
 }
+
+/// Alias of `looks_like_bcrypt` for call sites that prefer a prefix-shaped name.
+pub fn is_bcrypt_prefix(hash: string) -> bool {
+    looks_like_bcrypt(hash)
+}

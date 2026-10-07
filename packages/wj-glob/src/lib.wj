@@ -68,3 +68,7 @@ pub fn last_match(pattern: string, paths: Vec<string>) -> Option<string> {
 pub fn at_least_n_matches(pattern: string, paths: Vec<string>, n: int) -> bool {
     match_count(pattern, paths) >= n
 }
+
+pub fn at_most_n_matches(pattern: string, paths: Vec<string>, n: int) -> bool {
+    match_count(pattern, paths) <= n
+}

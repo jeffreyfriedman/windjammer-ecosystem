@@ -74,6 +74,20 @@ pub fn is_empty(text: string) -> bool {
     key_count(text) == 0
 }
 
+/// True when parse yields at least one key.
+pub fn has_keys(text: string) -> bool {
+    !is_empty(text)
+}
+
+/// First key from map iteration order (stable for single-key docs).
+pub fn first_key(text: string) -> Option<string> {
+    let ks = keys(text)
+    if ks.len() == 0 {
+        return None
+    }
+    Some(ks[0])
+}
+
 /// All keys after parse (order is map iteration order).
 pub fn keys(text: string) -> Vec<string> {
     let map = parse(text)

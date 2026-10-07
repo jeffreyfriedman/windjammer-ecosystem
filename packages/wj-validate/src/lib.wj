@@ -109,6 +109,19 @@ pub fn has_errors(errors: Vec<string>) -> bool {
     errors.len() > 0
 }
 
+pub fn error_count(errors: Vec<string>) -> int {
+    let mut n = 0
+    for _ in errors {
+        n = n + 1
+    }
+    n
+}
+
+/// True when there are no validation errors.
+pub fn is_valid(errors: Vec<string>) -> bool {
+    !has_errors(errors)
+}
+
 /// Predicate form of `require_email` (no field name).
 pub fn is_email(value: string) -> bool {
     match require_email("email", value) {

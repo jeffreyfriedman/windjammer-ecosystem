@@ -1,6 +1,8 @@
+use crate::first_key
 use crate::get
 use crate::get_or
 use crate::has
+use crate::has_keys
 use crate::is_empty
 use crate::key_count
 use crate::keys
@@ -279,4 +281,18 @@ fn test_merge_overlay_wins() {
     assert_eq(get_or(merged, "port", ""), "9090")
     assert_eq(get_or(merged, "debug", ""), "true")
     assert_eq(key_count(merged), 3)
+}
+
+@test
+fn test_has_keys_and_first_key() {
+    assert(has_keys("host = \"localhost\"\n"), "has")
+    assert(!has_keys(""), "empty")
+    match first_key("host = \"localhost\"\n") {
+        Some(k) => assert_eq(k, "host"),
+        None => assert(false, "first"),
+    }
+    match first_key("") {
+        Some(_) => assert(false, "none"),
+        None => {},
+    }
 }

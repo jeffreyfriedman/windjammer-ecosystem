@@ -17,6 +17,8 @@ use crate::is_version
 use crate::is_nil
 use crate::is_max
 use crate::normalize
+use crate::require_valid
+use crate::without_hyphens
 use crate::NIL
 use crate::MAX
 use std::strings
@@ -212,5 +214,19 @@ fn test_is_v1_and_is_v5() {
             assert(!is_v1(id), "not v1")
         },
         Err(_) => assert(false, "v5"),
+    }
+}
+
+fn test_without_hyphens_and_require_valid() {
+    let id = "550e8400-e29b-41d4-a716-446655440000"
+    assert_eq(without_hyphens(id), "550e8400e29b41d4a716446655440000")
+    assert_eq(without_hyphens(NIL), "00000000000000000000000000000000")
+    match require_valid(id) {
+        Ok(v) => assert_eq(normalize(v), id),
+        Err(_) => assert(false, "valid"),
+    }
+    match require_valid("not-a-uuid") {
+        Ok(_) => assert(false, "invalid must Err"),
+        Err(msg) => assert(strings.contains(msg, "uuid"), "mentions uuid"),
     }
 }

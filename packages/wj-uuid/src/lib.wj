@@ -164,6 +164,20 @@ pub fn normalize(text: string) -> string {
     strings.to_lower(text)
 }
 
+/// Strip hyphens from `text` (other characters unchanged).
+pub fn without_hyphens(text: string) -> string {
+    strings.replace(text, "-", "")
+}
+
+/// Normalize and validate `text`, or `Err` when not a UUID.
+pub fn require_valid(text: string) -> Result<string, string> {
+    let id = normalize(text)
+    if is_valid(id) {
+        return Ok(id)
+    }
+    Err("invalid uuid")
+}
+
 fn v1_bytes(unix_millis: i64, clock_seq: int, node: Vec<u8>) -> Vec<u8> {
     let intervals = unix_millis * 10000 + UUID_EPOCH_100NS
     let time_low = intervals & 0xFFFFFFFF

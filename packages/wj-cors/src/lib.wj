@@ -23,6 +23,14 @@ pub fn is_origin_allowed(origin: string, allowed: Vec<string>) -> bool {
     false
 }
 
+/// Echoed allow-origin value, or `Err` when the origin is rejected.
+pub fn require_origin(origin: string, allowed: Vec<string>) -> Result<string, string> {
+    match allow_origin(origin, allowed) {
+        Some(v) => Ok(v),
+        None => Err("origin not allowed"),
+    }
+}
+
 /// `Access-Control-Allow-Origin` value: echoed origin, `*`, or `None` if rejected.
 pub fn allow_origin(origin: string, allowed: Vec<string>) -> Option<string> {
     // Inline until `bug_same_module_vec_helper_reuse_clone_instead_of_borrow_test` is green

@@ -82,6 +82,14 @@ pub fn path_get_or(text: string, path: string, default: string) -> string {
     }
 }
 
+/// Compact JSON at `path`, or `Err` naming the missing path.
+pub fn path_require(text: string, path: string) -> Result<string, string> {
+    match path_get(text, path) {
+        Some(v) => Ok(v),
+        None => Err("missing json path: ${path}"),
+    }
+}
+
 /// True when valid JSON whose top-level value is an object.
 pub fn is_objectish(text: string) -> bool {
     match json.parse(text) {

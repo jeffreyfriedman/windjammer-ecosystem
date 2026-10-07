@@ -60,3 +60,32 @@ pub fn decode_or(text: string, default: string) -> string {
         Err(_) => default,
     }
 }
+
+/// True when `text` uses only base64 alphabet characters (and optional `=` padding).
+pub fn looks_like_base64(text: string) -> bool {
+    let trimmed = strings.trim(text)
+    if strings.len(trimmed) == 0 {
+        return false
+    }
+    let alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/="
+    let mut i = 0
+    while i < strings.len(trimmed) {
+        let ch = strings.substring(trimmed, i, i + 1)
+        if !strings.contains(alphabet, ch) {
+            return false
+        }
+        i = i + 1
+    }
+    true
+}
+
+/// True when `text` looks like base64 and successfully decodes.
+pub fn is_encoded(text: string) -> bool {
+    if !looks_like_base64(text) {
+        return false
+    }
+    match decode(text) {
+        Ok(_) => true,
+        Err(_) => false,
+    }
+}

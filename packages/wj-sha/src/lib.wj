@@ -46,6 +46,27 @@ pub fn verify_etag(text: string, etag_value: string) -> bool {
     etag(text) == etag_value
 }
 
+/// Case-insensitive hex digest equality (via `normalize_hex`).
+pub fn digest_equals(a: string, b: string) -> bool {
+    normalize_hex(a) == normalize_hex(b)
+}
+
+/// True when `value` is a quoted SHA-256 hex digest (ETag shape).
+pub fn is_etag(value: string) -> bool {
+    let n = strings.len(value)
+    if n < 3 {
+        return false
+    }
+    if !strings.starts_with(value, "\"") {
+        return false
+    }
+    if !strings.ends_with(value, "\"") {
+        return false
+    }
+    let inner = strings.substring(value, 1, n - 1)
+    looks_like_sha256_hex(inner)
+}
+
 fn is_hex_char(ch: char) -> bool {
     if ch == '0' { return true }
     if ch == '1' { return true }

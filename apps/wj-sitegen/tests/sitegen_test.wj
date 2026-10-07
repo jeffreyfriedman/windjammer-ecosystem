@@ -1,5 +1,8 @@
 use crate::domain::html_filename
 use crate::domain::html_output_path
+use crate::domain::is_html_path
+use crate::domain::is_markdown_path
+use crate::domain::page_count
 use crate::domain::relative_path_from_root
 use crate::domain::title_from_markdown
 use crate::domain::markdown_to_html
@@ -13,6 +16,19 @@ use crate::domain::join_page_url
 use crate::domain::resolve_src_dir
 use crate::domain::resolve_out_dir
 use crate::domain::FeedEntry
+use crate::domain::GeneratedPage
+
+fn test_path_predicates_and_page_count() {
+    assert(is_markdown_path("posts/a.md"), "md")
+    assert(!is_markdown_path("posts/a.html"), "not md")
+    assert(is_html_path("posts/a.html"), "html")
+    assert(!is_html_path("posts/a.md"), "not html")
+    let mut pages = Vec::new()
+    pages.push(generate_page("a.md", "# A\n"))
+    pages.push(generate_page("b.md", "# B\n"))
+    assert_eq(page_count(pages), 2)
+    assert_eq(page_count(Vec::new()), 0)
+}
 
 fn test_html_filename_strips_directory_and_md() {
     assert_eq(html_filename("posts/hello.md"), "hello.html")

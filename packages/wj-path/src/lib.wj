@@ -208,6 +208,19 @@ pub fn is_root(path: string) -> bool {
     path == "/" || strings.len(path) == 0
 }
 
+pub fn is_empty_path(path: string) -> bool {
+    strings.len(path) == 0
+}
+
+pub fn has_trailing_slash(path: string) -> bool {
+    strings.len(path) > 0 && strings.ends_with(path, "/")
+}
+
+/// True when `path` is exactly `.` (current directory).
+pub fn is_dot(path: string) -> bool {
+    path == "."
+}
+
 fn strip_trailing_slashes(path: string) -> string {
     let mut out = path
     while strings.len(out) > 1 && strings.ends_with(out, "/") {

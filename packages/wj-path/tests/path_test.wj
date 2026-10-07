@@ -5,7 +5,10 @@ use crate::ensure_leading_slash
 use crate::ensure_trailing_slash
 use crate::extname
 use crate::has_extension
+use crate::has_trailing_slash
 use crate::is_absolute
+use crate::is_dot
+use crate::is_empty_path
 use crate::is_relative
 use crate::is_root
 use crate::join_path
@@ -125,4 +128,16 @@ fn test_without_trailing_slash_and_is_root() {
     assert(is_root(""), "empty as root")
     assert(!is_root("/api"), "not root")
     assert(!is_root("/api/"), "trailing not root")
+}
+
+@test
+fn test_empty_trailing_and_dot_predicates() {
+    assert(is_empty_path(""), "empty")
+    assert(!is_empty_path("/"), "slash not empty")
+    assert(has_trailing_slash("/api/"), "trailing")
+    assert(!has_trailing_slash("/api"), "no trailing")
+    assert(!has_trailing_slash(""), "empty no trailing")
+    assert(is_dot("."), "dot")
+    assert(!is_dot(".."), "parent not dot")
+    assert(!is_dot("./x"), "path not dot")
 }

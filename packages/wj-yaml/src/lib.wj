@@ -113,6 +113,19 @@ pub fn is_valid(text: string) -> bool {
     }
 }
 
+/// True when `text` is empty or whitespace-only.
+pub fn is_empty(text: string) -> bool {
+    strings.len(strings.trim(text)) == 0
+}
+
+/// Look up string path, or `Err` naming the missing path.
+pub fn require_str(text: string, path: string) -> Result<string, string> {
+    match get_str(text, path) {
+        Some(v) => Ok(v),
+        None => Err("missing yaml path: ${path}"),
+    }
+}
+
 fn load_root(text: string) -> Option<Value> {
     match to_json(text) {
         Ok(j) => {

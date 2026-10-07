@@ -96,6 +96,22 @@ pub fn require_param(params: HashMap<string, string>, name: string) -> Result<st
     }
 }
 
+pub fn is_empty_params(params: HashMap<string, string>) -> bool {
+    param_count(params) == 0
+}
+
+/// Count of `:param` segments in a route pattern.
+pub fn pattern_param_count(pattern: string) -> int {
+    let segs = split_segments(normalize_path(pattern))
+    let mut n = 0
+    for seg in segs {
+        if strings.starts_with(seg, ":") {
+            n = n + 1
+        }
+    }
+    n
+}
+
 
 fn normalize_path(path: string) -> string {
     if strings.len(path) == 0 {

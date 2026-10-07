@@ -105,6 +105,19 @@ pub fn meets_min_bytes(body_len: int, min_bytes: int) -> bool {
     body_len >= min_bytes
 }
 
+/// True when `body_len` is strictly below `min_bytes`.
+pub fn below_min_bytes(body_len: int, min_bytes: int) -> bool {
+    !meets_min_bytes(body_len, min_bytes)
+}
+
+/// Negotiated coding, or `"identity"` when none match.
+pub fn negotiate_or_identity(accept_encoding: string) -> string {
+    match negotiate(accept_encoding) {
+        Some(coding) => coding,
+        None => content_encoding_identity(),
+    }
+}
+
 fn coding_allows_gzip(token: string) -> bool {
     if strings.len(token) == 0 {
         return false

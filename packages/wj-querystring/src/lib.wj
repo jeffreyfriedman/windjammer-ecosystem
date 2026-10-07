@@ -155,3 +155,17 @@ pub fn require(query: string, key: string) -> Result<string, string> {
         None => Err("missing query key: ${key}"),
     }
 }
+
+/// True when the query string has at least one key/value pair.
+pub fn has_pairs(query: string) -> bool {
+    !is_empty(query)
+}
+
+/// First unique key in parse order, if any.
+pub fn first_key(query: string) -> Option<string> {
+    let ks = keys(query)
+    if ks.len() == 0 {
+        return None
+    }
+    Some(ks[0])
+}

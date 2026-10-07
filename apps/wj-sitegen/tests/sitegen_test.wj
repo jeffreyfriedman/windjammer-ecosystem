@@ -16,7 +16,6 @@ use crate::domain::join_page_url
 use crate::domain::resolve_src_dir
 use crate::domain::resolve_out_dir
 use crate::domain::FeedEntry
-use crate::domain::GeneratedPage
 
 fn test_path_predicates_and_page_count() {
     assert(is_markdown_path("posts/a.md"), "md")

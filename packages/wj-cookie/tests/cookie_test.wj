@@ -1,5 +1,8 @@
 use crate::cookie_count
+use crate::cookie_name
 use crate::cookie_names
+use crate::cookie_path
+use crate::cookie_value
 use crate::delete_cookie_header
 use crate::format_cookie_header
 use crate::format_set_cookie
@@ -8,6 +11,7 @@ use crate::get_cookie_or
 use crate::has_cookie
 use crate::is_empty
 use crate::is_http_only
+use crate::is_lax_same_site
 use crate::is_secure
 use crate::parse_cookie_header
 use crate::parse_set_cookie
@@ -155,6 +159,14 @@ fn test_session_cookie_defaults() {
     assert_str_contains(header, "HttpOnly")
     assert_str_contains(header, "Secure")
     assert_str_contains(header, "SameSite=Lax")
+}
+
+@test
+fn test_cookie_accessors_and_lax() {
+    assert_eq(cookie_name(session_cookie("sid", "xyz")), "sid")
+    assert_eq(cookie_value(session_cookie("sid", "xyz")), "xyz")
+    assert_eq(cookie_path(session_cookie("sid", "xyz")), "/")
+    assert(is_lax_same_site(session_cookie("sid", "xyz")), "lax")
 }
 
 @test

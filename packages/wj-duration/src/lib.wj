@@ -94,3 +94,22 @@ pub fn abs_ms(ms: int) -> int {
 pub fn is_negative(ms: int) -> bool {
     ms < 0
 }
+
+pub fn min_ms(a: int, b: int) -> int {
+    if a < b {
+        return a
+    }
+    b
+}
+
+pub fn max_ms(a: int, b: int) -> int {
+    if a > b {
+        return a
+    }
+    b
+}
+
+/// Inclusive range check: `lo <= ms <= hi`.
+pub fn within_ms(ms: int, lo: int, hi: int) -> bool {
+    ms >= lo && ms <= hi
+}

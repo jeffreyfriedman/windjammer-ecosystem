@@ -155,9 +155,34 @@ pub fn is_plain(mime_type: string) -> bool {
     false
 }
 
+/// Common MIME type for CSS responses.
+pub fn css() -> string {
+    "text/css; charset=utf-8"
+}
+
+/// Common MIME type for XML responses.
+pub fn xml() -> string {
+    "application/xml; charset=utf-8"
+}
+
+/// `Content-Type` header line for CSS.
+pub fn content_type_css() -> string {
+    content_type(css())
+}
+
+/// `Content-Type` header line for XML.
+pub fn content_type_xml() -> string {
+    content_type(xml())
+}
+
 /// Common MIME type for JavaScript responses.
 pub fn javascript() -> string {
     "application/javascript; charset=utf-8"
+}
+
+/// `Content-Type` header line for JavaScript.
+pub fn content_type_javascript() -> string {
+    content_type(javascript())
 }
 
 /// True when `mime_type` is JavaScript (`application/javascript` or `text/javascript`).

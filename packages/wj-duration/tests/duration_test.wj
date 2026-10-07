@@ -6,6 +6,8 @@ use crate::format_secs
 use crate::is_negative
 use crate::is_positive
 use crate::is_zero
+use crate::max_ms
+use crate::min_ms
 use crate::ms_to_secs
 use crate::parse_ms
 use crate::parse_ms_or
@@ -13,6 +15,7 @@ use crate::parse_secs
 use crate::parse_secs_or
 use crate::secs_to_ms
 use crate::sub_ms
+use crate::within_ms
 
 @test
 fn test_parse_ms_unit() {
@@ -162,4 +165,17 @@ fn test_sub_ms_abs_ms_is_negative() {
     assert(is_negative(-1), "neg")
     assert(!is_negative(0), "zero not neg")
     assert(!is_negative(1), "pos not neg")
+}
+
+@test
+fn test_min_max_within_ms() {
+    assert_eq(min_ms(10, 20), 10)
+    assert_eq(min_ms(20, 10), 10)
+    assert_eq(max_ms(10, 20), 20)
+    assert_eq(max_ms(20, 10), 20)
+    assert(within_ms(50, 0, 100), "inside")
+    assert(within_ms(0, 0, 100), "lo")
+    assert(within_ms(100, 0, 100), "hi")
+    assert(!within_ms(-1, 0, 100), "below")
+    assert(!within_ms(101, 0, 100), "above")
 }

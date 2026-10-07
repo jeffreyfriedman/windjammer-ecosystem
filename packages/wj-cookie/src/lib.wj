@@ -89,6 +89,23 @@ pub fn is_http_only(cookie: SetCookie) -> bool {
     cookie.http_only
 }
 
+pub fn cookie_name(cookie: SetCookie) -> string {
+    cookie.name
+}
+
+pub fn cookie_value(cookie: SetCookie) -> string {
+    cookie.value
+}
+
+pub fn cookie_path(cookie: SetCookie) -> string {
+    cookie.path
+}
+
+/// True when SameSite is Lax (session-cookie default).
+pub fn is_lax_same_site(cookie: SetCookie) -> bool {
+    cookie.same_site == "Lax"
+}
+
 /// Look up a cookie value by name, or `default` when missing.
 pub fn get_cookie_or(map: HashMap<string, string>, name: string, default: string) -> string {
     match get_cookie(map, name) {

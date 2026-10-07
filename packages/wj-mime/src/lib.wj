@@ -102,3 +102,41 @@ pub fn content_type_json() -> string {
 pub fn content_type_html() -> string {
     content_type(html())
 }
+
+/// Common MIME type for plain text responses.
+pub fn plain() -> string {
+    "text/plain; charset=utf-8"
+}
+
+/// `Content-Type` header line for plain text.
+pub fn content_type_plain() -> string {
+    content_type(plain())
+}
+
+/// True when `mime_type` is CSS (`text/css`, optional parameters).
+pub fn is_css(mime_type: string) -> bool {
+    let trimmed = strings.trim(mime_type)
+    if strings.starts_with(trimmed, "text/css") {
+        let rest_len = strings.len(trimmed) - 8
+        if rest_len == 0 {
+            return true
+        }
+        let next = strings.substring(trimmed, 8, 9)
+        return next == ";"
+    }
+    false
+}
+
+/// True when `mime_type` is XML (`application/xml`, optional parameters).
+pub fn is_xml(mime_type: string) -> bool {
+    let trimmed = strings.trim(mime_type)
+    if strings.starts_with(trimmed, "application/xml") {
+        let rest_len = strings.len(trimmed) - 15
+        if rest_len == 0 {
+            return true
+        }
+        let next = strings.substring(trimmed, 15, 16)
+        return next == ";"
+    }
+    false
+}

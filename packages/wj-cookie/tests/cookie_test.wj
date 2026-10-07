@@ -1,4 +1,5 @@
 use crate::cookie_count
+use crate::cookie_names
 use crate::delete_cookie_header
 use crate::format_cookie_header
 use crate::format_set_cookie
@@ -6,6 +7,8 @@ use crate::get_cookie
 use crate::get_cookie_or
 use crate::has_cookie
 use crate::is_empty
+use crate::is_http_only
+use crate::is_secure
 use crate::parse_cookie_header
 use crate::parse_set_cookie
 use crate::session_cookie
@@ -199,4 +202,38 @@ fn test_delete_cookie_header() {
     assert_str_contains(header, "sid=")
     assert_str_contains(header, "Max-Age=0")
     assert_str_contains(header, "Path=/")
+}
+
+@test
+fn test_cookie_names() {
+    match parse_cookie_header("sid=abc; theme=dark") {
+        Ok(map) => {
+            let names = cookie_names(map)
+            assert_eq(names.len(), 2)
+            assert(strings.contains(names[0], "s") || strings.contains(names[1], "s"), "has sid-ish")
+            // Order is HashMap-iteration; just check membership via has_cookie already covered.
+            let mut found_sid = false
+            let mut found_theme = false
+            let mut i = 0
+            while i < names.len() {
+                if names[i] == "sid" {
+                    found_sid = true
+                }
+                if names[i] == "theme" {
+                    found_theme = true
+                }
+                i = i + 1
+            }
+            assert(found_sid, "sid")
+            assert(found_theme, "theme")
+        },
+        Err(_) => assert(false, "parse names"),
+    }
+}
+
+@test
+fn test_session_secure_http_only() {
+    let c = session_cookie("sid", "abc")
+    assert(is_secure(c), "secure")
+    assert(is_http_only(c), "httpOnly")
 }

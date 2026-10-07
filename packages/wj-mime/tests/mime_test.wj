@@ -4,15 +4,19 @@ use crate::content_type_json
 use crate::from_extension
 use crate::from_path
 use crate::is_audio
+use crate::is_css
 use crate::is_html
 use crate::is_image
 use crate::is_json
 use crate::is_octet_stream
 use crate::is_text
 use crate::is_video
+use crate::is_xml
 use crate::json
 use crate::html
 use crate::octet_stream
+use crate::plain
+use crate::content_type_plain
 
 @test
 fn test_json_constant() {
@@ -104,4 +108,16 @@ fn test_is_octet_stream() {
 fn test_content_type_json_and_html() {
     assert_eq(content_type_json(), "Content-Type: application/json; charset=utf-8")
     assert_eq(content_type_html(), "Content-Type: text/html; charset=utf-8")
+}
+
+@test
+fn test_plain_css_xml() {
+    assert_eq(plain(), "text/plain; charset=utf-8")
+    assert_eq(content_type_plain(), "Content-Type: text/plain; charset=utf-8")
+    assert(is_css("text/css"), "css")
+    assert(is_css("text/css; charset=utf-8"), "css charset")
+    assert(!is_css("text/html"), "not css")
+    assert(is_xml("application/xml"), "xml")
+    assert(is_xml("application/xml; charset=utf-8"), "xml charset")
+    assert(!is_xml("application/json"), "not xml")
 }

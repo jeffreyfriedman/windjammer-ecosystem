@@ -81,6 +81,14 @@ pub fn require_digest(text: string) -> Result<string, string> {
     Err("invalid sha256 digest")
 }
 
+/// Accept a quoted SHA-256 ETag, or `Err` when the shape is wrong.
+pub fn require_etag(value: string) -> Result<string, string> {
+    if is_etag(value) {
+        return Ok(value)
+    }
+    Err("invalid etag")
+}
+
 fn is_hex_char(ch: char) -> bool {
     if ch == '0' { return true }
     if ch == '1' { return true }

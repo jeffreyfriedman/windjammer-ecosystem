@@ -103,3 +103,19 @@ pub fn strip_padding(text: string) -> string {
     }
     out
 }
+
+/// Ensure `text` length is a multiple of 4 by appending `=` padding.
+pub fn ensure_padding(text: string) -> string {
+    let bare = strip_padding(text)
+    let rem = strings.len(bare) % 4
+    if rem == 0 {
+        return bare
+    }
+    if rem == 2 {
+        return "${bare}=="
+    }
+    if rem == 3 {
+        return "${bare}="
+    }
+    bare
+}

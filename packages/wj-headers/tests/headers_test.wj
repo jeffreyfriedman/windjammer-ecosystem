@@ -2,12 +2,15 @@ use crate::defaults
 use crate::defaults_with_hsts
 use crate::format_headers
 use crate::has_csp
+use crate::has_nosniff
 use crate::header_line_count
 use crate::hsts
 use crate::hsts_enabled
 use crate::is_frame_deny
+use crate::is_no_referrer
 use crate::nosniff
 use crate::frame_options
+use crate::referrer_of
 use crate::referrer_policy
 use crate::security_header_lines
 use crate::with_csp
@@ -159,4 +162,14 @@ fn test_without_hsts_and_is_same_origin_frame() {
     let same = with_frame_options(defaults(), "SAMEORIGIN")
     assert(is_same_origin_frame(same), "same origin")
     assert(!is_same_origin_frame(defaults()), "deny is not same origin")
+}
+
+@test
+fn test_nosniff_and_referrer_accessors() {
+    assert(has_nosniff(defaults()), "nosniff")
+    assert(is_no_referrer(defaults()), "no-referrer")
+    assert_eq(referrer_of(defaults()), "no-referrer")
+    let custom = with_referrer(defaults(), "strict-origin")
+    assert(!is_no_referrer(custom), "custom")
+    assert_eq(referrer_of(custom), "strict-origin")
 }

@@ -197,3 +197,19 @@ pub fn long_flag_count(args: Vec<string>) -> int {
     }
     n
 }
+
+pub fn arg_count(args: Vec<string>) -> int {
+    let mut n = 0
+    for _ in args {
+        n = n + 1
+    }
+    n
+}
+
+pub fn is_empty_args(args: Vec<string>) -> bool {
+    arg_count(args) == 0
+}
+
+pub fn only_program_name(args: Vec<string>) -> bool {
+    arg_count(args) == 1
+}

@@ -213,3 +213,22 @@ pub fn is_empty_args(args: Vec<string>) -> bool {
 pub fn only_program_name(args: Vec<string>) -> bool {
     arg_count(args) == 1
 }
+
+/// True when `--help` is present.
+pub fn has_help_flag(args: Vec<string>) -> bool {
+    has_long_flag(args, "help")
+}
+
+/// True when `--version` is present.
+pub fn has_version_flag(args: Vec<string>) -> bool {
+    has_long_flag(args, "version")
+}
+
+/// Require at least `n` positionals; returns the actual count on success.
+pub fn require_positional_count(args: Vec<string>, n: int) -> Result<int, string> {
+    let count = positional_count(args)
+    if count >= n {
+        return Ok(count)
+    }
+    Err("expected at least ${n} positional arguments, got ${count}")
+}

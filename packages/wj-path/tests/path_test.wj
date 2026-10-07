@@ -5,17 +5,21 @@ use crate::ensure_leading_slash
 use crate::ensure_trailing_slash
 use crate::extname
 use crate::has_extension
+use crate::has_leading_slash
 use crate::has_trailing_slash
 use crate::is_absolute
 use crate::is_dot
+use crate::is_dot_dot
 use crate::is_empty_path
 use crate::is_relative
 use crate::is_root
 use crate::join_path
 use crate::normalize
+use crate::require_absolute
 use crate::stem
 use crate::without_extension
 use crate::without_trailing_slash
+use std::strings
 
 @test
 fn test_join_simple() {
@@ -140,4 +144,21 @@ fn test_empty_trailing_and_dot_predicates() {
     assert(is_dot("."), "dot")
     assert(!is_dot(".."), "parent not dot")
     assert(!is_dot("./x"), "path not dot")
+}
+
+@test
+fn test_dot_dot_leading_slash_and_require_absolute() {
+    assert(is_dot_dot(".."), "dotdot")
+    assert(!is_dot_dot("."), "dot not parent")
+    assert(!is_dot_dot("../x"), "path not parent")
+    assert(has_leading_slash("/api"), "leading")
+    assert(!has_leading_slash("api"), "relative")
+    match require_absolute("/tmp/x") {
+        Ok(p) => assert_eq(p, "/tmp/x"),
+        Err(_) => assert(false, "absolute"),
+    }
+    match require_absolute("rel") {
+        Ok(_) => assert(false, "rel must Err"),
+        Err(msg) => assert(strings.contains(msg, "absolute"), "mentions absolute"),
+    }
 }

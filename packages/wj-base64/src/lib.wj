@@ -119,3 +119,21 @@ pub fn ensure_padding(text: string) -> string {
     }
     bare
 }
+
+/// True when `text` needs `=` padding to reach a multiple of 4.
+pub fn needs_padding(text: string) -> bool {
+    ensure_padding(text) != strings.trim(text)
+}
+
+/// True when `text` has no trailing `=` padding.
+pub fn is_unpadded(text: string) -> bool {
+    !has_padding(text)
+}
+
+/// Accept `text` only when it looks like base64 and round-trips; else `Err`.
+pub fn require_encoded(text: string) -> Result<string, string> {
+    if is_encoded(text) {
+        return Ok(text)
+    }
+    Err("invalid base64")
+}

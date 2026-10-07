@@ -89,6 +89,16 @@ pub fn require_etag(value: string) -> Result<string, string> {
     Err("invalid etag")
 }
 
+/// Alias of `hex`.
+pub fn digest_of(text: string) -> string {
+    hex(text)
+}
+
+/// True when `text` is a SHA-256 hex digest (any case).
+pub fn is_digest(text: string) -> bool {
+    looks_like_sha256_hex(normalize_hex(text))
+}
+
 fn is_hex_char(ch: char) -> bool {
     if ch == '0' { return true }
     if ch == '1' { return true }

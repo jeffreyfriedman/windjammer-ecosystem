@@ -8,10 +8,13 @@ use crate::is_css
 use crate::is_html
 use crate::is_image
 use crate::is_json
+use crate::is_javascript
 use crate::is_octet_stream
+use crate::is_plain
 use crate::is_text
 use crate::is_video
 use crate::is_xml
+use crate::javascript
 use crate::json
 use crate::html
 use crate::octet_stream
@@ -120,4 +123,17 @@ fn test_plain_css_xml() {
     assert(is_xml("application/xml"), "xml")
     assert(is_xml("application/xml; charset=utf-8"), "xml charset")
     assert(!is_xml("application/json"), "not xml")
+}
+
+@test
+fn test_is_plain_and_javascript() {
+    assert(is_plain(plain()), "plain constant")
+    assert(is_plain("text/plain"), "bare plain")
+    assert(is_plain("text/plain; charset=utf-8"), "plain charset")
+    assert(!is_plain("text/html"), "not plain")
+    assert_eq(javascript(), "application/javascript; charset=utf-8")
+    assert(is_javascript(javascript()), "js constant")
+    assert(is_javascript("application/javascript"), "bare js")
+    assert(is_javascript("text/javascript"), "legacy text/javascript")
+    assert(!is_javascript("application/json"), "not js")
 }

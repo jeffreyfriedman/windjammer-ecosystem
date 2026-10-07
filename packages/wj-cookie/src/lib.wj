@@ -97,6 +97,14 @@ pub fn get_cookie_or(map: HashMap<string, string>, name: string, default: string
     }
 }
 
+/// Look up a cookie by name, or `Err` naming the missing cookie.
+pub fn require_cookie(map: HashMap<string, string>, name: string) -> Result<string, string> {
+    match get_cookie(map, name) {
+        Some(v) => Ok(v),
+        None => Err("missing cookie: ${name}"),
+    }
+}
+
 /// `Set-Cookie` header that clears `name` (`Max-Age=0`, `Path=/`).
 pub fn delete_cookie_header(name: string) -> string {
     "${name}=; Path=/; Max-Age=0"

@@ -4,6 +4,7 @@ Weekly build health for seed apps and packages.
 
 | Week | Date | Apps / packages green | `extern fn` | Crates via interop | Compiler issues | Notes |
 |------|------|----------------------|-------------|--------------------|-----------------|-------|
+| 2 | 2026-10-06 | deepen `wj-cookie`/`wj-mime`/`wj-duration` | 0 | 0 | ENOSPC ~9Gi; private CARGO_HOME | `require_cookie`, `is_plain`/`javascript`/`is_javascript`, `sub_ms`/`abs_ms`/`is_negative`; tip **17+19+20** green |
 | 2 | 2026-10-06 | deepen `wj-url`/`wj-yaml`/`wj-path` | 0 | 0 | ENOSPC ~8–9Gi; private CARGO_HOME | `has_query`/`without_fragment`, `is_empty`/`require_str`, `without_trailing_slash`/`is_root`; tip **21+21+18** green |
 | 2 | 2026-10-06 | deepen `wj-dotenv`/`wj-semver`/`wj-timefmt` | 0 | 0 | ENOSPC ~8–9Gi; private CARGO_HOME | `merge`, `clear_build`/`is_stable`, `is_same_month`/`is_same_year`; tip **13+16+25** green |
 | 2 | 2026-10-06 | deepen `wj-validate` | 0 | 0 | private CARGO_HOME | `require_nonneg`; tip **32** green |

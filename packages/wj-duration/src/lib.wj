@@ -76,3 +76,21 @@ pub fn is_zero(ms: int) -> bool {
 pub fn add_ms(ms: int, delta_ms: int) -> int {
     ms + delta_ms
 }
+
+/// Subtract `delta_ms` from `ms`.
+pub fn sub_ms(ms: int, delta_ms: int) -> int {
+    ms - delta_ms
+}
+
+/// Absolute value of `ms`.
+pub fn abs_ms(ms: int) -> int {
+    if ms < 0 {
+        return 0 - ms
+    }
+    ms
+}
+
+/// True when `ms` is strictly less than zero.
+pub fn is_negative(ms: int) -> bool {
+    ms < 0
+}

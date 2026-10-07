@@ -1,8 +1,10 @@
 use crate::escape
 use crate::find
 use crate::find_all
+use crate::find_or
 use crate::has_matches
 use crate::is_match
+use crate::is_valid_pattern
 use crate::match_count
 use crate::none_match
 use crate::replace
@@ -133,4 +135,13 @@ fn test_has_matches_and_none_match() {
         Ok(yes) => assert(!yes, "has digits"),
         Err(_) => assert(false, "none digits err"),
     }
+}
+
+@test
+fn test_is_valid_pattern_and_find_or() {
+    assert(is_valid_pattern("\\d+"), "valid digits")
+    assert(!is_valid_pattern("("), "unclosed group")
+    assert_eq(find_or("\\d+", "a12b", "0"), "12")
+    assert_eq(find_or("\\d+", "abc", "0"), "0")
+    assert_eq(find_or("(", "abc", "fallback"), "fallback")
 }

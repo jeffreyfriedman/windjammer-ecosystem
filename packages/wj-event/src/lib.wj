@@ -137,3 +137,23 @@ pub fn peek(bus: EventBus) -> (EventBus, Option<Event>) {
 pub fn pending_count(bus: EventBus) -> int {
     queue_len(bus)
 }
+
+/// True when a listener with `id` is registered.
+pub fn has_listener(bus: EventBus, id: string) -> bool {
+    let mut i = 0
+    while i < bus.listeners.len() {
+        if bus.listeners[i].id == id {
+            return true
+        }
+        i = i + 1
+    }
+    false
+}
+
+/// Drop all subscribers; keep the queued events.
+pub fn clear_listeners(bus: EventBus) -> EventBus {
+    EventBus {
+        listeners: Vec::new(),
+        queue: bus.queue,
+    }
+}

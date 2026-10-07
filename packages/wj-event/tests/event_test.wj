@@ -1,6 +1,8 @@
+use crate::clear_listeners
 use crate::clear_queue
 use crate::drain
 use crate::emit
+use crate::has_listener
 use crate::has_listeners
 use crate::has_pending
 use crate::is_empty
@@ -145,4 +147,15 @@ fn test_pending_count() {
     assert_eq(pending_count(new_bus()), 0)
     let queued = emit(emit(new_bus(), "a", "1"), "b", "2")
     assert_eq(pending_count(queued), 2)
+}
+
+@test
+fn test_has_listener_and_clear_listeners() {
+    let bus = subscribe(subscribe(new_bus(), "a", "tick"), "b", "tock")
+    assert(has_listener(bus, "a"), "has a")
+    assert(has_listener(bus, "b"), "has b")
+    assert(!has_listener(bus, "c"), "no c")
+    let cleared = clear_listeners(bus)
+    assert(is_empty(cleared), "no listeners")
+    assert_eq(listener_count(cleared), 0)
 }

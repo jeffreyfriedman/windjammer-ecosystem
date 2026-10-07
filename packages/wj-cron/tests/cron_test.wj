@@ -2,8 +2,10 @@ use crate::parse_cron
 use crate::matches_cron
 use crate::matches_field
 use crate::CronDateTime
+use crate::every_hour
 use crate::every_minute
 use crate::format_cron
+use crate::is_every_minute
 use crate::is_wildcard_field
 use crate::next_run
 
@@ -399,4 +401,13 @@ fn test_every_minute_format_and_wildcard() {
     assert_eq(format_cron(expr), "* * * * *")
     assert(matches_cron(expr, 0, 0, 1, 1, 0), "any minute")
     assert(matches_cron(expr, 59, 23, 31, 12, 6), "any time")
+}
+
+fn test_every_hour_and_is_every_minute() {
+    let hourly = every_hour()
+    assert_eq(format_cron(hourly), "0 * * * *")
+    assert(matches_cron(hourly, 0, 5, 1, 1, 0), "top of hour")
+    assert(!matches_cron(hourly, 1, 5, 1, 1, 0), "not minute 1")
+    assert(is_every_minute(every_minute()), "every minute")
+    assert(!is_every_minute(hourly), "hourly not every minute")
 }

@@ -225,6 +225,23 @@ pub fn every_minute() -> CronExpr {
     }
 }
 
+/// Expression that matches the top of every hour (`0 * * * *`).
+pub fn every_hour() -> CronExpr {
+    CronExpr {
+        minute: "0",
+        hour: "*",
+        day_of_month: "*",
+        month: "*",
+        day_of_week: "*",
+        source: "0 * * * *",
+    }
+}
+
+/// True when `expr` is the every-minute schedule.
+pub fn is_every_minute(expr: CronExpr) -> bool {
+    format_cron(expr) == "* * * * *"
+}
+
 /// Format five cron fields as a space-separated expression.
 pub fn format_cron(expr: CronExpr) -> string {
     "${expr.minute} ${expr.hour} ${expr.day_of_month} ${expr.month} ${expr.day_of_week}"

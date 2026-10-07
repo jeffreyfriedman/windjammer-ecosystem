@@ -1,7 +1,11 @@
 // TDD: multipart Content-Type + body → ordered field pairs (week-one upload dogfood).
 
+use crate::domain::field_count
 use crate::domain::field_get
+use crate::domain::field_get_or
+use crate::domain::has_field
 use crate::domain::parse_form_fields
+use crate::domain::require_field
 use std::strings
 
 fn test_parse_json_rejected() {
@@ -43,5 +47,31 @@ fn test_parse_file_part_included() {
             }
         },
         Err(e) => assert(false, "file: ${e}"),
+    }
+}
+
+fn sample_fields() -> Vec<(string, string)> {
+    let boundary = "----samp"
+    let ct = "multipart/form-data; boundary=${boundary}"
+    let body = "--${boundary}\r\nContent-Disposition: form-data; name=\"title\"\r\n\r\nHello\r\n--${boundary}\r\nContent-Disposition: form-data; name=\"body\"\r\n\r\nWorld\r\n--${boundary}--"
+    match parse_form_fields(ct, body) {
+        Ok(fields) => fields,
+        Err(_) => Vec::new(),
+    }
+}
+
+fn test_field_helpers() {
+    assert_eq(field_count(sample_fields()), 2)
+    assert(has_field(sample_fields(), "title"), "has title")
+    assert(!has_field(sample_fields(), "missing"), "no missing")
+    assert_eq(field_get_or(sample_fields(), "title", "x"), "Hello")
+    assert_eq(field_get_or(sample_fields(), "missing", "x"), "x")
+    match require_field(sample_fields(), "body") {
+        Ok(v) => assert_eq(v, "World"),
+        Err(_) => assert(false, "require body"),
+    }
+    match require_field(sample_fields(), "missing") {
+        Ok(_) => assert(false, "missing must Err"),
+        Err(msg) => assert(strings.contains(msg, "missing"), "mentions field"),
     }
 }

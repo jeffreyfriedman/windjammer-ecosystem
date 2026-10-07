@@ -1,5 +1,9 @@
 pub mod form
 
+pub use form::field_count
 pub use form::field_get
+pub use form::field_get_or
 pub use form::format_fields
+pub use form::has_field
 pub use form::parse_form_fields
+pub use form::require_field

@@ -1,5 +1,15 @@
 use crate::domain::format_body
+use crate::domain::is_client_error_status
+use crate::domain::is_success_status
 use std::strings
+
+fn test_is_success_and_client_error_status() {
+    assert(is_success_status(200), "200")
+    assert(is_success_status(201), "201")
+    assert(!is_success_status(404), "404")
+    assert(is_client_error_status(404), "404 client")
+    assert(!is_client_error_status(500), "500 not client")
+}
 
 fn test_format_body_uses_json_util_pretty() {
     let out = format_body("{\"a\":1}")

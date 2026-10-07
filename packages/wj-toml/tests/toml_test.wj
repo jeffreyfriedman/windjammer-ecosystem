@@ -5,6 +5,9 @@ use crate::is_empty
 use crate::key_count
 use crate::keys
 use crate::parse
+use crate::require
+use crate::values
+use std::strings
 
 @test
 fn test_parse_flat_strings() {
@@ -249,4 +252,19 @@ fn test_keys_contains_parsed_names() {
     }
     assert(saw_host, "host key")
     assert(saw_port, "port key")
+}
+
+@test
+fn test_require_and_values() {
+    let text = "host = \"localhost\"\nport = 8080\n"
+    match require(text, "host") {
+        Ok(v) => assert_eq(v, "localhost"),
+        Err(_) => assert(false, "require host"),
+    }
+    match require(text, "missing") {
+        Ok(_) => assert(false, "missing"),
+        Err(msg) => assert(strings.contains(msg, "missing"), "err"),
+    }
+    let vals = values(text)
+    assert_eq(vals.len(), 2)
 }

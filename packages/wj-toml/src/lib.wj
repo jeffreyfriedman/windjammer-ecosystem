@@ -84,6 +84,24 @@ pub fn keys(text: string) -> Vec<string> {
     out
 }
 
+/// All values after parse (order is map iteration order).
+pub fn values(text: string) -> Vec<string> {
+    let map = parse(text)
+    let mut out = Vec::new()
+    for (_k, v) in map {
+        out.push(v)
+    }
+    out
+}
+
+/// Value for `key`, or `Err` naming the missing key.
+pub fn require(text: string, key: string) -> Result<string, string> {
+    match get(text, key) {
+        Some(v) => Ok(v),
+        None => Err("missing toml key: ${key}"),
+    }
+}
+
 fn empty_string() -> string {
     ""
 }

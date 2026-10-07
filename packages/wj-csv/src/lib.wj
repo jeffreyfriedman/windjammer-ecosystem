@@ -77,3 +77,15 @@ pub fn has_column(headers: Vec<string>, name: string) -> bool {
     }
     false
 }
+
+/// Index of `name` in `headers`, or `None` when missing.
+pub fn column_index(headers: Vec<string>, name: string) -> Option<int> {
+    let mut i = 0
+    while i < headers.len() {
+        if headers[i] == name {
+            return Some(i)
+        }
+        i = i + 1
+    }
+    None
+}

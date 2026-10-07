@@ -2,6 +2,7 @@ use crate::basename
 use crate::change_extension
 use crate::dirname
 use crate::ensure_leading_slash
+use crate::ensure_trailing_slash
 use crate::extname
 use crate::has_extension
 use crate::is_absolute
@@ -9,6 +10,7 @@ use crate::is_relative
 use crate::join_path
 use crate::normalize
 use crate::stem
+use crate::without_extension
 
 @test
 fn test_join_simple() {
@@ -100,4 +102,13 @@ fn test_ensure_leading_slash() {
     assert_eq(ensure_leading_slash("api/v1"), "/api/v1")
     assert_eq(ensure_leading_slash("/api/v1"), "/api/v1")
     assert_eq(ensure_leading_slash(""), "/")
+}
+
+@test
+fn test_without_extension_and_trailing_slash() {
+    assert_eq(without_extension("/tmp/foo.txt"), "/tmp/foo")
+    assert_eq(without_extension("Makefile"), "Makefile")
+    assert_eq(ensure_trailing_slash("/api/v1"), "/api/v1/")
+    assert_eq(ensure_trailing_slash("/api/v1/"), "/api/v1/")
+    assert_eq(ensure_trailing_slash(""), "/")
 }

@@ -157,3 +157,25 @@ pub fn long_flag_value_or(args: Vec<string>, name: string, default: string) -> s
         None => default,
     }
 }
+
+/// Last positional argument, if any.
+pub fn last_positional(args: Vec<string>) -> Option<string> {
+    let pos = positionals(args)
+    let n = positional_count(args)
+    if n == 0 {
+        return None
+    }
+    Some(pos[n - 1])
+}
+
+/// True when `args` contains any `--…` long flag.
+pub fn has_any_long_flag(args: Vec<string>) -> bool {
+    let mut i = 0
+    while i < args.len() {
+        if strings.starts_with(args[i], "--") {
+            return true
+        }
+        i = i + 1
+    }
+    false
+}

@@ -5,6 +5,8 @@ use crate::default_min_bytes
 use crate::gzip_decode
 use crate::gzip_encode
 use crate::is_gzip_encoding
+use crate::is_identity_encoding
+use crate::meets_min_bytes
 use crate::negotiate
 use crate::prefer_identity
 use crate::should_compress
@@ -126,4 +128,13 @@ fn test_is_gzip_encoding() {
     assert(is_gzip_encoding(" gzip "), "trimmed")
     assert(!is_gzip_encoding("deflate"), "deflate")
     assert(!is_gzip_encoding(""), "empty")
+}
+
+@test
+fn test_is_identity_and_meets_min_bytes() {
+    assert(is_identity_encoding("identity"), "bare")
+    assert(is_identity_encoding(" Identity "), "trim")
+    assert(!is_identity_encoding("gzip"), "gzip")
+    assert(meets_min_bytes(2048, 1024), "above")
+    assert(!meets_min_bytes(100, 1024), "below")
 }

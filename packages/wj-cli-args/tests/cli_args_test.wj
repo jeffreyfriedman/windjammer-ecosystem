@@ -1,6 +1,8 @@
 use crate::read_argv
 use crate::tail
 use crate::first_positional
+use crate::has_any_long_flag
+use crate::last_positional
 use crate::nth_positional
 use crate::require_first_positional
 use crate::require_long_flag_value
@@ -160,4 +162,25 @@ fn test_require_long_flag_value() {
         Ok(_) => assert(false, "expected Err"),
         Err(msg) => assert(strings.contains(msg, "port"), "usage mentions port"),
     }
+}
+
+fn test_last_positional_and_has_any_long_flag() {
+    let mut args = Vec::new()
+    args.push("tool")
+    args.push("alpha")
+    args.push("--verbose")
+    args.push("beta")
+    match last_positional(args) {
+        Some(v) => assert_eq(v, "beta"),
+        None => assert(false, "last"),
+    }
+    let mut flags = Vec::new()
+    flags.push("tool")
+    flags.push("--verbose")
+    flags.push("--port=1")
+    assert(has_any_long_flag(flags), "has flags")
+    let mut bare = Vec::new()
+    bare.push("tool")
+    bare.push("only")
+    assert(!has_any_long_flag(bare), "no flags")
 }

@@ -106,6 +106,28 @@ pub fn is_lax_same_site(cookie: SetCookie) -> bool {
     cookie.same_site == "Lax"
 }
 
+/// True when SameSite is Strict.
+pub fn is_strict_same_site(cookie: SetCookie) -> bool {
+    cookie.same_site == "Strict"
+}
+
+/// True when the cookie jar has at least one cookie.
+pub fn has_cookies(map: HashMap<string, string>) -> bool {
+    !is_empty(map)
+}
+
+/// Copy of `cookie` with `same_site` replaced.
+pub fn with_same_site(cookie: SetCookie, same_site: string) -> SetCookie {
+    SetCookie {
+        name: cookie.name,
+        value: cookie.value,
+        path: cookie.path,
+        http_only: cookie.http_only,
+        secure: cookie.secure,
+        same_site: same_site,
+    }
+}
+
 /// Look up a cookie value by name, or `default` when missing.
 pub fn get_cookie_or(map: HashMap<string, string>, name: string, default: string) -> string {
     match get_cookie(map, name) {

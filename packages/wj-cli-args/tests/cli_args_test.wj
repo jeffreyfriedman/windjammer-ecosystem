@@ -2,7 +2,9 @@ use crate::read_argv
 use crate::tail
 use crate::first_positional
 use crate::has_any_long_flag
+use crate::has_positionals
 use crate::last_positional
+use crate::long_flag_count
 use crate::nth_positional
 use crate::require_first_positional
 use crate::require_long_flag_value
@@ -183,4 +185,19 @@ fn test_last_positional_and_has_any_long_flag() {
     bare.push("tool")
     bare.push("only")
     assert(!has_any_long_flag(bare), "no flags")
+}
+
+fn test_has_positionals_and_long_flag_count() {
+    let mut args = Vec::new()
+    args.push("tool")
+    args.push("alpha")
+    args.push("--verbose")
+    args.push("--port=1")
+    assert(has_positionals(args), "has positionals")
+    assert_eq(long_flag_count(args), 2)
+    let mut flags_only = Vec::new()
+    flags_only.push("tool")
+    flags_only.push("--verbose")
+    assert(!has_positionals(flags_only), "no positionals")
+    assert_eq(long_flag_count(flags_only), 1)
 }

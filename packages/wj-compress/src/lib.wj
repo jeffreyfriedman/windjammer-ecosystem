@@ -90,6 +90,16 @@ pub fn is_identity_encoding(content_encoding: string) -> bool {
     strings.to_lower(strings.trim(content_encoding)) == "identity"
 }
 
+/// Identity content-encoding token.
+pub fn content_encoding_identity() -> string {
+    "identity"
+}
+
+/// `Content-Encoding: identity` header line.
+pub fn content_encoding_identity_header() -> string {
+    "Content-Encoding: identity"
+}
+
 /// True when `body_len` meets or exceeds `min_bytes`.
 pub fn meets_min_bytes(body_len: int, min_bytes: int) -> bool {
     body_len >= min_bytes

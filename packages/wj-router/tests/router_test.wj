@@ -3,8 +3,11 @@ use crate::is_param_pattern
 use crate::match_route
 use crate::matches_route
 use crate::param_count
+use crate::param_names
 use crate::param_or
+use crate::require_param
 use std::collections::HashMap
+use std::strings
 
 @test
 fn test_exact_path() {
@@ -122,4 +125,42 @@ fn test_is_param_pattern() {
     assert(is_param_pattern("/:a/:b"), "two")
     assert(!is_param_pattern("/health"), "static")
     assert(!is_param_pattern("/"), "root")
+}
+
+@test
+fn test_param_names_and_require_param() {
+    match match_route("/orgs/:org/repos/:repo", "/orgs/acme/repos/api") {
+        Some(params) => {
+            let names = param_names(params)
+            assert_eq(names.len(), 2)
+            let mut found_org = false
+            let mut found_repo = false
+            let mut i = 0
+            while i < names.len() {
+                if names[i] == "org" {
+                    found_org = true
+                }
+                if names[i] == "repo" {
+                    found_repo = true
+                }
+                i = i + 1
+            }
+            assert(found_org, "org name")
+            assert(found_repo, "repo name")
+            match require_param(params, "org") {
+                Ok(v) => assert_eq(v, "acme"),
+                Err(_) => assert(false, "require org"),
+            }
+        },
+        None => assert(false, "multi"),
+    }
+    match match_route("/users/:id", "/users/42") {
+        Some(params) => {
+            match require_param(params, "missing") {
+                Ok(_) => assert(false, "missing must Err"),
+                Err(msg) => assert(strings.contains(msg, "missing"), "mentions name"),
+            }
+        },
+        None => assert(false, "users"),
+    }
 }

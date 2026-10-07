@@ -1,6 +1,8 @@
 use crate::all_ok
+use crate::error_count
 use crate::has_errors
 use crate::is_email
+use crate::is_valid
 use crate::require_email
 use crate::require_int_range
 use crate::require_len_range
@@ -309,4 +311,17 @@ fn test_has_errors() {
     let mut errs = Vec::new()
     errs.push("bad")
     assert(has_errors(errs), "has errors")
+}
+
+@test
+fn test_error_count_and_is_valid() {
+    assert_eq(error_count(Vec::new()), 0)
+    assert(is_valid(Vec::new()), "valid")
+    let mut errs = Vec::new()
+    errs.push("a")
+    errs.push("b")
+    assert_eq(error_count(errs), 2)
+    let mut bad = Vec::new()
+    bad.push("x")
+    assert(!is_valid(bad), "invalid")
 }

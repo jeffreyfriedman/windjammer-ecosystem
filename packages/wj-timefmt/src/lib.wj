@@ -154,6 +154,16 @@ pub fn is_same_day(a: Rfc3339, b: Rfc3339) -> bool {
     a.year == b.year && a.month == b.month && a.day == b.day
 }
 
+/// True when `a` and `b` share the same UTC calendar year/month.
+pub fn is_same_month(a: Rfc3339, b: Rfc3339) -> bool {
+    a.year == b.year && a.month == b.month
+}
+
+/// True when `a` and `b` share the same UTC calendar year.
+pub fn is_same_year(a: Rfc3339, b: Rfc3339) -> bool {
+    a.year == b.year
+}
+
 pub fn is_leap_year(year: int) -> bool {
     if year % 400 == 0 {
         return true

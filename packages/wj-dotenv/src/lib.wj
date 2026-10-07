@@ -111,3 +111,15 @@ pub fn values(map: HashMap<string, string>) -> Vec<string> {
     }
     out
 }
+
+/// Merge `overlay` onto `base`; overlay keys win on conflict.
+pub fn merge(base: HashMap<string, string>, overlay: HashMap<string, string>) -> HashMap<string, string> {
+    let mut out = HashMap::new()
+    for (key, value) in base {
+        out.insert(key, value)
+    }
+    for (key, value) in overlay {
+        out.insert(key, value)
+    }
+    out
+}

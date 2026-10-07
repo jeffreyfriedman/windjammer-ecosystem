@@ -171,6 +171,21 @@ pub fn is_zero_version(v: SemVer) -> bool {
     v.major == 0 && v.minor == 0 && v.patch == 0
 }
 
+/// Prerelease identifier string (empty when absent).
+pub fn prerelease_of(v: SemVer) -> string {
+    v.pre
+}
+
+/// Build metadata string (empty when absent).
+pub fn build_of(v: SemVer) -> string {
+    v.build
+}
+
+/// True when `v` has a prerelease identifier.
+pub fn is_prerelease(v: SemVer) -> bool {
+    has_prerelease(v)
+}
+
 fn split_build(text: string) -> Result<(string, string), string> {
     let mut core = text
     let mut build = ""

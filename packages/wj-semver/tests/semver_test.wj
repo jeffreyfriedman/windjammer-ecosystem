@@ -1,5 +1,6 @@
 use crate::SemVer
 use crate::parse
+use crate::build_of
 use crate::compare
 use crate::format_version
 use crate::has_build
@@ -8,6 +9,7 @@ use crate::is_compatible
 use crate::is_equal
 use crate::is_newer
 use crate::is_older
+use crate::is_prerelease
 use crate::is_zero_version
 use crate::bump_major
 use crate::bump_minor
@@ -18,6 +20,7 @@ use crate::is_stable
 use crate::major_of
 use crate::minor_of
 use crate::patch_of
+use crate::prerelease_of
 
 fn test_parse_simple_version() {
     match parse("1.2.3") {
@@ -259,5 +262,25 @@ fn test_component_accessors_and_zero() {
     match parse("0.0.0") {
         Ok(v) => assert(is_zero_version(v), "zero"),
         Err(_) => assert(false, "parse zero"),
+    }
+}
+
+fn test_prerelease_build_accessors() {
+    match parse("1.2.3-beta.1+build.9") {
+        Ok(v) => {
+            assert_eq(prerelease_of(v), "beta.1")
+            assert_eq(build_of(v), "build.9")
+            assert(is_prerelease(v), "pre")
+            assert(!is_stable(v), "not stable")
+        },
+        Err(_) => assert(false, "parse"),
+    }
+    match parse("1.2.3") {
+        Ok(v) => {
+            assert_eq(prerelease_of(v), "")
+            assert_eq(build_of(v), "")
+            assert(!is_prerelease(v), "release")
+        },
+        Err(_) => assert(false, "parse release"),
     }
 }

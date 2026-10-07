@@ -11,6 +11,7 @@ use crate::is_preflight_method
 use crate::is_wildcard_origin
 use crate::preflight
 use crate::preflight_defaults
+use crate::require_origin
 use std::strings
 
 @test
@@ -168,4 +169,20 @@ fn test_allowed_origin_count() {
     assert_eq(allowed_origin_count(allowed), 2)
     let empty = Vec::new()
     assert_eq(allowed_origin_count(empty), 0)
+}
+
+@test
+fn test_require_origin() {
+    let mut allowed = Vec::new()
+    allowed.push("https://app.example.com")
+    match require_origin("https://app.example.com", allowed) {
+        Ok(v) => assert_eq(v, "https://app.example.com"),
+        Err(_) => assert(false, "allowed origin"),
+    }
+    let mut again = Vec::new()
+    again.push("https://app.example.com")
+    match require_origin("https://evil.example", again) {
+        Ok(_) => assert(false, "rejected must Err"),
+        Err(msg) => assert(strings.contains(msg, "origin"), "mentions origin"),
+    }
 }

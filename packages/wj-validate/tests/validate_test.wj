@@ -7,6 +7,7 @@ use crate::require_len_range
 use crate::require_max_len
 use crate::require_min_len
 use crate::require_nonempty
+use crate::require_nonneg
 use crate::require_one_of
 use crate::require_positive
 use crate::require_url
@@ -282,6 +283,22 @@ fn test_require_positive() {
     match require_positive("n", -3) {
         Ok(_) => assert(false, "neg"),
         Err(_) => {},
+    }
+}
+
+@test
+fn test_require_nonneg() {
+    match require_nonneg("n", 0) {
+        Ok(v) => assert_eq(v, 0),
+        Err(_) => assert(false, "zero ok"),
+    }
+    match require_nonneg("n", 5) {
+        Ok(v) => assert_eq(v, 5),
+        Err(_) => assert(false, "pos ok"),
+    }
+    match require_nonneg("n", -1) {
+        Ok(_) => assert(false, "neg"),
+        Err(msg) => assert(strings.contains(msg, "n"), "field"),
     }
 }
 

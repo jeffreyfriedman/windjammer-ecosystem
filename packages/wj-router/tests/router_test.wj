@@ -1,6 +1,9 @@
 use crate::has_param
+use crate::has_params
 use crate::is_empty_params
 use crate::is_param_pattern
+use crate::is_static_pattern
+use crate::match_or
 use crate::match_route
 use crate::matches_route
 use crate::param_count
@@ -8,6 +11,7 @@ use crate::param_names
 use crate::param_or
 use crate::pattern_param_count
 use crate::require_param
+use std::collections::HashMap
 use std::collections::HashMap
 use std::strings
 
@@ -180,4 +184,18 @@ fn test_empty_params_and_pattern_param_count() {
     assert_eq(pattern_param_count("/health"), 0)
     assert_eq(pattern_param_count("/users/:id"), 1)
     assert_eq(pattern_param_count("/orgs/:org/repos/:repo"), 2)
+}
+
+@test
+fn test_has_params_static_and_match_or() {
+    match match_route("/users/:id", "/users/1") {
+        Some(params) => assert(has_params(params), "has params"),
+        None => assert(false, "users"),
+    }
+    assert(is_static_pattern("/health"), "static")
+    assert(!is_static_pattern("/users/:id"), "param pattern")
+    let hit = match_or("/users/:id", "/users/42", HashMap::new())
+    assert_eq(param_or(hit, "id", ""), "42")
+    let miss = match_or("/users/:id", "/nope", HashMap::new())
+    assert(is_empty_params(miss), "fallback empty")
 }

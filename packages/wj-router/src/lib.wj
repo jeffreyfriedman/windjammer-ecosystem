@@ -100,6 +100,24 @@ pub fn is_empty_params(params: HashMap<string, string>) -> bool {
     param_count(params) == 0
 }
 
+/// True when `params` has at least one entry.
+pub fn has_params(params: HashMap<string, string>) -> bool {
+    !is_empty_params(params)
+}
+
+/// True when `pattern` has no `:param` segments.
+pub fn is_static_pattern(pattern: string) -> bool {
+    !is_param_pattern(pattern)
+}
+
+/// Match `pattern` against `path`, or return `fallback` when no match.
+pub fn match_or(pattern: string, path: string, fallback: HashMap<string, string>) -> HashMap<string, string> {
+    match match_route(pattern, path) {
+        Some(params) => params,
+        None => fallback,
+    }
+}
+
 /// Count of `:param` segments in a route pattern.
 pub fn pattern_param_count(pattern: string) -> int {
     let segs = split_segments(normalize_path(pattern))

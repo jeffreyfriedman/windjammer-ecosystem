@@ -4,7 +4,9 @@ use crate::is_camel_case
 use crate::is_constant_case
 use crate::is_kebab_case
 use crate::is_pascal_case
+use crate::is_slug
 use crate::is_snake_case
+use crate::is_title_case
 use crate::kebab_case
 use crate::pascal_case
 use crate::slugify
@@ -127,4 +129,14 @@ fn test_is_camel_and_pascal_case() {
     assert(is_pascal_case("A"), "single upper")
     assert(!is_pascal_case("helloWorld"), "camel not pascal")
     assert(!is_pascal_case("Hello-World"), "kebab not pascal")
+}
+
+@test
+fn test_is_slug_and_is_title_case() {
+    assert(is_slug(slugify("Hello World!")), "slugified")
+    assert(is_slug("hello-world"), "kebab slug")
+    assert(!is_slug("Hello World"), "spaces")
+    assert(is_title_case(title_case("hello world")), "titled")
+    assert(is_title_case("Hello World"), "title")
+    assert(!is_title_case("hello world"), "lower")
 }

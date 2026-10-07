@@ -217,6 +217,33 @@ pub fn is_pascal_case(text: string) -> bool {
     true
 }
 
+/// True when `text` is a URL slug (lowercase alnum + hyphens, no leading/trailing `-`).
+pub fn is_slug(text: string) -> bool {
+    if strings.len(text) == 0 {
+        return false
+    }
+    if strings.starts_with(text, "-") || strings.ends_with(text, "-") {
+        return false
+    }
+    for ch in strings.chars(text) {
+        if ch == '-' {
+            continue
+        }
+        if !is_lower(ch) && !is_digit_char(ch) {
+            return false
+        }
+    }
+    true
+}
+
+/// True when `text` equals `title_case(text)` and contains at least one space-separated word.
+pub fn is_title_case(text: string) -> bool {
+    if strings.len(text) == 0 {
+        return false
+    }
+    title_case(text) == text
+}
+
 fn split_words(text: string) -> Vec<string> {
     let snake = snake_case(text)
     let mut parts: Vec<string> = Vec::new()

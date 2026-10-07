@@ -8,6 +8,8 @@ use crate::from_yaml
 use crate::get
 use crate::get_or
 use crate::has
+use crate::has_entries
+use crate::has_keys
 use crate::is_empty
 use crate::key_count
 use crate::keys
@@ -247,4 +249,21 @@ fn test_keys_and_values() {
     again.insert("PORT", "8080")
     let vals = values(again)
     assert_eq(vals.len(), 2)
+}
+
+@test
+fn test_has_keys_and_has_entries() {
+    let mut map = HashMap::new()
+    map.insert("HOST", "localhost")
+    map.insert("PORT", "8080")
+    let mut needed = Vec::new()
+    needed.push("HOST")
+    needed.push("PORT")
+    assert(has_keys(map, needed), "both present")
+    let mut missing = Vec::new()
+    missing.push("HOST")
+    missing.push("DEBUG")
+    assert(!has_keys(map, missing), "DEBUG absent")
+    assert(has_entries(map), "nonempty")
+    assert(!has_entries(HashMap::new()), "empty")
 }

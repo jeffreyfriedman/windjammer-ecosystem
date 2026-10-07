@@ -1,6 +1,8 @@
+use crate::bcrypt_cost
 use crate::hash_password
 use crate::is_bcrypt
 use crate::is_bcrypt_prefix
+use crate::is_empty_hash
 use crate::looks_like_bcrypt
 use crate::require_bcrypt
 use crate::verify_ok
@@ -101,4 +103,23 @@ fn test_is_bcrypt() {
     assert(is_bcrypt("$2y$10$x"), "2y")
     assert(!is_bcrypt("plain"), "plain")
     assert(!is_bcrypt(""), "empty")
+}
+
+@test
+fn test_bcrypt_cost_and_is_empty_hash() {
+    match bcrypt_cost("$2a$10$abcdefghijklmnopqrstuv") {
+        Some(c) => assert_eq(c, 10),
+        None => assert(false, "cost 10"),
+    }
+    match bcrypt_cost("$2b$12$abcdefghijklmnopqrstuv") {
+        Some(c) => assert_eq(c, 12),
+        None => assert(false, "cost 12"),
+    }
+    match bcrypt_cost("plain") {
+        Some(_) => assert(false, "plain has no cost"),
+        None => {},
+    }
+    assert(is_empty_hash(""), "empty")
+    assert(is_empty_hash("   "), "whitespace")
+    assert(!is_empty_hash("$2a$10$x"), "bcrypt not empty")
 }

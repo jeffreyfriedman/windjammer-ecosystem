@@ -44,3 +44,25 @@ pub fn is_bcrypt_prefix(hash: string) -> bool {
 pub fn is_bcrypt(hash: string) -> bool {
     looks_like_bcrypt(hash)
 }
+
+/// Bcrypt cost factor from `$2?$NN$…`, or `None` when not bcrypt-shaped.
+pub fn bcrypt_cost(hash: string) -> Option<int> {
+    if !looks_like_bcrypt(hash) {
+        return None
+    }
+    let parts = strings.split(hash, "$")
+    // "", "2a", "10", "salt…"
+    if parts.len() < 4 {
+        return None
+    }
+    let cost_text = parts[2]
+    if strings.len(cost_text) == 0 {
+        return None
+    }
+    Some(strings.parse_i32(cost_text) as int)
+}
+
+/// True when `hash` is empty or whitespace-only.
+pub fn is_empty_hash(hash: string) -> bool {
+    strings.len(strings.trim(hash)) == 0
+}

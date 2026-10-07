@@ -4,6 +4,7 @@ Weekly build health for seed apps and packages.
 
 | Week | Date | Apps / packages green | `extern fn` | Crates via interop | Compiler issues | Notes |
 |------|------|----------------------|-------------|--------------------|-----------------|-------|
+| 2 | 2026-10-07 | deepen `wj-hash`/`wj-config`/`wj-template` | 0 | 0 | private CARGO_HOME | `bcrypt_cost`/`is_empty_hash`, `has_keys`/`has_entries`, `is_plain`/`has_missing`/`first_placeholder`; tip **10+14+20** green |
 | 2 | 2026-10-07 | deepen `wj-csv`/`wj-url`/`wj-yaml` | 0 | 0 | private CARGO_HOME | `has_rows`/`require_row`/`cell_or`, `without_query`/`with_fragment`/`is_root_path`, `require_int`/`require_bool`; tip **13+22+22** green |
 | 2 | 2026-10-07 | deepen `wj-uuid`/`wj-cors`/`wj-json-util` | 0 | 0 | private CARGO_HOME | `with_hyphens`/`require_version`, `is_empty_allow_list`/`has_origins`, `is_nullish`/`is_empty_object`/`is_empty_array`; tip **25+17+22** green |
 | 2 | 2026-10-07 | deepen `wj-dotenv`/`wj-timefmt`/`wj-inflect` | 0 | 0 | private CARGO_HOME | `has_keys`/`value_count`, `year_of`/`month_of`/`day_of`/`hour_of`/`is_zulu`, `is_slug`/`is_title_case`; tip **14+26+21** green |

@@ -43,6 +43,24 @@ pub fn format_card(card: Card) -> string {
     "{\"id\":\"${card.id}\",\"created_at\":\"${card.created_at}\",\"app\":\"${card.app}\",\"data_path\":\"${card.data_path}\",\"query\":\"${card.query}\",\"port\":\"${card.port}\"}"
 }
 
+pub fn card_app(card: Card) -> string {
+    card.app
+}
+
+pub fn card_port(card: Card) -> string {
+    card.port
+}
+
+/// True when config fell back to port `"0"`.
+pub fn is_default_port(card: Card) -> bool {
+    card.port == "0"
+}
+
+/// Short human line for CLI demos.
+pub fn card_summary(card: Card) -> string {
+    "${card.app}@${card.port}"
+}
+
 fn flat_get(flat: HashMap<string, string>, key: string, fallback: string) -> string {
     match flat.get(key) {
         Some(v) => v,

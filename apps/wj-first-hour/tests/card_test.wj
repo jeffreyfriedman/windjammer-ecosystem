@@ -1,7 +1,12 @@
 // TDD: first-hour card must assemble tip-green std surfaces.
 
+use crate::domain::Card
 use crate::domain::build_card
+use crate::domain::card_app
+use crate::domain::card_port
+use crate::domain::card_summary
 use crate::domain::format_card
+use crate::domain::is_default_port
 use std::strings
 
 fn test_build_card_ok() {
@@ -36,5 +41,34 @@ fn test_build_card_query_is_urlencoded() {
             assert(strings.len(rendered) > 0, "format nonempty")
         },
         Err(e) => assert(false, "unexpected: ${e}"),
+    }
+}
+
+fn sample_card() -> Card {
+    let toml = "app.name = \"demo\"\napp.port = \"8080\"\n"
+    match build_card("demo", toml) {
+        Ok(card) => card,
+        Err(_) => Card {
+            id: "",
+            created_at: "",
+            app: "",
+            data_path: "",
+            query: "",
+            port: "",
+        },
+    }
+}
+
+fn test_card_accessors_and_summary() {
+    assert_eq(card_app(sample_card()), "demo")
+    assert_eq(card_port(sample_card()), "8080")
+    assert(!is_default_port(sample_card()), "8080 not default")
+    let summary = card_summary(sample_card())
+    assert(strings.contains(summary, "demo"), "app in summary")
+    assert(strings.contains(summary, "8080"), "port in summary")
+    let toml_default = "app.name = \"x\"\n"
+    match build_card("x", toml_default) {
+        Ok(card) => assert(is_default_port(card), "port 0 default"),
+        Err(e) => assert(false, "default: ${e}"),
     }
 }

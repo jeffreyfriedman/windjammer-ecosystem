@@ -2,6 +2,10 @@ use crate::adapters::run::run_int_pipeline
 use crate::adapters::run::run_pool_pipeline
 use crate::domain::pipeline::Job
 use crate::domain::pipeline::JobResult
+use crate::domain::pipeline::find_result_by_id
+use crate::domain::pipeline::is_empty_results
+use crate::domain::pipeline::max_result_value
+use crate::domain::pipeline::result_count
 use crate::domain::pipeline::sum_results
 use crate::domain::pipeline::transform
 
@@ -18,6 +22,31 @@ fn test_sum_results() {
     rs.push(transform(Job { id: 0, payload: 2 }))
     rs.push(transform(Job { id: 1, payload: 3 }))
     assert_eq(sum_results(rs), 10)
+}
+
+fn sample_results() -> Vec<JobResult> {
+    let mut rs: Vec<JobResult> = Vec::new()
+    rs.push(transform(Job { id: 0, payload: 2 }))
+    rs.push(transform(Job { id: 1, payload: 3 }))
+    rs.push(transform(Job { id: 2, payload: 1 }))
+    rs
+}
+
+@test
+fn test_result_helpers() {
+    assert_eq(result_count(sample_results()), 3)
+    assert(!is_empty_results(sample_results()), "nonempty")
+    assert(is_empty_results(Vec::new()), "empty")
+    assert_eq(max_result_value(sample_results()), 6)
+    assert_eq(max_result_value(Vec::new()), 0)
+    match find_result_by_id(sample_results(), 1) {
+        Some(r) => assert_eq(r.value, 6),
+        None => assert(false, "find 1"),
+    }
+    match find_result_by_id(sample_results(), 9) {
+        Some(_) => assert(false, "missing"),
+        None => {},
+    }
 }
 
 @test

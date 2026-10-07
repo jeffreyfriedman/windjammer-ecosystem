@@ -26,3 +26,36 @@ pub fn sum_results(results: Vec<JobResult>) -> int {
     }
     total
 }
+
+pub fn result_count(results: Vec<JobResult>) -> int {
+    let mut n = 0
+    for _ in results {
+        n = n + 1
+    }
+    n
+}
+
+pub fn is_empty_results(results: Vec<JobResult>) -> bool {
+    result_count(results) == 0
+}
+
+pub fn max_result_value(results: Vec<JobResult>) -> int {
+    let mut max = 0
+    let mut seen = false
+    for r in results {
+        if !seen || r.value > max {
+            max = r.value
+            seen = true
+        }
+    }
+    max
+}
+
+pub fn find_result_by_id(results: Vec<JobResult>, id: int) -> Option<JobResult> {
+    for r in results {
+        if r.id == id {
+            return Some(r)
+        }
+    }
+    None
+}

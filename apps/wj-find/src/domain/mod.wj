@@ -2,4 +2,8 @@ pub mod find
 
 pub use find::find_matching
 pub use find::find_under
+pub use find::first_hit
 pub use find::format_hits
+pub use find::has_hits
+pub use find::hit_count
+pub use find::is_empty_hits

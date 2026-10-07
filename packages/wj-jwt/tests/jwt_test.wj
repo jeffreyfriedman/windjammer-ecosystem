@@ -1,5 +1,7 @@
 use crate::bearer_header
+use crate::expires_at
 use crate::extract_bearer
+use crate::has_email
 use crate::is_bearer_header
 use crate::looks_like_jwt
 use crate::require_jwt
@@ -177,5 +179,30 @@ fn test_require_jwt_subject_tenant() {
     match require_jwt("not.a.jwt.token") {
         Ok(_) => assert(false, "bad shape must Err"),
         Err(msg) => assert(strings.contains(msg, "jwt"), "mentions jwt"),
+    }
+}
+
+@test
+fn test_expires_at_and_has_email() {
+    match sign("user-1", "acme", "secret", 3600) {
+        Ok(token) => {
+            match verify(token, "secret") {
+                Ok(claims) => {
+                    assert(expires_at(claims) > 0, "exp set")
+                    assert(!has_email(claims), "no email on basic sign")
+                },
+                Err(_) => assert(false, "verify"),
+            }
+        },
+        Err(_) => assert(false, "sign"),
+    }
+    match sign_scoped("user-1", "acme", "t1", "e1", "a@b.c", "secret", 3600) {
+        Ok(token) => {
+            match verify(token, "secret") {
+                Ok(claims) => assert(has_email(claims), "scoped has email"),
+                Err(_) => assert(false, "verify scoped"),
+            }
+        },
+        Err(_) => assert(false, "sign_scoped"),
     }
 }

@@ -118,3 +118,16 @@ pub fn subject(claims: Claims) -> string {
 pub fn tenant_slug(claims: Claims) -> string {
     claims.tenant_slug
 }
+
+/// Expiration claim (`exp`) as unix seconds.
+pub fn expires_at(claims: Claims) -> int {
+    claims.exp
+}
+
+/// True when `claims` includes an email.
+pub fn has_email(claims: Claims) -> bool {
+    match claims.email {
+        Some(_) => true,
+        None => false,
+    }
+}

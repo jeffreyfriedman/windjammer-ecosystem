@@ -4,6 +4,7 @@ Weekly build health for seed apps and packages.
 
 | Week | Date | Apps / packages green | `extern fn` | Crates via interop | Compiler issues | Notes |
 |------|------|----------------------|-------------|--------------------|-----------------|-------|
+| 2 | 2026-10-06 | deepen `wj-path`/`wj-compress`/`wj-cli-args` | 0 | 0 | ENOSPC ~10–12Gi free; isolated target | `without_extension`/`ensure_trailing_slash`, `is_identity_encoding`/`meets_min_bytes`, `last_positional`/`has_any_long_flag`; tip **17+16+14** green |
 | 2 | 2026-10-06 | deepen `wj-duration`/`wj-querystring`/`wj-rate-limit` | 0 | 0 | private `CARGO_HOME` under ENOSPC | `parse_secs_or`/`is_zero`/`add_ms`, `unique_key_count`/`value_count`, `remaining_slots`/`slots_remaining`; tip **19+19+14** green |
 | 2 | 2026-10-06 | deepen `wj-template`/`wj-hash`/`wj-jwt` | 0 | 0 | private `CARGO_HOME` under ENOSPC | `unique_placeholder_count`/`is_fully_bound`, `is_bcrypt_prefix`, `looks_like_jwt`; tip **18+8+10** green |
 | 2 | 2026-10-06 | deepen `wj-regex`/`wj-http-client` | 0 | 0 | private `CARGO_HOME` under ENOSPC | `has_matches`/`none_match`, `status_is_ok`/`status_is_redirect`/`status_is_informational`; tip **11+8** green |

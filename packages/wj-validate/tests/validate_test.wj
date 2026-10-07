@@ -1,6 +1,8 @@
 use crate::all_ok
 use crate::error_count
+use crate::first_error
 use crate::has_errors
+use crate::has_no_errors
 use crate::is_email
 use crate::is_valid
 use crate::require_email
@@ -324,4 +326,24 @@ fn test_error_count_and_is_valid() {
     let mut bad = Vec::new()
     bad.push("x")
     assert(!is_valid(bad), "invalid")
+}
+
+@test
+fn test_first_error_and_has_no_errors() {
+    assert(has_no_errors(Vec::new()), "none")
+    match first_error(Vec::new()) {
+        Some(_) => assert(false, "empty"),
+        None => {},
+    }
+    let mut errs = Vec::new()
+    errs.push("first")
+    errs.push("second")
+    assert(!has_no_errors(errs), "has")
+    let mut again = Vec::new()
+    again.push("first")
+    again.push("second")
+    match first_error(again) {
+        Some(e) => assert_eq(e, "first"),
+        None => assert(false, "first err"),
+    }
 }

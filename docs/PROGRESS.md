@@ -4,6 +4,7 @@ Weekly build health for seed apps and packages.
 
 | Week | Date | Apps / packages green | `extern fn` | Crates via interop | Compiler issues | Notes |
 |------|------|----------------------|-------------|--------------------|-----------------|-------|
+| 2 | 2026-10-07 | deepen `wj-validate`/`wj-glob`/`wj-toml` | 0 | 0 | private CARGO_HOME | `first_error`/`has_no_errors`, `exactly_n_matches`/`between_n_matches`, `last_key`/`value_count`/`is_singleton`; tip **34+23+24** green |
 | 2 | 2026-10-07 | deepen `wj-compress`/`wj-querystring`/`wj-router` | 0 | 0 | private CARGO_HOME | `accepts_identity`/`prefer_gzip`, `last_key`/`is_singleton`, `has_params`/`is_static_pattern`/`match_or`; tip **19+22+14** green |
 | 2 | 2026-10-07 | deepen `wj-path`/`wj-headers`/`wj-cli-args` | 0 | 0 | private CARGO_HOME | `is_dot_dot`/`has_leading_slash`/`require_absolute`, `frame_of`/`csp_of`/`has_hsts`, `has_help_flag`/`has_version_flag`/`require_positional_count`; tip **20+20+17** green |
 | 2 | 2026-10-07 | deepen `wj-mime`/`wj-cookie`/`wj-duration` | 0 | 0 | private CARGO_HOME | `png`/`is_png`/`content_type_png`, `has_cookies`/`is_strict_same_site`/`with_same_site`, `is_nonzero`/`outside_ms`/`require_positive`; tip **21+19+22** green |

@@ -88,6 +88,25 @@ pub fn first_key(text: string) -> Option<string> {
     Some(ks[0])
 }
 
+/// Last key from map iteration order.
+pub fn last_key(text: string) -> Option<string> {
+    let ks = keys(text)
+    if ks.len() == 0 {
+        return None
+    }
+    Some(ks[ks.len() - 1])
+}
+
+/// Number of values after parse (same as `key_count` for flat maps).
+pub fn value_count(text: string) -> int {
+    key_count(text)
+}
+
+/// True when parse yields exactly one key.
+pub fn is_singleton(text: string) -> bool {
+    key_count(text) == 1
+}
+
 /// All keys after parse (order is map iteration order).
 pub fn keys(text: string) -> Vec<string> {
     let map = parse(text)

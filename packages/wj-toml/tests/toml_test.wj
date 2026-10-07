@@ -4,11 +4,14 @@ use crate::get_or
 use crate::has
 use crate::has_keys
 use crate::is_empty
+use crate::is_singleton
 use crate::key_count
 use crate::keys
+use crate::last_key
 use crate::merge
 use crate::parse
 use crate::require
+use crate::value_count
 use crate::values
 use std::strings
 
@@ -295,4 +298,25 @@ fn test_has_keys_and_first_key() {
         Some(_) => assert(false, "none"),
         None => {},
     }
+}
+
+@test
+fn test_last_key_value_count_and_singleton() {
+    let text = "host = \"localhost\"\nport = 8080\n"
+    match last_key("solo = \"x\"\n") {
+        Some(k) => assert_eq(k, "solo"),
+        None => assert(false, "last solo"),
+    }
+    match last_key("") {
+        Some(_) => assert(false, "empty"),
+        None => {},
+    }
+    match last_key(text) {
+        Some(k) => assert(k == "host" || k == "port", "one of keys"),
+        None => assert(false, "last multi"),
+    }
+    assert_eq(value_count(text), 2)
+    assert(is_singleton("host = \"localhost\"\n"), "one")
+    assert(!is_singleton(text), "two")
+    assert(!is_singleton(""), "empty")
 }

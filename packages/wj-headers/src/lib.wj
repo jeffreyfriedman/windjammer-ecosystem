@@ -147,3 +147,15 @@ pub fn without_hsts(headers: SecurityHeaders) -> SecurityHeaders {
 pub fn is_same_origin_frame(headers: SecurityHeaders) -> bool {
     headers.frame_options == "SAMEORIGIN"
 }
+
+pub fn has_nosniff(headers: SecurityHeaders) -> bool {
+    headers.content_type_options == "nosniff"
+}
+
+pub fn is_no_referrer(headers: SecurityHeaders) -> bool {
+    headers.referrer_policy == "no-referrer"
+}
+
+pub fn referrer_of(headers: SecurityHeaders) -> string {
+    headers.referrer_policy
+}

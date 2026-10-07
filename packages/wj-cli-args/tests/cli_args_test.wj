@@ -1,11 +1,14 @@
 use crate::read_argv
 use crate::tail
+use crate::arg_count
 use crate::first_positional
 use crate::has_any_long_flag
 use crate::has_positionals
+use crate::is_empty_args
 use crate::last_positional
 use crate::long_flag_count
 use crate::nth_positional
+use crate::only_program_name
 use crate::require_first_positional
 use crate::require_long_flag_value
 use crate::has_long_flag
@@ -200,4 +203,15 @@ fn test_has_positionals_and_long_flag_count() {
     flags_only.push("--verbose")
     assert(!has_positionals(flags_only), "no positionals")
     assert_eq(long_flag_count(flags_only), 1)
+}
+
+fn test_arg_count_empty_and_only_program() {
+    assert(is_empty_args(Vec::new()), "empty")
+    assert_eq(arg_count(Vec::new()), 0)
+    let mut prog = Vec::new()
+    prog.push("tool")
+    assert(only_program_name(prog), "only prog")
+    assert_eq(arg_count(sample_args()), 4)
+    assert(!only_program_name(sample_args()), "has more")
+    assert(!is_empty_args(sample_args()), "nonempty")
 }

@@ -222,6 +222,19 @@ pub fn window_ms_of(lim: FixedWindow) -> int {
     lim.window_ms
 }
 
+/// True when the bucket has never recorded a request.
+pub fn is_fresh_bucket(bucket: WindowBucket) -> bool {
+    bucket.count == 0 && bucket.window_start_ms == 0
+}
+
+pub fn retry_after_ms_of(result: RateLimitResult) -> int {
+    result.retry_after_ms
+}
+
+pub fn reset_at_ms_of(result: RateLimitResult) -> int {
+    result.reset_at_ms
+}
+
 fn window_start_for(now_ms: int, window_ms: int) -> int {
     if window_ms <= 0 {
         return now_ms

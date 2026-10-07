@@ -4,6 +4,7 @@ Weekly build health for seed apps and packages.
 
 | Week | Date | Apps / packages green | `extern fn` | Crates via interop | Compiler issues | Notes |
 |------|------|----------------------|-------------|--------------------|-----------------|-------|
+| 2 | 2026-10-06 | deepen `wj-rate-limit`/`wj-headers`/`wj-cli-args` | 0 | 0 | ENOSPC ~4Gi; private CARGO_HOME | `is_fresh_bucket`/`retry_after_ms_of`/`reset_at_ms_of`, `has_nosniff`/`is_no_referrer`/`referrer_of`, `arg_count`/`is_empty_args`/`only_program_name`; tip **16+19+16** green |
 | 2 | 2026-10-06 | deepen `wj-duration`/`wj-mime`/`wj-cookie` | 0 | 0 | ENOSPC ~1–4Gi; private CARGO_HOME | `min_ms`/`max_ms`/`within_ms`, `css`/`xml`/`content_type_*`, `cookie_name`/`cookie_value`/`cookie_path`/`is_lax_same_site`; tip **21+20+18** green |
 | 2 | 2026-10-06 | deepen `wj-migrate-cli`/`wj-sitegen`/`wj-path` | 0 | 0 | ENOSPC mid-batch; private CARGO_HOME | `version_count`/`has_pending`/`is_caught_up`, `is_markdown_path`/`is_html_path`/`page_count`, `is_empty_path`/`has_trailing_slash`/`is_dot`; tip **22+24+19** green |
 | 2 | 2026-10-06 | deepen `wj-scheduler`/`wj-proxy`/`wj-webhook` | 0 | 0 | ENOSPC ~0.3–2Gi; private CARGO_HOME; Library verify prune Permission denied | `expr_count`/`due_count`/`is_day_budget`, `is_safe_method`/`is_mutating_method`/`has_strip_prefix`/`is_unlimited_log`, `is_dev_secret`/`has_allowed_origins`/`max_event_len_of`; tip **39+27+16** green |

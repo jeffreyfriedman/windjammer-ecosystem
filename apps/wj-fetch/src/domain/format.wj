@@ -1,6 +1,16 @@
 use wj_json_util::pretty
 use std::strings
 
+/// True for HTTP 2xx responses.
+pub fn is_success_status(status: u16) -> bool {
+    status >= 200 && status < 300
+}
+
+/// True for HTTP 4xx client errors.
+pub fn is_client_error_status(status: u16) -> bool {
+    status >= 400 && status < 500
+}
+
 /// Pretty-print JSON when possible; otherwise return the raw body.
 pub fn format_body(body: string) -> string {
     pretty(own(body))

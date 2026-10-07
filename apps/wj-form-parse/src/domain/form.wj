@@ -33,6 +33,35 @@ pub fn field_get(fields: Vec<(string, string)>, name: string) -> Option<string> 
     None
 }
 
+/// Number of fields in the parsed form.
+pub fn field_count(fields: Vec<(string, string)>) -> int {
+    fields.len() as int
+}
+
+/// True when at least one field matches `name`.
+pub fn has_field(fields: Vec<(string, string)>, name: string) -> bool {
+    match field_get(fields, name) {
+        Some(_) => true,
+        None => false,
+    }
+}
+
+/// First value for `name`, or `default` when absent.
+pub fn field_get_or(fields: Vec<(string, string)>, name: string, default: string) -> string {
+    match field_get(fields, name) {
+        Some(v) => v,
+        None => default,
+    }
+}
+
+/// First value for `name`, or Err naming the missing field.
+pub fn require_field(fields: Vec<(string, string)>, name: string) -> Result<string, string> {
+    match field_get(fields, name) {
+        Some(v) => Ok(v),
+        None => Err("missing field: ${name}"),
+    }
+}
+
 /// Render fields as `name=value` lines (demo / CLI output).
 pub fn format_fields(fields: Vec<(string, string)>) -> string {
     let mut out = ""

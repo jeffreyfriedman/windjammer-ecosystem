@@ -1,6 +1,10 @@
 use crate::domain::Todo
+use crate::domain::done_count
 use crate::domain::filter_pending
 use crate::domain::filter_done
+use crate::domain::find_by_id
+use crate::domain::is_empty_todos
+use crate::domain::pending_count
 use crate::domain::sort_todos_by_id
 use crate::domain::count_todos
 
@@ -50,4 +54,30 @@ fn test_count_todos() {
     assert_eq(counts.0, 3)
     assert_eq(counts.1, 2)
     assert_eq(counts.2, 1)
+}
+
+fn sample_todos() -> Vec<Todo> {
+    let mut todos = Vec::new()
+    todos.push(make_todo(1, "open", false))
+    todos.push(make_todo(2, "closed", true))
+    todos.push(make_todo(3, "also-open", false))
+    todos
+}
+
+fn test_pending_done_find_and_empty() {
+    assert_eq(pending_count(sample_todos()), 2)
+    assert_eq(done_count(sample_todos()), 1)
+    assert(!is_empty_todos(sample_todos()), "nonempty")
+    assert(is_empty_todos(Vec::new()), "empty")
+    match find_by_id(sample_todos(), 2) {
+        Some(t) => {
+            assert_eq(t.id, 2)
+            assert(t.done, "done")
+        },
+        None => assert(false, "find 2"),
+    }
+    match find_by_id(sample_todos(), 9) {
+        Some(_) => assert(false, "missing"),
+        None => {},
+    }
 }

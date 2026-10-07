@@ -10,6 +10,8 @@ pub use url_arg::url_from_argv
 pub use format::format_body
 pub use format::format_fetch_result
 pub use format::format_fetch_error
+pub use format::is_client_error_status
+pub use format::is_success_status
 pub use format::resolve_fetch_output
 pub use config::FetchConfig
 pub use config::config_from_env

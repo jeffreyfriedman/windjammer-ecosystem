@@ -1,10 +1,13 @@
 use crate::allow_origin
+use crate::allows_wildcard
 use crate::cors_header_lines
+use crate::cors_line_count
 use crate::default_allow_headers
 use crate::default_allow_methods
 use crate::format_cors_headers
 use crate::is_origin_allowed
 use crate::is_preflight_method
+use crate::is_wildcard_origin
 use crate::preflight
 use crate::preflight_defaults
 use std::strings
@@ -131,5 +134,27 @@ fn test_preflight_defaults() {
             assert_eq(h.allow_headers, default_allow_headers())
         },
         None => assert(false, "expected defaults preflight"),
+    }
+}
+
+@test
+fn test_allows_wildcard_and_is_wildcard_origin() {
+    let mut star = Vec::new()
+    star.push("*")
+    assert(allows_wildcard(star), "has *")
+    let mut exact = Vec::new()
+    exact.push("https://app.example.com")
+    assert(!allows_wildcard(exact), "no *")
+    assert(is_wildcard_origin("*"), "star")
+    assert(!is_wildcard_origin("https://app.example.com"), "echoed origin")
+}
+
+@test
+fn test_cors_line_count() {
+    let mut allowed = Vec::new()
+    allowed.push("https://app.example.com")
+    match preflight("https://app.example.com", allowed, "GET", "Content-Type") {
+        Some(h) => assert_eq(cors_line_count(h), 3),
+        None => assert(false, "preflight"),
     }
 }

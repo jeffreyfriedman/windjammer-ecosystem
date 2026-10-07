@@ -1,3 +1,5 @@
 pub mod version
 
+pub use version::crate_name
+pub use version::semver
 pub use version::version

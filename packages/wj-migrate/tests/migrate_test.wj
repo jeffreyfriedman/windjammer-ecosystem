@@ -1,10 +1,15 @@
+use crate::is_pending
+use crate::latest_version
+use crate::migration_count
 use crate::parse_filename
 use crate::pending
+use crate::pending_count
 use crate::record_applied_sql
 use crate::schema_table_sql
 use crate::select_applied_sql
 use crate::sort_migrations
 use crate::validate_unique_versions
+use crate::version_applied
 use crate::Migration
 
 @test
@@ -164,4 +169,42 @@ fn test_record_applied_sql() {
         },
         Err(_) => assert(false, "parse"),
     }
+}
+
+fn sample_migrations() -> Vec<Migration> {
+    let mut all = Vec::new()
+    match parse_filename("001_a.sql") {
+        Ok(m) => all.push(m),
+        Err(_) => {},
+    }
+    match parse_filename("002_b.sql") {
+        Ok(m) => all.push(m),
+        Err(_) => {},
+    }
+    match parse_filename("003_c.sql") {
+        Ok(m) => all.push(m),
+        Err(_) => {},
+    }
+    all
+}
+
+@test
+fn test_pending_count_latest_and_is_pending() {
+    assert_eq(migration_count(sample_migrations()), 3)
+    assert_eq(latest_version(sample_migrations()), 3)
+    let mut applied = Vec::new()
+    applied.push(1)
+    assert_eq(pending_count(sample_migrations(), applied), 2)
+    let mut applied2 = Vec::new()
+    applied2.push(1)
+    assert(version_applied(applied2, 1), "1 applied")
+    let mut applied3 = Vec::new()
+    applied3.push(1)
+    assert(is_pending(sample_migrations(), applied3, 2), "2 pending")
+    let mut applied4 = Vec::new()
+    applied4.push(1)
+    assert(!is_pending(sample_migrations(), applied4, 1), "1 not pending")
+    let mut applied5 = Vec::new()
+    applied5.push(1)
+    assert(!is_pending(sample_migrations(), applied5, 9), "missing version")
 }

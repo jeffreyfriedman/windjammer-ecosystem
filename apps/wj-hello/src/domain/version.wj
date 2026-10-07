@@ -1,5 +1,16 @@
 // Domain: version identity for the wj-hello smoke binary.
 
+/// Package / binary crate name.
+pub fn crate_name() -> string {
+    "wj-hello"
+}
+
+/// Semver for this smoke app.
+pub fn semver() -> string {
+    "0.1.0"
+}
+
+/// Combined identity line (`crate_name` + space + `semver`).
 pub fn version() -> string {
-    "wj-hello 0.1.0"
+    "${crate_name()} ${semver()}"
 }

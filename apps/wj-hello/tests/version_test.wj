@@ -1,5 +1,7 @@
 // TDD: version string is the CI smoke contract for wj-hello.
 
+use crate::domain::crate_name
+use crate::domain::semver
 use crate::domain::version
 
 fn test_version_string() {
@@ -10,4 +12,10 @@ fn test_version_string() {
 fn test_version_is_non_empty() {
     let v = version()
     assert(v.len() > 0, "version must not be empty")
+}
+
+fn test_crate_name_and_semver() {
+    assert_eq(crate_name(), "wj-hello")
+    assert_eq(semver(), "0.1.0")
+    assert_eq(version(), "${crate_name()} ${semver()}")
 }

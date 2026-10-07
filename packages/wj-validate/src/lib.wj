@@ -122,6 +122,19 @@ pub fn is_valid(errors: Vec<string>) -> bool {
     !has_errors(errors)
 }
 
+/// Alias of `is_valid`.
+pub fn has_no_errors(errors: Vec<string>) -> bool {
+    is_valid(errors)
+}
+
+/// First error message, or `None` when the list is empty.
+pub fn first_error(errors: Vec<string>) -> Option<string> {
+    if errors.len() == 0 {
+        return None
+    }
+    Some(errors[0])
+}
+
 /// Predicate form of `require_email` (no field name).
 pub fn is_email(value: string) -> bool {
     match require_email("email", value) {

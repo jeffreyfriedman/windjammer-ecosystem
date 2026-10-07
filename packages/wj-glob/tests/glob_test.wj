@@ -2,6 +2,8 @@ use crate::all_match
 use crate::any_match
 use crate::at_least_n_matches
 use crate::at_most_n_matches
+use crate::between_n_matches
+use crate::exactly_n_matches
 use crate::exactly_one_match
 use crate::filter
 use crate::first_match
@@ -213,4 +215,17 @@ fn test_at_most_n_matches() {
     assert(at_most_n_matches("*.md", paths, 2), "<=2")
     assert(!at_most_n_matches("*.md", paths, 1), ">1")
     assert(at_most_n_matches("*.rs", paths, 0), "zero")
+}
+
+@test
+fn test_exactly_n_and_between_n_matches() {
+    let mut paths = Vec::new()
+    paths.push("a.txt")
+    paths.push("b.md")
+    paths.push("c.md")
+    assert(exactly_n_matches("*.md", paths, 2), "exactly 2")
+    assert(!exactly_n_matches("*.md", paths, 1), "not 1")
+    assert(between_n_matches("*.md", paths, 1, 2), "1..2")
+    assert(!between_n_matches("*.md", paths, 3, 5), "out")
+    assert(between_n_matches("*.txt", paths, 1, 1), "one txt")
 }

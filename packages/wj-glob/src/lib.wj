@@ -72,3 +72,14 @@ pub fn at_least_n_matches(pattern: string, paths: Vec<string>, n: int) -> bool {
 pub fn at_most_n_matches(pattern: string, paths: Vec<string>, n: int) -> bool {
     match_count(pattern, paths) <= n
 }
+
+/// True when exactly `n` paths match `pattern`.
+pub fn exactly_n_matches(pattern: string, paths: Vec<string>, n: int) -> bool {
+    match_count(pattern, paths) == n
+}
+
+/// True when match count is in the inclusive `[lo, hi]` range.
+pub fn between_n_matches(pattern: string, paths: Vec<string>, lo: int, hi: int) -> bool {
+    let n = match_count(pattern, paths)
+    n >= lo && n <= hi
+}

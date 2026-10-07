@@ -1,5 +1,8 @@
 use crate::HttpResult
 use crate::status_is_client_error
+use crate::status_is_informational
+use crate::status_is_ok
+use crate::status_is_redirect
 use crate::status_is_server_error
 use crate::status_is_success
 use crate::require_ok
@@ -61,4 +64,14 @@ fn test_http_result_is_success_method() {
     assert(ok.is_success(), "204 should succeed")
     let bad = from_parts(401, "nope")
     assert(!bad.is_success(), "401 should fail")
+}
+
+fn test_status_is_ok_redirect_informational() {
+    assert(status_is_ok(200), "200")
+    assert(!status_is_ok(201), "201 not ok")
+    assert(status_is_redirect(301), "301")
+    assert(status_is_redirect(302), "302")
+    assert(!status_is_redirect(200), "200 not redirect")
+    assert(status_is_informational(100), "100")
+    assert(!status_is_informational(200), "200 not 1xx")
 }

@@ -4,6 +4,7 @@ Weekly build health for seed apps and packages.
 
 | Week | Date | Apps / packages green | `extern fn` | Crates via interop | Compiler issues | Notes |
 |------|------|----------------------|-------------|--------------------|-----------------|-------|
+| 2 | 2026-10-06 | deepen `wj-regex`/`wj-http-client` | 0 | 0 | private `CARGO_HOME` under ENOSPC | `has_matches`/`none_match`, `status_is_ok`/`status_is_redirect`/`status_is_informational`; tip **11+8** green |
 | 2 | 2026-10-06 | deepen `wj-log`/`wj-dotenv`/`wj-fs-walk` | 0 | 0 | shared `.cargo-home` syn corruption under ENOSPC → private `CARGO_HOME` | `is_warn_level`/`is_debug_level`, `get`/`values`, `count_dirs`/`has_dirs`; tip **12+12+10** green |
 | 2 | 2026-10-06 | deepen `wj-router`/`wj-mime`/`wj-cookie` | 0 | 0 | ENOSPC corrupted `.cargo-home` registry (re-fetched src) | `has_param`/`param_count`/`is_param_pattern`, `plain`/`is_css`/`is_xml`, `cookie_names`/`is_secure`/`is_http_only`; tip **11+18+16** green |
 | 2 | 2026-10-06 | deepen `wj-json-util`/`wj-base64`/`wj-sha` | 0 | 0 | — | `path_get_or`/`is_objectish`/`is_arrayish`, `looks_like_base64`/`is_encoded`, `digest_equals`/`is_etag`; tip **20+11+9** green |

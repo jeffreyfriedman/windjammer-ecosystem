@@ -9,6 +9,7 @@ use crate::listener_ids
 use crate::match_pattern
 use crate::new_bus
 use crate::peek
+use crate::pending_count
 use crate::queue_len
 use crate::subscribe
 use crate::unsubscribe
@@ -137,4 +138,11 @@ fn test_peek_does_not_drain() {
         None => assert(false, "peek first"),
     }
     assert_eq(queue_len(peeked.0), 2)
+}
+
+@test
+fn test_pending_count() {
+    assert_eq(pending_count(new_bus()), 0)
+    let queued = emit(emit(new_bus(), "a", "1"), "b", "2")
+    assert_eq(pending_count(queued), 2)
 }

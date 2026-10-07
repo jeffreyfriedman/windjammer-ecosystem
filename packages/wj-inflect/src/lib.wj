@@ -156,6 +156,25 @@ pub fn is_kebab_case(text: string) -> bool {
     true
 }
 
+/// True when `text` is non-empty SCREAMING_SNAKE (`[A-Z0-9_]+`).
+pub fn is_constant_case(text: string) -> bool {
+    if strings.len(text) == 0 {
+        return false
+    }
+    for ch in strings.chars(text) {
+        if is_lower(ch) {
+            return false
+        }
+        if ch == '-' {
+            return false
+        }
+        if !(is_upper(ch) || is_digit_char(ch) || ch == '_') {
+            return false
+        }
+    }
+    true
+}
+
 fn split_words(text: string) -> Vec<string> {
     let snake = snake_case(text)
     let mut parts: Vec<string> = Vec::new()

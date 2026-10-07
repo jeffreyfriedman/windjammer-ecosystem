@@ -109,6 +109,21 @@ pub fn is_version(text: string, ver: int) -> bool {
     }
 }
 
+/// True when `text` is a valid UUID version 4.
+pub fn is_v4(text: string) -> bool {
+    is_version(text, 4)
+}
+
+/// True when `text` is a valid UUID version 7.
+pub fn is_v7(text: string) -> bool {
+    is_version(text, 7)
+}
+
+/// True when `text` is already lowercase dotted-hex UUID form (no normalize needed).
+pub fn is_canonical(text: string) -> bool {
+    text == normalize(text) && is_valid(text)
+}
+
 /// True when `text` is the nil UUID (all zeros).
 pub fn is_nil(text: string) -> bool {
     normalize(text) == "00000000-0000-0000-0000-000000000000"

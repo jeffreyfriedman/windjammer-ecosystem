@@ -5,11 +5,14 @@ use crate::has_csp
 use crate::header_line_count
 use crate::hsts
 use crate::hsts_enabled
+use crate::is_frame_deny
 use crate::nosniff
 use crate::frame_options
 use crate::referrer_policy
 use crate::security_header_lines
 use crate::with_csp
+use crate::with_frame_options
+use crate::without_csp
 use std::strings
 
 @test
@@ -117,4 +120,17 @@ fn test_has_csp_and_with_csp() {
     assert(has_csp(custom), "custom CSP on")
     let text = format_headers(custom)
     assert_str_contains(text, "Content-Security-Policy: default-src 'self'")
+}
+
+@test
+fn test_without_csp_and_frame_helpers() {
+    let h = defaults()
+    assert(is_frame_deny(h), "defaults DENY")
+    let no_csp = without_csp(h)
+    assert(!has_csp(no_csp), "csp cleared")
+    assert_eq(header_line_count(no_csp), 3)
+    let same = with_frame_options(defaults(), "SAMEORIGIN")
+    assert(!is_frame_deny(same), "not deny")
+    let text = format_headers(same)
+    assert_str_contains(text, "X-Frame-Options: SAMEORIGIN")
 }

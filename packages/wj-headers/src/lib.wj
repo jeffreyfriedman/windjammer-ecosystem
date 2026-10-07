@@ -106,3 +106,20 @@ pub fn with_csp(headers: SecurityHeaders, policy: string) -> SecurityHeaders {
     out.content_security_policy = policy
     out
 }
+
+/// Clear Content-Security-Policy (omit CSP header line).
+pub fn without_csp(headers: SecurityHeaders) -> SecurityHeaders {
+    with_csp(headers, "")
+}
+
+/// Return `headers` with `frame_options` set to `directive`.
+pub fn with_frame_options(headers: SecurityHeaders, directive: string) -> SecurityHeaders {
+    let mut out = headers
+    out.frame_options = directive
+    out
+}
+
+/// True when `X-Frame-Options` is `DENY`.
+pub fn is_frame_deny(headers: SecurityHeaders) -> bool {
+    headers.frame_options == "DENY"
+}

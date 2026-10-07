@@ -111,3 +111,32 @@ pub fn default_allow_headers() -> string {
 pub fn preflight_defaults(origin: string, allowed: Vec<string>) -> Option<CorsHeaders> {
     preflight(origin, allowed, default_allow_methods(), default_allow_headers())
 }
+
+/// True when `allowed` contains a `*` entry.
+pub fn allows_wildcard(allowed: Vec<string>) -> bool {
+    let mut i = 0
+    while i < allowed.len() {
+        if allowed[i] == "*" {
+            return true
+        }
+        i = i + 1
+    }
+    false
+}
+
+/// True when `allow_origin` is the CORS wildcard `*`.
+pub fn is_wildcard_origin(allow_origin: string) -> bool {
+    allow_origin == "*"
+}
+
+/// Number of lines from `cors_header_lines`.
+pub fn cors_line_count(headers: CorsHeaders) -> int {
+    let lines = cors_header_lines(headers)
+    let mut n = 0
+    let mut i = 0
+    while i < lines.len() {
+        n = n + 1
+        i = i + 1
+    }
+    n
+}

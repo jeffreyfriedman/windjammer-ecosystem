@@ -4,6 +4,7 @@ Weekly build health for seed apps and packages.
 
 | Week | Date | Apps / packages green | `extern fn` | Crates via interop | Compiler issues | Notes |
 |------|------|----------------------|-------------|--------------------|-----------------|-------|
+| 2 | 2026-10-06 | deepen `wj-cors`/`wj-headers`/`wj-uuid` | 0 | 0 | — | `allows_wildcard`/`is_wildcard_origin`/`cors_line_count`, `without_csp`/`with_frame_options`/`is_frame_deny`, `is_v4`/`is_v7`/`is_canonical`; tip **14+16+22** green |
 | 2 | 2026-10-06 | deepen `wj-timefmt`/`wj-semver`/`wj-retry` | 0 | 0 | — | `diff_secs`/`sub_secs`/`is_same_day`, `bump_minor`/`bump_major`/`clear_prerelease`, `clamp_delay_ms`/`with_max_ms`; tip **24+14+13** green |
 | 2 | 2026-10-06 | deepen `wj-yaml`/`wj-url`/`wj-validate` | 0 | 0 | P3.687 shared-verify contention (isolated target for url) | `get_int_or`/`get_bool_or`/`is_valid`, `query_get_or`/`has_port`/`has_fragment`/`is_http`, `is_email`/`require_positive`/`has_errors`; tip **20+20+31** green |
 | 2 | 2026-10-06 | deepen `wj-csv`/`wj-glob`/`wj-toml` | 0 | 0 | P3.687 (shared-verify Doc-tests E0463; isolated target GREEN) | `is_empty`/`get_cell`/`has_column`, `any_match`/`none_match`/`all_match`, `key_count`/`is_empty`/`keys`; tip **10+19+20** green |

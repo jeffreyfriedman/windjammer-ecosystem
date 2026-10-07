@@ -7,7 +7,10 @@ use crate::v5_url
 use crate::v7
 use crate::v7_from_timestamp
 use crate::version
+use crate::is_canonical
 use crate::is_valid
+use crate::is_v4
+use crate::is_v7
 use crate::is_version
 use crate::is_nil
 use crate::is_max
@@ -174,4 +177,21 @@ fn test_is_version() {
         Err(_) => assert(false, "v7 for is_version"),
     }
     assert(!is_version("not-a-uuid", 4), "invalid")
+}
+
+fn test_is_v4_is_v7_and_is_canonical() {
+    let id = v4()
+    assert(is_v4(id), "v4")
+    assert(!is_v7(id), "not v7")
+    assert(is_canonical(id), "generated canonical")
+    match v7() {
+        Ok(v7id) => {
+            assert(is_v7(v7id), "v7")
+            assert(!is_v4(v7id), "not v4")
+        },
+        Err(_) => assert(false, "v7"),
+    }
+    assert(is_canonical("550e8400-e29b-41d4-a716-446655440000"), "lower dashed")
+    assert(!is_canonical("550E8400-E29B-41D4-A716-446655440000"), "upper not canonical")
+    assert(!is_canonical("550e8400e29b41d4a716446655440000"), "no dashes")
 }

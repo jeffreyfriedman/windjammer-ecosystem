@@ -1,10 +1,12 @@
 use crate::has_param
+use crate::is_empty_params
 use crate::is_param_pattern
 use crate::match_route
 use crate::matches_route
 use crate::param_count
 use crate::param_names
 use crate::param_or
+use crate::pattern_param_count
 use crate::require_param
 use std::collections::HashMap
 use std::strings
@@ -163,4 +165,19 @@ fn test_param_names_and_require_param() {
         },
         None => assert(false, "users"),
     }
+}
+
+@test
+fn test_empty_params_and_pattern_param_count() {
+    match match_route("/health", "/health") {
+        Some(params) => assert(is_empty_params(params), "empty"),
+        None => assert(false, "health"),
+    }
+    match match_route("/users/:id", "/users/1") {
+        Some(params) => assert(!is_empty_params(params), "has params"),
+        None => assert(false, "users"),
+    }
+    assert_eq(pattern_param_count("/health"), 0)
+    assert_eq(pattern_param_count("/users/:id"), 1)
+    assert_eq(pattern_param_count("/orgs/:org/repos/:repo"), 2)
 }

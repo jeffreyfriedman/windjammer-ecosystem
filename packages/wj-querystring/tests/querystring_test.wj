@@ -1,8 +1,10 @@
 use crate::append
+use crate::first_key
 use crate::get
 use crate::get_all
 use crate::get_or
 use crate::has
+use crate::has_pairs
 use crate::is_empty
 use crate::keys
 use crate::pair_count
@@ -179,5 +181,20 @@ fn test_require() {
     match require("a=1&b=2", "z") {
         Ok(_) => assert(false, "missing must Err"),
         Err(msg) => assert(strings.contains(msg, "z"), "mentions key"),
+    }
+}
+
+@test
+fn test_has_pairs_and_first_key() {
+    assert(has_pairs("a=1"), "pairs")
+    assert(!has_pairs(""), "empty")
+    assert(!has_pairs("?"), "qmark")
+    match first_key("a=1&b=2") {
+        Some(k) => assert_eq(k, "a"),
+        None => assert(false, "first"),
+    }
+    match first_key("") {
+        Some(_) => assert(false, "none"),
+        None => {},
     }
 }

@@ -3,6 +3,7 @@
 use crate::domain::crate_name
 use crate::domain::semver
 use crate::domain::version
+use std::strings
 
 fn test_version_string() {
     let v = version()
@@ -18,4 +19,25 @@ fn test_crate_name_and_semver() {
     assert_eq(crate_name(), "wj-hello")
     assert_eq(semver(), "0.1.0")
     assert_eq(version(), "${crate_name()} ${semver()}")
+}
+
+fn test_is_zero_major_and_matches_identity() {
+    use crate::domain::is_zero_major
+    use crate::domain::matches_identity
+    assert(is_zero_major(), "0.x is zero major")
+    assert(matches_identity("wj-hello", "0.1.0"), "exact identity")
+    assert(!matches_identity("other", "0.1.0"), "wrong crate")
+    assert(!matches_identity("wj-hello", "9.9.9"), "wrong semver")
+}
+
+fn test_require_crate() {
+    use crate::domain::require_crate
+    match require_crate("wj-hello") {
+        Ok(name) => assert_eq(name, "wj-hello"),
+        Err(_) => assert(false, "expected Ok"),
+    }
+    match require_crate("wrong") {
+        Ok(_) => assert(false, "expected Err"),
+        Err(msg) => assert(strings.contains(msg, "wrong"), "mentions expected"),
+    }
 }

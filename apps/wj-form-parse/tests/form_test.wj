@@ -75,3 +75,31 @@ fn test_field_helpers() {
         Err(msg) => assert(strings.contains(msg, "missing"), "mentions field"),
     }
 }
+
+fn test_is_empty_and_first_last_field() {
+    use crate::domain::first_field_name
+    use crate::domain::is_empty_fields
+    use crate::domain::last_field_name
+    let empty: Vec<(string, string)> = Vec::new()
+    assert(is_empty_fields(empty), "empty")
+    assert(!is_empty_fields(sample_fields()), "sample not empty")
+    match first_field_name(sample_fields()) {
+        Some(n) => assert_eq(n, "title"),
+        None => assert(false, "first"),
+    }
+    match last_field_name(sample_fields()) {
+        Some(n) => assert_eq(n, "body"),
+        None => assert(false, "last"),
+    }
+    match first_field_name(empty) {
+        Some(_) => assert(false, "empty first"),
+        None => assert(true, "ok"),
+    }
+}
+
+fn test_has_value() {
+    use crate::domain::has_value
+    assert(has_value(sample_fields(), "Hello"), "Hello present")
+    assert(has_value(sample_fields(), "World"), "World present")
+    assert(!has_value(sample_fields(), "missing"), "no missing value")
+}

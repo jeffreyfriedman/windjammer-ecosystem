@@ -11,6 +11,21 @@ pub fn is_client_error_status(status: u16) -> bool {
     status >= 400 && status < 500
 }
 
+/// True for HTTP 1xx informational responses.
+pub fn is_informational_status(status: u16) -> bool {
+    status >= 100 && status < 200
+}
+
+/// True for HTTP 3xx redirects.
+pub fn is_redirect_status(status: u16) -> bool {
+    status >= 300 && status < 400
+}
+
+/// True for HTTP 5xx server errors.
+pub fn is_server_error_status(status: u16) -> bool {
+    status >= 500 && status < 600
+}
+
 /// Pretty-print JSON when possible; otherwise return the raw body.
 pub fn format_body(body: string) -> string {
     pretty(own(body))

@@ -1,5 +1,7 @@
 // Domain: version identity for the wj-hello smoke binary.
 
+use std::strings
+
 /// Package / binary crate name.
 pub fn crate_name() -> string {
     "wj-hello"
@@ -13,4 +15,24 @@ pub fn semver() -> string {
 /// Combined identity line (`crate_name` + space + `semver`).
 pub fn version() -> string {
     "${crate_name()} ${semver()}"
+}
+
+/// True when the smoke app still reports a 0.x semver major.
+pub fn is_zero_major() -> bool {
+    let v = semver()
+    strings.starts_with(v, "0.")
+}
+
+/// True when crate name and semver both match the smoke identity.
+pub fn matches_identity(name: string, ver: string) -> bool {
+    crate_name() == name && semver() == ver
+}
+
+/// Ok(crate_name) when `name` matches; otherwise Err naming the expected value.
+pub fn require_crate(name: string) -> Result<string, string> {
+    if crate_name() == name {
+        Ok(crate_name())
+    } else {
+        Err("expected crate: ${name}")
+    }
 }

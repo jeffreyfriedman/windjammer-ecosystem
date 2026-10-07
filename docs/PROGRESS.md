@@ -4,6 +4,7 @@ Weekly build health for seed apps and packages.
 
 | Week | Date | Apps / packages green | `extern fn` | Crates via interop | Compiler issues | Notes |
 |------|------|----------------------|-------------|--------------------|-----------------|-------|
+| 2 | 2026-10-06 | deepen `wj-inflect`/`wj-glob`/`wj-csv` | 0 | 0 | ENOSPC ~8–9Gi; private CARGO_HOME; Library verify prune blocked | `is_camel_case`/`is_pascal_case`, `last_match`/`at_least_n_matches`, `require_column`/`get_row`; tip **20+21+12** green |
 | 2 | 2026-10-06 | deepen `wj-querystring`/`wj-rate-limit`/`wj-headers` | 0 | 0 | ENOSPC ~9Gi; private CARGO_HOME | `require`, `is_at_limit`/`limit_of`/`window_ms_of`, `without_hsts`/`is_same_origin_frame`; tip **20+15+18** green |
 | 2 | 2026-10-06 | deepen `wj-router`/`wj-cli-args`/`wj-compress` | 0 | 0 | ENOSPC ~9Gi; private CARGO_HOME | `param_names`/`require_param`, `has_positionals`/`long_flag_count`, `content_encoding_identity`(+header); tip **12+15+17** green |
 | 2 | 2026-10-06 | deepen `wj-cookie`/`wj-mime`/`wj-duration` | 0 | 0 | ENOSPC ~9Gi; private CARGO_HOME | `require_cookie`, `is_plain`/`javascript`/`is_javascript`, `sub_ms`/`abs_ms`/`is_negative`; tip **17+19+20** green |

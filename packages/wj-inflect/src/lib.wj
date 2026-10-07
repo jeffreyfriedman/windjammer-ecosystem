@@ -175,6 +175,48 @@ pub fn is_constant_case(text: string) -> bool {
     true
 }
 
+/// True when `text` is camelCase (starts lower, alnum only, no separators).
+pub fn is_camel_case(text: string) -> bool {
+    if strings.len(text) == 0 {
+        return false
+    }
+    let mut first = true
+    for ch in strings.chars(text) {
+        if first {
+            if !is_lower(ch) {
+                return false
+            }
+            first = false
+        } else {
+            if !is_alnum(ch) {
+                return false
+            }
+        }
+    }
+    true
+}
+
+/// True when `text` is PascalCase (starts upper, alnum only, no separators).
+pub fn is_pascal_case(text: string) -> bool {
+    if strings.len(text) == 0 {
+        return false
+    }
+    let mut first = true
+    for ch in strings.chars(text) {
+        if first {
+            if !is_upper(ch) {
+                return false
+            }
+            first = false
+        } else {
+            if !is_alnum(ch) {
+                return false
+            }
+        }
+    }
+    true
+}
+
 fn split_words(text: string) -> Vec<string> {
     let snake = snake_case(text)
     let mut parts: Vec<string> = Vec::new()

@@ -89,3 +89,22 @@ pub fn column_index(headers: Vec<string>, name: string) -> Option<int> {
     }
     None
 }
+
+/// Index of `name` in `headers`, or `Err` naming the missing column.
+pub fn require_column(headers: Vec<string>, name: string) -> Result<int, string> {
+    match column_index(headers, name) {
+        Some(i) => Ok(i),
+        None => Err("missing column: ${name}"),
+    }
+}
+
+/// Row at `index`, or `None` when out of bounds.
+pub fn get_row(rows: Vec<Vec<string>>, index: int) -> Option<Vec<string>> {
+    if index < 0 {
+        return None
+    }
+    if index >= rows.len() {
+        return None
+    }
+    Some(rows[index])
+}

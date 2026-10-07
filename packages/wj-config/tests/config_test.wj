@@ -10,7 +10,9 @@ use crate::get_or
 use crate::has
 use crate::is_empty
 use crate::key_count
+use crate::keys
 use crate::require
+use crate::values
 use std::collections::HashMap
 use std::strings
 
@@ -232,4 +234,17 @@ fn test_get_require_is_empty() {
     let mut nonempty = HashMap::new()
     nonempty.insert("A", "1")
     assert(!is_empty(nonempty), "nonempty")
+}
+
+fn test_keys_and_values() {
+    let mut map = HashMap::new()
+    map.insert("HOST", "localhost")
+    map.insert("PORT", "8080")
+    let ks = keys(map)
+    assert_eq(ks.len(), 2)
+    let mut again = HashMap::new()
+    again.insert("HOST", "localhost")
+    again.insert("PORT", "8080")
+    let vals = values(again)
+    assert_eq(vals.len(), 2)
 }

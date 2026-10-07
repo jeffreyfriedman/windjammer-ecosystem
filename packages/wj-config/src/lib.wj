@@ -111,3 +111,21 @@ pub fn require(map: HashMap<string, string>, key: string) -> Result<string, stri
         None => Err("missing config key: ${key}"),
     }
 }
+
+/// All keys in `map` (order not guaranteed).
+pub fn keys(map: HashMap<string, string>) -> Vec<string> {
+    let mut out = Vec::new()
+    for (key, _value) in map {
+        out.push(key)
+    }
+    out
+}
+
+/// All values in `map` (order not guaranteed).
+pub fn values(map: HashMap<string, string>) -> Vec<string> {
+    let mut out = Vec::new()
+    for (_key, value) in map {
+        out.push(value)
+    }
+    out
+}

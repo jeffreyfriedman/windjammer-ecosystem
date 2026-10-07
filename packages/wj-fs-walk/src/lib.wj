@@ -81,6 +81,27 @@ pub fn has_dirs(root: string) -> Result<bool, string> {
     }
 }
 
+/// Number of files plus directories under `root`.
+pub fn count_entries(root: string) -> Result<int, string> {
+    match count_files(root) {
+        Ok(files) => {
+            match count_dirs(root) {
+                Ok(dirs) => Ok(files + dirs),
+                Err(e) => Err(e),
+            }
+        },
+        Err(e) => Err(e),
+    }
+}
+
+/// True when `root` contains at least one file or directory.
+pub fn has_entries(root: string) -> Result<bool, string> {
+    match count_entries(root) {
+        Ok(n) => Ok(n > 0),
+        Err(e) => Err(e),
+    }
+}
+
 /// Like `walk_files`, but skips entries whose basename starts with `.`.
 pub fn walk_files_skip_hidden(root: string) -> Result<Vec<string>, string> {
     match walk_files(root) {

@@ -1,6 +1,8 @@
 use crate::count_dirs
+use crate::count_entries
 use crate::count_files
 use crate::has_dirs
+use crate::has_entries
 use crate::has_files
 use crate::is_hidden_name
 use crate::walk
@@ -228,6 +230,23 @@ fn test_count_dirs_and_has_dirs() {
     match has_dirs(root) {
         Ok(yes) => assert(yes, "has dirs"),
         Err(e) => assert(false, "has_dirs: ${e}"),
+    }
+    teardown_tree(root)
+}
+
+fn test_count_entries_and_has_entries() {
+    let root = "/tmp/wj-fs-walk-tree-entries-solo"
+    match setup_tree(root) {
+        Ok(_) => {},
+        Err(e) => assert(false, "setup failed: ${e}"),
+    }
+    match count_entries(root) {
+        Ok(n) => assert(n >= 5, "files + dirs"),
+        Err(e) => assert(false, "count_entries: ${e}"),
+    }
+    match has_entries(root) {
+        Ok(yes) => assert(yes, "has entries"),
+        Err(e) => assert(false, "has_entries: ${e}"),
     }
     teardown_tree(root)
 }

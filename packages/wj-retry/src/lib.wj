@@ -83,6 +83,26 @@ pub fn total_delay_ms(backoff: Backoff, max_attempts: int) -> int {
     total
 }
 
+/// Clamp `ms` into `[min_ms, max_ms]` (inclusive).
+pub fn clamp_delay_ms(ms: int, min_ms: int, max_ms: int) -> int {
+    if ms < min_ms {
+        return min_ms
+    }
+    if ms > max_ms {
+        return max_ms
+    }
+    ms
+}
+
+/// Copy of `backoff` with `max_ms` replaced.
+pub fn with_max_ms(backoff: Backoff, max_ms: int) -> Backoff {
+    Backoff {
+        initial_ms: backoff.initial_ms,
+        multiplier: backoff.multiplier,
+        max_ms: max_ms,
+    }
+}
+
 /// Blocking pause between retry attempts (milliseconds).
 /// Uses `std::time` spin-wait until `std::async_runtime::sleep_ms_blocking` import codegen is fixed.
 pub fn pause_ms(ms: int) {

@@ -105,6 +105,39 @@ pub fn bump_patch(v: SemVer) -> SemVer {
     }
 }
 
+/// Increment minor, reset patch; clears prerelease and build metadata.
+pub fn bump_minor(v: SemVer) -> SemVer {
+    SemVer {
+        major: v.major,
+        minor: v.minor + 1,
+        patch: 0,
+        pre: "",
+        build: "",
+    }
+}
+
+/// Increment major, reset minor/patch; clears prerelease and build metadata.
+pub fn bump_major(v: SemVer) -> SemVer {
+    SemVer {
+        major: v.major + 1,
+        minor: 0,
+        patch: 0,
+        pre: "",
+        build: "",
+    }
+}
+
+/// Drop prerelease identifier; keep build metadata.
+pub fn clear_prerelease(v: SemVer) -> SemVer {
+    SemVer {
+        major: v.major,
+        minor: v.minor,
+        patch: v.patch,
+        pre: "",
+        build: v.build,
+    }
+}
+
 fn split_build(text: string) -> Result<(string, string), string> {
     let mut core = text
     let mut build = ""

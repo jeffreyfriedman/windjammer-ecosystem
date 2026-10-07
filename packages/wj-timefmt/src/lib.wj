@@ -139,6 +139,21 @@ pub fn add_secs(t: Rfc3339, delta: int) -> Rfc3339 {
     from_epoch_secs(to_epoch_secs(t) + delta)
 }
 
+/// Subtract `delta` seconds from `t` (UTC epoch arithmetic).
+pub fn sub_secs(t: Rfc3339, delta: int) -> Rfc3339 {
+    add_secs(t, 0 - delta)
+}
+
+/// `to_epoch_secs(a) - to_epoch_secs(b)` (seconds; may be negative).
+pub fn diff_secs(a: Rfc3339, b: Rfc3339) -> int {
+    to_epoch_secs(a) - to_epoch_secs(b)
+}
+
+/// True when `a` and `b` share the same UTC calendar year/month/day.
+pub fn is_same_day(a: Rfc3339, b: Rfc3339) -> bool {
+    a.year == b.year && a.month == b.month && a.day == b.day
+}
+
 pub fn is_leap_year(year: int) -> bool {
     if year % 400 == 0 {
         return true

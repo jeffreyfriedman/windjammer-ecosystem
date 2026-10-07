@@ -89,3 +89,17 @@ pub fn is_encoded(text: string) -> bool {
         Err(_) => false,
     }
 }
+
+/// True when `text` ends with one or more `=` padding characters.
+pub fn has_padding(text: string) -> bool {
+    strings.ends_with(strings.trim(text), "=")
+}
+
+/// Drop trailing `=` padding from `text`.
+pub fn strip_padding(text: string) -> string {
+    let mut out = strings.trim(text)
+    while strings.ends_with(out, "=") {
+        out = strings.substring(out, 0, strings.len(out) - 1)
+    }
+    out
+}

@@ -79,6 +79,23 @@ pub fn is_param_pattern(pattern: string) -> bool {
     false
 }
 
+/// Names of captured route params (order not guaranteed).
+pub fn param_names(params: HashMap<string, string>) -> Vec<string> {
+    let mut out = Vec::new()
+    for (name, _value) in params {
+        out.push(name)
+    }
+    out
+}
+
+/// Look up a captured param, or `Err` naming the missing param.
+pub fn require_param(params: HashMap<string, string>, name: string) -> Result<string, string> {
+    match params.get(name) {
+        Some(value) => Ok(value),
+        None => Err("missing route param: ${name}"),
+    }
+}
+
 
 fn normalize_path(path: string) -> string {
     if strings.len(path) == 0 {

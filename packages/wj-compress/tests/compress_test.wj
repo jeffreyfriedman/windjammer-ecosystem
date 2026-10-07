@@ -1,6 +1,8 @@
 use crate::accepts_gzip
 use crate::content_encoding_gzip
 use crate::content_encoding_header
+use crate::content_encoding_identity
+use crate::content_encoding_identity_header
 use crate::default_min_bytes
 use crate::gzip_decode
 use crate::gzip_encode
@@ -137,4 +139,11 @@ fn test_is_identity_and_meets_min_bytes() {
     assert(!is_identity_encoding("gzip"), "gzip")
     assert(meets_min_bytes(2048, 1024), "above")
     assert(!meets_min_bytes(100, 1024), "below")
+}
+
+@test
+fn test_content_encoding_identity_helpers() {
+    assert_eq(content_encoding_identity(), "identity")
+    assert_eq(content_encoding_identity_header(), "Content-Encoding: identity")
+    assert(is_identity_encoding(content_encoding_identity()), "constant is identity")
 }

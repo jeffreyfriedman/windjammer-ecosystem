@@ -6,6 +6,8 @@ use crate::cors_line_count
 use crate::default_allow_headers
 use crate::default_allow_methods
 use crate::format_cors_headers
+use crate::has_origins
+use crate::is_empty_allow_list
 use crate::is_origin_allowed
 use crate::is_preflight_method
 use crate::is_wildcard_origin
@@ -185,4 +187,16 @@ fn test_require_origin() {
         Ok(_) => assert(false, "rejected must Err"),
         Err(msg) => assert(strings.contains(msg, "origin"), "mentions origin"),
     }
+}
+
+@test
+fn test_empty_and_has_origins() {
+    assert(is_empty_allow_list(Vec::new()), "empty")
+    assert(!has_origins(Vec::new()), "no origins")
+    let mut allowed = Vec::new()
+    allowed.push("https://app.example.com")
+    assert(!is_empty_allow_list(allowed), "nonempty")
+    let mut again = Vec::new()
+    again.push("https://app.example.com")
+    assert(has_origins(again), "has")
 }

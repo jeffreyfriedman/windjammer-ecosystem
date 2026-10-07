@@ -116,6 +116,27 @@ pub fn is_arrayish(text: string) -> bool {
     }
 }
 
+/// True when trimmed text is the JSON `null` literal.
+pub fn is_nullish(text: string) -> bool {
+    strings.trim(text) == "null"
+}
+
+/// True when valid JSON whose top-level value is an empty object.
+pub fn is_empty_object(text: string) -> bool {
+    if !is_objectish(text) {
+        return false
+    }
+    compact(text) == "{}"
+}
+
+/// True when valid JSON whose top-level value is an empty array.
+pub fn is_empty_array(text: string) -> bool {
+    if !is_arrayish(text) {
+        return false
+    }
+    compact(text) == "[]"
+}
+
 /// Set JSON at a dotted object path (`user.name`). Creates intermediate objects.
 /// `value_text` is parsed as JSON. Array-index path segments are rejected.
 pub fn path_set(text: string, path: string, value_text: string) -> Result<string, string> {

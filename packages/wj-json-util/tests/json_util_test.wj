@@ -1,6 +1,9 @@
 use crate::pretty
 use crate::compact
 use crate::is_arrayish
+use crate::is_empty_array
+use crate::is_empty_object
+use crate::is_nullish
 use crate::is_objectish
 use crate::is_valid
 use crate::path_get
@@ -189,4 +192,16 @@ fn test_path_require() {
         Ok(_) => assert(false, "missing must Err"),
         Err(msg) => assert(strings.contains(msg, "b"), "mentions path"),
     }
+}
+
+fn test_nullish_empty_object_and_array() {
+    assert(is_nullish("null"), "null")
+    assert(is_nullish(" null "), "trim")
+    assert(!is_nullish("{\"a\":1}"), "object")
+    assert(is_empty_object("{}"), "empty obj")
+    assert(is_empty_object("  {}  "), "trim obj")
+    assert(!is_empty_object("{\"a\":1}"), "nonempty obj")
+    assert(is_empty_array("[]"), "empty arr")
+    assert(!is_empty_array("[1]"), "nonempty arr")
+    assert(!is_empty_object("[]"), "arr not obj")
 }

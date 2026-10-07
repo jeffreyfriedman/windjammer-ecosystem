@@ -18,6 +18,8 @@ use crate::is_nil
 use crate::is_max
 use crate::normalize
 use crate::require_valid
+use crate::require_version
+use crate::with_hyphens
 use crate::without_hyphens
 use crate::NIL
 use crate::MAX
@@ -228,5 +230,20 @@ fn test_without_hyphens_and_require_valid() {
     match require_valid("not-a-uuid") {
         Ok(_) => assert(false, "invalid must Err"),
         Err(msg) => assert(strings.contains(msg, "uuid"), "mentions uuid"),
+    }
+}
+
+fn test_with_hyphens_and_require_version() {
+    let bare = "550e8400e29b41d4a716446655440000"
+    assert_eq(with_hyphens(bare), "550e8400-e29b-41d4-a716-446655440000")
+    assert_eq(with_hyphens("550e8400-e29b-41d4-a716-446655440000"), "550e8400-e29b-41d4-a716-446655440000")
+    let id = v4()
+    match require_version(id, 4) {
+        Ok(v) => assert(is_v4(v), "v4"),
+        Err(_) => assert(false, "require v4"),
+    }
+    match require_version(id, 1) {
+        Ok(_) => assert(false, "wrong ver"),
+        Err(msg) => assert(strings.contains(msg, "version"), "mentions version"),
     }
 }

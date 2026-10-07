@@ -136,6 +136,34 @@ pub fn max_of(backoff: Backoff) -> int {
     backoff.max_ms
 }
 
+/// Build a `Backoff` from explicit components.
+pub fn new_backoff(initial_ms: int, multiplier: int, max_ms: int) -> Backoff {
+    Backoff {
+        initial_ms: initial_ms,
+        multiplier: multiplier,
+        max_ms: max_ms,
+    }
+}
+
+/// True when `backoff` matches `default_backoff()` values.
+pub fn is_default_backoff(backoff: Backoff) -> bool {
+    backoff.initial_ms == 100 && backoff.multiplier == 2 && backoff.max_ms == 30000
+}
+
+/// How many attempts have been consumed (clamped to `max_attempts`).
+pub fn attempts_used(attempt: int, max_attempts: int) -> int {
+    if max_attempts <= 0 {
+        return 0
+    }
+    if attempt < 0 {
+        return 0
+    }
+    if attempt > max_attempts {
+        return max_attempts
+    }
+    attempt
+}
+
 /// Blocking pause between retry attempts (milliseconds).
 /// Uses `std::time` spin-wait until `std::async_runtime::sleep_ms_blocking` import codegen is fixed.
 pub fn pause_ms(ms: int) {

@@ -5,9 +5,11 @@ use crate::CronDateTime
 use crate::every_hour
 use crate::every_minute
 use crate::format_cron
+use crate::is_every_hour
 use crate::is_every_minute
 use crate::is_wildcard_field
 use crate::next_run
+use crate::source_of
 
 
 // --- parse_cron ---
@@ -410,4 +412,15 @@ fn test_every_hour_and_is_every_minute() {
     assert(!matches_cron(hourly, 1, 5, 1, 1, 0), "not minute 1")
     assert(is_every_minute(every_minute()), "every minute")
     assert(!is_every_minute(hourly), "hourly not every minute")
+}
+
+fn test_is_every_hour_and_source_of() {
+    let hourly = every_hour()
+    assert(is_every_hour(hourly), "every hour")
+    assert(!is_every_hour(every_minute()), "every minute not hourly")
+    assert_eq(source_of(hourly), "0 * * * *")
+    match parse_cron("@daily") {
+        Ok(expr) => assert_eq(source_of(expr), "@daily"),
+        Err(_) => assert(false, "parse @daily"),
+    }
 }

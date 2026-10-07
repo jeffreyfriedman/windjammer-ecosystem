@@ -118,6 +118,36 @@ pub fn walk_files_skip_hidden(root: string) -> Result<Vec<string>, string> {
     }
 }
 
+/// Number of non-hidden files under `root`.
+pub fn count_visible_files(root: string) -> Result<int, string> {
+    match walk_files_skip_hidden(root) {
+        Ok(paths) => {
+            let mut n = 0
+            for _path in paths {
+                n = n + 1
+            }
+            Ok(n)
+        },
+        Err(e) => Err(e),
+    }
+}
+
+/// True when `root` contains at least one file ending with `suffix`.
+pub fn has_suffix_files(root: string, suffix: string) -> Result<bool, string> {
+    match walk_files_with_suffix(root, suffix) {
+        Ok(paths) => Ok(paths.len() > 0),
+        Err(e) => Err(e),
+    }
+}
+
+/// True when `root` has no files or subdirectories.
+pub fn is_empty_tree(root: string) -> Result<bool, string> {
+    match has_entries(root) {
+        Ok(yes) => Ok(!yes),
+        Err(e) => Err(e),
+    }
+}
+
 fn path_basename(path: string) -> string {
     let parts = strings.split(path, "/")
     if parts.len() == 0 {

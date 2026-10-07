@@ -1,9 +1,12 @@
 use crate::Backoff
 use crate::attempts_remaining
+use crate::attempts_used
 use crate::clamp_delay_ms
 use crate::default_backoff
 use crate::delay_ms
+use crate::is_default_backoff
 use crate::is_exhausted
+use crate::new_backoff
 use crate::retry_delay
 use crate::should_retry
 use crate::total_delay_ms
@@ -150,4 +153,17 @@ fn test_with_multiplier_and_accessors() {
     assert_eq(multiplier_of(scaled), 3)
     assert_eq(initial_of(scaled), 100)
     assert_eq(delay_ms(scaled, 1), 300)
+}
+
+fn test_new_backoff_is_default_and_attempts_used() {
+    let custom = new_backoff(50, 3, 5000)
+    assert_eq(initial_of(custom), 50)
+    assert_eq(multiplier_of(custom), 3)
+    assert_eq(max_of(custom), 5000)
+    assert(is_default_backoff(default_backoff()), "defaults")
+    assert(!is_default_backoff(custom), "custom")
+    assert_eq(attempts_used(0, 5), 0)
+    assert_eq(attempts_used(2, 5), 2)
+    assert_eq(attempts_used(5, 5), 5)
+    assert_eq(attempts_used(9, 5), 5)
 }

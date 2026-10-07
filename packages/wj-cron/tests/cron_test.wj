@@ -2,6 +2,9 @@ use crate::parse_cron
 use crate::matches_cron
 use crate::matches_field
 use crate::CronDateTime
+use crate::every_minute
+use crate::format_cron
+use crate::is_wildcard_field
 use crate::next_run
 
 
@@ -387,4 +390,13 @@ fn test_matches_cron_range_step_minutes() {
         },
         Err(_e) => assert(false, "should parse range/step cron"),
     }
+}
+
+fn test_every_minute_format_and_wildcard() {
+    assert(is_wildcard_field("*"), "star")
+    assert(!is_wildcard_field("*/5"), "step not pure wildcard")
+    let expr = every_minute()
+    assert_eq(format_cron(expr), "* * * * *")
+    assert(matches_cron(expr, 0, 0, 1, 1, 0), "any minute")
+    assert(matches_cron(expr, 59, 23, 31, 12, 6), "any time")
 }

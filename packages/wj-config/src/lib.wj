@@ -90,3 +90,24 @@ pub fn key_count(map: HashMap<string, string>) -> int {
     }
     n
 }
+
+/// True when `map` has no entries.
+pub fn is_empty(map: HashMap<string, string>) -> bool {
+    key_count(map) == 0
+}
+
+/// Look up `key` as `Option`.
+pub fn get(map: HashMap<string, string>, key: string) -> Option<string> {
+    match map.get(key) {
+        Some(value) => Some(value),
+        None => None,
+    }
+}
+
+/// Look up `key`, or `Err` naming the missing key.
+pub fn require(map: HashMap<string, string>, key: string) -> Result<string, string> {
+    match map.get(key) {
+        Some(value) => Ok(value),
+        None => Err("missing config key: ${key}"),
+    }
+}

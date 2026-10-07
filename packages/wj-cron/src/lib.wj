@@ -208,6 +208,28 @@ pub fn matches_cron(expr: CronExpr, minute: int, hour: int, day_of_month: int, m
         && matches_field(expr.day_of_week, day_of_week)
 }
 
+/// True when a cron field is the pure wildcard `*`.
+pub fn is_wildcard_field(field: string) -> bool {
+    field == "*"
+}
+
+/// Expression that matches every minute (`* * * * *`).
+pub fn every_minute() -> CronExpr {
+    CronExpr {
+        minute: "*",
+        hour: "*",
+        day_of_month: "*",
+        month: "*",
+        day_of_week: "*",
+        source: "* * * * *",
+    }
+}
+
+/// Format five cron fields as a space-separated expression.
+pub fn format_cron(expr: CronExpr) -> string {
+    "${expr.minute} ${expr.hour} ${expr.day_of_month} ${expr.month} ${expr.day_of_week}"
+}
+
 pub struct CronDateTime {
     pub year: int,
     pub month: int,

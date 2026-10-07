@@ -70,6 +70,20 @@ pub fn is_info_level(level: LogLevel) -> bool {
         _ => false,
     }
 }
+
+/// True when `level` is Trace.
+pub fn is_trace_level(level: LogLevel) -> bool {
+    match level {
+        LogLevel::Trace => true,
+        _ => false,
+    }
+}
+
+/// True when `left` is strictly more severe than `right`.
+pub fn more_severe(left: LogLevel, right: LogLevel) -> bool {
+    level_rank(left) > level_rank(right)
+}
+
 /// Parse `text`, or return `fallback` when unknown.
 pub fn parse_level_or(text: string, fallback: LogLevel) -> LogLevel {
     match parse_level(text) {

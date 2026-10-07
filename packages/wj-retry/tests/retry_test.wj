@@ -8,8 +8,12 @@ use crate::retry_delay
 use crate::should_retry
 use crate::total_delay_ms
 use crate::pause_ms
+use crate::initial_of
+use crate::max_of
+use crate::multiplier_of
 use crate::with_initial_ms
 use crate::with_max_ms
+use crate::with_multiplier
 
 fn test_delay_ms_exponential() {
     let b = Backoff {
@@ -135,4 +139,15 @@ fn test_with_initial_ms() {
     assert_eq(bumped.multiplier, 2)
     assert_eq(bumped.max_ms, 30000)
     assert_eq(delay_ms(bumped, 0), 50)
+}
+
+fn test_with_multiplier_and_accessors() {
+    let b = default_backoff()
+    assert_eq(initial_of(b), 100)
+    assert_eq(multiplier_of(b), 2)
+    assert_eq(max_of(b), 30000)
+    let scaled = with_multiplier(b, 3)
+    assert_eq(multiplier_of(scaled), 3)
+    assert_eq(initial_of(scaled), 100)
+    assert_eq(delay_ms(scaled, 1), 300)
 }

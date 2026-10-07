@@ -6,9 +6,11 @@ use crate::is_debug_level
 use crate::is_enabled
 use crate::is_error_level
 use crate::is_info_level
+use crate::is_trace_level
 use crate::is_warn_level
 use crate::init_from_level_text
 use crate::log_tagged
+use crate::more_severe
 use std::log::LogLevel
 
 fn test_parse_level_accepts_info() {
@@ -88,4 +90,12 @@ fn test_is_warn_and_debug_level() {
 fn test_is_info_level() {
     assert(is_info_level(LogLevel::Info), "info")
     assert(!is_info_level(LogLevel::Warn), "warn not info")
+}
+
+fn test_is_trace_level_and_more_severe() {
+    assert(is_trace_level(LogLevel::Trace), "trace")
+    assert(!is_trace_level(LogLevel::Debug), "debug not trace")
+    assert(more_severe(LogLevel::Error, LogLevel::Warn), "error > warn")
+    assert(!more_severe(LogLevel::Info, LogLevel::Warn), "info not > warn")
+    assert(!more_severe(LogLevel::Warn, LogLevel::Warn), "equal not more")
 }

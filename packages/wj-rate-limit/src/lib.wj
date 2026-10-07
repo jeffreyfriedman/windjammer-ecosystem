@@ -235,6 +235,16 @@ pub fn reset_at_ms_of(result: RateLimitResult) -> int {
     result.reset_at_ms
 }
 
+/// Alias of `is_denied`.
+pub fn window_exhausted(result: RateLimitResult) -> bool {
+    is_denied(result)
+}
+
+/// True when `retry_after_ms` is zero (typically an allowed response).
+pub fn is_zero_retry(result: RateLimitResult) -> bool {
+    result.retry_after_ms == 0
+}
+
 fn window_start_for(now_ms: int, window_ms: int) -> int {
     if window_ms <= 0 {
         return now_ms

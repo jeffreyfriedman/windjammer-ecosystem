@@ -11,6 +11,7 @@ use crate::is_http_only
 use crate::is_secure
 use crate::parse_cookie_header
 use crate::parse_set_cookie
+use crate::require_cookie
 use crate::session_cookie
 use std::collections::HashMap
 use std::strings
@@ -236,4 +237,26 @@ fn test_session_secure_http_only() {
     let c = session_cookie("sid", "abc")
     assert(is_secure(c), "secure")
     assert(is_http_only(c), "httpOnly")
+}
+
+@test
+fn test_require_cookie() {
+    match parse_cookie_header("sid=abc; theme=dark") {
+        Ok(map) => {
+            match require_cookie(map, "sid") {
+                Ok(v) => assert_eq(v, "abc"),
+                Err(_) => assert(false, "require sid"),
+            }
+        },
+        Err(_) => assert(false, "parse"),
+    }
+    match parse_cookie_header("sid=abc") {
+        Ok(map) => {
+            match require_cookie(map, "missing") {
+                Ok(_) => assert(false, "missing must Err"),
+                Err(msg) => assert(strings.contains(msg, "missing"), "mentions name"),
+            }
+        },
+        Err(_) => assert(false, "parse missing"),
+    }
 }

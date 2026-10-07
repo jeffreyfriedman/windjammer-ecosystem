@@ -1,7 +1,9 @@
+use crate::abs_ms
 use crate::add_ms
 use crate::clamp_ms
 use crate::format_ms
 use crate::format_secs
+use crate::is_negative
 use crate::is_positive
 use crate::is_zero
 use crate::ms_to_secs
@@ -10,6 +12,7 @@ use crate::parse_ms_or
 use crate::parse_secs
 use crate::parse_secs_or
 use crate::secs_to_ms
+use crate::sub_ms
 
 @test
 fn test_parse_ms_unit() {
@@ -147,4 +150,16 @@ fn test_parse_secs_or_is_zero_add_ms() {
     assert(!is_zero(1), "nonzero")
     assert_eq(add_ms(100, 50), 150)
     assert_eq(add_ms(100, -30), 70)
+}
+
+@test
+fn test_sub_ms_abs_ms_is_negative() {
+    assert_eq(sub_ms(100, 30), 70)
+    assert_eq(sub_ms(30, 100), -70)
+    assert_eq(abs_ms(-50), 50)
+    assert_eq(abs_ms(50), 50)
+    assert_eq(abs_ms(0), 0)
+    assert(is_negative(-1), "neg")
+    assert(!is_negative(0), "zero not neg")
+    assert(!is_negative(1), "pos not neg")
 }

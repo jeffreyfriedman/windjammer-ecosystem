@@ -140,3 +140,44 @@ pub fn is_xml(mime_type: string) -> bool {
     }
     false
 }
+
+/// True when `mime_type` is plain text (`text/plain`, optional parameters).
+pub fn is_plain(mime_type: string) -> bool {
+    let trimmed = strings.trim(mime_type)
+    if strings.starts_with(trimmed, "text/plain") {
+        let rest_len = strings.len(trimmed) - 10
+        if rest_len == 0 {
+            return true
+        }
+        let next = strings.substring(trimmed, 10, 11)
+        return next == ";"
+    }
+    false
+}
+
+/// Common MIME type for JavaScript responses.
+pub fn javascript() -> string {
+    "application/javascript; charset=utf-8"
+}
+
+/// True when `mime_type` is JavaScript (`application/javascript` or `text/javascript`).
+pub fn is_javascript(mime_type: string) -> bool {
+    let trimmed = strings.trim(mime_type)
+    if strings.starts_with(trimmed, "application/javascript") {
+        let rest_len = strings.len(trimmed) - 22
+        if rest_len == 0 {
+            return true
+        }
+        let next = strings.substring(trimmed, 22, 23)
+        return next == ";"
+    }
+    if strings.starts_with(trimmed, "text/javascript") {
+        let rest_len = strings.len(trimmed) - 15
+        if rest_len == 0 {
+            return true
+        }
+        let next = strings.substring(trimmed, 15, 16)
+        return next == ";"
+    }
+    false
+}

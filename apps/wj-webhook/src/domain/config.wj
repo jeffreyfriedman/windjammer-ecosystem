@@ -52,6 +52,26 @@ pub fn max_event_len_of(cfg: WebhookConfig) -> int {
     cfg.max_event_len
 }
 
+/// Max allowed webhook id length from config.
+pub fn max_id_len_of(cfg: WebhookConfig) -> int {
+    cfg.max_id_len
+}
+
+/// Configured signing secret.
+pub fn secret_of(cfg: WebhookConfig) -> string {
+    cfg.secret
+}
+
+/// True when the secret is not the built-in `dev-secret`.
+pub fn is_production_secret(cfg: WebhookConfig) -> bool {
+    !is_dev_secret(cfg)
+}
+
+/// Number of CORS allowed origins.
+pub fn origin_count(cfg: WebhookConfig) -> int {
+    cfg.allowed_origins.len() as int
+}
+
 fn secret_from_env() -> string {
     match env.get("WEBHOOK_SECRET") {
         Some(value) => value,

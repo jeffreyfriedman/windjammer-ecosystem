@@ -38,3 +38,27 @@ fn test_status_version_helpers() {
     assert(is_caught_up(Vec::new()), "caught up")
     assert(!is_caught_up(sample_pending()), "not caught up")
 }
+
+fn test_first_pending_last_applied_total() {
+    use crate::domain::first_pending
+    use crate::domain::last_applied
+    use crate::domain::total_versions
+    match first_pending(sample_pending()) {
+        Some(v) => assert_eq(v, 1),
+        None => assert(false, "first pending"),
+    }
+    match first_pending(Vec::new()) {
+        Some(_) => assert(false, "empty pending"),
+        None => assert(true, "ok"),
+    }
+    match last_applied(sample_applied()) {
+        Some(v) => assert_eq(v, 2),
+        None => assert(false, "last applied"),
+    }
+    match last_applied(Vec::new()) {
+        Some(_) => assert(false, "empty applied"),
+        None => assert(true, "ok"),
+    }
+    assert_eq(total_versions(sample_applied(), sample_pending()), 4)
+    assert_eq(total_versions(Vec::new(), Vec::new()), 0)
+}

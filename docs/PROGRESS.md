@@ -4,6 +4,7 @@ Weekly build health for seed apps and packages.
 
 | Week | Date | Apps / packages green | `extern fn` | Crates via interop | Compiler issues | Notes |
 |------|------|----------------------|-------------|--------------------|-----------------|-------|
+| 2 | 2026-10-06 | deepen `wj-hash`/`wj-jwt`/`wj-template` | 0 | 0 | ENOSPC ~9–10Gi; private CARGO_HOME | `is_bcrypt`, `require_jwt`/`subject`/`tenant_slug`, `missing_count`/`require_fully_bound`; tip **9+11+19** green |
 | 2 | 2026-10-06 | deepen `wj-event`/`wj-regex`/`wj-multipart` | 0 | 0 | ENOSPC ~9–10Gi; private CARGO_HOME; Library verify prune blocked | `has_listener`/`clear_listeners`, `is_valid_pattern`/`find_or`, `require_field`/`has_file`; tip **16+12+15** green |
 | 2 | 2026-10-06 | deepen `wj-uuid`/`wj-cors`/`wj-json-util` | 0 | 0 | ENOSPC ~9–10Gi; private CARGO_HOME | `without_hyphens`/`require_valid`, `require_origin`, `path_require`; tip **24+16+21** green |
 | 2 | 2026-10-06 | deepen `wj-sha`/`wj-base64`/`wj-toml` | 0 | 0 | ENOSPC ~9–10Gi; private CARGO_HOME | `hex_upper`/`require_digest`, `has_padding`/`strip_padding`, `merge`; tip **10+12+22** green |

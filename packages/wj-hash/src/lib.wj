@@ -39,3 +39,8 @@ pub fn require_bcrypt(hash: string) -> Result<string, string> {
 pub fn is_bcrypt_prefix(hash: string) -> bool {
     looks_like_bcrypt(hash)
 }
+
+/// Alias of `looks_like_bcrypt` (predicate-shaped name).
+pub fn is_bcrypt(hash: string) -> bool {
+    looks_like_bcrypt(hash)
+}

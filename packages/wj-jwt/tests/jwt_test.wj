@@ -2,8 +2,11 @@ use crate::bearer_header
 use crate::extract_bearer
 use crate::is_bearer_header
 use crate::looks_like_jwt
+use crate::require_jwt
 use crate::sign
 use crate::sign_scoped
+use crate::subject
+use crate::tenant_slug
 use crate::verify
 use crate::verify_bearer
 use std::strings
@@ -151,4 +154,28 @@ fn test_looks_like_jwt() {
     assert(!looks_like_jwt(""), "empty")
     assert(!looks_like_jwt("only.two"), "two parts")
     assert(!looks_like_jwt("a.b.c.d"), "four parts")
+}
+
+@test
+fn test_require_jwt_subject_tenant() {
+    match sign("user-1", "acme", "secret", 3600) {
+        Ok(token) => {
+            match require_jwt(token) {
+                Ok(t) => assert(looks_like_jwt(t), "accepted"),
+                Err(_) => assert(false, "require"),
+            }
+            match verify(token, "secret") {
+                Ok(claims) => {
+                    assert_eq(subject(claims), "user-1")
+                    assert_eq(tenant_slug(claims), "acme")
+                },
+                Err(_) => assert(false, "verify"),
+            }
+        },
+        Err(_) => assert(false, "sign"),
+    }
+    match require_jwt("not.a.jwt.token") {
+        Ok(_) => assert(false, "bad shape must Err"),
+        Err(msg) => assert(strings.contains(msg, "jwt"), "mentions jwt"),
+    }
 }

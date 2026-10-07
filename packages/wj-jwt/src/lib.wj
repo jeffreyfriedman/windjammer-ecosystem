@@ -100,3 +100,21 @@ pub fn looks_like_jwt(token: string) -> bool {
     }
     true
 }
+
+/// Accept `token` only when it looks like a JWT; else return an error.
+pub fn require_jwt(token: string) -> Result<string, string> {
+    if looks_like_jwt(token) {
+        return Ok(token)
+    }
+    Err("invalid jwt shape")
+}
+
+/// Subject claim (`sub`).
+pub fn subject(claims: Claims) -> string {
+    claims.sub
+}
+
+/// Tenant slug claim.
+pub fn tenant_slug(claims: Claims) -> string {
+    claims.tenant_slug
+}

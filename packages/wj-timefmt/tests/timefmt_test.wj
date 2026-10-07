@@ -1,9 +1,12 @@
+use crate::Rfc3339
 use crate::compare
+use crate::day_of
 use crate::days_in_month
 use crate::diff_secs
 use crate::format_rfc3339
 use crate::from_epoch_secs
 use crate::add_secs
+use crate::hour_of
 use crate::is_after
 use crate::is_before
 use crate::is_equal
@@ -11,11 +14,14 @@ use crate::is_leap_year
 use crate::is_same_day
 use crate::is_same_month
 use crate::is_same_year
+use crate::is_zulu
+use crate::month_of
 use crate::now_epoch_secs
 use crate::now_rfc3339
 use crate::parse_rfc3339
 use crate::sub_secs
 use crate::to_epoch_secs
+use crate::year_of
 use std::strings
 
 @test
@@ -326,5 +332,33 @@ fn test_is_same_month_and_year() {
             }
         },
         Err(_) => assert(false, "parse a"),
+    }
+}
+
+fn sample_zulu() -> Rfc3339 {
+    match parse_rfc3339("2024-01-15T12:30:00Z") {
+        Ok(t) => t,
+        Err(_) => Rfc3339 {
+            year: 0,
+            month: 0,
+            day: 0,
+            hour: 0,
+            minute: 0,
+            second: 0,
+            offset_minutes: 0,
+        },
+    }
+}
+
+@test
+fn test_component_accessors_and_zulu() {
+    assert_eq(year_of(sample_zulu()), 2024)
+    assert_eq(month_of(sample_zulu()), 1)
+    assert_eq(day_of(sample_zulu()), 15)
+    assert_eq(hour_of(sample_zulu()), 12)
+    assert(is_zulu(sample_zulu()), "zulu")
+    match parse_rfc3339("2024-01-15T12:30:00+01:00") {
+        Ok(t) => assert(!is_zulu(t), "offset"),
+        Err(_) => assert(false, "parse offset"),
     }
 }

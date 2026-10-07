@@ -63,6 +63,13 @@ pub fn is_debug_level(level: LogLevel) -> bool {
     }
 }
 
+/// True when `level` is Info.
+pub fn is_info_level(level: LogLevel) -> bool {
+    match level {
+        LogLevel::Info => true,
+        _ => false,
+    }
+}
 /// Parse `text`, or return `fallback` when unknown.
 pub fn parse_level_or(text: string, fallback: LogLevel) -> LogLevel {
     match parse_level(text) {

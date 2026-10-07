@@ -207,6 +207,21 @@ pub fn slots_remaining(lim: FixedWindow, bucket: WindowBucket) -> int {
     lim.limit - used
 }
 
+/// True when `result.remaining` is zero (at or over the window limit).
+pub fn is_at_limit(result: RateLimitResult) -> bool {
+    result.remaining == 0
+}
+
+/// Configured request limit for `lim`.
+pub fn limit_of(lim: FixedWindow) -> int {
+    lim.limit
+}
+
+/// Configured window length in milliseconds for `lim`.
+pub fn window_ms_of(lim: FixedWindow) -> int {
+    lim.window_ms
+}
+
 fn window_start_for(now_ms: int, window_ms: int) -> int {
     if window_ms <= 0 {
         return now_ms

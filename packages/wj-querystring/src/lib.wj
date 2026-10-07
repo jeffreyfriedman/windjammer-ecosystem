@@ -147,3 +147,11 @@ pub fn value_count(query: string, key: string) -> int {
     }
     n
 }
+
+/// First value for `key`, or `Err` naming the missing key.
+pub fn require(query: string, key: string) -> Result<string, string> {
+    match get(query, key) {
+        Some(v) => Ok(v),
+        None => Err("missing query key: ${key}"),
+    }
+}

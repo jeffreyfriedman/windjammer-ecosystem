@@ -3,7 +3,9 @@ use crate::check_key
 use crate::empty_bucket
 use crate::fixed_window
 use crate::is_allowed
+use crate::is_at_limit
 use crate::is_denied
+use crate::limit_of
 use crate::peek_fixed_window
 use crate::remaining_slots
 use crate::retry_after_header
@@ -11,6 +13,7 @@ use crate::rate_limit_headers
 use crate::rate_limit_header_lines
 use crate::slots_remaining
 use crate::slots_used
+use crate::window_ms_of
 use std::collections::HashMap
 
 @test
@@ -169,4 +172,19 @@ fn test_remaining_and_slots_remaining() {
     assert_eq(slots_remaining(lim, c1.0), 2)
     let c2 = check_fixed_window(lim, c1.0, 1000)
     assert_eq(slots_remaining(lim, c2.0), 1)
+}
+
+@test
+fn test_is_at_limit_and_accessors() {
+    let lim = fixed_window(2, 30000)
+    assert_eq(limit_of(lim), 2)
+    assert_eq(window_ms_of(lim), 30000)
+    let c1 = check_fixed_window(lim, empty_bucket(), 1000)
+    assert(!is_at_limit(c1.1), "first has remaining")
+    let c2 = check_fixed_window(lim, c1.0, 1000)
+    assert(is_at_limit(c2.1), "second remaining is 0")
+    assert(is_allowed(c2.1), "second still allowed")
+    let denied = check_fixed_window(lim, c2.0, 1000)
+    assert(is_at_limit(denied.1), "denied remaining 0")
+    assert(is_denied(denied.1), "denied")
 }

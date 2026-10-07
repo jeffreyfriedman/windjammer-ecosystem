@@ -137,3 +137,13 @@ pub fn with_hsts(headers: SecurityHeaders, max_age_secs: int) -> SecurityHeaders
     out.hsts_max_age_secs = max_age_secs
     out
 }
+
+/// Disable HSTS (`hsts_max_age_secs = 0`).
+pub fn without_hsts(headers: SecurityHeaders) -> SecurityHeaders {
+    with_hsts(headers, 0)
+}
+
+/// True when `X-Frame-Options` is `SAMEORIGIN`.
+pub fn is_same_origin_frame(headers: SecurityHeaders) -> bool {
+    headers.frame_options == "SAMEORIGIN"
+}

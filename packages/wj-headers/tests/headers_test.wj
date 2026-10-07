@@ -15,6 +15,8 @@ use crate::with_frame_options
 use crate::with_hsts
 use crate::with_referrer
 use crate::without_csp
+use crate::without_hsts
+use crate::is_same_origin_frame
 use std::strings
 
 @test
@@ -145,4 +147,16 @@ fn test_with_referrer_and_with_hsts() {
     let secured = with_hsts(defaults(), 120)
     assert(hsts_enabled(secured), "hsts on")
     assert_eq(header_line_count(secured), 5)
+}
+
+@test
+fn test_without_hsts_and_is_same_origin_frame() {
+    let secured = with_hsts(defaults(), 120)
+    assert(hsts_enabled(secured), "on")
+    let cleared = without_hsts(secured)
+    assert(!hsts_enabled(cleared), "off")
+    assert_eq(header_line_count(cleared), 4)
+    let same = with_frame_options(defaults(), "SAMEORIGIN")
+    assert(is_same_origin_frame(same), "same origin")
+    assert(!is_same_origin_frame(defaults()), "deny is not same origin")
 }

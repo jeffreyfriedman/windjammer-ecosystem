@@ -4,6 +4,7 @@ Weekly build health for seed apps and packages.
 
 | Week | Date | Apps / packages green | `extern fn` | Crates via interop | Compiler issues | Notes |
 |------|------|----------------------|-------------|--------------------|-----------------|-------|
+| 2 | 2026-10-07 | deepen `wj-find`/`wj-pipeline`/`wj-todo-cli` | 0 | 0 | private CARGO_HOME | `last_hit`/`require_first_hit`, `min_result_value`/`has_results`, `has_pending`/`has_done`/`total_count`; tip **6+8+62** green |
 | 2 | 2026-10-07 | deepen `wj-first-hour` | 0 | 0 | private CARGO_HOME; GitHub push ISE (local commits pending) | `card_id`/`card_data_path`/`card_query`/`has_id`; tip **5** green |
 | 2 | 2026-10-07 | deepen `wj-semver` | 0 | 0 | private CARGO_HOME; GitHub push ISE (local commits pending) | `prerelease_of`/`build_of`/`is_prerelease`; tip **18** green |
 | 2 | 2026-10-07 | deepen `wj-rate-limit`/`wj-sha`/`wj-base64` | 0 | 0 | private CARGO_HOME | `window_exhausted`/`is_zero_retry`, `digest_of`/`is_digest`, `needs_padding`/`is_unpadded`/`require_encoded`; tip **17+12+14** green |

@@ -3,8 +3,10 @@ use crate::adapters::run::run_pool_pipeline
 use crate::domain::pipeline::Job
 use crate::domain::pipeline::JobResult
 use crate::domain::pipeline::find_result_by_id
+use crate::domain::pipeline::has_results
 use crate::domain::pipeline::is_empty_results
 use crate::domain::pipeline::max_result_value
+use crate::domain::pipeline::min_result_value
 use crate::domain::pipeline::result_count
 use crate::domain::pipeline::sum_results
 use crate::domain::pipeline::transform
@@ -47,6 +49,14 @@ fn test_result_helpers() {
         Some(_) => assert(false, "missing"),
         None => {},
     }
+}
+
+@test
+fn test_min_result_and_has_results() {
+    assert_eq(min_result_value(sample_results()), 2)
+    assert_eq(min_result_value(Vec::new()), 0)
+    assert(has_results(sample_results()), "has")
+    assert(!has_results(Vec::new()), "empty")
 }
 
 @test

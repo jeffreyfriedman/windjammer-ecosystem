@@ -23,6 +23,9 @@ pub use query::sort_todos_by_id
 pub use query::count_todos
 pub use query::pending_count
 pub use query::done_count
+pub use query::has_pending
+pub use query::has_done
+pub use query::total_count
 pub use query::is_empty_todos
 pub use query::find_by_id
 pub use codec::stats_to_json

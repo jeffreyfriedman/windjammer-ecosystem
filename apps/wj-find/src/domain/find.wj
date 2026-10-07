@@ -50,3 +50,17 @@ pub fn first_hit(hits: Vec<string>) -> Option<string> {
     }
     Some(hits[0])
 }
+
+pub fn last_hit(hits: Vec<string>) -> Option<string> {
+    if hits.len() == 0 {
+        return None
+    }
+    Some(hits[hits.len() - 1])
+}
+
+pub fn require_first_hit(hits: Vec<string>) -> Result<string, string> {
+    match first_hit(hits) {
+        Some(p) => Ok(p),
+        None => Err("no hit"),
+    }
+}

@@ -65,6 +65,19 @@ pub fn find_by_id(todos: Vec<Todo>, id: int) -> Option<Todo> {
     None
 }
 
+pub fn has_pending(todos: Vec<Todo>) -> bool {
+    pending_count(todos) > 0
+}
+
+pub fn has_done(todos: Vec<Todo>) -> bool {
+    done_count(todos) > 0
+}
+
+pub fn total_count(todos: Vec<Todo>) -> int {
+    let counts = count_todos(todos)
+    counts.0
+}
+
 fn insert_by_id(sorted: Vec<Todo>, item: Todo) -> Vec<Todo> {
     let mut before = Vec::new()
     let mut after = Vec::new()

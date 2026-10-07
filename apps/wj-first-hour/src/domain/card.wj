@@ -2,6 +2,7 @@ use std::collections::HashMap
 use std::config
 use std::encoding
 use std::path
+use std::strings
 use std::time
 use std::uuid
 
@@ -59,6 +60,23 @@ pub fn is_default_port(card: Card) -> bool {
 /// Short human line for CLI demos.
 pub fn card_summary(card: Card) -> string {
     "${card.app}@${card.port}"
+}
+
+pub fn card_id(card: Card) -> string {
+    card.id
+}
+
+pub fn card_data_path(card: Card) -> string {
+    card.data_path
+}
+
+pub fn card_query(card: Card) -> string {
+    card.query
+}
+
+/// True when the card has a non-empty id.
+pub fn has_id(card: Card) -> bool {
+    strings.len(card.id) > 0
 }
 
 fn flat_get(flat: HashMap<string, string>, key: string, fallback: string) -> string {

@@ -3,9 +3,13 @@
 use crate::domain::Card
 use crate::domain::build_card
 use crate::domain::card_app
+use crate::domain::card_data_path
+use crate::domain::card_id
 use crate::domain::card_port
+use crate::domain::card_query
 use crate::domain::card_summary
 use crate::domain::format_card
+use crate::domain::has_id
 use crate::domain::is_default_port
 use std::strings
 
@@ -71,4 +75,21 @@ fn test_card_accessors_and_summary() {
         Ok(card) => assert(is_default_port(card), "port 0 default"),
         Err(e) => assert(false, "default: ${e}"),
     }
+}
+
+fn test_card_id_path_query_and_has_id() {
+    let card = sample_card()
+    assert(has_id(card), "has id")
+    assert(strings.len(card_id(card)) > 0, "id nonempty")
+    assert(strings.contains(card_data_path(card), "demo"), "path has app")
+    assert(strings.contains(card_query(card), "name="), "query has name")
+    let empty = Card {
+        id: "",
+        created_at: "",
+        app: "",
+        data_path: "",
+        query: "",
+        port: "",
+    }
+    assert(!has_id(empty), "empty id")
 }

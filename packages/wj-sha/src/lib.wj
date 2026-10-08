@@ -99,6 +99,19 @@ pub fn is_digest(text: string) -> bool {
     looks_like_sha256_hex(normalize_hex(text))
 }
 
+/// `Ok` with the lowercase digest when `text` hashes to `expected_hex`.
+pub fn require_match(text: string, expected_hex: string) -> Result<string, string> {
+    if verify(text, expected_hex) {
+        return Ok(hex(text))
+    }
+    Err("digest mismatch")
+}
+
+/// True when `text` is a lowercase SHA-256 hex digest.
+pub fn is_lower_digest(text: string) -> bool {
+    looks_like_sha256_hex(text)
+}
+
 fn is_hex_char(ch: char) -> bool {
     if ch == '0' { return true }
     if ch == '1' { return true }

@@ -130,6 +130,19 @@ pub fn is_unpadded(text: string) -> bool {
     !has_padding(text)
 }
 
+/// True when `text` has trailing `=` padding.
+pub fn is_padded(text: string) -> bool {
+    has_padding(text)
+}
+
+/// Accept an `Authorization: Basic …` header, or `Err`.
+pub fn require_basic(header: string) -> Result<string, string> {
+    if is_basic_auth_header(header) {
+        return Ok(header)
+    }
+    Err("expected basic")
+}
+
 /// Accept `text` only when it looks like base64 and round-trips; else `Err`.
 pub fn require_encoded(text: string) -> Result<string, string> {
     if is_encoded(text) {

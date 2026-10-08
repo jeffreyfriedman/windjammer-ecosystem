@@ -167,3 +167,16 @@ pub fn is_empty_allow_list(allowed: Vec<string>) -> bool {
 pub fn has_origins(allowed: Vec<string>) -> bool {
     !is_empty_allow_list(allowed)
 }
+
+/// Allow-list length when it has entries, otherwise `Err`.
+pub fn require_origins(allowed: Vec<string>) -> Result<int, string> {
+    if !has_origins(allowed) {
+        return Err("expected origins")
+    }
+    Ok(allowed_origin_count(allowed))
+}
+
+/// `Access-Control-Allow-Origin` value from a CORS header set.
+pub fn allow_origin_of(headers: CorsHeaders) -> string {
+    headers.allow_origin
+}

@@ -111,6 +111,24 @@ pub fn is_strict_same_site(cookie: SetCookie) -> bool {
     cookie.same_site == "Strict"
 }
 
+/// SameSite attribute text (`""`, `Lax`, `Strict`, or `None`).
+pub fn same_site_of(cookie: SetCookie) -> string {
+    cookie.same_site
+}
+
+/// True when SameSite is None.
+pub fn is_none_same_site(cookie: SetCookie) -> bool {
+    same_site_of(cookie) == "None"
+}
+
+/// `Ok(cookie)` when the Secure flag is set, otherwise `Err`.
+pub fn require_secure(cookie: SetCookie) -> Result<SetCookie, string> {
+    if is_secure(cookie) {
+        return Ok(cookie)
+    }
+    Err("expected secure")
+}
+
 /// True when the cookie jar has at least one cookie.
 pub fn has_cookies(map: HashMap<string, string>) -> bool {
     !is_empty(map)

@@ -162,3 +162,22 @@ fn test_dot_dot_leading_slash_and_require_absolute() {
         Err(msg) => assert(strings.contains(msg, "absolute"), "mentions absolute"),
     }
 }
+
+@test
+fn test_hidden_and_require_relative() {
+    use crate::is_hidden
+    use crate::require_relative
+    assert(is_hidden(".env"), "dotfile")
+    assert(is_hidden("dir/.git"), "nested dotfile")
+    assert(!is_hidden("."), "dot itself")
+    assert(!is_hidden(".."), "parent itself")
+    assert(!is_hidden("readme.md"), "plain")
+    match require_relative("rel/file") {
+        Ok(p) => assert_eq(p, "rel/file"),
+        Err(_) => assert(false, "relative"),
+    }
+    match require_relative("/abs") {
+        Ok(_) => assert(false, "abs must Err"),
+        Err(msg) => assert(strings.contains(msg, "relative"), "mentions relative"),
+    }
+}

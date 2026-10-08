@@ -205,3 +205,28 @@ fn test_is_nonzero_outside_and_require_positive() {
         Err(msg) => assert(strings.contains(msg, "positive"), "mentions positive"),
     }
 }
+
+@test
+fn test_bounds_and_require_nonneg() {
+    use crate::is_at_least
+    use crate::is_at_most
+    use crate::require_nonneg
+    assert(is_at_least(10, 10), "eq least")
+    assert(is_at_least(11, 10), "above least")
+    assert(!is_at_least(9, 10), "below least")
+    assert(is_at_most(10, 10), "eq most")
+    assert(is_at_most(9, 10), "below most")
+    assert(!is_at_most(11, 10), "above most")
+    match require_nonneg(0) {
+        Ok(n) => assert_eq(n, 0),
+        Err(_) => assert(false, "zero ok"),
+    }
+    match require_nonneg(5) {
+        Ok(n) => assert_eq(n, 5),
+        Err(_) => assert(false, "pos ok"),
+    }
+    match require_nonneg(-1) {
+        Ok(_) => assert(false, "neg must Err"),
+        Err(msg) => assert(strings.contains(msg, "nonneg"), "mentions nonneg"),
+    }
+}

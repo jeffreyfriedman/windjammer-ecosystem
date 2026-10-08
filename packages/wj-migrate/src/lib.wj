@@ -209,3 +209,32 @@ pub fn is_pending(all: Vec<Migration>, applied: Vec<int>, version: int) -> bool 
     }
     false
 }
+
+/// True when `items` contains at least one migration.
+pub fn has_migrations(items: Vec<Migration>) -> bool {
+    migration_count(items) > 0
+}
+
+/// True when `items` is empty.
+pub fn is_empty_migrations(items: Vec<Migration>) -> bool {
+    migration_count(items) == 0
+}
+
+/// Lowest version in `items`, or `0` when empty.
+pub fn earliest_version(items: Vec<Migration>) -> int {
+    let sorted = sort_migrations(items)
+    if sorted.len() == 0 {
+        return 0
+    }
+    sorted[0].version
+}
+
+/// Migration name for `version`, or None when absent.
+pub fn name_of_version(items: Vec<Migration>, version: int) -> Option<string> {
+    for m in items {
+        if m.version == version {
+            return Some(m.name)
+        }
+    }
+    None
+}

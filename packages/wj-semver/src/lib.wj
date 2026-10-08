@@ -166,6 +166,19 @@ pub fn patch_of(v: SemVer) -> int {
     v.patch
 }
 
+/// True when the major component is zero.
+pub fn is_zero_major(v: SemVer) -> bool {
+    major_of(v) == 0
+}
+
+/// `Ok(v)` when `v` has no prerelease, otherwise `Err`.
+pub fn require_stable(v: SemVer) -> Result<SemVer, string> {
+    if is_stable(v) {
+        return Ok(v)
+    }
+    Err("expected stable")
+}
+
 /// True when major, minor, and patch are all zero.
 pub fn is_zero_version(v: SemVer) -> bool {
     v.major == 0 && v.minor == 0 && v.patch == 0

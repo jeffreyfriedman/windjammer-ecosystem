@@ -17,7 +17,10 @@ use crate::bump_patch
 use crate::clear_prerelease
 use crate::clear_build
 use crate::is_stable
+use crate::is_zero_major
 use crate::major_of
+use crate::require_stable
+use std::strings
 use crate::minor_of
 use crate::patch_of
 use crate::prerelease_of
@@ -282,5 +285,34 @@ fn test_prerelease_build_accessors() {
             assert(!is_prerelease(v), "release")
         },
         Err(_) => assert(false, "parse release"),
+    }
+}
+
+fn test_is_zero_major_and_require_stable() {
+    match parse("0.1.0") {
+        Ok(v) => assert(is_zero_major(v), "zero major"),
+        Err(_) => assert(false, "parse 0.1.0"),
+    }
+    match parse("1.0.0") {
+        Ok(v) => assert(!is_zero_major(v), "one major"),
+        Err(_) => assert(false, "parse 1.0.0"),
+    }
+    match parse("1.2.3+meta") {
+        Ok(v) => {
+            match require_stable(v) {
+                Ok(stable) => assert(is_stable(stable), "stable"),
+                Err(_) => assert(false, "build-only is stable"),
+            }
+        },
+        Err(_) => assert(false, "parse build"),
+    }
+    match parse("1.2.3-beta") {
+        Ok(v) => {
+            match require_stable(v) {
+                Ok(_) => assert(false, "prerelease must Err"),
+                Err(msg) => assert(strings.contains(msg, "stable"), "mentions stable"),
+            }
+        },
+        Err(_) => assert(false, "parse pre"),
     }
 }

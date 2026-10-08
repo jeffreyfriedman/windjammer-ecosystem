@@ -87,6 +87,24 @@ pub fn first_expr(exprs: Vec<string>) -> Option<string> {
     Some(exprs[0])
 }
 
+/// Last expression, or None when empty.
+pub fn last_expr(exprs: Vec<string>) -> Option<string> {
+    let n = exprs.len()
+    if n == 0 {
+        return None
+    }
+    Some(exprs[n - 1])
+}
+
+/// The only expression when the list has exactly one entry.
+pub fn only_expr(exprs: Vec<string>) -> Option<string> {
+    if exprs.len() == 1 {
+        Some(exprs[0])
+    } else {
+        None
+    }
+}
+
 /// Ok(count) when non-empty; Err when the crontab has no expressions.
 pub fn require_exprs(exprs: Vec<string>) -> Result<int, string> {
     let n = expr_count(exprs)

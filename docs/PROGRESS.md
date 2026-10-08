@@ -4,6 +4,7 @@ Weekly build health for seed apps and packages.
 
 | Week | Date | Apps / packages green | `extern fn` | Crates via interop | Compiler issues | Notes |
 |------|------|----------------------|-------------|--------------------|-----------------|-------|
+| 2 | 2026-10-08 | deepen `wj-scheduler`/`wj-proxy`/`wj-migrate-cli` | 0 | 0 | private CARGO_HOME; P3.742 function-local `use std::strings` gate GREEN | `last_expr`/`only_expr`, `require_upstream`/`require_rate_limit`, `only_pending`/`require_pending`; tip **41+29+24** green |
 | 2 | 2026-10-08 | deepen `wj-todo-cli`/`wj-sitegen`/`wj-webhook` | 0 | 0 | private CARGO_HOME | `only_pending`/`require_pending`, `only_page`/`require_pages`, `require_secret`/`require_origins`; tip **63+26+18** green |
 | 2 | 2026-10-08 | deepen `wj-hello`/`wj-fetch`/`wj-pipeline` | 0 | 0 | private CARGO_HOME | `require_semver`/`is_smoke_identity`, `require_success`/`status_class`, `only_result`/`require_results`; tip **6+34+9** green |
 | 2 | 2026-10-08 | deepen `wj-first-hour`/`wj-find`/`wj-form-parse`/`wj-multipart` | 0 | 0 | private CARGO_HOME | `require_id`/`is_empty_query`, `only_hit`/`require_hits`, `require_fields`/`has_blank_value`; empty multipart bodies keep the header separator (`trim_start`); tip **6+7+7+18** green |

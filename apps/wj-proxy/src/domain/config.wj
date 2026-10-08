@@ -72,6 +72,24 @@ pub fn log_max_of(cfg: ProxyConfig) -> int {
     cfg.log_max
 }
 
+/// Upstream URL when it is non-empty.
+pub fn require_upstream(cfg: ProxyConfig) -> Result<string, string> {
+    if strings.len(cfg.upstream) == 0 {
+        Err("expected upstream")
+    } else {
+        Ok(cfg.upstream)
+    }
+}
+
+/// Rate limit when it is at least 1.
+pub fn require_rate_limit(cfg: ProxyConfig) -> Result<int, string> {
+    if cfg.rate_limit < 1 {
+        Err("expected rate limit")
+    } else {
+        Ok(cfg.rate_limit)
+    }
+}
+
 fn upstream_from_env() -> string {
     match env.get("PROXY_UPSTREAM") {
         Some(value) => value,

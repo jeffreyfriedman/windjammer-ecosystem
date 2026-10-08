@@ -72,6 +72,25 @@ pub fn origin_count(cfg: WebhookConfig) -> int {
     cfg.allowed_origins.len() as int
 }
 
+/// Configured secret when it is non-empty.
+pub fn require_secret(cfg: WebhookConfig) -> Result<string, string> {
+    if strings.len(cfg.secret) == 0 {
+        Err("expected secret")
+    } else {
+        Ok(cfg.secret)
+    }
+}
+
+/// Origin count when at least one origin is configured.
+pub fn require_origins(cfg: WebhookConfig) -> Result<int, string> {
+    let n = origin_count(cfg)
+    if n == 0 {
+        Err("expected origins")
+    } else {
+        Ok(n)
+    }
+}
+
 fn secret_from_env() -> string {
     match env.get("WEBHOOK_SECRET") {
         Some(value) => value,

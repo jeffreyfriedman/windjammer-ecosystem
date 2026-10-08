@@ -17,6 +17,7 @@ use crate::status_of
 use crate::require_ok
 use crate::error_message
 use crate::from_parts
+use std::strings
 
 fn test_status_is_success_accepts_2xx() {
     assert(status_is_success(200), "200")
@@ -109,4 +110,21 @@ fn test_status_auth_not_found_and_accessors() {
     assert(has_body(result), "has body")
     let empty = from_parts(204, "")
     assert(!has_body(empty), "no body")
+}
+
+fn test_is_error_status_and_require_body() {
+    use crate::is_error_status
+    use crate::require_body
+    assert(is_error_status(404), "404")
+    assert(is_error_status(500), "500")
+    assert(!is_error_status(200), "200 not error")
+    assert(!is_error_status(301), "301 not error")
+    match require_body(from_parts(200, "hello")) {
+        Ok(body) => assert_eq(body, "hello"),
+        Err(_) => assert(false, "body present"),
+    }
+    match require_body(from_parts(204, "")) {
+        Ok(_) => assert(false, "empty body must Err"),
+        Err(msg) => assert(strings.contains(msg, "body"), "mentions body"),
+    }
 }

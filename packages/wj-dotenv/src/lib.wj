@@ -126,6 +126,22 @@ pub fn values(map: HashMap<string, string>) -> Vec<string> {
     out
 }
 
+/// True when `key` is missing or its trimmed value is empty.
+pub fn is_blank(map: HashMap<string, string>, key: string) -> bool {
+    match get(map, key) {
+        Some(value) => strings.len(strings.trim(value)) == 0,
+        None => true,
+    }
+}
+
+/// Key count when `map` has entries, otherwise `Err`.
+pub fn require_nonempty(map: HashMap<string, string>) -> Result<int, string> {
+    if !has_keys(map) {
+        return Err("expected entries")
+    }
+    Ok(key_count(map))
+}
+
 /// Merge `overlay` onto `base`; overlay keys win on conflict.
 pub fn merge(base: HashMap<string, string>, overlay: HashMap<string, string>) -> HashMap<string, string> {
     let mut out = HashMap::new()

@@ -129,6 +129,19 @@ pub fn is_empty_object(text: string) -> bool {
     compact(text) == "{}"
 }
 
+/// Accept `text` only when it is valid JSON.
+pub fn require_valid(text: string) -> Result<string, string> {
+    if is_valid(text) {
+        return Ok(text)
+    }
+    Err("invalid json")
+}
+
+/// True when valid JSON is an empty object or an empty array.
+pub fn is_empty_json(text: string) -> bool {
+    is_empty_object(text) || is_empty_array(text)
+}
+
 /// True when valid JSON whose top-level value is an empty array.
 pub fn is_empty_array(text: string) -> bool {
     if !is_arrayish(text) {

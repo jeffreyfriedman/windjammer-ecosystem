@@ -347,3 +347,30 @@ fn test_first_error_and_has_no_errors() {
         None => assert(false, "first err"),
     }
 }
+
+@test
+fn test_last_error_and_require_clean() {
+    use crate::last_error
+    use crate::require_clean
+    match last_error(Vec::new()) {
+        Some(_) => assert(false, "empty last"),
+        None => {},
+    }
+    let mut errs = Vec::new()
+    errs.push("first")
+    errs.push("second")
+    match last_error(errs) {
+        Some(e) => assert_eq(e, "second"),
+        None => assert(false, "last"),
+    }
+    match require_clean(Vec::new()) {
+        Ok(_) => {},
+        Err(_) => assert(false, "clean"),
+    }
+    let mut bad = Vec::new()
+    bad.push("nope")
+    match require_clean(bad) {
+        Ok(_) => assert(false, "dirty must Err"),
+        Err(msg) => assert(strings.contains(msg, "nope"), "mentions error"),
+    }
+}

@@ -116,3 +116,14 @@ fn test_less_severe_and_require_level() {
         Err(msg) => assert(strings.contains(msg, "nope"), "mentions text"),
     }
 }
+
+fn test_same_severity_and_known_level() {
+    use crate::is_known_level
+    use crate::same_severity
+    assert(same_severity(LogLevel::Warn, LogLevel::Warn), "equal")
+    assert(!same_severity(LogLevel::Info, LogLevel::Error), "different")
+    assert(is_known_level("INFO"), "info alias")
+    assert(is_known_level("warning"), "warning alias")
+    assert(!is_known_level("nope"), "unknown")
+    assert(!is_known_level(""), "empty")
+}

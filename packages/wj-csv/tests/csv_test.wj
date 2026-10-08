@@ -236,3 +236,37 @@ fn test_has_rows_require_row_and_cell_or() {
     let empty: Vec<Vec<string>> = Vec::new()
     assert(!has_rows(empty), "empty has no rows")
 }
+
+@test
+fn test_last_row_and_rectangular() {
+    use crate::is_rectangular
+    use crate::last_row
+    match parse("a,b\n1,2\n3,4") {
+        Ok(rows) => {
+            assert(is_rectangular(rows), "even rows")
+            match last_row(rows) {
+                Some(row) => {
+                    assert_eq(row[0], "3")
+                    assert_eq(row[1], "4")
+                },
+                None => assert(false, "last"),
+            }
+        },
+        Err(_) => assert(false, "parse"),
+    }
+    let mut ragged: Vec<Vec<string>> = Vec::new()
+    let mut wide = Vec::new()
+    wide.push("a")
+    wide.push("b")
+    ragged.push(wide)
+    let mut short = Vec::new()
+    short.push("1")
+    ragged.push(short)
+    assert(!is_rectangular(ragged), "ragged")
+    let empty: Vec<Vec<string>> = Vec::new()
+    assert(is_rectangular(empty), "empty is rectangular")
+    match last_row(empty) {
+        Some(_) => assert(false, "empty last"),
+        None => {},
+    }
+}

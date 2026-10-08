@@ -134,6 +134,14 @@ pub fn require_int(text: string, path: string) -> Result<int, string> {
     }
 }
 
+/// Ok(text) when `text` parses as YAML; otherwise Err.
+pub fn require_valid(text: string) -> Result<string, string> {
+    if is_valid(text) {
+        return Ok(text)
+    }
+    Err("expected yaml document")
+}
+
 /// Look up bool path, or `Err` naming the missing path.
 pub fn require_bool(text: string, path: string) -> Result<bool, string> {
     match get_bool(text, path) {

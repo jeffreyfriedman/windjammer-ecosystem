@@ -266,6 +266,23 @@ pub fn with_fragment(u: Url, fragment: string) -> Url {
     }
 }
 
+/// URL scheme (`https`, `http`, …).
+pub fn scheme_of(u: Url) -> string {
+    u.scheme
+}
+
+pub fn host_of(u: Url) -> string {
+    u.host
+}
+
+/// Ok(url) when the scheme is `https`; otherwise Err.
+pub fn require_https(u: Url) -> Result<Url, string> {
+    if is_https(u) {
+        return Ok(u)
+    }
+    Err("expected https url")
+}
+
 /// True when path is empty or exactly `/`.
 pub fn is_root_path(u: Url) -> bool {
     strings.len(u.path) == 0 || u.path == "/"

@@ -226,3 +226,20 @@ fn test_require_int_and_require_bool() {
         Err(msg) => assert(strings.contains(msg, "missing"), "mentions path"),
     }
 }
+
+@test
+fn test_require_valid() {
+    use crate::require_valid
+    match require_valid("name: bob\n") {
+        Ok(text) => assert(strings.contains(text, "bob"), "keeps body"),
+        Err(_) => assert(false, "valid"),
+    }
+    match require_valid("") {
+        Ok(_) => assert(false, "empty must Err"),
+        Err(msg) => assert(strings.contains(msg, "yaml"), "mentions yaml"),
+    }
+    match require_valid("   \n") {
+        Ok(_) => assert(false, "blank must Err"),
+        Err(msg) => assert(strings.contains(msg, "yaml"), "mentions yaml"),
+    }
+}

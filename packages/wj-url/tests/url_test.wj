@@ -266,3 +266,30 @@ fn test_without_query_with_fragment_and_is_root_path() {
         Err(_) => assert(false, "parse no path"),
     }
 }
+
+@test
+fn test_scheme_host_and_require_https() {
+    use crate::host_of
+    use crate::require_https
+    use crate::scheme_of
+    match parse("https://example.com/api") {
+        Ok(u) => {
+            assert_eq(scheme_of(u), "https")
+            assert_eq(host_of(u), "example.com")
+            match require_https(u) {
+                Ok(kept) => assert_eq(kept.host, "example.com"),
+                Err(_) => assert(false, "https ok"),
+            }
+        },
+        Err(_) => assert(false, "parse https"),
+    }
+    match parse("http://example.com/api") {
+        Ok(u) => {
+            match require_https(u) {
+                Ok(_) => assert(false, "http must Err"),
+                Err(msg) => assert(strings.contains(msg, "https"), "mentions https"),
+            }
+        },
+        Err(_) => assert(false, "parse http"),
+    }
+}

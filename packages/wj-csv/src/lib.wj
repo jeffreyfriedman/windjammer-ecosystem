@@ -129,3 +129,28 @@ pub fn cell_or(rows: Vec<Vec<string>>, row: int, col: int, default: string) -> s
         None => default,
     }
 }
+
+/// Last row, or None when the table is empty.
+pub fn last_row(rows: Vec<Vec<string>>) -> Option<Vec<string>> {
+    let n = row_count(rows)
+    if n == 0 {
+        return None
+    }
+    get_row(rows, n - 1)
+}
+
+/// True when every row has the same number of columns (empty tables count).
+pub fn is_rectangular(rows: Vec<Vec<string>>) -> bool {
+    if rows.len() == 0 {
+        return true
+    }
+    let width = rows[0].len()
+    let mut i = 0
+    while i < rows.len() {
+        if rows[i].len() != width {
+            return false
+        }
+        i = i + 1
+    }
+    true
+}

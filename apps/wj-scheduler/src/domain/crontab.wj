@@ -74,6 +74,28 @@ pub fn is_empty_exprs(exprs: Vec<string>) -> bool {
     expr_count(exprs) == 0
 }
 
+/// True when at least one cron expression is present.
+pub fn has_exprs(exprs: Vec<string>) -> bool {
+    expr_count(exprs) > 0
+}
+
+/// First expression, or None when empty.
+pub fn first_expr(exprs: Vec<string>) -> Option<string> {
+    if exprs.len() == 0 {
+        return None
+    }
+    Some(exprs[0])
+}
+
+/// Ok(count) when non-empty; Err when the crontab has no expressions.
+pub fn require_exprs(exprs: Vec<string>) -> Result<int, string> {
+    let n = expr_count(exprs)
+    if n == 0 {
+        return Err("crontab is empty")
+    }
+    Ok(n)
+}
+
 pub fn due_count(exprs: Vec<string>, at: CivilTime) -> Result<int, string> {
     match due_schedules(exprs, at) {
         Ok(due) => Ok(expr_count(due)),

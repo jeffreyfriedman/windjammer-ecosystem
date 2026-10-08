@@ -118,6 +118,25 @@ pub fn match_or(pattern: string, path: string, fallback: HashMap<string, string>
     }
 }
 
+/// First `:param` name in a route pattern, without the colon.
+pub fn first_param_name(pattern: string) -> Option<string> {
+    let segs = split_segments(normalize_path(pattern))
+    for seg in segs {
+        if strings.starts_with(seg, ":") && strings.len(seg) > 1 {
+            return Some(strings.substring(seg, 1, strings.len(seg)))
+        }
+    }
+    None
+}
+
+/// Match `pattern` against `path`, or `Err` when the path does not match.
+pub fn require_match(pattern: string, path: string) -> Result<HashMap<string, string>, string> {
+    match match_route(pattern, path) {
+        Some(params) => Ok(params),
+        None => Err("expected match"),
+    }
+}
+
 /// Count of `:param` segments in a route pattern.
 pub fn pattern_param_count(pattern: string) -> int {
     let segs = split_segments(normalize_path(pattern))

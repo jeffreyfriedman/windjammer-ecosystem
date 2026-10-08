@@ -9,7 +9,9 @@ use crate::is_empty
 use crate::is_singleton
 use crate::keys
 use crate::last_key
+use crate::last_value
 use crate::pair_count
+use crate::require_singleton
 use crate::parse
 use crate::remove
 use crate::require
@@ -214,4 +216,24 @@ fn test_last_key_and_is_singleton() {
     assert(is_singleton("a=1"), "one pair")
     assert(!is_singleton("a=1&b=2"), "two pairs")
     assert(!is_singleton(""), "empty")
+}
+
+@test
+fn test_last_value_and_require_singleton() {
+    match last_value("a=1&b=2&a=3", "a") {
+        Some(v) => assert_eq(v, "3"),
+        None => assert(false, "last a"),
+    }
+    match last_value("a=1", "z") {
+        Some(_) => assert(false, "missing"),
+        None => {},
+    }
+    match require_singleton("a=1") {
+        Ok(k) => assert_eq(k, "a"),
+        Err(_) => assert(false, "singleton"),
+    }
+    match require_singleton("a=1&b=2") {
+        Ok(_) => assert(false, "two must Err"),
+        Err(msg) => assert(strings.contains(msg, "singleton"), "mentions singleton"),
+    }
 }

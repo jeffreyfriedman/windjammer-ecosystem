@@ -2,14 +2,18 @@ use crate::parse_cron
 use crate::matches_cron
 use crate::matches_field
 use crate::CronDateTime
+use crate::every_day
 use crate::every_hour
 use crate::every_minute
+use crate::is_every_day
+use crate::require_cron
 use crate::format_cron
 use crate::is_every_hour
 use crate::is_every_minute
 use crate::is_wildcard_field
 use crate::next_run
 use crate::source_of
+use std::strings
 
 
 // --- parse_cron ---
@@ -422,5 +426,21 @@ fn test_is_every_hour_and_source_of() {
     match parse_cron("@daily") {
         Ok(expr) => assert_eq(source_of(expr), "@daily"),
         Err(_) => assert(false, "parse @daily"),
+    }
+}
+
+fn test_every_day_and_require_cron() {
+    let daily = every_day()
+    assert_eq(format_cron(daily), "0 0 * * *")
+    assert(is_every_day(daily), "every day")
+    assert(!is_every_day(every_hour()), "hourly not daily")
+    assert(!is_every_day(every_minute()), "minute not daily")
+    match require_cron("*/5 * * * *") {
+        Ok(expr) => assert_eq(format_cron(expr), "*/5 * * * *"),
+        Err(_) => assert(false, "valid cron"),
+    }
+    match require_cron("not a cron") {
+        Ok(_) => assert(false, "invalid must Err"),
+        Err(msg) => assert(strings.contains(msg, "cron"), "mentions cron"),
     }
 }

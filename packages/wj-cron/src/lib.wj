@@ -247,6 +247,31 @@ pub fn is_every_hour(expr: CronExpr) -> bool {
     format_cron(expr) == "0 * * * *"
 }
 
+/// Expression that matches midnight every day (`0 0 * * *`).
+pub fn every_day() -> CronExpr {
+    CronExpr {
+        minute: "0",
+        hour: "0",
+        day_of_month: "*",
+        month: "*",
+        day_of_week: "*",
+        source: "0 0 * * *",
+    }
+}
+
+/// True when `expr` is the every-day schedule (`0 0 * * *`).
+pub fn is_every_day(expr: CronExpr) -> bool {
+    format_cron(expr) == "0 0 * * *"
+}
+
+/// Parse `text` as cron, or `Err` whose message mentions cron.
+pub fn require_cron(text: string) -> Result<CronExpr, string> {
+    match parse_cron(text) {
+        Ok(expr) => Ok(expr),
+        Err(msg) => Err("invalid cron: ${msg}"),
+    }
+}
+
 /// Original source text preserved on `expr`.
 pub fn source_of(expr: CronExpr) -> string {
     expr.source

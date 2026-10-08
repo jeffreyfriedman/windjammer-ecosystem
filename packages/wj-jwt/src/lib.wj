@@ -131,3 +131,21 @@ pub fn has_email(claims: Claims) -> bool {
         None => false,
     }
 }
+
+/// Email claim, if present.
+pub fn email_of(claims: Claims) -> Option<string> {
+    claims.email
+}
+
+/// Email claim, or `Err` when it is absent.
+pub fn require_email(claims: Claims) -> Result<string, string> {
+    match email_of(claims) {
+        Some(email) => Ok(email),
+        None => Err("missing email"),
+    }
+}
+
+/// True when `now_secs` is at or past the expiration claim.
+pub fn is_expired(claims: Claims, now_secs: int) -> bool {
+    expires_at(claims) <= now_secs
+}

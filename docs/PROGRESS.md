@@ -4,6 +4,7 @@ Weekly build health for seed apps and packages.
 
 | Week | Date | Apps / packages green | `extern fn` | Crates via interop | Compiler issues | Notes |
 |------|------|----------------------|-------------|--------------------|-----------------|-------|
+| 2 | 2026-10-07 | deepen `wj-jwt`/`wj-cli-args`/`wj-cron` | 0 | 0 | private CARGO_HOME | `email_of`/`require_email`/`is_expired`, `program_name`/`require_no_help`, `every_day`/`is_every_day`/`require_cron`; tip **13+18+34** green |
 | 2 | 2026-10-07 | deepen `wj-compress`/`wj-querystring`/`wj-router` | 0 | 0 | private CARGO_HOME | `require_gzip`/`require_min_bytes`, `last_value`/`require_singleton`, `first_param_name`/`require_match`; tip **20+23+15** green |
 | 2 | 2026-10-07 | deepen `wj-event`/`wj-regex`/`wj-headers` | 0 | 0 | private CARGO_HOME | `has_payload`/`is_named`/`require_payload`, `exactly_n_matches`/`require_valid_pattern`, `hsts_max_age_of`/`content_type_of`/`require_hsts`; tip **18+14+21** green |
 | 2 | 2026-10-07 | deepen `wj-log`/`wj-retry`/`wj-validate` | 0 | 0 | private CARGO_HOME | `same_severity`/`is_known_level`, `is_first_attempt`/`next_attempt`/`has_retries_left`, `last_error`/`require_clean`; tip **16+17+35** green |

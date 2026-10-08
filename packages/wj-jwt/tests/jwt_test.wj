@@ -1,7 +1,10 @@
 use crate::bearer_header
+use crate::email_of
 use crate::expires_at
 use crate::extract_bearer
 use crate::has_email
+use crate::is_expired
+use crate::require_email
 use crate::is_bearer_header
 use crate::looks_like_jwt
 use crate::require_jwt
@@ -200,6 +203,50 @@ fn test_expires_at_and_has_email() {
         Ok(token) => {
             match verify(token, "secret") {
                 Ok(claims) => assert(has_email(claims), "scoped has email"),
+                Err(_) => assert(false, "verify scoped"),
+            }
+        },
+        Err(_) => assert(false, "sign_scoped"),
+    }
+}
+
+@test
+fn test_email_of_require_email_and_is_expired() {
+    match sign("user-1", "acme", "secret", 3600) {
+        Ok(token) => {
+            match verify(token, "secret") {
+                Ok(claims) => {
+                    match email_of(claims) {
+                        Some(_) => assert(false, "basic has no email"),
+                        None => {},
+                    }
+                    match require_email(claims) {
+                        Ok(_) => assert(false, "missing email must Err"),
+                        Err(msg) => assert(strings.contains(msg, "email"), "mentions email"),
+                    }
+                    assert(!is_expired(claims, 1), "fresh token")
+                },
+                Err(_) => assert(false, "verify"),
+            }
+        },
+        Err(_) => assert(false, "sign"),
+    }
+    match sign_scoped("user-1", "acme", "t1", "e1", "a@b.c", "secret", 3600) {
+        Ok(token) => {
+            match verify(token, "secret") {
+                Ok(claims) => {
+                    match email_of(claims) {
+                        Some(email) => assert_eq(email, "a@b.c"),
+                        None => assert(false, "email"),
+                    }
+                    match require_email(claims) {
+                        Ok(email) => assert_eq(email, "a@b.c"),
+                        Err(_) => assert(false, "require email"),
+                    }
+                    let exp = expires_at(claims)
+                    assert(is_expired(claims, exp), "at exp")
+                    assert(is_expired(claims, exp + 1), "after exp")
+                },
                 Err(_) => assert(false, "verify scoped"),
             }
         },

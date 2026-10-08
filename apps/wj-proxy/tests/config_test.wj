@@ -22,3 +22,17 @@ fn test_strip_and_log_predicates() {
     unlimited.log_max = 0
     assert(is_unlimited_log(unlimited), "unlimited")
 }
+
+fn test_upstream_rate_and_log_accessors() {
+    use crate::domain::is_limited_log
+    use crate::domain::log_max_of
+    use crate::domain::rate_limit_of
+    use crate::domain::upstream_of
+    assert_eq(upstream_of(ProxyConfig::defaults()), "http://127.0.0.1:9000")
+    assert_eq(rate_limit_of(ProxyConfig::defaults()), 100)
+    assert_eq(log_max_of(ProxyConfig::defaults()), 1000)
+    assert(is_limited_log(ProxyConfig::defaults()), "defaults capped")
+    let mut unlimited = ProxyConfig::defaults()
+    unlimited.log_max = 0
+    assert(!is_limited_log(unlimited), "unlimited not limited")
+}

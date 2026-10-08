@@ -4,6 +4,7 @@ Weekly build health for seed apps and packages.
 
 | Week | Date | Apps / packages green | `extern fn` | Crates via interop | Compiler issues | Notes |
 |------|------|----------------------|-------------|--------------------|-----------------|-------|
+| 2 | 2026-10-07 | deepen `wj-scheduler`/`wj-proxy` | 0 | 0 | private CARGO_HOME; notes-api tip RED (P3.678 regress — HashMap get `"${v}"` → bare `&String`) | `has_exprs`/`first_expr`/`require_exprs`, `upstream_of`/`rate_limit_of`/`log_max_of`/`is_limited_log`; tip **40+28** green; notes deepen deferred |
 | 2 | 2026-10-07 | deepen `wj-sitegen`/`wj-webhook`/`wj-migrate-cli` | 0 | 0 | private CARGO_HOME | `has_pages`/`is_empty_pages`/`require_markdown_path`, `secret_of`/`is_production_secret`/`origin_count`/`max_id_len_of`, `first_pending`/`last_applied`/`total_versions`; tip **25+17+23** green |
 | 2 | 2026-10-07 | deepen `wj-hello`/`wj-form-parse`/`wj-fetch` | 0 | 0 | private CARGO_HOME | `is_zero_major`/`matches_identity`/`require_crate`, `is_empty_fields`/`first_field_name`/`last_field_name`/`has_value`, `is_informational_status`/`is_redirect_status`/`is_server_error_status`; tip **5+6+33** green |
 | 2 | 2026-10-07 | deepen `wj-find`/`wj-pipeline`/`wj-todo-cli` | 0 | 0 | private CARGO_HOME | `last_hit`/`require_first_hit`, `min_result_value`/`has_results`, `has_pending`/`has_done`/`total_count`; tip **6+8+62** green |

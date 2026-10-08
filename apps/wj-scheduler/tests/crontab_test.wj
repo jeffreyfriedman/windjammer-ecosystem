@@ -5,6 +5,7 @@ use crate::domain::due_schedules
 use crate::domain::expr_count
 use crate::domain::is_empty_exprs
 use crate::domain::parse_civil
+use std::strings
 
 fn test_parse_crontab_line_skips_blank() {
     match parse_crontab_line("   ") {
@@ -105,5 +106,29 @@ fn test_expr_helpers_and_due_count() {
             }
         },
         Err(_) => assert(false, "civil"),
+    }
+}
+
+fn test_has_exprs_first_and_require() {
+    use crate::domain::first_expr
+    use crate::domain::has_exprs
+    use crate::domain::require_exprs
+    assert(has_exprs(sample_exprs()), "has")
+    assert(!has_exprs(Vec::new()), "none")
+    match first_expr(sample_exprs()) {
+        Some(e) => assert_eq(e, "@hourly"),
+        None => assert(false, "first"),
+    }
+    match first_expr(Vec::new()) {
+        Some(_) => assert(false, "empty first"),
+        None => assert(true, "ok"),
+    }
+    match require_exprs(sample_exprs()) {
+        Ok(n) => assert_eq(n, 2),
+        Err(_) => assert(false, "require ok"),
+    }
+    match require_exprs(Vec::new()) {
+        Ok(_) => assert(false, "empty must Err"),
+        Err(msg) => assert(strings.contains(msg, "empty"), "mentions empty"),
     }
 }

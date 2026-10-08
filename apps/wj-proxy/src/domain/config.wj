@@ -52,6 +52,26 @@ pub fn is_unlimited_log(cfg: ProxyConfig) -> bool {
     cfg.log_max == 0
 }
 
+/// True when the request log is capped (`log_max` > 0).
+pub fn is_limited_log(cfg: ProxyConfig) -> bool {
+    !is_unlimited_log(cfg)
+}
+
+/// Configured upstream base URL.
+pub fn upstream_of(cfg: ProxyConfig) -> string {
+    cfg.upstream
+}
+
+/// Configured per-window rate limit.
+pub fn rate_limit_of(cfg: ProxyConfig) -> int {
+    cfg.rate_limit
+}
+
+/// Configured request-log ring-buffer size.
+pub fn log_max_of(cfg: ProxyConfig) -> int {
+    cfg.log_max
+}
+
 fn upstream_from_env() -> string {
     match env.get("PROXY_UPSTREAM") {
         Some(value) => value,

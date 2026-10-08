@@ -29,4 +29,7 @@ pub use crontab::parse_crontab
 pub use crontab::due_schedules
 pub use crontab::due_count
 pub use crontab::expr_count
+pub use crontab::first_expr
+pub use crontab::has_exprs
 pub use crontab::is_empty_exprs
+pub use crontab::require_exprs

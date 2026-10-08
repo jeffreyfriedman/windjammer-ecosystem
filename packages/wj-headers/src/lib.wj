@@ -174,3 +174,21 @@ pub fn csp_of(headers: SecurityHeaders) -> string {
 pub fn has_hsts(headers: SecurityHeaders) -> bool {
     hsts_enabled(headers)
 }
+
+/// Configured HSTS max-age in seconds (`0` when disabled).
+pub fn hsts_max_age_of(headers: SecurityHeaders) -> int {
+    headers.hsts_max_age_secs
+}
+
+/// `X-Content-Type-Options` value accessor.
+pub fn content_type_of(headers: SecurityHeaders) -> string {
+    headers.content_type_options
+}
+
+/// Ok(headers) when HSTS is enabled; otherwise Err.
+pub fn require_hsts(headers: SecurityHeaders) -> Result<SecurityHeaders, string> {
+    if has_hsts(headers) {
+        return Ok(headers)
+    }
+    Err("expected hsts")
+}

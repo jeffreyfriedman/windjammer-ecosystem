@@ -171,3 +171,25 @@ fn test_at_least_n_require_match_and_is_invalid() {
     assert(is_invalid_pattern("("), "invalid")
     assert(!is_invalid_pattern("\\d+"), "valid")
 }
+
+@test
+fn test_exactly_n_and_require_valid_pattern() {
+    use crate::exactly_n_matches
+    use crate::require_valid_pattern
+    match exactly_n_matches("\\d+", "a1b22c", 2) {
+        Ok(yes) => assert(yes, "two runs"),
+        Err(_) => assert(false, "exactly err"),
+    }
+    match exactly_n_matches("\\d+", "a1b22c", 1) {
+        Ok(yes) => assert(!yes, "not one"),
+        Err(_) => assert(false, "exactly short"),
+    }
+    match require_valid_pattern("\\d+") {
+        Ok(p) => assert_eq(p, "\\d+"),
+        Err(_) => assert(false, "valid pattern"),
+    }
+    match require_valid_pattern("(") {
+        Ok(_) => assert(false, "invalid must Err"),
+        Err(msg) => assert(strings.contains(msg, "pattern"), "mentions pattern"),
+    }
+}

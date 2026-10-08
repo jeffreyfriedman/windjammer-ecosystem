@@ -10,6 +10,7 @@ use crate::has_pending
 use crate::is_empty
 use crate::is_idle
 use crate::listener_count
+use std::strings
 use crate::listener_ids
 use crate::match_pattern
 use crate::new_bus
@@ -175,5 +176,38 @@ fn test_is_idle_and_event_accessors() {
             assert_eq(event_payload(ev), "payload-1")
         },
         None => assert(false, "peek event"),
+    }
+}
+
+@test
+fn test_payload_and_named_helpers() {
+    use crate::has_payload
+    use crate::is_named
+    use crate::require_payload
+    let queued = emit(new_bus(), "tick", "payload-1")
+    let peeked = peek(queued)
+    match peeked.1 {
+        Some(ev) => {
+            assert(has_payload(ev), "has payload")
+            assert(is_named(ev, "tick"), "named tick")
+            assert(!is_named(ev, "tock"), "not tock")
+            match require_payload(ev) {
+                Ok(p) => assert_eq(p, "payload-1"),
+                Err(_) => assert(false, "require payload"),
+            }
+        },
+        None => assert(false, "peek"),
+    }
+    let empty_q = emit(new_bus(), "tick", "")
+    let peeked_empty = peek(empty_q)
+    match peeked_empty.1 {
+        Some(ev) => {
+            assert(!has_payload(ev), "empty payload")
+            match require_payload(ev) {
+                Ok(_) => assert(false, "empty must Err"),
+                Err(msg) => assert(strings.contains(msg, "payload"), "mentions payload"),
+            }
+        },
+        None => assert(false, "peek empty"),
     }
 }

@@ -187,3 +187,22 @@ fn test_frame_csp_and_has_hsts() {
     let with_csp_policy = with_csp(defaults(), "default-src 'self'")
     assert_eq(csp_of(with_csp_policy), "default-src 'self'")
 }
+
+@test
+fn test_hsts_age_content_type_and_require_hsts() {
+    use crate::content_type_of
+    use crate::hsts_max_age_of
+    use crate::require_hsts
+    assert_eq(hsts_max_age_of(defaults()), 0)
+    assert_eq(content_type_of(defaults()), "nosniff")
+    let secured = with_hsts(defaults(), 31536000)
+    assert_eq(hsts_max_age_of(secured), 31536000)
+    match require_hsts(secured) {
+        Ok(h) => assert_eq(hsts_max_age_of(h), 31536000),
+        Err(_) => assert(false, "hsts ok"),
+    }
+    match require_hsts(defaults()) {
+        Ok(_) => assert(false, "disabled must Err"),
+        Err(msg) => assert(strings.contains(msg, "hsts"), "mentions hsts"),
+    }
+}

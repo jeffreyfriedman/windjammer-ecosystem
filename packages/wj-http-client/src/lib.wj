@@ -100,6 +100,20 @@ pub fn require_ok(result: HttpResult) -> Result<string, string> {
     Err(error_message(result.status, result.body))
 }
 
+/// True for HTTP 4xx and 5xx statuses.
+pub fn is_error_status(status: u16) -> bool {
+    status_is_client_error(status) || status_is_server_error(status)
+}
+
+/// Body text when it is non-empty.
+pub fn require_body(result: HttpResult) -> Result<string, string> {
+    if has_body(result) {
+        Ok(result.body)
+    } else {
+        Err("expected body")
+    }
+}
+
 impl HttpResult {
     pub fn is_success(self) -> bool {
         status_is_success(self.status)

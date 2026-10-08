@@ -36,3 +36,18 @@ pub fn require_crate(name: string) -> Result<string, string> {
         Err("expected crate: ${name}")
     }
 }
+
+/// Ok(semver) when `ver` matches this smoke app; otherwise Err.
+pub fn require_semver(ver: string) -> Result<string, string> {
+    if semver() == ver {
+        Ok(semver())
+    } else {
+        Err("expected semver")
+    }
+}
+
+/// True when the identity line is the crate name plus its semver.
+pub fn is_smoke_identity() -> bool {
+    let line = version()
+    strings.starts_with(line, crate_name()) && strings.contains(line, semver())
+}

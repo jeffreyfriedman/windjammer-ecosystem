@@ -15,7 +15,9 @@ pub use format::is_informational_status
 pub use format::is_redirect_status
 pub use format::is_server_error_status
 pub use format::is_success_status
+pub use format::require_success
 pub use format::resolve_fetch_output
+pub use format::status_class
 pub use config::FetchConfig
 pub use config::config_from_env
 pub use parse::parse_nonneg_int

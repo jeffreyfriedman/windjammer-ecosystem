@@ -75,3 +75,30 @@ pub fn min_result_value(results: Vec<JobResult>) -> int {
 pub fn has_results(results: Vec<JobResult>) -> bool {
     !is_empty_results(results)
 }
+
+/// Result count when the list is non-empty.
+pub fn require_results(results: Vec<JobResult>) -> Result<int, string> {
+    let n = result_count(results)
+    if n == 0 {
+        Err("expected results")
+    } else {
+        Ok(n)
+    }
+}
+
+/// The sole result when the list has exactly one entry.
+pub fn only_result(results: Vec<JobResult>) -> Option<JobResult> {
+    let mut kept = JobResult { id: 0, value: 0 }
+    let mut n = 0
+    for r in results {
+        n = n + 1
+        if n == 1 {
+            kept = r
+        }
+    }
+    if n == 1 {
+        Some(kept)
+    } else {
+        None
+    }
+}

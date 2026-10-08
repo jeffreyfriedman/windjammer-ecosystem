@@ -64,3 +64,22 @@ pub fn require_first_hit(hits: Vec<string>) -> Result<string, string> {
         None => Err("no hit"),
     }
 }
+
+/// The only path when the hit list has exactly one entry.
+pub fn only_hit(hits: Vec<string>) -> Option<string> {
+    if hits.len() == 1 {
+        Some(hits[0])
+    } else {
+        None
+    }
+}
+
+/// Hit count when the list is non-empty.
+pub fn require_hits(hits: Vec<string>) -> Result<int, string> {
+    let n = hits.len()
+    if n == 0 {
+        Err("expected hits")
+    } else {
+        Ok(n as int)
+    }
+}

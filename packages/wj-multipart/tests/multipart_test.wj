@@ -297,3 +297,17 @@ fn test_first_field_name_and_require_parts() {
         Err(_) => assert(false, "parse"),
     }
 }
+
+@test
+fn test_parse_empty_field_body() {
+    let boundary = "----blank"
+    let body = "--${boundary}\r\nContent-Disposition: form-data; name=\"note\"\r\n\r\n\r\n--${boundary}--"
+    match parse_multipart(boundary, body) {
+        Ok(parts) => {
+            assert_eq(parts.len(), 1)
+            assert_eq(parts[0].name, "note")
+            assert_eq(parts[0].body, "")
+        },
+        Err(e) => assert(false, "empty body: ${e}"),
+    }
+}

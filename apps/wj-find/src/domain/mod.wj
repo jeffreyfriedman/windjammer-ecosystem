@@ -8,4 +8,6 @@ pub use find::has_hits
 pub use find::hit_count
 pub use find::is_empty_hits
 pub use find::last_hit
+pub use find::only_hit
 pub use find::require_first_hit
+pub use find::require_hits

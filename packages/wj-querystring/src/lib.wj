@@ -183,3 +183,23 @@ pub fn last_key(query: string) -> Option<string> {
 pub fn is_singleton(query: string) -> bool {
     pair_count(query) == 1
 }
+
+/// Last value for `key` in parse order, if any.
+pub fn last_value(query: string, key: string) -> Option<string> {
+    let values = get_all(query, key)
+    if values.len() == 0 {
+        return None
+    }
+    Some(values[values.len() - 1])
+}
+
+/// The sole key when the query has exactly one pair, otherwise `Err`.
+pub fn require_singleton(query: string) -> Result<string, string> {
+    if !is_singleton(query) {
+        return Err("expected singleton query")
+    }
+    match first_key(query) {
+        Some(k) => Ok(k),
+        None => Err("expected singleton query"),
+    }
+}

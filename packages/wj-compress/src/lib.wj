@@ -141,6 +141,22 @@ pub fn prefer_gzip(accept_encoding: string) -> bool {
     accepts_gzip(accept_encoding)
 }
 
+/// `Ok("gzip")` when gzip is acceptable, otherwise `Err`.
+pub fn require_gzip(accept_encoding: string) -> Result<string, string> {
+    if prefer_gzip(accept_encoding) {
+        return Ok("gzip")
+    }
+    Err("expected gzip")
+}
+
+/// `Ok(body_len)` when the body meets `min_bytes`, otherwise `Err`.
+pub fn require_min_bytes(body_len: int, min_bytes: int) -> Result<int, string> {
+    if meets_min_bytes(body_len, min_bytes) {
+        return Ok(body_len)
+    }
+    Err("below min bytes")
+}
+
 fn coding_allows_identity(token: string) -> bool {
     if strings.len(token) == 0 {
         return false

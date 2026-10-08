@@ -9,7 +9,9 @@ use crate::matches_route
 use crate::param_count
 use crate::param_names
 use crate::param_or
+use crate::first_param_name
 use crate::pattern_param_count
+use crate::require_match
 use crate::require_param
 use std::collections::HashMap
 use std::collections::HashMap
@@ -198,4 +200,24 @@ fn test_has_params_static_and_match_or() {
     assert_eq(param_or(hit, "id", ""), "42")
     let miss = match_or("/users/:id", "/nope", HashMap::new())
     assert(is_empty_params(miss), "fallback empty")
+}
+
+@test
+fn test_first_param_name_and_require_match() {
+    match first_param_name("/users/:id/posts/:pid") {
+        Some(name) => assert_eq(name, "id"),
+        None => assert(false, "first param"),
+    }
+    match first_param_name("/health") {
+        Some(_) => assert(false, "static"),
+        None => {},
+    }
+    match require_match("/users/:id", "/users/7") {
+        Ok(params) => assert_eq(param_or(params, "id", ""), "7"),
+        Err(_) => assert(false, "match"),
+    }
+    match require_match("/users/:id", "/nope") {
+        Ok(_) => assert(false, "miss must Err"),
+        Err(msg) => assert(strings.contains(msg, "match"), "mentions match"),
+    }
 }

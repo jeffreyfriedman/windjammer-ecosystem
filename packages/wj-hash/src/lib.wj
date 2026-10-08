@@ -66,3 +66,19 @@ pub fn bcrypt_cost(hash: string) -> Option<int> {
 pub fn is_empty_hash(hash: string) -> bool {
     strings.len(strings.trim(hash)) == 0
 }
+
+/// Bcrypt cost, or `Err` when `hash` is not bcrypt-shaped.
+pub fn require_cost(hash: string) -> Result<int, string> {
+    match bcrypt_cost(hash) {
+        Some(cost) => Ok(cost),
+        None => Err("expected cost"),
+    }
+}
+
+/// True when the bcrypt cost is at least `min`.
+pub fn is_min_cost(hash: string, min: int) -> bool {
+    match bcrypt_cost(hash) {
+        Some(cost) => cost >= min,
+        None => false,
+    }
+}

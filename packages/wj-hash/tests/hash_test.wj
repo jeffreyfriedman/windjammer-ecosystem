@@ -3,6 +3,8 @@ use crate::hash_password
 use crate::is_bcrypt
 use crate::is_bcrypt_prefix
 use crate::is_empty_hash
+use crate::is_min_cost
+use crate::require_cost
 use crate::looks_like_bcrypt
 use crate::require_bcrypt
 use crate::verify_ok
@@ -122,4 +124,19 @@ fn test_bcrypt_cost_and_is_empty_hash() {
     assert(is_empty_hash(""), "empty")
     assert(is_empty_hash("   "), "whitespace")
     assert(!is_empty_hash("$2a$10$x"), "bcrypt not empty")
+}
+
+@test
+fn test_require_cost_and_is_min_cost() {
+    match require_cost("$2a$10$abcdefghijklmnopqrstuv") {
+        Ok(c) => assert_eq(c, 10),
+        Err(_) => assert(false, "cost 10"),
+    }
+    match require_cost("plain") {
+        Ok(_) => assert(false, "plain must Err"),
+        Err(msg) => assert(strings.contains(msg, "cost"), "mentions cost"),
+    }
+    assert(is_min_cost("$2b$12$abcdefghijklmnopqrstuv", 10), "12 meets 10")
+    assert(!is_min_cost("$2a$10$abcdefghijklmnopqrstuv", 12), "10 below 12")
+    assert(!is_min_cost("plain", 1), "plain")
 }

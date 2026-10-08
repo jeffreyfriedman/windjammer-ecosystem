@@ -107,6 +107,25 @@ pub fn is_singleton(text: string) -> bool {
     key_count(text) == 1
 }
 
+/// The sole key when the document has exactly one, otherwise `Err`.
+pub fn require_singleton(text: string) -> Result<string, string> {
+    if !is_singleton(text) {
+        return Err("expected singleton")
+    }
+    match first_key(text) {
+        Some(key) => Ok(key),
+        None => Err("expected singleton"),
+    }
+}
+
+/// Key count when the document has keys, otherwise `Err`.
+pub fn require_keys(text: string) -> Result<int, string> {
+    if !has_keys(text) {
+        return Err("expected keys")
+    }
+    Ok(key_count(text))
+}
+
 /// All keys after parse (order is map iteration order).
 pub fn keys(text: string) -> Vec<string> {
     let map = parse(text)

@@ -11,6 +11,7 @@ use crate::is_match
 use crate::last_match
 use crate::match_count
 use crate::none_match
+use std::strings
 
 @test
 fn test_exact_match() {
@@ -228,4 +229,24 @@ fn test_exactly_n_and_between_n_matches() {
     assert(between_n_matches("*.md", paths, 1, 2), "1..2")
     assert(!between_n_matches("*.md", paths, 3, 5), "out")
     assert(between_n_matches("*.txt", paths, 1, 1), "one txt")
+}
+
+@test
+fn test_require_match_and_has_meta() {
+    use crate::has_meta
+    use crate::require_match
+    let mut paths = Vec::new()
+    paths.push("a.txt")
+    paths.push("b.md")
+    assert(has_meta("*.md"), "star")
+    assert(has_meta("a?c"), "question")
+    assert(!has_meta("a.txt"), "literal")
+    match require_match("*.md", paths) {
+        Ok(p) => assert_eq(p, "b.md"),
+        Err(_) => assert(false, "match"),
+    }
+    match require_match("*.rs", paths) {
+        Ok(_) => assert(false, "none must Err"),
+        Err(msg) => assert(strings.contains(msg, "match"), "mentions match"),
+    }
 }

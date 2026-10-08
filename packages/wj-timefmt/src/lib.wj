@@ -180,6 +180,19 @@ pub fn hour_of(t: Rfc3339) -> int {
     t.hour
 }
 
+pub fn minute_of(t: Rfc3339) -> int {
+    t.minute
+}
+
+pub fn second_of(t: Rfc3339) -> int {
+    t.second
+}
+
+/// True when the clock is 00:00:00 (offset ignored).
+pub fn is_midnight(t: Rfc3339) -> bool {
+    t.hour == 0 && t.minute == 0 && t.second == 0
+}
+
 /// True when the timestamp uses Zulu offset (`offset_minutes == 0`).
 pub fn is_zulu(t: Rfc3339) -> bool {
     t.offset_minutes == 0

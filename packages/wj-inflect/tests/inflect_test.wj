@@ -12,6 +12,7 @@ use crate::pascal_case
 use crate::slugify
 use crate::snake_case
 use crate::title_case
+use std::strings
 
 @test
 fn test_snake_from_camel() {
@@ -139,4 +140,25 @@ fn test_is_slug_and_is_title_case() {
     assert(is_title_case(title_case("hello world")), "titled")
     assert(is_title_case("Hello World"), "title")
     assert(!is_title_case("hello world"), "lower")
+}
+
+@test
+fn test_blank_word_count_and_require_slug() {
+    use crate::is_blank
+    use crate::require_slug
+    use crate::word_count
+    assert(is_blank(""), "empty")
+    assert(is_blank("   "), "spaces")
+    assert(!is_blank("a"), "letter")
+    assert_eq(word_count("hello world"), 2)
+    assert_eq(word_count("HelloWorld"), 2)
+    assert_eq(word_count(""), 0)
+    match require_slug("hello-world") {
+        Ok(s) => assert_eq(s, "hello-world"),
+        Err(_) => assert(false, "slug"),
+    }
+    match require_slug("Hello World") {
+        Ok(_) => assert(false, "spaces must Err"),
+        Err(msg) => assert(strings.contains(msg, "slug"), "mentions slug"),
+    }
 }

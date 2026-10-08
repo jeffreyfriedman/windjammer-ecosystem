@@ -214,6 +214,22 @@ pub fn only_program_name(args: Vec<string>) -> bool {
     arg_count(args) == 1
 }
 
+/// First argument (the program name), if any.
+pub fn program_name(args: Vec<string>) -> Option<string> {
+    if args.len() == 0 {
+        return None
+    }
+    Some(args[0])
+}
+
+/// Argument count when `--help` is absent, otherwise `Err`.
+pub fn require_no_help(args: Vec<string>) -> Result<int, string> {
+    if has_help_flag(args) {
+        return Err("unexpected help flag")
+    }
+    Ok(arg_count(args))
+}
+
 /// True when `--help` is present.
 pub fn has_help_flag(args: Vec<string>) -> bool {
     has_long_flag(args, "help")

@@ -4,6 +4,7 @@ Weekly build health for seed apps and packages.
 
 | Week | Date | Apps / packages green | `extern fn` | Crates via interop | Compiler issues | Notes |
 |------|------|----------------------|-------------|--------------------|-----------------|-------|
+| 2 | 2026-10-07 | deepen `wj-event`/`wj-regex`/`wj-headers` | 0 | 0 | private CARGO_HOME | `has_payload`/`is_named`/`require_payload`, `exactly_n_matches`/`require_valid_pattern`, `hsts_max_age_of`/`content_type_of`/`require_hsts`; tip **18+14+21** green |
 | 2 | 2026-10-07 | deepen `wj-log`/`wj-retry`/`wj-validate` | 0 | 0 | private CARGO_HOME | `same_severity`/`is_known_level`, `is_first_attempt`/`next_attempt`/`has_retries_left`, `last_error`/`require_clean`; tip **16+17+35** green |
 | 2 | 2026-10-07 | deepen `wj-csv`/`wj-url`/`wj-yaml` | 0 | 0 | private CARGO_HOME | `last_row`/`is_rectangular`, `scheme_of`/`host_of`/`require_https`, `require_valid`; tip **14+23+23** green |
 | 2 | 2026-10-07 | deepen `wj-timefmt`/`wj-inflect`/`wj-glob` | 0 | 0 | private CARGO_HOME | `minute_of`/`second_of`/`is_midnight`, `is_blank`/`word_count`/`require_slug`, `has_meta`/`require_match`; tip **27+22+24** green |

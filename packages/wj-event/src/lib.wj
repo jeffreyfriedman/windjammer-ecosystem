@@ -172,3 +172,21 @@ pub fn event_name(event: Event) -> string {
 pub fn event_payload(event: Event) -> string {
     event.payload
 }
+
+/// True when the payload is non-empty.
+pub fn has_payload(event: Event) -> bool {
+    strings.len(event.payload) > 0
+}
+
+/// True when the event name equals `name`.
+pub fn is_named(event: Event, name: string) -> bool {
+    event.name == name
+}
+
+/// Payload text, or Err when it is empty.
+pub fn require_payload(event: Event) -> Result<string, string> {
+    if has_payload(event) {
+        return Ok(event.payload)
+    }
+    Err("expected event payload")
+}

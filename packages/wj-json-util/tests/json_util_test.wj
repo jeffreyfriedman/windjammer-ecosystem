@@ -2,7 +2,9 @@ use crate::pretty
 use crate::compact
 use crate::is_arrayish
 use crate::is_empty_array
+use crate::is_empty_json
 use crate::is_empty_object
+use crate::require_valid
 use crate::is_nullish
 use crate::is_objectish
 use crate::is_valid
@@ -204,4 +206,21 @@ fn test_nullish_empty_object_and_array() {
     assert(is_empty_array("[]"), "empty arr")
     assert(!is_empty_array("[1]"), "nonempty arr")
     assert(!is_empty_object("[]"), "arr not obj")
+}
+
+fn test_require_valid_and_is_empty_json() {
+    match require_valid("{\"a\":1}") {
+        Ok(text) => assert(is_valid(text), "accepted"),
+        Err(_) => assert(false, "valid"),
+    }
+    match require_valid("nope") {
+        Ok(_) => assert(false, "invalid must Err"),
+        Err(msg) => assert(strings.contains(msg, "json"), "mentions json"),
+    }
+    assert(is_empty_json("{}"), "obj")
+    assert(is_empty_json("[]"), "arr")
+    assert(is_empty_json("  {}  "), "trim")
+    assert(!is_empty_json("{\"a\":1}"), "nonempty")
+    assert(!is_empty_json("null"), "null")
+    assert(!is_empty_json("nope"), "garbage")
 }

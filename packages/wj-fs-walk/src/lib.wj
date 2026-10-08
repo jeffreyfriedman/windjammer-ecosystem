@@ -140,6 +140,24 @@ pub fn has_suffix_files(root: string, suffix: string) -> Result<bool, string> {
     }
 }
 
+/// Final path segment of `path`.
+pub fn basename_of(path: string) -> string {
+    path_basename(path)
+}
+
+/// File count under `root`, or `Err` when there are none.
+pub fn require_files(root: string) -> Result<int, string> {
+    match count_files(root) {
+        Ok(n) => {
+            if n > 0 {
+                return Ok(n)
+            }
+            Err("expected files")
+        },
+        Err(e) => Err(e),
+    }
+}
+
 /// True when `root` has no files or subdirectories.
 pub fn is_empty_tree(root: string) -> Result<bool, string> {
     match has_entries(root) {

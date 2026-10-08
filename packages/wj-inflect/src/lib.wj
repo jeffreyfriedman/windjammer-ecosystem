@@ -244,6 +244,29 @@ pub fn is_title_case(text: string) -> bool {
     title_case(text) == text
 }
 
+/// True when `text` is empty or only whitespace.
+pub fn is_blank(text: string) -> bool {
+    strings.len(strings.trim(text)) == 0
+}
+
+/// Number of words after splitting on case and separators.
+pub fn word_count(text: string) -> int {
+    let parts = split_words(text)
+    let mut n = 0
+    for _w in parts {
+        n = n + 1
+    }
+    n
+}
+
+/// Ok(text) when `text` is a slug; otherwise Err.
+pub fn require_slug(text: string) -> Result<string, string> {
+    if is_slug(text) {
+        return Ok(text)
+    }
+    Err("expected slug")
+}
+
 fn split_words(text: string) -> Vec<string> {
     let snake = snake_case(text)
     let mut parts: Vec<string> = Vec::new()

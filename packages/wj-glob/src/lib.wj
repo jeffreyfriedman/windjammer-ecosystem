@@ -1,4 +1,5 @@
 use std::path
+use std::strings
 
 /// Shell-style glob match for `*`, `?`, and recursive `**`.
 /// Thin-wraps `std::path.glob_match` (tip GREEN p3515).
@@ -82,4 +83,17 @@ pub fn exactly_n_matches(pattern: string, paths: Vec<string>, n: int) -> bool {
 pub fn between_n_matches(pattern: string, paths: Vec<string>, lo: int, hi: int) -> bool {
     let n = match_count(pattern, paths)
     n >= lo && n <= hi
+}
+
+/// True when `pattern` contains `*` or `?`.
+pub fn has_meta(pattern: string) -> bool {
+    strings.contains(pattern, "*") || strings.contains(pattern, "?")
+}
+
+/// First matching path, or Err when nothing matches.
+pub fn require_match(pattern: string, paths: Vec<string>) -> Result<string, string> {
+    match first_match(pattern, paths) {
+        Some(hit) => Ok(hit),
+        None => Err("no match"),
+    }
 }

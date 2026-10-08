@@ -4,6 +4,7 @@ Weekly build health for seed apps and packages.
 
 | Week | Date | Apps / packages green | `extern fn` | Crates via interop | Compiler issues | Notes |
 |------|------|----------------------|-------------|--------------------|-----------------|-------|
+| 2 | 2026-10-07 | deepen `wj-timefmt`/`wj-inflect`/`wj-glob` | 0 | 0 | private CARGO_HOME | `minute_of`/`second_of`/`is_midnight`, `is_blank`/`word_count`/`require_slug`, `has_meta`/`require_match`; tip **27+22+24** green |
 | 2 | 2026-10-07 | deepen `wj-migrate`/`wj-duration`/`wj-path` | 0 | 0 | private CARGO_HOME; notes/auth HashMap `"${v}"` still tip RED (P3.730) | `has_migrations`/`earliest_version`/`name_of_version`, `is_at_least`/`is_at_most`/`require_nonneg`, `is_hidden`/`require_relative`; tip **20+23+21** green |
 | 2 | 2026-10-07 | deepen `wj-scheduler`/`wj-proxy` | 0 | 0 | private CARGO_HOME; notes-api tip RED (P3.678 regress — HashMap get `"${v}"` → bare `&String`) | `has_exprs`/`first_expr`/`require_exprs`, `upstream_of`/`rate_limit_of`/`log_max_of`/`is_limited_log`; tip **40+28** green; notes deepen deferred |
 | 2 | 2026-10-07 | deepen `wj-sitegen`/`wj-webhook`/`wj-migrate-cli` | 0 | 0 | private CARGO_HOME | `has_pages`/`is_empty_pages`/`require_markdown_path`, `secret_of`/`is_production_secret`/`origin_count`/`max_id_len_of`, `first_pending`/`last_applied`/`total_versions`; tip **25+17+23** green |

@@ -362,3 +362,26 @@ fn test_component_accessors_and_zulu() {
         Err(_) => assert(false, "parse offset"),
     }
 }
+
+@test
+fn test_minute_second_and_midnight() {
+    use crate::is_midnight
+    use crate::minute_of
+    use crate::second_of
+    match parse_rfc3339("2024-01-15T00:00:00Z") {
+        Ok(t) => {
+            assert_eq(minute_of(t), 0)
+            assert_eq(second_of(t), 0)
+            assert(is_midnight(t), "midnight")
+        },
+        Err(_) => assert(false, "midnight parse"),
+    }
+    match parse_rfc3339("2024-01-15T12:34:56Z") {
+        Ok(t) => {
+            assert_eq(minute_of(t), 34)
+            assert_eq(second_of(t), 56)
+            assert(!is_midnight(t), "noon not midnight")
+        },
+        Err(_) => assert(false, "clock parse"),
+    }
+}

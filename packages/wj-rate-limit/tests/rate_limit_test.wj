@@ -6,7 +6,9 @@ use crate::is_allowed
 use crate::is_at_limit
 use crate::is_denied
 use crate::is_fresh_bucket
+use crate::is_positive_window
 use crate::is_zero_retry
+use crate::require_allowed
 use crate::limit_of
 use crate::peek_fixed_window
 use crate::remaining_slots
@@ -20,6 +22,7 @@ use crate::slots_used
 use crate::window_exhausted
 use crate::window_ms_of
 use std::collections::HashMap
+use std::strings
 
 @test
 fn test_first_request_allowed() {
@@ -215,4 +218,22 @@ fn test_window_exhausted_and_is_zero_retry() {
     let denied = check_fixed_window(lim, c1.0, 500)
     assert(window_exhausted(denied.1), "denied exhausted")
     assert(!is_zero_retry(denied.1), "denied has retry")
+}
+
+@test
+fn test_require_allowed_and_is_positive_window() {
+    assert(is_positive_window(fixed_window(2, 1000)), "positive")
+    assert(!is_positive_window(fixed_window(0, 1000)), "zero limit")
+    assert(!is_positive_window(fixed_window(1, 0)), "zero window")
+    let lim = fixed_window(1, 1000)
+    let c1 = check_fixed_window(lim, empty_bucket(), 500)
+    match require_allowed(c1.1) {
+        Ok(result) => assert(is_allowed(result), "allowed"),
+        Err(_) => assert(false, "first allowed"),
+    }
+    let denied = check_fixed_window(lim, c1.0, 500)
+    match require_allowed(denied.1) {
+        Ok(_) => assert(false, "denied must Err"),
+        Err(msg) => assert(strings.contains(msg, "allowed"), "mentions allowed"),
+    }
 }

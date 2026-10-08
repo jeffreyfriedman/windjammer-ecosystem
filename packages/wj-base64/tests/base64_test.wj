@@ -8,6 +8,8 @@ use crate::decode_bytes
 use crate::ensure_padding
 use crate::is_basic_auth_header
 use crate::is_bearer_auth_header
+use crate::is_padded
+use crate::require_basic
 use crate::has_padding
 use crate::is_encoded
 use crate::is_unpadded
@@ -137,4 +139,20 @@ fn test_needs_padding_unpadded_and_require_encoded() {
         Ok(_) => assert(false, "junk must Err"),
         Err(msg) => assert(strings.contains(msg, "base64"), "mentions base64"),
     }
+}
+
+fn test_require_basic_and_is_padded() {
+    let header = basic_auth_header("ada", "secret")
+    match require_basic(header) {
+        Ok(h) => assert(is_basic_auth_header(h), "basic"),
+        Err(_) => assert(false, "basic ok"),
+    }
+    match require_basic("Authorization: Bearer token") {
+        Ok(_) => assert(false, "bearer must Err"),
+        Err(msg) => assert(strings.contains(msg, "basic"), "mentions basic"),
+    }
+    assert(is_padded("SGVsbG8="), "padded")
+    assert(is_padded("YQ=="), "two pad")
+    assert(!is_padded("SGVsbG8"), "unpadded")
+    assert(!is_padded(""), "empty")
 }

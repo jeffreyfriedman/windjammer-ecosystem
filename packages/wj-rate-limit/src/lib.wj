@@ -245,6 +245,19 @@ pub fn is_zero_retry(result: RateLimitResult) -> bool {
     result.retry_after_ms == 0
 }
 
+/// `Ok(result)` when the check allowed the request, otherwise `Err`.
+pub fn require_allowed(result: RateLimitResult) -> Result<RateLimitResult, string> {
+    if is_allowed(result) {
+        return Ok(result)
+    }
+    Err("expected allowed")
+}
+
+/// True when both the limit and the window length are positive.
+pub fn is_positive_window(lim: FixedWindow) -> bool {
+    limit_of(lim) > 0 && window_ms_of(lim) > 0
+}
+
 fn window_start_for(now_ms: int, window_ms: int) -> int {
     if window_ms <= 0 {
         return now_ms

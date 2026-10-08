@@ -231,6 +231,23 @@ pub fn has_leading_slash(path: string) -> bool {
     strings.starts_with(path, "/")
 }
 
+/// True when the final segment is a dotfile (not `.` or `..`).
+pub fn is_hidden(path: string) -> bool {
+    let name = basename(path)
+    if is_dot(name) || is_dot_dot(name) {
+        return false
+    }
+    strings.starts_with(name, ".")
+}
+
+/// Ok(path) when `path` is relative; otherwise Err.
+pub fn require_relative(path: string) -> Result<string, string> {
+    if is_relative(path) {
+        return Ok(path)
+    }
+    Err("expected relative path")
+}
+
 /// Accept `path` only when absolute; else return an error.
 pub fn require_absolute(path: string) -> Result<string, string> {
     if is_absolute(path) {

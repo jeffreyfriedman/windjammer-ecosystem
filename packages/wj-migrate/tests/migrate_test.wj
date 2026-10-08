@@ -208,3 +208,26 @@ fn test_pending_count_latest_and_is_pending() {
     applied5.push(1)
     assert(!is_pending(sample_migrations(), applied5, 9), "missing version")
 }
+
+@test
+fn test_empty_earliest_and_name_of_version() {
+    use crate::earliest_version
+    use crate::has_migrations
+    use crate::is_empty_migrations
+    use crate::name_of_version
+    let empty: Vec<Migration> = Vec::new()
+    assert(is_empty_migrations(empty), "empty")
+    assert(!has_migrations(empty), "no migrations")
+    assert(has_migrations(sample_migrations()), "has")
+    assert(!is_empty_migrations(sample_migrations()), "not empty")
+    assert_eq(earliest_version(sample_migrations()), 1)
+    assert_eq(earliest_version(empty), 0)
+    match name_of_version(sample_migrations(), 2) {
+        Some(name) => assert_eq(name, "b"),
+        None => assert(false, "name"),
+    }
+    match name_of_version(sample_migrations(), 9) {
+        Some(_) => assert(false, "missing"),
+        None => assert(true, "ok"),
+    }
+}

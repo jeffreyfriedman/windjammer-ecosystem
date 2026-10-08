@@ -220,6 +220,23 @@ pub fn text_count(parts: Vec<Part>) -> int {
     n
 }
 
+/// First part name in encounter order, if any.
+pub fn first_field_name(parts: Vec<Part>) -> Option<string> {
+    let names = field_names(parts)
+    if names.len() == 0 {
+        return None
+    }
+    Some(names[0])
+}
+
+/// Part count when `parts` is nonempty, otherwise `Err`.
+pub fn require_parts(parts: Vec<Part>) -> Result<int, string> {
+    if !has_parts(parts) {
+        return Err("expected parts")
+    }
+    Ok(part_count(parts))
+}
+
 /// File part named `name`, or `Err` naming the missing file field.
 pub fn require_file(parts: Vec<Part>, name: string) -> Result<Part, string> {
     match get_file(parts, name) {

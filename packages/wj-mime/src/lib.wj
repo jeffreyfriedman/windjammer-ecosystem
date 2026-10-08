@@ -217,6 +217,30 @@ pub fn content_type_png() -> string {
     content_type(png())
 }
 
+/// Common MIME type for JPEG images.
+pub fn jpeg() -> string {
+    "image/jpeg"
+}
+
+/// `Content-Type` header line for JPEG.
+pub fn content_type_jpeg() -> string {
+    content_type(jpeg())
+}
+
+/// True when `mime_type` is JPEG (`image/jpeg`, optional parameters).
+pub fn is_jpeg(mime_type: string) -> bool {
+    let trimmed = strings.trim(mime_type)
+    if strings.starts_with(trimmed, "image/jpeg") {
+        let rest_len = strings.len(trimmed) - 10
+        if rest_len == 0 {
+            return true
+        }
+        let next = strings.substring(trimmed, 10, 11)
+        return next == ";"
+    }
+    false
+}
+
 /// True when `mime_type` is PNG (`image/png`, optional parameters).
 pub fn is_png(mime_type: string) -> bool {
     let trimmed = strings.trim(mime_type)

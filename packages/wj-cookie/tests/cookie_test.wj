@@ -13,8 +13,11 @@ use crate::has_cookies
 use crate::is_empty
 use crate::is_http_only
 use crate::is_lax_same_site
+use crate::is_none_same_site
 use crate::is_secure
 use crate::is_strict_same_site
+use crate::require_secure
+use crate::same_site_of
 use crate::parse_cookie_header
 use crate::parse_set_cookie
 use crate::require_cookie
@@ -289,4 +292,25 @@ fn test_has_cookies_and_strict_same_site() {
     let strict = with_same_site(lax, "Strict")
     assert(is_strict_same_site(strict), "strict")
     assert(!is_lax_same_site(strict), "not lax")
+}
+
+@test
+fn test_same_site_of_none_and_require_secure() {
+    let none = with_same_site(session_cookie("sid", "abc"), "None")
+    assert_eq(same_site_of(none), "None")
+    assert(is_none_same_site(none), "none")
+    assert(!is_none_same_site(session_cookie("sid", "abc")), "lax")
+    match require_secure(session_cookie("sid", "abc")) {
+        Ok(c) => assert(is_secure(c), "secure"),
+        Err(_) => assert(false, "session is secure"),
+    }
+    match parse_set_cookie("token=abc") {
+        Ok(c) => {
+            match require_secure(c) {
+                Ok(_) => assert(false, "insecure must Err"),
+                Err(msg) => assert(strings.contains(msg, "secure"), "mentions secure"),
+            }
+        },
+        Err(_) => assert(false, "parse"),
+    }
 }

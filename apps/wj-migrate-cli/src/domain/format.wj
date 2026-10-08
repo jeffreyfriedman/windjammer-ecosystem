@@ -69,3 +69,22 @@ pub fn last_applied(applied_versions: Vec<int>) -> Option<int> {
 pub fn total_versions(applied_versions: Vec<int>, pending_versions: Vec<int>) -> int {
     version_count(applied_versions) + version_count(pending_versions)
 }
+
+/// The only pending version when the list has exactly one entry.
+pub fn only_pending(pending_versions: Vec<int>) -> Option<int> {
+    if pending_versions.len() == 1 {
+        Some(pending_versions[0])
+    } else {
+        None
+    }
+}
+
+/// Pending count when at least one version is outstanding.
+pub fn require_pending(pending_versions: Vec<int>) -> Result<int, string> {
+    let n = version_count(pending_versions)
+    if n == 0 {
+        Err("expected pending")
+    } else {
+        Ok(n)
+    }
+}

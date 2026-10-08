@@ -132,3 +132,26 @@ fn test_has_exprs_first_and_require() {
         Err(msg) => assert(strings.contains(msg, "empty"), "mentions empty"),
     }
 }
+
+fn test_last_expr_and_only_expr() {
+    use crate::domain::last_expr
+    use crate::domain::only_expr
+    match last_expr(sample_exprs()) {
+        Some(e) => assert_eq(e, "*/5 * * * *"),
+        None => assert(false, "last"),
+    }
+    match last_expr(Vec::new()) {
+        Some(_) => assert(false, "empty last"),
+        None => {},
+    }
+    let mut one = Vec::new()
+    one.push("@daily")
+    match only_expr(one) {
+        Some(e) => assert_eq(e, "@daily"),
+        None => assert(false, "one expr"),
+    }
+    match only_expr(sample_exprs()) {
+        Some(_) => assert(false, "two exprs is not only"),
+        None => {},
+    }
+}

@@ -192,6 +192,17 @@ pub fn require_valid(text: string) -> Result<string, string> {
     Err("invalid uuid")
 }
 
+/// Number of `-` characters in `text`.
+pub fn hyphen_count(text: string) -> int {
+    let parts = strings.split(text, "-")
+    parts.len() - 1
+}
+
+/// Require a valid version-4 UUID.
+pub fn require_v4(text: string) -> Result<string, string> {
+    require_version(text, 4)
+}
+
 /// Require a valid UUID of the given version number.
 pub fn require_version(text: string, ver: int) -> Result<string, string> {
     match require_valid(text) {

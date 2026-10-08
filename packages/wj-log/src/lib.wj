@@ -89,6 +89,19 @@ pub fn less_severe(left: LogLevel, right: LogLevel) -> bool {
     level_rank(left) < level_rank(right)
 }
 
+/// True when both levels share the same severity rank.
+pub fn same_severity(left: LogLevel, right: LogLevel) -> bool {
+    level_rank(left) == level_rank(right)
+}
+
+/// True when `text` parses as a known log level.
+pub fn is_known_level(text: string) -> bool {
+    match parse_level(text) {
+        Some(_) => true,
+        None => false,
+    }
+}
+
 /// Parse `text` as a log level, or `Err` naming the unknown text.
 pub fn require_level(text: string) -> Result<LogLevel, string> {
     match parse_level(text) {

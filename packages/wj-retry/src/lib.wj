@@ -150,6 +150,21 @@ pub fn is_default_backoff(backoff: Backoff) -> bool {
     backoff.initial_ms == 100 && backoff.multiplier == 2 && backoff.max_ms == 30000
 }
 
+/// True when `attempt` is the first try (0-based).
+pub fn is_first_attempt(attempt: int) -> bool {
+    attempt == 0
+}
+
+/// The attempt index that follows `attempt`.
+pub fn next_attempt(attempt: int) -> int {
+    attempt + 1
+}
+
+/// True when another try remains after `attempt` within `max_attempts`.
+pub fn has_retries_left(attempt: int, max_attempts: int) -> bool {
+    attempts_remaining(attempt, max_attempts) > 0
+}
+
 /// How many attempts have been consumed (clamped to `max_attempts`).
 pub fn attempts_used(attempt: int, max_attempts: int) -> int {
     if max_attempts <= 0 {

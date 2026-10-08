@@ -167,3 +167,18 @@ fn test_new_backoff_is_default_and_attempts_used() {
     assert_eq(attempts_used(5, 5), 5)
     assert_eq(attempts_used(9, 5), 5)
 }
+
+fn test_first_next_and_retries_left() {
+    use crate::has_retries_left
+    use crate::is_first_attempt
+    use crate::next_attempt
+    assert(is_first_attempt(0), "zero")
+    assert(!is_first_attempt(1), "later")
+    assert(!is_first_attempt(-1), "negative")
+    assert_eq(next_attempt(0), 1)
+    assert_eq(next_attempt(4), 5)
+    assert(has_retries_left(0, 3), "start")
+    assert(has_retries_left(2, 3), "one left")
+    assert(!has_retries_left(3, 3), "exhausted")
+    assert(!has_retries_left(0, 0), "zero max")
+}

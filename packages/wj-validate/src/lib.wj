@@ -135,6 +135,23 @@ pub fn first_error(errors: Vec<string>) -> Option<string> {
     Some(errors[0])
 }
 
+/// Last error message, or `None` when the list is empty.
+pub fn last_error(errors: Vec<string>) -> Option<string> {
+    let n = errors.len()
+    if n == 0 {
+        return None
+    }
+    Some(errors[n - 1])
+}
+
+/// Ok when there are no errors; otherwise Err with the first message.
+pub fn require_clean(errors: Vec<string>) -> Result<(), string> {
+    match first_error(errors) {
+        Some(msg) => Err(msg),
+        None => Ok(()),
+    }
+}
+
 /// Predicate form of `require_email` (no field name).
 pub fn is_email(value: string) -> bool {
     match require_email("email", value) {

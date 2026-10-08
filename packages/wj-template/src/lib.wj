@@ -171,6 +171,23 @@ pub fn has_missing(template: string, vars: HashMap<string, string>) -> bool {
     missing_count(template, vars) > 0
 }
 
+/// Last `{{key}}` name in `template`, or `None` when plain.
+pub fn last_placeholder(template: string) -> Option<string> {
+    let names = placeholder_names(template)
+    if names.len() == 0 {
+        return None
+    }
+    Some(names[names.len() - 1])
+}
+
+/// `Ok(template)` when it has no placeholders, otherwise `Err`.
+pub fn require_plain(template: string) -> Result<string, string> {
+    if is_plain(template) {
+        return Ok(template)
+    }
+    Err("expected plain")
+}
+
 /// First `{{key}}` name in `template`, or `None` when plain.
 pub fn first_placeholder(template: string) -> Option<string> {
     let names = placeholder_names(template)

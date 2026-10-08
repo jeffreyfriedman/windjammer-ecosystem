@@ -8,7 +8,9 @@ use crate::has_missing
 use crate::has_placeholders
 use crate::is_fully_bound
 use crate::is_plain
+use crate::last_placeholder
 use crate::missing_count
+use crate::require_plain
 use crate::missing_keys
 use crate::placeholder_count
 use crate::require_fully_bound
@@ -168,5 +170,25 @@ fn test_is_plain_has_missing_and_first_placeholder() {
     match first_placeholder("plain") {
         Some(_) => assert(false, "plain has none"),
         None => {},
+    }
+}
+
+@test
+fn test_last_placeholder_and_require_plain() {
+    match last_placeholder("Hello {{name}} and {{title}}!") {
+        Some(n) => assert_eq(n, "title"),
+        None => assert(false, "last"),
+    }
+    match last_placeholder("plain") {
+        Some(_) => assert(false, "none"),
+        None => {},
+    }
+    match require_plain("Hello world") {
+        Ok(t) => assert_eq(t, "Hello world"),
+        Err(_) => assert(false, "plain"),
+    }
+    match require_plain("Hello {{name}}!") {
+        Ok(_) => assert(false, "placeholder must Err"),
+        Err(msg) => assert(strings.contains(msg, "plain"), "mentions plain"),
     }
 }

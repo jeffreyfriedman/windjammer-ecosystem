@@ -4,6 +4,7 @@ Weekly build health for seed apps and packages.
 
 | Week | Date | Apps / packages green | `extern fn` | Crates via interop | Compiler issues | Notes |
 |------|------|----------------------|-------------|--------------------|-----------------|-------|
+| 2 | 2026-10-07 | deepen `wj-hash`/`wj-toml`/`wj-template` | 0 | 0 | private CARGO_HOME | `require_cost`/`is_min_cost`, `require_singleton`/`require_keys`, `last_placeholder`/`require_plain`; tip **11+25+21** green |
 | 2 | 2026-10-07 | deepen `wj-cookie`/`wj-mime`/`wj-cors` | 0 | 0 | private CARGO_HOME | `same_site_of`/`is_none_same_site`/`require_secure`, `jpeg`/`is_jpeg`/`content_type_jpeg`, `require_origins`/`allow_origin_of`; tip **20+22+18** green |
 | 2 | 2026-10-07 | deepen `wj-dotenv`/`wj-fs-walk`/`wj-json-util` | 0 | 0 | private CARGO_HOME | `is_blank`/`require_nonempty`, `basename_of`/`require_files`, `require_valid`/`is_empty_json`; tip **15+13+23** green |
 | 2 | 2026-10-07 | deepen `wj-jwt`/`wj-cli-args`/`wj-cron` | 0 | 0 | private CARGO_HOME | `email_of`/`require_email`/`is_expired`, `program_name`/`require_no_help`, `every_day`/`is_every_day`/`require_cron`; tip **13+18+34** green |

@@ -63,7 +63,7 @@ pub fn parse(input: MultipartBody) -> Result<Vec<Part>, string> {
     let mut parts = Vec::new()
     let mut i = 0
     while i < chunks.len() {
-        let chunk = strings.trim(chunks[i])
+        let chunk = strings.trim_start(chunks[i])
         i = i + 1
         if strings.len(chunk) == 0 {
             continue

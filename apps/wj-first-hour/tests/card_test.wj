@@ -11,6 +11,8 @@ use crate::domain::card_summary
 use crate::domain::format_card
 use crate::domain::has_id
 use crate::domain::is_default_port
+use crate::domain::is_empty_query
+use crate::domain::require_id
 use std::strings
 
 fn test_build_card_ok() {
@@ -92,4 +94,26 @@ fn test_card_id_path_query_and_has_id() {
         port: "",
     }
     assert(!has_id(empty), "empty id")
+}
+
+fn test_require_id_and_is_empty_query() {
+    let card = sample_card()
+    match require_id(card) {
+        Ok(id) => assert(strings.len(id) > 0, "id"),
+        Err(_) => assert(false, "sample has id"),
+    }
+    let empty = Card {
+        id: "",
+        created_at: "",
+        app: "demo",
+        data_path: "",
+        query: "",
+        port: "0",
+    }
+    match require_id(empty) {
+        Ok(_) => assert(false, "empty id must Err"),
+        Err(msg) => assert(strings.contains(msg, "id"), "mentions id"),
+    }
+    assert(is_empty_query(empty), "empty query")
+    assert(!is_empty_query(sample_card()), "sample query")
 }

@@ -4,6 +4,7 @@ Weekly build health for seed apps and packages.
 
 | Week | Date | Apps / packages green | `extern fn` | Crates via interop | Compiler issues | Notes |
 |------|------|----------------------|-------------|--------------------|-----------------|-------|
+| 2 | 2026-10-08 | deepen `wj-log`/`wj-retry`/`wj-duration` | 0 | 0 | private CARGO_HOME; tip `wj` still emits function-local `use std::strings` (P3.742 source gate GREEN) | `require_enabled`, `require_retry`, `require_within`; tip **17+18+24** green |
 | 2 | 2026-10-08 | deepen `wj-http-client` | 0 | 0 | private CARGO_HOME | `is_error_status`/`require_body`; tip **11** green |
 | 2 | 2026-10-08 | deepen `wj-scheduler`/`wj-proxy`/`wj-migrate-cli` | 0 | 0 | private CARGO_HOME; P3.742 function-local `use std::strings` gate GREEN | `last_expr`/`only_expr`, `require_upstream`/`require_rate_limit`, `only_pending`/`require_pending`; tip **41+29+24** green |
 | 2 | 2026-10-08 | deepen `wj-todo-cli`/`wj-sitegen`/`wj-webhook` | 0 | 0 | private CARGO_HOME | `only_pending`/`require_pending`, `only_page`/`require_pages`, `require_secret`/`require_origins`; tip **63+26+18** green |

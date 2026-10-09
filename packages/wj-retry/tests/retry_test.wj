@@ -17,6 +17,7 @@ use crate::multiplier_of
 use crate::with_initial_ms
 use crate::with_max_ms
 use crate::with_multiplier
+use std::strings
 
 fn test_delay_ms_exponential() {
     let b = Backoff {
@@ -181,4 +182,16 @@ fn test_first_next_and_retries_left() {
     assert(has_retries_left(2, 3), "one left")
     assert(!has_retries_left(3, 3), "exhausted")
     assert(!has_retries_left(0, 0), "zero max")
+}
+
+fn test_require_retry() {
+    use crate::require_retry
+    match require_retry(0, 3) {
+        Ok(left) => assert_eq(left, 3),
+        Err(_) => assert(false, "retries remain"),
+    }
+    match require_retry(3, 3) {
+        Ok(_) => assert(false, "exhausted must Err"),
+        Err(msg) => assert(strings.contains(msg, "retry"), "mentions retry"),
+    }
 }

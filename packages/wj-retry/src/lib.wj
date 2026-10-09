@@ -155,6 +155,14 @@ pub fn is_first_attempt(attempt: int) -> bool {
     attempt == 0
 }
 
+/// `Ok(attempt)` for the first try, otherwise `Err`.
+pub fn require_first(attempt: int) -> Result<int, string> {
+    if is_first_attempt(attempt) {
+        return Ok(attempt)
+    }
+    Err("expected first attempt")
+}
+
 /// The attempt index that follows `attempt`.
 pub fn next_attempt(attempt: int) -> int {
     attempt + 1

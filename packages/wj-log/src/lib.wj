@@ -119,6 +119,14 @@ pub fn require_enabled(level: LogLevel, minimum: LogLevel) -> Result<LogLevel, s
     }
 }
 
+/// `Ok(level)` when it is the error level, otherwise `Err`.
+pub fn require_error(level: LogLevel) -> Result<LogLevel, string> {
+    if is_error_level(level) {
+        return Ok(level)
+    }
+    Err("expected error level")
+}
+
 /// Parse `text`, or return `fallback` when unknown.
 pub fn parse_level_or(text: string, fallback: LogLevel) -> LogLevel {
     match parse_level(text) {

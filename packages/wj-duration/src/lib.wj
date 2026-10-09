@@ -158,3 +158,11 @@ pub fn require_nonneg(ms: int) -> Result<int, string> {
     }
     Err("expected nonneg duration")
 }
+
+/// `Ok(0)` when `ms` is zero, otherwise `Err`.
+pub fn require_zero(ms: int) -> Result<int, string> {
+    if is_zero(ms) {
+        return Ok(0)
+    }
+    Err("expected zero")
+}

@@ -13,6 +13,7 @@ use crate::less_severe
 use crate::log_tagged
 use crate::more_severe
 use crate::require_level
+use crate::require_error
 use std::log::LogLevel
 use std::strings
 
@@ -137,5 +138,16 @@ fn test_require_enabled() {
     match require_enabled(LogLevel::Debug, LogLevel::Info) {
         Ok(_) => assert(false, "debug below info must Err"),
         Err(msg) => assert(strings.contains(msg, "level"), "mentions level"),
+    }
+}
+
+fn test_require_error() {
+    match require_error(LogLevel::Error) {
+        Ok(level) => assert(is_error_level(level), "error"),
+        Err(_) => assert(false, "error ok"),
+    }
+    match require_error(LogLevel::Warn) {
+        Ok(_) => assert(false, "warn must Err"),
+        Err(msg) => assert(strings.contains(msg, "error"), "mentions error"),
     }
 }

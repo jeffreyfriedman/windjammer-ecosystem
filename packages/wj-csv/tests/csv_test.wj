@@ -10,6 +10,7 @@ use crate::parse
 use crate::parse_with_headers
 use crate::require_column
 use crate::require_row
+use crate::require_cell
 use crate::row_count
 use crate::write
 use std::strings
@@ -299,5 +300,27 @@ fn test_require_rectangular() {
     match require_rectangular(empty) {
         Ok(n) => assert_eq(n, 0),
         Err(_) => assert(false, "empty table is rectangular"),
+    }
+}
+
+@test
+fn test_require_cell() {
+    match parse("a,b\n1,2") {
+        Ok(rows) => {
+            match require_cell(rows, 1, 0) {
+                Ok(v) => assert_eq(v, "1"),
+                Err(_) => assert(false, "cell"),
+            }
+        },
+        Err(_) => assert(false, "parse"),
+    }
+    match parse("a,b\n1,2") {
+        Ok(rows) => {
+            match require_cell(rows, 9, 0) {
+                Ok(_) => assert(false, "missing cell must Err"),
+                Err(msg) => assert(strings.contains(msg, "cell"), "mentions cell"),
+            }
+        },
+        Err(_) => assert(false, "parse missing"),
     }
 }

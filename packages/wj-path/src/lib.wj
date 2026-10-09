@@ -135,6 +135,15 @@ pub fn stem(path: string) -> string {
     strings.substring(base, 0, strings.len(base) - strings.len(ext))
 }
 
+/// File stem when it names a real file, otherwise `Err`.
+pub fn require_stem(path: string) -> Result<string, string> {
+    let name = stem(path)
+    if strings.len(name) == 0 || name == "." || name == ".." {
+        return Err("expected stem")
+    }
+    Ok(name)
+}
+
 /// True when `path` is not absolute.
 pub fn is_relative(path: string) -> bool {
     !is_absolute(path)

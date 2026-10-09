@@ -45,6 +45,14 @@ pub fn latch_is_open(latch: Latch) -> bool {
     latch.remaining <= 0
 }
 
+/// Remaining count when the latch is open, otherwise `Err`.
+pub fn require_open(latch: Latch) -> Result<int, string> {
+    if latch_is_open(latch) {
+        return Ok(latch_count(latch))
+    }
+    Err("expected open latch")
+}
+
 pub fn latch_count(latch: Latch) -> int {
     latch.remaining
 }
@@ -81,4 +89,17 @@ pub fn barrier_wait(b: Barrier) -> Barrier {
 
 pub fn barrier_waiting(b: Barrier) -> int {
     b.waiting
+}
+
+/// True when no party is currently waiting.
+pub fn barrier_is_idle(b: Barrier) -> bool {
+    barrier_waiting(b) == 0
+}
+
+/// Party count when the barrier is idle, otherwise `Err`.
+pub fn require_idle(b: Barrier) -> Result<int, string> {
+    if barrier_is_idle(b) {
+        return Ok(b.parties)
+    }
+    Err("expected idle barrier")
 }

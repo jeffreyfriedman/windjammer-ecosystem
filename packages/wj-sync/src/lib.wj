@@ -48,6 +48,7 @@ pub use shared::shared_map_insert
 pub use shared::shared_map_len
 pub use shared::shared_map_new
 pub use shared::shared_map_new_kv
+pub use shared::shared_map_require
 pub use shared::shared_new
 pub use shared::shared_set
 
@@ -63,6 +64,8 @@ pub use coord::latch_is_open
 pub use coord::latch_new
 pub use coord::once_call
 pub use coord::once_new
+pub use coord::require_idle
+pub use coord::require_open
 
 pub use pipeline::channel_sum_range
 pub use pipeline::drain_int_until_sentinel

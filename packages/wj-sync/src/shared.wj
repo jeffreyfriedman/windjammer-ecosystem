@@ -142,3 +142,12 @@ pub fn shared_map_has(m: SharedMapSI, key: string) -> bool {
         Err(_) => false,
     }
 }
+
+/// Value for `key`, or `Err` when it is absent.
+pub fn shared_map_require(m: SharedMapSI, key: string) -> Result<int, string> {
+    let got = shared_map_get(m, key)
+    if got.1 {
+        return Ok(got.2)
+    }
+    Err("expected key")
+}

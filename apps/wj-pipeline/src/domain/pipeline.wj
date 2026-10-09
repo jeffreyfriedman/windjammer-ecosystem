@@ -35,6 +35,15 @@ pub fn result_count(results: Vec<JobResult>) -> int {
     n
 }
 
+/// Zero when the result list is empty.
+pub fn require_empty_results(results: Vec<JobResult>) -> Result<int, string> {
+    if is_empty_results(results) {
+        Ok(0)
+    } else {
+        Err("expected empty")
+    }
+}
+
 pub fn is_empty_results(results: Vec<JobResult>) -> bool {
     result_count(results) == 0
 }

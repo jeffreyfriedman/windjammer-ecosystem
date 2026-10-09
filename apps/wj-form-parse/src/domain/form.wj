@@ -62,6 +62,15 @@ pub fn require_field(fields: Vec<(string, string)>, name: string) -> Result<stri
     }
 }
 
+/// Zero when the field list is empty.
+pub fn require_empty(fields: Vec<(string, string)>) -> Result<int, string> {
+    if is_empty_fields(fields) {
+        Ok(0)
+    } else {
+        Err("expected empty")
+    }
+}
+
 /// True when the field list is empty.
 pub fn is_empty_fields(fields: Vec<(string, string)>) -> bool {
     fields.len() == 0

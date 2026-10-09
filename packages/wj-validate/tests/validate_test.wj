@@ -15,6 +15,7 @@ use crate::require_nonneg
 use crate::require_one_of
 use crate::require_positive
 use crate::require_url
+use crate::require_https
 use crate::require_uuid
 use std::strings
 
@@ -394,5 +395,17 @@ fn test_only_error() {
     match only_error(two) {
         Some(_) => assert(false, "two errors is not only"),
         None => {},
+    }
+}
+
+@test
+fn test_require_https() {
+    match require_https("site", "https://example.com") {
+        Ok(url) => assert_eq(url, "https://example.com"),
+        Err(_) => assert(false, "https"),
+    }
+    match require_https("site", "http://example.com") {
+        Ok(_) => assert(false, "http must Err"),
+        Err(msg) => assert(strings.contains(msg, "https"), "mentions https"),
     }
 }

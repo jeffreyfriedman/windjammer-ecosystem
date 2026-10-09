@@ -208,6 +208,19 @@ pub fn require_url(field: string, value: string) -> Result<string, string> {
     Ok(trimmed)
 }
 
+/// Require an absolute `https://` URL with a non-empty host.
+pub fn require_https(field: string, value: string) -> Result<string, string> {
+    match require_url(field, value) {
+        Ok(url) => {
+            if strings.starts_with(url, "https://") {
+                return Ok(url)
+            }
+            Err("${field} must be https")
+        },
+        Err(e) => Err(e),
+    }
+}
+
 /// Require a canonical UUID v1, v4, v5, or v7 (`8-4-4-4-12`, RFC variant).
 pub fn require_uuid(field: string, value: string) -> Result<string, string> {
     let trimmed = strings.trim(value)

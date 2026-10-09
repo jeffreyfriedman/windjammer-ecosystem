@@ -276,6 +276,15 @@ pub fn require_snake(text: string) -> Result<string, string> {
     }
 }
 
+/// Ok(text) when `text` is kebab-case; otherwise Err.
+pub fn require_kebab(text: string) -> Result<string, string> {
+    if is_kebab_case(text) {
+        Ok(text)
+    } else {
+        Err("expected kebab case")
+    }
+}
+
 fn split_words(text: string) -> Vec<string> {
     let snake = snake_case(text)
     let mut parts: Vec<string> = Vec::new()

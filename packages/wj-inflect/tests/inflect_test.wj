@@ -11,6 +11,7 @@ use crate::kebab_case
 use crate::pascal_case
 use crate::slugify
 use crate::snake_case
+use crate::require_kebab
 use crate::title_case
 use std::strings
 
@@ -177,5 +178,17 @@ fn test_require_snake() {
     match require_snake("") {
         Ok(_) => assert(false, "empty must Err"),
         Err(msg) => assert(strings.contains(msg, "snake"), "mentions snake"),
+    }
+}
+
+@test
+fn test_require_kebab() {
+    match require_kebab("hello-world") {
+        Ok(s) => assert_eq(s, "hello-world"),
+        Err(_) => assert(false, "kebab"),
+    }
+    match require_kebab("hello_world") {
+        Ok(_) => assert(false, "snake must Err"),
+        Err(msg) => assert(strings.contains(msg, "kebab"), "mentions kebab"),
     }
 }

@@ -90,6 +90,14 @@ pub fn has_meta(pattern: string) -> bool {
     strings.contains(pattern, "*") || strings.contains(pattern, "?")
 }
 
+/// `Ok(pattern)` when it contains `*` or `?`, otherwise `Err`.
+pub fn require_meta(pattern: string) -> Result<string, string> {
+    if has_meta(pattern) {
+        return Ok(pattern)
+    }
+    Err("expected meta")
+}
+
 /// First matching path, or Err when nothing matches.
 pub fn require_match(pattern: string, paths: Vec<string>) -> Result<string, string> {
     match first_match(pattern, paths) {

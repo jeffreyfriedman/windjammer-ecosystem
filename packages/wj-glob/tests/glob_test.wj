@@ -8,6 +8,7 @@ use crate::exactly_one_match
 use crate::filter
 use crate::first_match
 use crate::is_match
+use crate::require_meta
 use crate::last_match
 use crate::match_count
 use crate::none_match
@@ -265,5 +266,17 @@ fn test_require_exact() {
     match require_exact("*.md", paths, 1) {
         Ok(_) => assert(false, "not exactly one"),
         Err(msg) => assert(strings.contains(msg, "exact"), "mentions exact"),
+    }
+}
+
+@test
+fn test_require_meta() {
+    match require_meta("*.md") {
+        Ok(pattern) => assert_eq(pattern, "*.md"),
+        Err(_) => assert(false, "star"),
+    }
+    match require_meta("a.txt") {
+        Ok(_) => assert(false, "literal must Err"),
+        Err(msg) => assert(strings.contains(msg, "meta"), "mentions meta"),
     }
 }

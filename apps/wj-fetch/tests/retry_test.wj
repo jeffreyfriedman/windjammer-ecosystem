@@ -1,5 +1,7 @@
 use crate::domain::default_backoff
+use crate::domain::require_retryable
 use crate::domain::retryable_status
+use std::strings
 use crate::domain::should_attempt
 use crate::domain::backoff_delay
 use crate::domain::should_retry_fetch
@@ -41,4 +43,15 @@ fn test_pause_ms_for_attempt_uses_default_backoff() {
     let backoff = default_backoff()
     assert_eq(pause, backoff_delay(backoff, 0))
     assert_eq(pause_ms_for_attempt(1), backoff_delay(backoff, 1))
+}
+
+fn test_require_retryable() {
+    match require_retryable(503) {
+        Ok(code) => assert_eq(code, 503),
+        Err(_) => assert(false, "503 retryable"),
+    }
+    match require_retryable(404) {
+        Ok(_) => assert(false, "404 must Err"),
+        Err(msg) => assert(strings.contains(msg, "retryable"), "mentions retryable"),
+    }
 }

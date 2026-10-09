@@ -36,6 +36,15 @@ pub fn can_forward_method(method: string) -> bool {
     false
 }
 
+/// Method name when it is safe under HTTP semantics.
+pub fn require_safe_method(method: string) -> Result<string, string> {
+    if is_safe_method(method) {
+        Ok(method)
+    } else {
+        Err("expected safe method")
+    }
+}
+
 /// True for methods that are safe / cacheable under HTTP semantics.
 pub fn is_safe_method(method: string) -> bool {
     let method = own(method)

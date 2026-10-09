@@ -10,6 +10,15 @@ pub fn default_backoff() -> Backoff {
     }
 }
 
+/// Status code when it is a transient retry candidate.
+pub fn require_retryable(status: u16) -> Result<u16, string> {
+    if retryable_status(status) {
+        Ok(status)
+    } else {
+        Err("expected retryable")
+    }
+}
+
 pub fn retryable_status(status: u16) -> bool {
     let code = copy_u16(status)
     if code == 429 {

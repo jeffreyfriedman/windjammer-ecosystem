@@ -206,3 +206,16 @@ fn test_hsts_age_content_type_and_require_hsts() {
         Err(msg) => assert(strings.contains(msg, "hsts"), "mentions hsts"),
     }
 }
+
+@test
+fn test_require_csp() {
+    use crate::require_csp
+    match require_csp(defaults()) {
+        Ok(policy) => assert(strings.contains(policy, "default-src"), "default csp"),
+        Err(_) => assert(false, "defaults have csp"),
+    }
+    match require_csp(without_csp(defaults())) {
+        Ok(_) => assert(false, "cleared csp must Err"),
+        Err(msg) => assert(strings.contains(msg, "csp"), "mentions csp"),
+    }
+}

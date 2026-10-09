@@ -192,3 +192,12 @@ pub fn require_hsts(headers: SecurityHeaders) -> Result<SecurityHeaders, string>
     }
     Err("expected hsts")
 }
+
+/// CSP policy when one is configured.
+pub fn require_csp(headers: SecurityHeaders) -> Result<string, string> {
+    if has_csp(headers) {
+        Ok(csp_of(headers))
+    } else {
+        Err("expected csp")
+    }
+}

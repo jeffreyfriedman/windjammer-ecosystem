@@ -130,3 +130,17 @@ pub fn require_valid_pattern(pattern: string) -> Result<string, string> {
     }
     Err("invalid pattern")
 }
+
+/// Match count when `pattern` has exactly `n` matches.
+pub fn require_exact_count(pattern: string, text: string, n: int) -> Result<int, string> {
+    match exactly_n_matches(pattern, text, n) {
+        Ok(yes) => {
+            if yes {
+                Ok(n)
+            } else {
+                Err("expected exact matches")
+            }
+        },
+        Err(e) => Err(e),
+    }
+}

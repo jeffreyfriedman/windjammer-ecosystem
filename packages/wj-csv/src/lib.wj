@@ -154,3 +154,12 @@ pub fn is_rectangular(rows: Vec<Vec<string>>) -> bool {
     }
     true
 }
+
+/// Row count when every row has the same width, including an empty table.
+pub fn require_rectangular(rows: Vec<Vec<string>>) -> Result<int, string> {
+    if is_rectangular(rows) {
+        Ok(row_count(rows))
+    } else {
+        Err("expected rectangular csv")
+    }
+}

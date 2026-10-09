@@ -150,6 +150,15 @@ pub fn require_bool(text: string, path: string) -> Result<bool, string> {
     }
 }
 
+/// The path itself when that key exists.
+pub fn require_path(text: string, path: string) -> Result<string, string> {
+    if has_path(text, path) {
+        Ok(path)
+    } else {
+        Err("missing yaml path: ${path}")
+    }
+}
+
 fn load_root(text: string) -> Option<Value> {
     match to_json(text) {
         Ok(j) => {

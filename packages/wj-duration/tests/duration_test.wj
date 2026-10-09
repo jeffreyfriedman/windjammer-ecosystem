@@ -16,6 +16,7 @@ use crate::parse_ms_or
 use crate::parse_secs
 use crate::parse_secs_or
 use crate::require_positive
+use crate::require_zero
 use crate::secs_to_ms
 use crate::sub_ms
 use crate::within_ms
@@ -245,5 +246,17 @@ fn test_require_within() {
     match require_within(101, 0, 100) {
         Ok(_) => assert(false, "above must Err"),
         Err(msg) => assert(strings.contains(msg, "range"), "mentions range"),
+    }
+}
+
+@test
+fn test_require_zero() {
+    match require_zero(0) {
+        Ok(n) => assert_eq(n, 0),
+        Err(_) => assert(false, "zero"),
+    }
+    match require_zero(5) {
+        Ok(_) => assert(false, "nonzero must Err"),
+        Err(msg) => assert(strings.contains(msg, "zero"), "mentions zero"),
     }
 }

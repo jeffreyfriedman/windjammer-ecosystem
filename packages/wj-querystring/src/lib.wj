@@ -203,3 +203,11 @@ pub fn require_singleton(query: string) -> Result<string, string> {
         None => Err("expected singleton query"),
     }
 }
+
+/// Pair count when the query has at least one pair, otherwise `Err`.
+pub fn require_pairs(query: string) -> Result<int, string> {
+    if !has_pairs(query) {
+        return Err("expected pairs")
+    }
+    Ok(pair_count(query))
+}

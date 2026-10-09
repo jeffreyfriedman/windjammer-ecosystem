@@ -149,6 +149,14 @@ pub fn require_gzip(accept_encoding: string) -> Result<string, string> {
     Err("expected gzip")
 }
 
+/// `Ok("identity")` when identity is acceptable, otherwise `Err`.
+pub fn require_identity(accept_encoding: string) -> Result<string, string> {
+    if accepts_identity(accept_encoding) {
+        return Ok("identity")
+    }
+    Err("expected identity")
+}
+
 /// `Ok(body_len)` when the body meets `min_bytes`, otherwise `Err`.
 pub fn require_min_bytes(body_len: int, min_bytes: int) -> Result<int, string> {
     if meets_min_bytes(body_len, min_bytes) {

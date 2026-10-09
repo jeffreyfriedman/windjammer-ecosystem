@@ -12,6 +12,7 @@ use crate::param_or
 use crate::first_param_name
 use crate::pattern_param_count
 use crate::require_match
+use crate::require_static
 use crate::require_param
 use std::collections::HashMap
 use std::collections::HashMap
@@ -219,5 +220,17 @@ fn test_first_param_name_and_require_match() {
     match require_match("/users/:id", "/nope") {
         Ok(_) => assert(false, "miss must Err"),
         Err(msg) => assert(strings.contains(msg, "match"), "mentions match"),
+    }
+}
+
+@test
+fn test_require_static() {
+    match require_static("/health") {
+        Ok(pattern) => assert_eq(pattern, "/health"),
+        Err(_) => assert(false, "static"),
+    }
+    match require_static("/users/:id") {
+        Ok(_) => assert(false, "param pattern must Err"),
+        Err(msg) => assert(strings.contains(msg, "static"), "mentions static"),
     }
 }

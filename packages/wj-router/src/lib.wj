@@ -110,6 +110,14 @@ pub fn is_static_pattern(pattern: string) -> bool {
     !is_param_pattern(pattern)
 }
 
+/// `Ok(pattern)` when it has no `:param` segments, otherwise `Err`.
+pub fn require_static(pattern: string) -> Result<string, string> {
+    if is_static_pattern(pattern) {
+        return Ok(pattern)
+    }
+    Err("expected static pattern")
+}
+
 /// Match `pattern` against `path`, or return `fallback` when no match.
 pub fn match_or(pattern: string, path: string, fallback: HashMap<string, string>) -> HashMap<string, string> {
     match match_route(pattern, path) {

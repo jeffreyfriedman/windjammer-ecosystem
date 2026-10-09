@@ -13,6 +13,7 @@ use crate::slugify
 use crate::snake_case
 use crate::require_camel
 use crate::require_pascal
+use crate::require_constant
 use crate::require_kebab
 use crate::title_case
 use std::strings
@@ -216,5 +217,17 @@ fn test_require_pascal() {
     match require_pascal("helloWorld") {
         Ok(_) => assert(false, "camel must Err"),
         Err(msg) => assert(strings.contains(msg, "pascal"), "mentions pascal"),
+    }
+}
+
+@test
+fn test_require_constant() {
+    match require_constant("HELLO_WORLD") {
+        Ok(s) => assert_eq(s, "HELLO_WORLD"),
+        Err(_) => assert(false, "constant"),
+    }
+    match require_constant("helloWorld") {
+        Ok(_) => assert(false, "camel must Err"),
+        Err(msg) => assert(strings.contains(msg, "constant"), "mentions constant"),
     }
 }

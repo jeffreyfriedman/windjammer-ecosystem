@@ -16,6 +16,7 @@ use crate::frame_options
 use crate::referrer_of
 use crate::require_nosniff
 use crate::require_frame_deny
+use crate::require_no_referrer
 use crate::referrer_policy
 use crate::security_header_lines
 use crate::with_csp
@@ -245,5 +246,17 @@ fn test_require_frame_deny() {
     match require_frame_deny(with_frame_options(defaults(), "SAMEORIGIN")) {
         Ok(_) => assert(false, "sameorigin must Err"),
         Err(msg) => assert(strings.contains(msg, "deny"), "mentions deny"),
+    }
+}
+
+@test
+fn test_require_no_referrer() {
+    match require_no_referrer(defaults()) {
+        Ok(h) => assert(is_no_referrer(h), "no referrer"),
+        Err(_) => assert(false, "defaults"),
+    }
+    match require_no_referrer(with_referrer(defaults(), "origin")) {
+        Ok(_) => assert(false, "origin must Err"),
+        Err(msg) => assert(strings.contains(msg, "referrer"), "mentions referrer"),
     }
 }

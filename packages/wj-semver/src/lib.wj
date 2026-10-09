@@ -200,6 +200,14 @@ pub fn is_zero_version(v: SemVer) -> bool {
     v.major == 0 && v.minor == 0 && v.patch == 0
 }
 
+/// `Ok(v)` when major, minor, and patch are all zero, otherwise `Err`.
+pub fn require_zero_version(v: SemVer) -> Result<SemVer, string> {
+    if is_zero_version(v) {
+        return Ok(v)
+    }
+    Err("expected zero version")
+}
+
 /// Prerelease identifier string (empty when absent).
 pub fn prerelease_of(v: SemVer) -> string {
     v.pre

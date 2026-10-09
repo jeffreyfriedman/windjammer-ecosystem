@@ -164,6 +164,14 @@ pub fn is_no_referrer(headers: SecurityHeaders) -> bool {
     headers.referrer_policy == "no-referrer"
 }
 
+/// `Ok(headers)` when the referrer policy is `no-referrer`, otherwise `Err`.
+pub fn require_no_referrer(headers: SecurityHeaders) -> Result<SecurityHeaders, string> {
+    if is_no_referrer(headers) {
+        return Ok(headers)
+    }
+    Err("expected no referrer")
+}
+
 pub fn referrer_of(headers: SecurityHeaders) -> string {
     headers.referrer_policy
 }

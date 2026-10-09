@@ -23,6 +23,7 @@ use crate::require_stable
 use crate::require_build
 use crate::require_prerelease
 use crate::require_zero_major
+use crate::require_zero_version
 use std::strings
 use crate::minor_of
 use crate::patch_of
@@ -380,5 +381,26 @@ fn test_require_zero_major() {
             }
         },
         Err(_) => assert(false, "parse one"),
+    }
+}
+
+fn test_require_zero_version() {
+    match parse("0.0.0") {
+        Ok(v) => {
+            match require_zero_version(v) {
+                Ok(parsed) => assert(is_zero_version(parsed), "zero"),
+                Err(_) => assert(false, "zero version"),
+            }
+        },
+        Err(_) => assert(false, "parse zero"),
+    }
+    match parse("0.1.0") {
+        Ok(v) => {
+            match require_zero_version(v) {
+                Ok(_) => assert(false, "minor must Err"),
+                Err(msg) => assert(strings.contains(msg, "version"), "mentions version"),
+            }
+        },
+        Err(_) => assert(false, "parse minor"),
     }
 }

@@ -40,6 +40,15 @@ pub fn port_from_env() -> int {
     }
 }
 
+/// Signing secret when it is the built-in `dev-secret`.
+pub fn require_dev(cfg: WebhookConfig) -> Result<string, string> {
+    if is_dev_secret(cfg) {
+        Ok(secret_of(cfg))
+    } else {
+        Err("expected dev secret")
+    }
+}
+
 pub fn is_dev_secret(cfg: WebhookConfig) -> bool {
     cfg.secret == "dev-secret"
 }

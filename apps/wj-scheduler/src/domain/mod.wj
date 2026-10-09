@@ -33,6 +33,7 @@ pub use crontab::expr_count
 pub use crontab::first_expr
 pub use crontab::has_exprs
 pub use crontab::is_empty_exprs
+pub use crontab::require_empty_exprs
 pub use crontab::last_expr
 pub use crontab::only_expr
 pub use crontab::require_only

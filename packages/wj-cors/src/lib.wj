@@ -80,6 +80,15 @@ pub fn is_preflight_method(method: string) -> bool {
     strings.to_upper(method) == "OPTIONS"
 }
 
+/// `Ok(method)` for a CORS preflight method, otherwise `Err`.
+pub fn require_preflight(method: string) -> Result<string, string> {
+    if is_preflight_method(method) {
+        Ok(method)
+    } else {
+        Err("expected preflight")
+    }
+}
+
 /// CORS response headers as individual lines (for HTTP adapters).
 pub fn cors_header_lines(headers: CorsHeaders) -> Vec<string> {
     let mut lines = Vec::new()

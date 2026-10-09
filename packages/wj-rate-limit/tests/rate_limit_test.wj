@@ -9,6 +9,7 @@ use crate::is_fresh_bucket
 use crate::is_positive_window
 use crate::is_zero_retry
 use crate::require_allowed
+use crate::require_positive_window
 use crate::limit_of
 use crate::peek_fixed_window
 use crate::remaining_slots
@@ -235,5 +236,17 @@ fn test_require_allowed_and_is_positive_window() {
     match require_allowed(denied.1) {
         Ok(_) => assert(false, "denied must Err"),
         Err(msg) => assert(strings.contains(msg, "allowed"), "mentions allowed"),
+    }
+}
+
+@test
+fn test_require_positive_window() {
+    match require_positive_window(fixed_window(2, 1000)) {
+        Ok(ms) => assert_eq(ms, 1000),
+        Err(_) => assert(false, "positive"),
+    }
+    match require_positive_window(fixed_window(1, 0)) {
+        Ok(_) => assert(false, "zero window must Err"),
+        Err(msg) => assert(strings.contains(msg, "positive"), "mentions positive"),
     }
 }

@@ -135,6 +135,14 @@ pub fn is_padded(text: string) -> bool {
     has_padding(text)
 }
 
+/// `Ok(text)` when it has trailing `=` padding, otherwise `Err`.
+pub fn require_padded(text: string) -> Result<string, string> {
+    if is_padded(text) {
+        return Ok(text)
+    }
+    Err("expected padding")
+}
+
 /// Accept an `Authorization: Basic …` header, or `Err`.
 pub fn require_basic(header: string) -> Result<string, string> {
     if is_basic_auth_header(header) {

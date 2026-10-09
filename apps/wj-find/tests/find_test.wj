@@ -10,6 +10,7 @@ use crate::domain::last_hit
 use crate::domain::only_hit
 use crate::domain::require_first_hit
 use crate::domain::require_hits
+use crate::domain::require_only_hit
 use std::strings
 
 fn test_find_matching_star_suffix() {
@@ -111,5 +112,19 @@ fn test_only_hit_and_require_hits() {
     match require_hits(find_matching("*.xyz", sample_paths())) {
         Ok(_) => assert(false, "empty must Err"),
         Err(msg) => assert(strings.contains(msg, "hits"), "mentions hits"),
+    }
+}
+
+fn test_require_only_hit() {
+    match require_only_hit(find_matching("**/*.wj", sample_paths())) {
+        Ok(p) => assert_eq(p, "src/main.wj"),
+        Err(_) => assert(false, "one hit"),
+    }
+    let mut two = Vec::new()
+    two.push("a.md")
+    two.push("b.md")
+    match require_only_hit(find_matching("*.md", two)) {
+        Ok(_) => assert(false, "two must Err"),
+        Err(msg) => assert(strings.contains(msg, "one"), "mentions one"),
     }
 }

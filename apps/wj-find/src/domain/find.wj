@@ -74,6 +74,14 @@ pub fn only_hit(hits: Vec<string>) -> Option<string> {
     }
 }
 
+/// The only hit path, or `Err` when the list is not a singleton.
+pub fn require_only_hit(hits: Vec<string>) -> Result<string, string> {
+    match only_hit(hits) {
+        Some(p) => Ok(p),
+        None => Err("expected one hit"),
+    }
+}
+
 /// Hit count when the list is non-empty.
 pub fn require_hits(hits: Vec<string>) -> Result<int, string> {
     let n = hits.len()

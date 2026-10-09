@@ -105,6 +105,14 @@ pub fn only_expr(exprs: Vec<string>) -> Option<string> {
     }
 }
 
+/// The only expression, or `Err` when the list is not a singleton.
+pub fn require_only(exprs: Vec<string>) -> Result<string, string> {
+    match only_expr(exprs) {
+        Some(e) => Ok(e),
+        None => Err("expected one expression"),
+    }
+}
+
 /// Ok(count) when non-empty; Err when the crontab has no expressions.
 pub fn require_exprs(exprs: Vec<string>) -> Result<int, string> {
     let n = expr_count(exprs)

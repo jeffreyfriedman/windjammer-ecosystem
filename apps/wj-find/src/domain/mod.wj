@@ -11,3 +11,4 @@ pub use find::last_hit
 pub use find::only_hit
 pub use find::require_first_hit
 pub use find::require_hits
+pub use find::require_only_hit

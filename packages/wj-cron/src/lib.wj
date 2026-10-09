@@ -213,6 +213,14 @@ pub fn is_wildcard_field(field: string) -> bool {
     field == "*"
 }
 
+/// `Ok(field)` when the cron field is `*`, otherwise `Err`.
+pub fn require_wildcard_field(field: string) -> Result<string, string> {
+    if is_wildcard_field(field) {
+        return Ok(field)
+    }
+    Err("expected wildcard field")
+}
+
 /// Expression that matches every minute (`* * * * *`).
 pub fn every_minute() -> CronExpr {
     CronExpr {

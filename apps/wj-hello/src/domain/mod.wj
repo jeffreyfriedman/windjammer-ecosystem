@@ -2,6 +2,7 @@ pub mod version
 
 pub use version::crate_name
 pub use version::is_smoke_identity
+pub use version::require_smoke
 pub use version::is_zero_major
 pub use version::matches_identity
 pub use version::require_crate

@@ -2,6 +2,7 @@ use crate::domain::ProxyConfig
 use crate::domain::has_strip_prefix
 use crate::domain::is_unlimited_log
 use crate::domain::require_limited_log
+use crate::domain::require_strip
 use std::strings
 
 fn test_config_defaults() {
@@ -23,6 +24,19 @@ fn test_strip_and_log_predicates() {
     let mut unlimited = ProxyConfig::defaults()
     unlimited.log_max = 0
     assert(is_unlimited_log(unlimited), "unlimited")
+}
+
+fn test_require_strip() {
+    match require_strip(ProxyConfig::defaults()) {
+        Ok(_) => assert(false, "empty prefix must Err"),
+        Err(msg) => assert(strings.contains(msg, "strip"), "mentions strip"),
+    }
+    let mut cfg = ProxyConfig::defaults()
+    cfg.strip_prefix = "/api"
+    match require_strip(cfg) {
+        Ok(prefix) => assert_eq(prefix, "/api"),
+        Err(_) => assert(false, "has strip"),
+    }
 }
 
 fn test_upstream_rate_and_log_accessors() {

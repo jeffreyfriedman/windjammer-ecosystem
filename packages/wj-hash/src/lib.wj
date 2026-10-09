@@ -82,3 +82,14 @@ pub fn is_min_cost(hash: string, min: int) -> bool {
         None => false,
     }
 }
+
+/// Bcrypt cost when it is at least `min`, otherwise `Err`.
+pub fn require_min_cost(hash: string, min: int) -> Result<int, string> {
+    if !is_min_cost(hash, min) {
+        return Err("expected min cost")
+    }
+    match bcrypt_cost(hash) {
+        Some(cost) => Ok(cost),
+        None => Err("expected min cost"),
+    }
+}

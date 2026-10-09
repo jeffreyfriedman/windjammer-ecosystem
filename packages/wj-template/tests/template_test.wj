@@ -11,6 +11,7 @@ use crate::is_plain
 use crate::last_placeholder
 use crate::missing_count
 use crate::require_plain
+use crate::require_placeholder
 use crate::missing_keys
 use crate::placeholder_count
 use crate::require_fully_bound
@@ -190,5 +191,17 @@ fn test_last_placeholder_and_require_plain() {
     match require_plain("Hello {{name}}!") {
         Ok(_) => assert(false, "placeholder must Err"),
         Err(msg) => assert(strings.contains(msg, "plain"), "mentions plain"),
+    }
+}
+
+@test
+fn test_require_placeholder() {
+    match require_placeholder("Hello {{name}}!") {
+        Ok(name) => assert_eq(name, "name"),
+        Err(_) => assert(false, "has placeholder"),
+    }
+    match require_placeholder("Hello world") {
+        Ok(_) => assert(false, "plain must Err"),
+        Err(msg) => assert(strings.contains(msg, "placeholder"), "mentions placeholder"),
     }
 }

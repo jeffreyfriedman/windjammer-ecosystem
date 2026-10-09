@@ -1,4 +1,5 @@
 use crate::parse
+use crate::require_http
 use crate::format_url
 use crate::has_fragment
 use crate::has_port
@@ -291,5 +292,27 @@ fn test_scheme_host_and_require_https() {
             }
         },
         Err(_) => assert(false, "parse http"),
+    }
+}
+
+@test
+fn test_require_http() {
+    match parse("http://example.com/api") {
+        Ok(u) => {
+            match require_http(u) {
+                Ok(kept) => assert(is_http(kept), "http"),
+                Err(_) => assert(false, "http ok"),
+            }
+        },
+        Err(_) => assert(false, "parse http for require"),
+    }
+    match parse("https://example.com/api") {
+        Ok(u) => {
+            match require_http(u) {
+                Ok(_) => assert(false, "https must Err"),
+                Err(msg) => assert(strings.contains(msg, "http"), "mentions http"),
+            }
+        },
+        Err(_) => assert(false, "parse https for require"),
     }
 }

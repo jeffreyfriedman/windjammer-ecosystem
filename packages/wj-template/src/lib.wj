@@ -197,6 +197,14 @@ pub fn first_placeholder(template: string) -> Option<string> {
     Some(names[0])
 }
 
+/// First placeholder name when one exists, otherwise `Err`.
+pub fn require_placeholder(template: string) -> Result<string, string> {
+    match first_placeholder(template) {
+        Some(name) => Ok(name),
+        None => Err("expected placeholder"),
+    }
+}
+
 fn list_contains(items: Vec<string>, needle: string) -> bool {
     let mut i = 0
     while i < items.len() {

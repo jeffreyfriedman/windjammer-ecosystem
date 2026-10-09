@@ -198,6 +198,15 @@ pub fn is_zulu(t: Rfc3339) -> bool {
     t.offset_minutes == 0
 }
 
+/// Formatted timestamp when the offset is Zulu.
+pub fn require_zulu(t: Rfc3339) -> Result<string, string> {
+    if is_zulu(t) {
+        Ok(format_rfc3339(t))
+    } else {
+        Err("expected zulu")
+    }
+}
+
 pub fn is_leap_year(year: int) -> bool {
     if year % 400 == 0 {
         return true

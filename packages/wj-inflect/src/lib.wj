@@ -267,6 +267,15 @@ pub fn require_slug(text: string) -> Result<string, string> {
     Err("expected slug")
 }
 
+/// Ok(text) when `text` is snake_case; otherwise Err.
+pub fn require_snake(text: string) -> Result<string, string> {
+    if is_snake_case(text) {
+        Ok(text)
+    } else {
+        Err("expected snake case")
+    }
+}
+
 fn split_words(text: string) -> Vec<string> {
     let snake = snake_case(text)
     let mut parts: Vec<string> = Vec::new()

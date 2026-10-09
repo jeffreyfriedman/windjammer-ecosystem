@@ -162,3 +162,20 @@ fn test_blank_word_count_and_require_slug() {
         Err(msg) => assert(strings.contains(msg, "slug"), "mentions slug"),
     }
 }
+
+@test
+fn test_require_snake() {
+    use crate::require_snake
+    match require_snake("hello_world") {
+        Ok(s) => assert_eq(s, "hello_world"),
+        Err(_) => assert(false, "snake"),
+    }
+    match require_snake("HelloWorld") {
+        Ok(_) => assert(false, "pascal must Err"),
+        Err(msg) => assert(strings.contains(msg, "snake"), "mentions snake"),
+    }
+    match require_snake("") {
+        Ok(_) => assert(false, "empty must Err"),
+        Err(msg) => assert(strings.contains(msg, "snake"), "mentions snake"),
+    }
+}

@@ -154,6 +154,20 @@ pub fn require(text: string, key: string) -> Result<string, string> {
     }
 }
 
+/// Non-empty value for `key`. Blank and missing keys are errors.
+pub fn require_nonblank(text: string, key: string) -> Result<string, string> {
+    match get(text, key) {
+        Some(v) => {
+            if strings.len(strings.trim(v)) == 0 {
+                Err("blank toml value: ${key}")
+            } else {
+                Ok(v)
+            }
+        },
+        None => Err("missing toml key: ${key}"),
+    }
+}
+
 /// Merge `overlay` onto `base`; overlay keys win. Returns flat TOML text.
 pub fn merge(base: string, overlay: string) -> string {
     let mut map = parse(base)

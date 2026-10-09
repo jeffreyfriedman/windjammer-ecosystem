@@ -342,3 +342,20 @@ fn test_require_singleton_and_require_keys() {
         Err(msg) => assert(strings.contains(msg, "keys"), "mentions keys"),
     }
 }
+
+@test
+fn test_require_nonblank() {
+    use crate::require_nonblank
+    match require_nonblank("host = \"localhost\"\n", "host") {
+        Ok(v) => assert_eq(v, "localhost"),
+        Err(_) => assert(false, "host"),
+    }
+    match require_nonblank("host = \"\"\n", "host") {
+        Ok(_) => assert(false, "blank must Err"),
+        Err(msg) => assert(strings.contains(msg, "blank"), "mentions blank"),
+    }
+    match require_nonblank("host = \"localhost\"\n", "port") {
+        Ok(_) => assert(false, "missing must Err"),
+        Err(msg) => assert(strings.contains(msg, "port"), "mentions key"),
+    }
+}

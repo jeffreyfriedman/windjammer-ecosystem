@@ -14,6 +14,7 @@ use crate::format_cron
 use crate::is_every_hour
 use crate::is_every_minute
 use crate::is_wildcard_field
+use crate::require_wildcard_field
 use crate::next_run
 use crate::source_of
 use std::strings
@@ -478,5 +479,16 @@ fn test_require_every_minute() {
     match require_every_minute(every_hour()) {
         Ok(_) => assert(false, "hourly must Err"),
         Err(msg) => assert(strings.contains(msg, "every minute"), "mentions every minute"),
+    }
+}
+
+fn test_require_wildcard_field() {
+    match require_wildcard_field("*") {
+        Ok(field) => assert(is_wildcard_field(field), "star"),
+        Err(_) => assert(false, "star ok"),
+    }
+    match require_wildcard_field("0") {
+        Ok(_) => assert(false, "zero must Err"),
+        Err(msg) => assert(strings.contains(msg, "wildcard"), "mentions wildcard"),
     }
 }

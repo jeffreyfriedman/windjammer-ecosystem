@@ -218,6 +218,15 @@ pub fn is_plain(mime_type: string) -> bool {
     false
 }
 
+/// `Ok(mime_type)` when it is plain text, otherwise `Err`.
+pub fn require_plain(mime_type: string) -> Result<string, string> {
+    if is_plain(mime_type) {
+        Ok(mime_type)
+    } else {
+        Err("expected plain")
+    }
+}
+
 /// Common MIME type for CSS responses.
 pub fn css() -> string {
     "text/css; charset=utf-8"

@@ -114,6 +114,14 @@ pub fn is_lax_same_site(cookie: SetCookie) -> bool {
     cookie.same_site == "Lax"
 }
 
+/// `Ok(cookie)` when SameSite is Lax, otherwise `Err`.
+pub fn require_lax(cookie: SetCookie) -> Result<SetCookie, string> {
+    if is_lax_same_site(cookie) {
+        return Ok(cookie)
+    }
+    Err("expected lax")
+}
+
 /// True when SameSite is Strict.
 pub fn is_strict_same_site(cookie: SetCookie) -> bool {
     cookie.same_site == "Strict"

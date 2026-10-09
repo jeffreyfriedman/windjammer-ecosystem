@@ -19,6 +19,7 @@ use crate::is_strict_same_site
 use crate::require_http_only
 use crate::require_strict
 use crate::require_empty
+use crate::require_lax
 use crate::require_secure
 use crate::same_site_of
 use crate::parse_cookie_header
@@ -366,5 +367,17 @@ fn test_require_empty() {
             }
         },
         Err(_) => assert(false, "parse sid"),
+    }
+}
+
+@test
+fn test_require_lax() {
+    match require_lax(session_cookie("sid", "abc")) {
+        Ok(c) => assert(is_lax_same_site(c), "lax"),
+        Err(_) => assert(false, "session is lax"),
+    }
+    match require_lax(with_same_site(session_cookie("sid", "abc"), "Strict")) {
+        Ok(_) => assert(false, "strict must Err"),
+        Err(msg) => assert(strings.contains(msg, "lax"), "mentions lax"),
     }
 }

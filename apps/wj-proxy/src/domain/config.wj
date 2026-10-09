@@ -90,6 +90,14 @@ pub fn require_rate_limit(cfg: ProxyConfig) -> Result<int, string> {
     }
 }
 
+/// Log cap when the request log is limited, otherwise `Err`.
+pub fn require_limited_log(cfg: ProxyConfig) -> Result<int, string> {
+    if is_limited_log(cfg) {
+        return Ok(log_max_of(cfg))
+    }
+    Err("expected limited log")
+}
+
 fn upstream_from_env() -> string {
     match env.get("PROXY_UPSTREAM") {
         Some(value) => value,

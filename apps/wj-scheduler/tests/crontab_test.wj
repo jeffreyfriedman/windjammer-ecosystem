@@ -5,6 +5,7 @@ use crate::domain::due_schedules
 use crate::domain::expr_count
 use crate::domain::is_empty_exprs
 use crate::domain::parse_civil
+use crate::domain::require_only
 use std::strings
 
 fn test_parse_crontab_line_skips_blank() {
@@ -153,5 +154,18 @@ fn test_last_expr_and_only_expr() {
     match only_expr(sample_exprs()) {
         Some(_) => assert(false, "two exprs is not only"),
         None => {},
+    }
+}
+
+fn test_require_only() {
+    let mut one = Vec::new()
+    one.push("@daily")
+    match require_only(one) {
+        Ok(e) => assert_eq(e, "@daily"),
+        Err(_) => assert(false, "one expr"),
+    }
+    match require_only(sample_exprs()) {
+        Ok(_) => assert(false, "two must Err"),
+        Err(msg) => assert(strings.contains(msg, "one"), "mentions one"),
     }
 }

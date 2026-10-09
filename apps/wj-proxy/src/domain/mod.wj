@@ -10,6 +10,7 @@ pub use config::is_unlimited_log
 pub use config::log_max_of
 pub use config::port_from_env
 pub use config::rate_limit_of
+pub use config::require_limited_log
 pub use config::require_rate_limit
 pub use config::require_upstream
 pub use config::upstream_of

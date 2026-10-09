@@ -8,6 +8,7 @@ use crate::domain::hit_count
 use crate::domain::is_empty_hits
 use crate::domain::last_hit
 use crate::domain::only_hit
+use crate::domain::require_empty
 use crate::domain::require_first_hit
 use crate::domain::require_hits
 use crate::domain::require_only_hit
@@ -126,5 +127,16 @@ fn test_require_only_hit() {
     match require_only_hit(find_matching("*.md", two)) {
         Ok(_) => assert(false, "two must Err"),
         Err(msg) => assert(strings.contains(msg, "one"), "mentions one"),
+    }
+}
+
+fn test_require_empty() {
+    match require_empty(find_matching("*.xyz", sample_paths())) {
+        Ok(n) => assert_eq(n, 0),
+        Err(_) => assert(false, "no hits"),
+    }
+    match require_empty(find_matching("**/*.wj", sample_paths())) {
+        Ok(_) => assert(false, "hits must Err"),
+        Err(msg) => assert(strings.contains(msg, "empty"), "mentions empty"),
     }
 }

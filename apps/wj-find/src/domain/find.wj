@@ -40,6 +40,15 @@ pub fn has_hits(hits: Vec<string>) -> bool {
     hit_count(hits) > 0
 }
 
+/// Zero when the hit list is empty.
+pub fn require_empty(hits: Vec<string>) -> Result<int, string> {
+    if is_empty_hits(hits) {
+        Ok(0)
+    } else {
+        Err("expected empty")
+    }
+}
+
 pub fn is_empty_hits(hits: Vec<string>) -> bool {
     hit_count(hits) == 0
 }

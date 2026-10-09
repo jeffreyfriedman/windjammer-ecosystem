@@ -258,6 +258,15 @@ pub fn is_blank(text: string) -> bool {
     strings.len(strings.trim(text)) == 0
 }
 
+/// Ok(text) when `text` is empty or only whitespace; otherwise Err.
+pub fn require_blank(text: string) -> Result<string, string> {
+    if is_blank(text) {
+        Ok(text)
+    } else {
+        Err("expected blank")
+    }
+}
+
 /// Number of words after splitting on case and separators.
 pub fn word_count(text: string) -> int {
     let parts = split_words(text)

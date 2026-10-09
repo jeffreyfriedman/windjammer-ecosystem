@@ -60,6 +60,14 @@ pub fn first_hit(hits: Vec<string>) -> Option<string> {
     Some(hits[0])
 }
 
+/// Last hit, or an error when the list is empty.
+pub fn require_last(hits: Vec<string>) -> Result<string, string> {
+    match last_hit(hits) {
+        Some(p) => Ok(p),
+        None => Err("expected last"),
+    }
+}
+
 pub fn last_hit(hits: Vec<string>) -> Option<string> {
     if hits.len() == 0 {
         return None

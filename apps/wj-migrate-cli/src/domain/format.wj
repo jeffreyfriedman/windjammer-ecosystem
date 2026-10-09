@@ -48,6 +48,14 @@ pub fn is_caught_up(pending_versions: Vec<int>) -> bool {
     version_count(pending_versions) == 0
 }
 
+/// First pending version, or an error when caught up.
+pub fn require_first_pending(pending_versions: Vec<int>) -> Result<int, string> {
+    match first_pending(pending_versions) {
+        Some(v) => Ok(v),
+        None => Err("expected first pending"),
+    }
+}
+
 /// First pending version, or None when caught up.
 pub fn first_pending(pending_versions: Vec<int>) -> Option<int> {
     if pending_versions.len() == 0 {

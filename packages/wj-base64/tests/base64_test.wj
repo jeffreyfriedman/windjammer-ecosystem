@@ -11,6 +11,7 @@ use crate::is_bearer_auth_header
 use crate::is_padded
 use crate::require_basic
 use crate::require_padded
+use crate::require_unpadded
 use crate::has_padding
 use crate::is_encoded
 use crate::is_unpadded
@@ -167,5 +168,17 @@ fn test_require_padded() {
     match require_padded("SGVsbG8") {
         Ok(_) => assert(false, "unpadded must Err"),
         Err(msg) => assert(strings.contains(msg, "padding"), "mentions padding"),
+    }
+}
+
+@test
+fn test_require_unpadded() {
+    match require_unpadded("SGVsbG8") {
+        Ok(v) => assert(is_unpadded(v), "unpadded"),
+        Err(_) => assert(false, "unpadded ok"),
+    }
+    match require_unpadded("SGVsbG8=") {
+        Ok(_) => assert(false, "padded must Err"),
+        Err(msg) => assert(strings.contains(msg, "unpadded"), "mentions unpadded"),
     }
 }

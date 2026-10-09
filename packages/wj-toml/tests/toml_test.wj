@@ -11,6 +11,7 @@ use crate::last_key
 use crate::merge
 use crate::parse
 use crate::require
+use crate::require_empty
 use crate::require_keys
 use crate::require_singleton
 use crate::value_count
@@ -357,5 +358,17 @@ fn test_require_nonblank() {
     match require_nonblank("host = \"localhost\"\n", "port") {
         Ok(_) => assert(false, "missing must Err"),
         Err(msg) => assert(strings.contains(msg, "port"), "mentions key"),
+    }
+}
+
+@test
+fn test_require_empty() {
+    match require_empty("") {
+        Ok(n) => assert_eq(n, 0),
+        Err(_) => assert(false, "empty"),
+    }
+    match require_empty("host = \"localhost\"\n") {
+        Ok(_) => assert(false, "keys must Err"),
+        Err(msg) => assert(strings.contains(msg, "empty"), "mentions empty"),
     }
 }

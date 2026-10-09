@@ -83,6 +83,15 @@ pub fn is_json(mime_type: string) -> bool {
     false
 }
 
+/// `Ok(mime_type)` when it is JSON, otherwise `Err`.
+pub fn require_json(mime_type: string) -> Result<string, string> {
+    if is_json(mime_type) {
+        Ok(mime_type)
+    } else {
+        Err("expected json")
+    }
+}
+
 /// True when `mime_type` is HTML (`text/html`, optional parameters).
 pub fn is_html(mime_type: string) -> bool {
     let trimmed = strings.trim(mime_type)

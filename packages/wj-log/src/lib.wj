@@ -71,6 +71,14 @@ pub fn is_info_level(level: LogLevel) -> bool {
     }
 }
 
+/// `Ok(level)` when it is the info level, otherwise `Err`.
+pub fn require_info(level: LogLevel) -> Result<LogLevel, string> {
+    if is_info_level(level) {
+        return Ok(level)
+    }
+    Err("expected info level")
+}
+
 /// True when `level` is Trace.
 pub fn is_trace_level(level: LogLevel) -> bool {
     match level {

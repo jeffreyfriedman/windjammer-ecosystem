@@ -20,6 +20,7 @@ use crate::is_stable
 use crate::is_zero_major
 use crate::major_of
 use crate::require_stable
+use crate::require_prerelease
 use std::strings
 use crate::minor_of
 use crate::patch_of
@@ -314,5 +315,26 @@ fn test_is_zero_major_and_require_stable() {
             }
         },
         Err(_) => assert(false, "parse pre"),
+    }
+}
+
+fn test_require_prerelease() {
+    match parse("1.2.3-beta.1") {
+        Ok(v) => {
+            match require_prerelease(v) {
+                Ok(pre) => assert_eq(pre, "beta.1"),
+                Err(_) => assert(false, "prerelease"),
+            }
+        },
+        Err(_) => assert(false, "parse beta"),
+    }
+    match parse("1.2.3") {
+        Ok(v) => {
+            match require_prerelease(v) {
+                Ok(_) => assert(false, "release must Err"),
+                Err(msg) => assert(strings.contains(msg, "prerelease"), "mentions prerelease"),
+            }
+        },
+        Err(_) => assert(false, "parse release"),
     }
 }

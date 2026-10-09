@@ -199,6 +199,14 @@ pub fn is_prerelease(v: SemVer) -> bool {
     has_prerelease(v)
 }
 
+/// Prerelease text when present, otherwise `Err`.
+pub fn require_prerelease(v: SemVer) -> Result<string, string> {
+    if is_prerelease(v) {
+        return Ok(prerelease_of(v))
+    }
+    Err("expected prerelease")
+}
+
 fn split_build(text: string) -> Result<(string, string), string> {
     let mut core = text
     let mut build = ""

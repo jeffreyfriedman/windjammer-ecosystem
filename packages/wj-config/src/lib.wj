@@ -163,3 +163,14 @@ pub fn require_entries(map: HashMap<string, string>) -> Result<int, string> {
     }
     Ok(key_count(map))
 }
+
+/// Value for `key` when it is present and non-blank, otherwise `Err`.
+pub fn require_value(map: HashMap<string, string>, key: string) -> Result<string, string> {
+    if is_blank(map, key) {
+        return Err("expected value")
+    }
+    match get(map, key) {
+        Some(value) => Ok(value),
+        None => Err("expected value"),
+    }
+}

@@ -203,6 +203,11 @@ pub fn require_v4(text: string) -> Result<string, string> {
     require_version(text, 4)
 }
 
+/// Require a valid version-7 UUID.
+pub fn require_v7(text: string) -> Result<string, string> {
+    require_version(text, 7)
+}
+
 /// Require a valid UUID of the given version number.
 pub fn require_version(text: string, ver: int) -> Result<string, string> {
     match require_valid(text) {

@@ -258,6 +258,14 @@ pub fn is_positive_window(lim: FixedWindow) -> bool {
     limit_of(lim) > 0 && window_ms_of(lim) > 0
 }
 
+/// Window length when the limiter is positive, otherwise `Err`.
+pub fn require_positive_window(lim: FixedWindow) -> Result<int, string> {
+    if is_positive_window(lim) {
+        return Ok(window_ms_of(lim))
+    }
+    Err("expected positive window")
+}
+
 fn window_start_for(now_ms: int, window_ms: int) -> int {
     if window_ms <= 0 {
         return now_ms

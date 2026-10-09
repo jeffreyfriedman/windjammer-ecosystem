@@ -112,6 +112,14 @@ pub fn is_lower_digest(text: string) -> bool {
     looks_like_sha256_hex(text)
 }
 
+/// `Ok(text)` when it is a lowercase SHA-256 hex digest, otherwise `Err`.
+pub fn require_lower(text: string) -> Result<string, string> {
+    if is_lower_digest(text) {
+        return Ok(text)
+    }
+    Err("expected lower digest")
+}
+
 fn is_hex_char(ch: char) -> bool {
     if ch == '0' { return true }
     if ch == '1' { return true }

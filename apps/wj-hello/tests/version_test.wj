@@ -1,6 +1,7 @@
 // TDD: version string is the CI smoke contract for wj-hello.
 
 use crate::domain::crate_name
+use crate::domain::require_zero_major
 use crate::domain::semver
 use crate::domain::version
 use std::strings
@@ -54,4 +55,11 @@ fn test_require_semver_and_is_smoke_identity() {
         Err(msg) => assert(strings.contains(msg, "semver"), "mentions semver"),
     }
     assert(is_smoke_identity(), "name and semver line")
+}
+
+fn test_require_zero_major() {
+    match require_zero_major() {
+        Ok(v) => assert(strings.starts_with(v, "0."), "zero major"),
+        Err(_) => assert(false, "smoke is 0.x"),
+    }
 }

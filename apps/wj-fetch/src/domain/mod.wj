@@ -28,6 +28,7 @@ pub use parse::parse_nonneg_int
 pub use retry_policy::default_backoff
 pub use retry_policy::require_retryable
 pub use retry_policy::retryable_status
+pub use retry_policy::require_attempt
 pub use retry_policy::should_attempt
 pub use retry_policy::backoff_delay
 pub use retry_policy::should_retry_fetch

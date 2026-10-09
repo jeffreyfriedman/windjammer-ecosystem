@@ -5,6 +5,7 @@ pub use version::is_smoke_identity
 pub use version::require_smoke
 pub use version::is_zero_major
 pub use version::matches_identity
+pub use version::require_identity
 pub use version::require_crate
 pub use version::require_semver
 pub use version::require_zero_major

@@ -108,6 +108,14 @@ pub fn has_blank_value(fields: Vec<(string, string)>) -> bool {
     false
 }
 
+/// Name of the first field, or an error when the list is empty.
+pub fn require_first(fields: Vec<(string, string)>) -> Result<string, string> {
+    match first_field_name(fields) {
+        Some(name) => Ok(name),
+        None => Err("expected first field"),
+    }
+}
+
 /// Name of the first field, or None when empty.
 pub fn first_field_name(fields: Vec<(string, string)>) -> Option<string> {
     if fields.len() == 0 {

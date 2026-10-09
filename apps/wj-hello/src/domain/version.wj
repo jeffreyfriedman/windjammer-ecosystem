@@ -23,6 +23,15 @@ pub fn is_zero_major() -> bool {
     strings.starts_with(v, "0.")
 }
 
+/// Identity line when crate name and semver both match.
+pub fn require_identity(name: string, ver: string) -> Result<string, string> {
+    if matches_identity(name, ver) {
+        Ok(version())
+    } else {
+        Err("expected identity")
+    }
+}
+
 /// True when crate name and semver both match the smoke identity.
 pub fn matches_identity(name: string, ver: string) -> bool {
     crate_name() == name && semver() == ver

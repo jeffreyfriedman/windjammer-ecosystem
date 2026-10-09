@@ -36,6 +36,15 @@ pub fn retryable_status(status: u16) -> bool {
     false
 }
 
+/// Attempt index when another try is still allowed.
+pub fn require_attempt(attempt: int, max_attempts: int) -> Result<int, string> {
+    if should_attempt(attempt, max_attempts) {
+        Ok(attempt)
+    } else {
+        Err("expected attempt")
+    }
+}
+
 pub fn should_attempt(attempt: int, max_attempts: int) -> bool {
     should_retry(attempt, max_attempts)
 }

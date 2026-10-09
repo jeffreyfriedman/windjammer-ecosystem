@@ -43,6 +43,15 @@ pub fn port_from_env() -> int {
     }
 }
 
+/// Strip prefix when one is configured.
+pub fn require_strip(cfg: ProxyConfig) -> Result<string, string> {
+    if has_strip_prefix(cfg) {
+        Ok(cfg.strip_prefix)
+    } else {
+        Err("expected strip prefix")
+    }
+}
+
 pub fn has_strip_prefix(cfg: ProxyConfig) -> bool {
     strings.len(cfg.strip_prefix) > 0
 }

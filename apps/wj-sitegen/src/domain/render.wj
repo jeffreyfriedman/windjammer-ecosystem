@@ -110,6 +110,15 @@ pub fn has_pages(pages: Vec<GeneratedPage>) -> bool {
     page_count(pages) > 0
 }
 
+/// Zero when the page list is empty.
+pub fn require_empty_pages(pages: Vec<GeneratedPage>) -> Result<int, string> {
+    if is_empty_pages(pages) {
+        Ok(0)
+    } else {
+        Err("expected empty")
+    }
+}
+
 /// True when the page list is empty.
 pub fn is_empty_pages(pages: Vec<GeneratedPage>) -> bool {
     page_count(pages) == 0

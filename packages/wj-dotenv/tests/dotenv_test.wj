@@ -5,6 +5,7 @@ use crate::has_keys
 use crate::is_blank
 use crate::is_empty
 use crate::key_count
+use crate::require_empty
 use crate::require_nonempty
 use crate::require_value
 use crate::keys
@@ -158,5 +159,16 @@ fn test_require_value() {
     match require_value(parse("HOST=\n"), "HOST") {
         Ok(_) => assert(false, "blank must Err"),
         Err(msg) => assert(strings.contains(msg, "value"), "mentions value"),
+    }
+}
+
+fn test_require_empty() {
+    match require_empty(parse("")) {
+        Ok(n) => assert_eq(n, 0),
+        Err(_) => assert(false, "empty file"),
+    }
+    match require_empty(parse("A=1\n")) {
+        Ok(_) => assert(false, "entry must Err"),
+        Err(msg) => assert(strings.contains(msg, "empty"), "mentions empty"),
     }
 }

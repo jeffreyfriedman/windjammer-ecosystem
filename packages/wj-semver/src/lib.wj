@@ -94,6 +94,14 @@ pub fn has_build(v: SemVer) -> bool {
     strings.len(v.build) > 0
 }
 
+/// Build metadata when present, otherwise `Err`.
+pub fn require_build(v: SemVer) -> Result<string, string> {
+    if has_build(v) {
+        return Ok(build_of(v))
+    }
+    Err("expected build")
+}
+
 /// Increment patch; clears prerelease and build metadata.
 pub fn bump_patch(v: SemVer) -> SemVer {
     SemVer {

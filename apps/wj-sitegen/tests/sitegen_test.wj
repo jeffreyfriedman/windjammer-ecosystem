@@ -8,6 +8,7 @@ use crate::domain::title_from_markdown
 use crate::domain::markdown_to_html
 use crate::domain::render_document
 use crate::domain::generate_page
+use crate::domain::require_only_page
 use crate::domain::dirs_from_args
 use crate::domain::render_sitemap
 use crate::domain::render_rss
@@ -80,6 +81,22 @@ fn test_only_page_and_require_pages() {
     match only_page(many) {
         Some(_) => assert(false, "two pages is not only"),
         None => {},
+    }
+}
+
+fn test_require_only_page() {
+    let mut solo = Vec::new()
+    solo.push(generate_page("only.md", "# Only\n"))
+    match require_only_page(solo) {
+        Ok(page) => assert_eq(page.title, "Only"),
+        Err(_) => assert(false, "one page"),
+    }
+    let mut many = Vec::new()
+    many.push(generate_page("a.md", "# A\n"))
+    many.push(generate_page("b.md", "# B\n"))
+    match require_only_page(many) {
+        Ok(_) => assert(false, "two must Err"),
+        Err(msg) => assert(strings.contains(msg, "one"), "mentions one"),
     }
 }
 

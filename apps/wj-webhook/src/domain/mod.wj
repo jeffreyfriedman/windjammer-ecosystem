@@ -12,6 +12,7 @@ pub use config::max_id_len_of
 pub use config::origin_count
 pub use config::port_from_env
 pub use config::require_origins
+pub use config::require_production
 pub use config::require_secret
 pub use config::secret_of
 pub use webhook::HttpReply

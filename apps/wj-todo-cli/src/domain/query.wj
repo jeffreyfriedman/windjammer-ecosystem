@@ -52,6 +52,15 @@ pub fn done_count(todos: Vec<Todo>) -> int {
     counts.2
 }
 
+/// Zero when the todo list is empty.
+pub fn require_empty_todos(todos: Vec<Todo>) -> Result<int, string> {
+    if is_empty_todos(todos) {
+        Ok(0)
+    } else {
+        Err("expected empty")
+    }
+}
+
 pub fn is_empty_todos(todos: Vec<Todo>) -> bool {
     todos.len() == 0
 }

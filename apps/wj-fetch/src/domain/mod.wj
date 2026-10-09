@@ -16,6 +16,7 @@ pub use format::is_redirect_status
 pub use format::is_server_error_status
 pub use format::is_success_status
 pub use format::require_client
+pub use format::require_info
 pub use format::require_redirect
 pub use format::require_server
 pub use format::require_success

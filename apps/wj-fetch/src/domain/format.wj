@@ -26,6 +26,15 @@ pub fn is_server_error_status(status: u16) -> bool {
     status >= 500 && status < 600
 }
 
+/// 1xx status, or Err when the code is outside that range.
+pub fn require_info(status: u16) -> Result<u16, string> {
+    if is_informational_status(status) {
+        Ok(status)
+    } else {
+        Err("expected informational")
+    }
+}
+
 /// 3xx status, or Err when the code is outside that range.
 pub fn require_redirect(status: u16) -> Result<u16, string> {
     if is_redirect_status(status) {

@@ -2,6 +2,7 @@ use crate::domain::ProxyConfig
 use crate::domain::has_strip_prefix
 use crate::domain::is_unlimited_log
 use crate::domain::require_limited_log
+use crate::domain::require_unlimited
 use crate::domain::require_strip
 use std::strings
 
@@ -88,5 +89,18 @@ fn test_require_limited_log() {
     match require_limited_log(unlimited) {
         Ok(_) => assert(false, "unlimited must Err"),
         Err(msg) => assert(strings.contains(msg, "limited"), "mentions limited"),
+    }
+}
+
+fn test_require_unlimited() {
+    let mut cfg = ProxyConfig::defaults()
+    cfg.log_max = 0
+    match require_unlimited(cfg) {
+        Ok(n) => assert_eq(n, 0),
+        Err(_) => assert(false, "unlimited log"),
+    }
+    match require_unlimited(ProxyConfig::defaults()) {
+        Ok(_) => assert(false, "capped must Err"),
+        Err(msg) => assert(strings.contains(msg, "unlimited"), "mentions unlimited"),
     }
 }

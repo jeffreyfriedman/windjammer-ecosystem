@@ -181,3 +181,20 @@ fn test_hidden_and_require_relative() {
         Err(msg) => assert(strings.contains(msg, "relative"), "mentions relative"),
     }
 }
+
+@test
+fn test_require_extension() {
+    use crate::require_extension
+    match require_extension("readme.md", ".md") {
+        Ok(path) => assert_eq(path, "readme.md"),
+        Err(_) => assert(false, "md"),
+    }
+    match require_extension("readme.md", ".txt") {
+        Ok(_) => assert(false, "wrong ext must Err"),
+        Err(msg) => assert(strings.contains(msg, "extension"), "mentions extension"),
+    }
+    match require_extension("Makefile", ".md") {
+        Ok(_) => assert(false, "no ext must Err"),
+        Err(msg) => assert(strings.contains(msg, "extension"), "mentions extension"),
+    }
+}

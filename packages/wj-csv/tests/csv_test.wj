@@ -270,3 +270,34 @@ fn test_last_row_and_rectangular() {
         None => {},
     }
 }
+
+@test
+fn test_require_rectangular() {
+    use crate::require_rectangular
+    match parse("a,b\n1,2\n3,4") {
+        Ok(rows) => {
+            match require_rectangular(rows) {
+                Ok(n) => assert_eq(n, 3),
+                Err(_) => assert(false, "even rows"),
+            }
+        },
+        Err(_) => assert(false, "parse"),
+    }
+    let mut ragged: Vec<Vec<string>> = Vec::new()
+    let mut wide = Vec::new()
+    wide.push("a")
+    wide.push("b")
+    ragged.push(wide)
+    let mut short = Vec::new()
+    short.push("1")
+    ragged.push(short)
+    match require_rectangular(ragged) {
+        Ok(_) => assert(false, "ragged must Err"),
+        Err(msg) => assert(strings.contains(msg, "rectangular"), "mentions rectangular"),
+    }
+    let empty: Vec<Vec<string>> = Vec::new()
+    match require_rectangular(empty) {
+        Ok(n) => assert_eq(n, 0),
+        Err(_) => assert(false, "empty table is rectangular"),
+    }
+}

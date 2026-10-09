@@ -248,6 +248,15 @@ pub fn require_relative(path: string) -> Result<string, string> {
     Err("expected relative path")
 }
 
+/// Ok(path) when its extension equals `ext` (include the leading `.`).
+pub fn require_extension(path: string, ext: string) -> Result<string, string> {
+    if has_extension(path, ext) {
+        Ok(path)
+    } else {
+        Err("expected extension ${ext}")
+    }
+}
+
 /// Accept `path` only when absolute; else return an error.
 pub fn require_absolute(path: string) -> Result<string, string> {
     if is_absolute(path) {

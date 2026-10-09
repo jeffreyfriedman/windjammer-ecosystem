@@ -244,6 +244,15 @@ pub fn is_title_case(text: string) -> bool {
     title_case(text) == text
 }
 
+/// Ok(text) when `text` is Title Case; otherwise Err.
+pub fn require_title(text: string) -> Result<string, string> {
+    if is_title_case(text) {
+        Ok(text)
+    } else {
+        Err("expected title case")
+    }
+}
+
 /// True when `text` is empty or only whitespace.
 pub fn is_blank(text: string) -> bool {
     strings.len(strings.trim(text)) == 0

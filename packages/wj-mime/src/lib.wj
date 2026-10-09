@@ -172,6 +172,15 @@ pub fn is_css(mime_type: string) -> bool {
     false
 }
 
+/// `Ok(mime_type)` when it is CSS, otherwise `Err`.
+pub fn require_css(mime_type: string) -> Result<string, string> {
+    if is_css(mime_type) {
+        Ok(mime_type)
+    } else {
+        Err("expected css")
+    }
+}
+
 /// True when `mime_type` is XML (`application/xml`, optional parameters).
 pub fn is_xml(mime_type: string) -> bool {
     let trimmed = strings.trim(mime_type)

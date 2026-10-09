@@ -167,6 +167,14 @@ pub fn is_at_most(ms: int, bound: int) -> bool {
     ms <= bound
 }
 
+/// `Ok(ms)` when `ms` is less than or equal to `bound`, otherwise `Err`.
+pub fn require_at_most(ms: int, bound: int) -> Result<int, string> {
+    if is_at_most(ms, bound) {
+        return Ok(ms)
+    }
+    Err("expected at most")
+}
+
 /// Accept `ms` when zero or positive; else return an error.
 pub fn require_nonneg(ms: int) -> Result<int, string> {
     if ms >= 0 {

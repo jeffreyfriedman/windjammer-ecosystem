@@ -14,6 +14,7 @@ use crate::snake_case
 use crate::require_camel
 use crate::require_pascal
 use crate::require_constant
+use crate::require_title
 use crate::require_kebab
 use crate::title_case
 use std::strings
@@ -229,5 +230,17 @@ fn test_require_constant() {
     match require_constant("helloWorld") {
         Ok(_) => assert(false, "camel must Err"),
         Err(msg) => assert(strings.contains(msg, "constant"), "mentions constant"),
+    }
+}
+
+@test
+fn test_require_title() {
+    match require_title("Hello World") {
+        Ok(s) => assert(is_title_case(s), "title"),
+        Err(_) => assert(false, "title ok"),
+    }
+    match require_title("hello world") {
+        Ok(_) => assert(false, "lower must Err"),
+        Err(msg) => assert(strings.contains(msg, "title"), "mentions title"),
     }
 }

@@ -11,6 +11,7 @@ use crate::sort_migrations
 use crate::validate_unique_versions
 use crate::version_applied
 use crate::Migration
+use std::strings
 
 @test
 fn test_parse_numeric_prefix() {
@@ -229,5 +230,18 @@ fn test_empty_earliest_and_name_of_version() {
     match name_of_version(sample_migrations(), 9) {
         Some(_) => assert(false, "missing"),
         None => assert(true, "ok"),
+    }
+}
+
+@test
+fn test_require_name() {
+    use crate::require_name
+    match require_name(sample_migrations(), 2) {
+        Ok(name) => assert_eq(name, "b"),
+        Err(_) => assert(false, "name of 2"),
+    }
+    match require_name(sample_migrations(), 9) {
+        Ok(_) => assert(false, "missing must Err"),
+        Err(msg) => assert(strings.contains(msg, "9"), "mentions version"),
     }
 }

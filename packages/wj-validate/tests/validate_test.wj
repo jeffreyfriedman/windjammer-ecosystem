@@ -374,3 +374,25 @@ fn test_last_error_and_require_clean() {
         Err(msg) => assert(strings.contains(msg, "nope"), "mentions error"),
     }
 }
+
+@test
+fn test_only_error() {
+    use crate::only_error
+    match only_error(Vec::new()) {
+        Some(_) => assert(false, "empty is not only"),
+        None => {},
+    }
+    let mut one = Vec::new()
+    one.push("only")
+    match only_error(one) {
+        Some(msg) => assert_eq(msg, "only"),
+        None => assert(false, "one error"),
+    }
+    let mut two = Vec::new()
+    two.push("a")
+    two.push("b")
+    match only_error(two) {
+        Some(_) => assert(false, "two errors is not only"),
+        None => {},
+    }
+}

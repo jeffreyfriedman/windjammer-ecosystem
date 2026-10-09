@@ -20,6 +20,7 @@ use crate::require_positive
 use crate::require_zero
 use crate::require_at_least
 use crate::require_at_most
+use crate::require_nonzero
 use crate::secs_to_ms
 use crate::sub_ms
 use crate::within_ms
@@ -285,6 +286,18 @@ fn test_require_at_most() {
     match require_at_most(10, 5) {
         Ok(_) => assert(false, "above must Err"),
         Err(msg) => assert(strings.contains(msg, "at most"), "mentions at most"),
+    }
+}
+
+@test
+fn test_require_nonzero() {
+    match require_nonzero(5) {
+        Ok(n) => assert(is_nonzero(n), "nonzero"),
+        Err(_) => assert(false, "five"),
+    }
+    match require_nonzero(0) {
+        Ok(_) => assert(false, "zero must Err"),
+        Err(msg) => assert(strings.contains(msg, "nonzero"), "mentions nonzero"),
     }
 }
 

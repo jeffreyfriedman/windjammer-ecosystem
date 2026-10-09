@@ -122,6 +122,14 @@ pub fn is_nonzero(ms: int) -> bool {
     !is_zero(ms)
 }
 
+/// `Ok(ms)` when `ms` is not zero, otherwise `Err`.
+pub fn require_nonzero(ms: int) -> Result<int, string> {
+    if is_nonzero(ms) {
+        return Ok(ms)
+    }
+    Err("expected nonzero")
+}
+
 /// True when `ms` is outside the inclusive `[lo, hi]` range.
 pub fn outside_ms(ms: int, lo: int, hi: int) -> bool {
     !within_ms(ms, lo, hi)

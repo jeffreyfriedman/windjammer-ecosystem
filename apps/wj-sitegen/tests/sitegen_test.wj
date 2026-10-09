@@ -1,6 +1,7 @@
 use crate::domain::html_filename
 use crate::domain::html_output_path
 use crate::domain::is_html_path
+use crate::domain::require_html_path
 use crate::domain::is_markdown_path
 use crate::domain::page_count
 use crate::domain::relative_path_from_root
@@ -51,6 +52,17 @@ fn test_has_pages_and_require_markdown() {
     match require_markdown_path("posts/x.html") {
         Ok(_) => assert(false, "html must Err"),
         Err(msg) => assert(strings.contains(msg, "markdown"), "mentions markdown"),
+    }
+}
+
+fn test_require_html_path() {
+    match require_html_path("posts/x.html") {
+        Ok(p) => assert_eq(p, "posts/x.html"),
+        Err(_) => assert(false, "html ok"),
+    }
+    match require_html_path("posts/x.md") {
+        Ok(_) => assert(false, "md must Err"),
+        Err(msg) => assert(strings.contains(msg, "html"), "mentions html"),
     }
 }
 

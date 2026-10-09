@@ -26,6 +26,15 @@ pub fn is_server_error_status(status: u16) -> bool {
     status >= 500 && status < 600
 }
 
+/// 4xx status, or Err when the code is outside that range.
+pub fn require_client(status: u16) -> Result<u16, string> {
+    if is_client_error_status(status) {
+        Ok(status)
+    } else {
+        Err("expected client error")
+    }
+}
+
 /// 5xx status, or Err when the code is outside that range.
 pub fn require_server(status: u16) -> Result<u16, string> {
     if is_server_error_status(status) {

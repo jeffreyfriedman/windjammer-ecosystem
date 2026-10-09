@@ -139,6 +139,14 @@ pub fn is_nil(text: string) -> bool {
     normalize(text) == "00000000-0000-0000-0000-000000000000"
 }
 
+/// Normalized nil UUID, or `Err` when `text` is not nil.
+pub fn require_nil(text: string) -> Result<string, string> {
+    if is_nil(text) {
+        return Ok(normalize(text))
+    }
+    Err("expected nil")
+}
+
 /// True when `text` is the max UUID (all ones).
 pub fn is_max(text: string) -> bool {
     normalize(text) == "ffffffff-ffff-ffff-ffff-ffffffffffff"

@@ -19,6 +19,7 @@ use crate::is_max
 use crate::normalize
 use crate::hyphen_count
 use crate::require_v4
+use crate::require_nil
 use crate::require_v7
 use crate::require_valid
 use crate::require_version
@@ -274,5 +275,16 @@ fn test_require_v7() {
     match require_v7("04afc000-833b-11ee-83d8-123456789abc") {
         Ok(_) => assert(false, "v1 must Err"),
         Err(msg) => assert(strings.contains(msg, "version"), "mentions version"),
+    }
+}
+
+fn test_require_nil() {
+    match require_nil("00000000-0000-0000-0000-000000000000") {
+        Ok(id) => assert(is_nil(id), "nil"),
+        Err(_) => assert(false, "nil ok"),
+    }
+    match require_nil("04afc000-833b-11ee-83d8-123456789abc") {
+        Ok(_) => assert(false, "v1 must Err"),
+        Err(msg) => assert(strings.contains(msg, "nil"), "mentions nil"),
     }
 }

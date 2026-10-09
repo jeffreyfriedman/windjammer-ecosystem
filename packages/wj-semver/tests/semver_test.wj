@@ -20,6 +20,7 @@ use crate::is_stable
 use crate::is_zero_major
 use crate::major_of
 use crate::require_stable
+use crate::require_build
 use crate::require_prerelease
 use std::strings
 use crate::minor_of
@@ -336,5 +337,26 @@ fn test_require_prerelease() {
             }
         },
         Err(_) => assert(false, "parse release"),
+    }
+}
+
+fn test_require_build() {
+    match parse("1.2.3+build.5") {
+        Ok(v) => {
+            match require_build(v) {
+                Ok(build) => assert_eq(build, "build.5"),
+                Err(_) => assert(false, "build"),
+            }
+        },
+        Err(_) => assert(false, "parse build"),
+    }
+    match parse("1.2.3") {
+        Ok(v) => {
+            match require_build(v) {
+                Ok(_) => assert(false, "plain must Err"),
+                Err(msg) => assert(strings.contains(msg, "build"), "mentions build"),
+            }
+        },
+        Err(_) => assert(false, "parse plain"),
     }
 }

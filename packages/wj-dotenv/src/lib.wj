@@ -95,6 +95,14 @@ pub fn is_empty(map: HashMap<string, string>) -> bool {
     key_count(map) == 0
 }
 
+/// `Ok(0)` when `map` has no entries.
+pub fn require_empty(map: HashMap<string, string>) -> Result<int, string> {
+    if is_empty(map) {
+        return Ok(0)
+    }
+    Err("expected empty")
+}
+
 /// True when `map` has at least one entry.
 pub fn has_keys(map: HashMap<string, string>) -> bool {
     !is_empty(map)

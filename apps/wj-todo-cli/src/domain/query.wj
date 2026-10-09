@@ -78,6 +78,14 @@ pub fn total_count(todos: Vec<Todo>) -> int {
     counts.0
 }
 
+/// The only pending todo, or an error when the list is empty or has more than one open.
+pub fn require_only_pending(todos: Vec<Todo>) -> Result<Todo, string> {
+    match only_pending(todos) {
+        Some(t) => Ok(t),
+        None => Err("expected one pending"),
+    }
+}
+
 /// The only pending todo when exactly one is open.
 pub fn only_pending(todos: Vec<Todo>) -> Option<Todo> {
     let pending = filter_pending(todos)

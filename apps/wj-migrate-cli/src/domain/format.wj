@@ -70,6 +70,14 @@ pub fn total_versions(applied_versions: Vec<int>, pending_versions: Vec<int>) ->
     version_count(applied_versions) + version_count(pending_versions)
 }
 
+/// The only pending version, or an error when the list is empty or has more than one.
+pub fn require_only_pending(pending_versions: Vec<int>) -> Result<int, string> {
+    match only_pending(pending_versions) {
+        Some(v) => Ok(v),
+        None => Err("expected one pending"),
+    }
+}
+
 /// The only pending version when the list has exactly one entry.
 pub fn only_pending(pending_versions: Vec<int>) -> Option<int> {
     if pending_versions.len() == 1 {

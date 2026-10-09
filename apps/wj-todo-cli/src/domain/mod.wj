@@ -29,5 +29,6 @@ pub use query::total_count
 pub use query::is_empty_todos
 pub use query::only_pending
 pub use query::find_by_id
+pub use query::require_done
 pub use query::require_pending
 pub use codec::stats_to_json

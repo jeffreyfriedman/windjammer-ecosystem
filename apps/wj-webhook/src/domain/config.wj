@@ -72,6 +72,14 @@ pub fn origin_count(cfg: WebhookConfig) -> int {
     cfg.allowed_origins.len() as int
 }
 
+/// Signing secret when it is not the built-in `dev-secret`.
+pub fn require_production(cfg: WebhookConfig) -> Result<string, string> {
+    if is_production_secret(cfg) {
+        return Ok(secret_of(cfg))
+    }
+    Err("expected production secret")
+}
+
 /// Configured secret when it is non-empty.
 pub fn require_secret(cfg: WebhookConfig) -> Result<string, string> {
     if strings.len(cfg.secret) == 0 {

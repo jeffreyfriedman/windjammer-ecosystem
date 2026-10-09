@@ -10,6 +10,7 @@ use crate::domain::pending_count
 use crate::domain::sort_todos_by_id
 use crate::domain::count_todos
 use crate::domain::only_pending
+use crate::domain::require_done
 use crate::domain::require_pending
 use crate::domain::total_count
 use std::strings
@@ -116,5 +117,16 @@ fn test_only_pending_and_require_pending() {
     match only_pending(sample_todos()) {
         Some(_) => assert(false, "two pending is not only"),
         None => {},
+    }
+}
+
+fn test_require_done() {
+    match require_done(sample_todos()) {
+        Ok(n) => assert(n > 0, "has done"),
+        Err(_) => assert(false, "sample done"),
+    }
+    match require_done(Vec::new()) {
+        Ok(_) => assert(false, "empty must Err"),
+        Err(msg) => assert(strings.contains(msg, "done"), "mentions done"),
     }
 }

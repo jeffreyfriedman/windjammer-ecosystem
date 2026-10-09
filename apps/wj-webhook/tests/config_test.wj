@@ -3,6 +3,7 @@ use crate::domain::has_allowed_origins
 use crate::domain::is_dev_secret
 use crate::domain::max_event_len_of
 use crate::domain::require_origins
+use crate::domain::require_production
 use crate::domain::require_secret
 use std::strings
 
@@ -72,5 +73,18 @@ fn test_require_secret_and_require_origins() {
     match require_origins(cfg) {
         Ok(n) => assert_eq(n, 1),
         Err(_) => assert(false, "one origin"),
+    }
+}
+
+fn test_require_production() {
+    match require_production(WebhookConfig::defaults()) {
+        Ok(_) => assert(false, "dev secret must Err"),
+        Err(msg) => assert(strings.contains(msg, "production"), "mentions production"),
+    }
+    let mut cfg = WebhookConfig::defaults()
+    cfg.secret = "prod-key"
+    match require_production(cfg) {
+        Ok(secret) => assert_eq(secret, "prod-key"),
+        Err(_) => assert(false, "prod secret"),
     }
 }

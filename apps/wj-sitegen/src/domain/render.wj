@@ -134,6 +134,14 @@ pub fn require_pages(pages: Vec<GeneratedPage>) -> Result<int, string> {
     }
 }
 
+/// The only page, or an error when the list is empty or has more than one.
+pub fn require_only_page(pages: Vec<GeneratedPage>) -> Result<GeneratedPage, string> {
+    match only_page(pages) {
+        Some(page) => Ok(page),
+        None => Err("expected one page"),
+    }
+}
+
 /// The only page when the list has exactly one entry.
 pub fn only_page(pages: Vec<GeneratedPage>) -> Option<GeneratedPage> {
     let mut kept = GeneratedPage {

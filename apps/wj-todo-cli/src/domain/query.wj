@@ -87,6 +87,16 @@ pub fn only_pending(todos: Vec<Todo>) -> Option<Todo> {
     Some(pending[0])
 }
 
+/// Done count when at least one todo is complete.
+pub fn require_done(todos: Vec<Todo>) -> Result<int, string> {
+    let n = done_count(todos)
+    if n == 0 {
+        Err("expected done")
+    } else {
+        Ok(n)
+    }
+}
+
 /// Pending count when at least one todo is open.
 pub fn require_pending(todos: Vec<Todo>) -> Result<int, string> {
     let n = pending_count(todos)

@@ -16,6 +16,7 @@ use crate::parse
 use crate::parse_multipart
 use crate::part_count
 use crate::require_field
+use crate::require_text
 use crate::require_file
 use crate::text_count
 use crate::MultipartBody
@@ -309,5 +310,31 @@ fn test_parse_empty_field_body() {
             assert_eq(parts[0].body, "")
         },
         Err(e) => assert(false, "empty body: ${e}"),
+    }
+}
+
+@test
+fn test_require_text() {
+    let boundary = "----txt"
+    let body = "--${boundary}\r\nContent-Disposition: form-data; name=\"msg\"\r\n\r\nok\r\n--${boundary}--"
+    match parse_multipart(boundary, body) {
+        Ok(parts) => {
+            match require_text(parts) {
+                Ok(n) => assert_eq(n, 1),
+                Err(_) => assert(false, "text field"),
+            }
+        },
+        Err(_) => assert(false, "parse text"),
+    }
+    let file_boundary = "----fileonly"
+    let file_body = "--${file_boundary}\r\nContent-Disposition: form-data; name=\"avatar\"; filename=\"a.txt\"\r\nContent-Type: text/plain\r\n\r\nhi\r\n--${file_boundary}--"
+    match parse_multipart(file_boundary, file_body) {
+        Ok(parts) => {
+            match require_text(parts) {
+                Ok(_) => assert(false, "file only must Err"),
+                Err(msg) => assert(strings.contains(msg, "text"), "mentions text"),
+            }
+        },
+        Err(_) => assert(false, "parse file"),
     }
 }

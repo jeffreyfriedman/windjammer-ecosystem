@@ -137,6 +137,14 @@ pub fn require_http_only(cookie: SetCookie) -> Result<SetCookie, string> {
     Err("expected http only")
 }
 
+/// SameSite text when it is `Strict`.
+pub fn require_strict(cookie: SetCookie) -> Result<string, string> {
+    if is_strict_same_site(cookie) {
+        return Ok(same_site_of(cookie))
+    }
+    Err("expected strict")
+}
+
 /// True when the cookie jar has at least one cookie.
 pub fn has_cookies(map: HashMap<string, string>) -> bool {
     !is_empty(map)

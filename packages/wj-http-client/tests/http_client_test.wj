@@ -14,6 +14,7 @@ use crate::status_is_server_error
 use crate::status_is_success
 use crate::status_is_unauthorized
 use crate::status_of
+use crate::require_error
 use crate::require_ok
 use crate::error_message
 use crate::from_parts
@@ -126,5 +127,16 @@ fn test_is_error_status_and_require_body() {
     match require_body(from_parts(204, "")) {
         Ok(_) => assert(false, "empty body must Err"),
         Err(msg) => assert(strings.contains(msg, "body"), "mentions body"),
+    }
+}
+
+fn test_require_error() {
+    match require_error(from_parts(404, "missing")) {
+        Ok(status) => assert_eq(status, 404),
+        Err(_) => assert(false, "404"),
+    }
+    match require_error(from_parts(200, "ok")) {
+        Ok(_) => assert(false, "success must Err"),
+        Err(msg) => assert(strings.contains(msg, "error"), "mentions error"),
     }
 }

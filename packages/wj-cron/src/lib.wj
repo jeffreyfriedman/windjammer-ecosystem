@@ -264,6 +264,15 @@ pub fn is_every_day(expr: CronExpr) -> bool {
     format_cron(expr) == "0 0 * * *"
 }
 
+/// Source text when `expr` is the every-day schedule, otherwise `Err`.
+pub fn require_every_day(expr: CronExpr) -> Result<string, string> {
+    if is_every_day(expr) {
+        Ok(source_of(expr))
+    } else {
+        Err("expected every day")
+    }
+}
+
 /// Parse `text` as cron, or `Err` whose message mentions cron.
 pub fn require_cron(text: string) -> Result<CronExpr, string> {
     match parse_cron(text) {

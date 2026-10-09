@@ -4,7 +4,7 @@ Weekly build health for seed apps and packages.
 
 | Week | Date | Apps / packages green | `extern fn` | Crates via interop | Compiler issues | Notes |
 |------|------|----------------------|-------------|--------------------|-----------------|-------|
-| 2 | 2026-10-08 | deepen `wj-cookie`/`wj-mime`/`wj-cors` | 0 | 0 | private CARGO_HOME | `require_http_only`, `require_image`, `require_preflight`; tip **21+23+19** green |
+| 2 | 2026-10-08 | deepen `wj-jwt`/`wj-cli-args`/`wj-cron` | 0 | 0 | private CARGO_HOME | `require_unexpired`, `require_program`, `require_every_day`; tip **13+19+35** green | 0 | 0 | private CARGO_HOME | `require_http_only`, `require_image`, `require_preflight`; tip **21+23+19** green |
 | 2 | 2026-10-08 | deepen `wj-event`/`wj-headers`/`wj-regex` | 0 | 0 | private CARGO_HOME | `require_named`, `require_csp`, `require_exact_count`; tip **19+22+15** green |
 | 2 | 2026-10-08 | deepen `wj-inflect`/`wj-timefmt`/`wj-toml` | 0 | 0 | private CARGO_HOME | `require_snake`, `require_zulu`, `require_nonblank`; tip **23+28+26** green |
 | 2 | 2026-10-08 | deepen `wj-validate`/`wj-glob`/`wj-migrate` | 0 | 0 | private CARGO_HOME | `only_error`, `require_exact`, `require_name`; tip **36+25+21** green |

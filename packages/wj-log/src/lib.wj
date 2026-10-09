@@ -63,6 +63,14 @@ pub fn is_debug_level(level: LogLevel) -> bool {
     }
 }
 
+/// `Ok(level)` when it is the debug level, otherwise `Err`.
+pub fn require_debug(level: LogLevel) -> Result<LogLevel, string> {
+    if is_debug_level(level) {
+        return Ok(level)
+    }
+    Err("expected debug level")
+}
+
 /// True when `level` is Info.
 pub fn is_info_level(level: LogLevel) -> bool {
     match level {

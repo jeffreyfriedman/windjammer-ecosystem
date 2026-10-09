@@ -14,6 +14,7 @@ use crate::log_tagged
 use crate::more_severe
 use crate::require_level
 use crate::require_error
+use crate::require_debug
 use crate::require_info
 use crate::require_warn
 use std::log::LogLevel
@@ -173,5 +174,16 @@ fn test_require_info() {
     match require_info(LogLevel::Warn) {
         Ok(_) => assert(false, "warn must Err"),
         Err(msg) => assert(strings.contains(msg, "info"), "mentions info"),
+    }
+}
+
+fn test_require_debug() {
+    match require_debug(LogLevel::Debug) {
+        Ok(level) => assert(is_debug_level(level), "debug"),
+        Err(_) => assert(false, "debug ok"),
+    }
+    match require_debug(LogLevel::Info) {
+        Ok(_) => assert(false, "info must Err"),
+        Err(msg) => assert(strings.contains(msg, "debug"), "mentions debug"),
     }
 }

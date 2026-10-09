@@ -12,6 +12,7 @@ use crate::has_entries
 use crate::has_keys
 use crate::is_blank
 use crate::is_empty
+use crate::require_empty
 use crate::require_entries
 use crate::require_value
 use crate::key_count
@@ -301,5 +302,19 @@ fn test_require_value() {
     match require_value(map, "EMPTY") {
         Ok(_) => assert(false, "blank must Err"),
         Err(msg) => assert(strings.contains(msg, "value"), "mentions value"),
+    }
+}
+
+@test
+fn test_require_empty() {
+    match require_empty(HashMap::new()) {
+        Ok(n) => assert_eq(n, 0),
+        Err(_) => assert(false, "empty map"),
+    }
+    let mut map = HashMap::new()
+    map.insert("HOST", "localhost")
+    match require_empty(map) {
+        Ok(_) => assert(false, "entries must Err"),
+        Err(msg) => assert(strings.contains(msg, "empty"), "mentions empty"),
     }
 }

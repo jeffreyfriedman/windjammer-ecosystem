@@ -69,6 +69,14 @@ pub fn is_exhausted(attempt: int, max_attempts: int) -> bool {
     !should_retry(attempt, max_attempts)
 }
 
+/// Attempt index when no retries remain, otherwise `Err`.
+pub fn require_exhausted(attempt: int, max_attempts: int) -> Result<int, string> {
+    if is_exhausted(attempt, max_attempts) {
+        return Ok(attempt)
+    }
+    Err("expected exhausted")
+}
+
 /// Sum of `delay_ms` for attempts `0 .. max_attempts-1` (0 when non-positive).
 pub fn total_delay_ms(backoff: Backoff, max_attempts: int) -> int {
     if max_attempts <= 0 {

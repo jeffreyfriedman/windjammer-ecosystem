@@ -15,6 +15,7 @@ use crate::parse_ms
 use crate::parse_ms_or
 use crate::parse_secs
 use crate::parse_secs_or
+use crate::require_negative
 use crate::require_positive
 use crate::require_zero
 use crate::secs_to_ms
@@ -258,5 +259,17 @@ fn test_require_zero() {
     match require_zero(5) {
         Ok(_) => assert(false, "nonzero must Err"),
         Err(msg) => assert(strings.contains(msg, "zero"), "mentions zero"),
+    }
+}
+
+@test
+fn test_require_negative() {
+    match require_negative(-5) {
+        Ok(n) => assert_eq(n, -5),
+        Err(_) => assert(false, "negative"),
+    }
+    match require_negative(0) {
+        Ok(_) => assert(false, "zero must Err"),
+        Err(msg) => assert(strings.contains(msg, "negative"), "mentions negative"),
     }
 }

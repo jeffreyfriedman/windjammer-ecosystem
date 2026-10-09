@@ -6,6 +6,7 @@ use crate::is_blank
 use crate::is_empty
 use crate::key_count
 use crate::require_nonempty
+use crate::require_value
 use crate::keys
 use crate::merge
 use crate::parse
@@ -146,5 +147,16 @@ fn test_is_blank_and_require_nonempty() {
     match require_nonempty(parse("")) {
         Ok(_) => assert(false, "empty must Err"),
         Err(msg) => assert(strings.contains(msg, "entries"), "mentions entries"),
+    }
+}
+
+fn test_require_value() {
+    match require_value(parse("HOST=localhost\n"), "HOST") {
+        Ok(v) => assert_eq(v, "localhost"),
+        Err(_) => assert(false, "present"),
+    }
+    match require_value(parse("HOST=\n"), "HOST") {
+        Ok(_) => assert(false, "blank must Err"),
+        Err(msg) => assert(strings.contains(msg, "value"), "mentions value"),
     }
 }

@@ -21,6 +21,7 @@ pub use format::has_pending
 pub use format::is_caught_up
 pub use format::last_applied
 pub use format::only_pending
+pub use format::require_caught_up
 pub use format::require_pending
 pub use format::total_versions
 pub use format::version_count

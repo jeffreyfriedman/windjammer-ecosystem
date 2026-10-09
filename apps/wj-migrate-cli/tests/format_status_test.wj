@@ -1,6 +1,7 @@
 use crate::domain::format_status_result
 use crate::domain::has_pending
 use crate::domain::is_caught_up
+use crate::domain::require_caught_up
 use crate::domain::version_count
 use std::strings
 
@@ -84,5 +85,16 @@ fn test_only_pending_and_require_pending() {
     match only_pending(sample_pending()) {
         Some(_) => assert(false, "two pending is not only"),
         None => {},
+    }
+}
+
+fn test_require_caught_up() {
+    match require_caught_up(Vec::new()) {
+        Ok(n) => assert_eq(n, 0),
+        Err(_) => assert(false, "empty is caught up"),
+    }
+    match require_caught_up(sample_pending()) {
+        Ok(_) => assert(false, "pending must Err"),
+        Err(msg) => assert(strings.contains(msg, "caught"), "mentions caught"),
     }
 }

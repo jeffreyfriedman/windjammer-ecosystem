@@ -77,6 +77,15 @@ pub fn require_fields(fields: Vec<(string, string)>) -> Result<int, string> {
     }
 }
 
+/// Field count when any value is empty after trim.
+pub fn require_blank(fields: Vec<(string, string)>) -> Result<int, string> {
+    if has_blank_value(fields) {
+        Ok(fields.len() as int)
+    } else {
+        Err("expected blank")
+    }
+}
+
 /// True when any field value is empty after trim.
 pub fn has_blank_value(fields: Vec<(string, string)>) -> bool {
     let mut i = 0

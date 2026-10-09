@@ -79,6 +79,15 @@ pub fn only_pending(pending_versions: Vec<int>) -> Option<int> {
     }
 }
 
+/// Zero when no versions are outstanding.
+pub fn require_caught_up(pending_versions: Vec<int>) -> Result<int, string> {
+    if is_caught_up(pending_versions) {
+        Ok(0)
+    } else {
+        Err("expected caught up")
+    }
+}
+
 /// Pending count when at least one version is outstanding.
 pub fn require_pending(pending_versions: Vec<int>) -> Result<int, string> {
     let n = version_count(pending_versions)

@@ -6,6 +6,7 @@ use crate::domain::field_get_or
 use crate::domain::has_blank_value
 use crate::domain::has_field
 use crate::domain::parse_form_fields
+use crate::domain::require_blank
 use crate::domain::require_fields
 use crate::domain::require_field
 use std::strings
@@ -122,6 +123,25 @@ fn test_require_fields_and_has_blank_value() {
     let body = "--${boundary}\r\nContent-Disposition: form-data; name=\"note\"\r\n\r\n\r\n--${boundary}--"
     match parse_form_fields(ct, body) {
         Ok(fields) => assert(has_blank_value(fields), "blank note"),
+        Err(e) => assert(false, "blank parse: ${e}"),
+    }
+}
+
+fn test_require_blank() {
+    match require_blank(sample_fields()) {
+        Ok(_) => assert(false, "filled must Err"),
+        Err(msg) => assert(strings.contains(msg, "blank"), "mentions blank"),
+    }
+    let boundary = "----blankreq"
+    let ct = "multipart/form-data; boundary=${boundary}"
+    let body = "--${boundary}\r\nContent-Disposition: form-data; name=\"note\"\r\n\r\n\r\n--${boundary}--"
+    match parse_form_fields(ct, body) {
+        Ok(fields) => {
+            match require_blank(fields) {
+                Ok(n) => assert(n > 0, "blank count"),
+                Err(_) => assert(false, "blank fields"),
+            }
+        }
         Err(e) => assert(false, "blank parse: ${e}"),
     }
 }

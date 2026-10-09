@@ -4,6 +4,7 @@ use crate::expires_at
 use crate::extract_bearer
 use crate::has_email
 use crate::is_expired
+use crate::require_bearer
 use crate::require_email
 use crate::require_unexpired
 use crate::is_bearer_header
@@ -131,6 +132,18 @@ fn test_is_bearer_header() {
     assert(is_bearer_header("Authorization: Bearer abc"), "bearer yes")
     assert(!is_bearer_header("Authorization: Basic abc"), "basic no")
     assert(!is_bearer_header(""), "empty")
+}
+
+@test
+fn test_require_bearer() {
+    match require_bearer("Authorization: Bearer abc") {
+        Ok(token) => assert_eq(token, "abc"),
+        Err(_) => assert(false, "bearer"),
+    }
+    match require_bearer("Authorization: Basic abc") {
+        Ok(_) => assert(false, "basic must Err"),
+        Err(msg) => assert(strings.contains(msg, "bearer"), "mentions bearer"),
+    }
 }
 
 @test

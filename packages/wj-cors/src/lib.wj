@@ -129,6 +129,14 @@ pub fn preflight_defaults(origin: string, allowed: Vec<string>) -> Option<CorsHe
     preflight(origin, allowed, default_allow_methods(), default_allow_headers())
 }
 
+/// Allow-list length when it contains `*`, otherwise `Err`.
+pub fn require_wildcard(allowed: Vec<string>) -> Result<int, string> {
+    if allows_wildcard(allowed) {
+        return Ok(allowed_origin_count(allowed))
+    }
+    Err("expected wildcard")
+}
+
 /// True when `allowed` contains a `*` entry.
 pub fn allows_wildcard(allowed: Vec<string>) -> bool {
     let mut i = 0

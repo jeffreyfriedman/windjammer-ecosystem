@@ -71,6 +71,14 @@ pub fn is_bearer_header(header: string) -> bool {
     }
 }
 
+/// Bearer token when `header` is `Authorization: Bearer …`.
+pub fn require_bearer(header: string) -> Result<string, string> {
+    match extract_bearer(header) {
+        Some(token) => Ok(token),
+        None => Err("expected bearer"),
+    }
+}
+
 /// Extract bearer token from `header`, then verify with `secret`.
 pub fn verify_bearer(header: string, secret: string) -> Result<Claims, string> {
     match extract_bearer(header) {

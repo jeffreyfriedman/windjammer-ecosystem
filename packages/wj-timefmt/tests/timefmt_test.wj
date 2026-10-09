@@ -385,3 +385,21 @@ fn test_minute_second_and_midnight() {
         Err(_) => assert(false, "clock parse"),
     }
 }
+
+@test
+fn test_require_zulu() {
+    use crate::require_zulu
+    match require_zulu(sample_zulu()) {
+        Ok(text) => assert(strings.contains(text, "2024"), "keeps year"),
+        Err(_) => assert(false, "zulu"),
+    }
+    match parse_rfc3339("2024-01-15T12:30:00+01:00") {
+        Ok(t) => {
+            match require_zulu(t) {
+                Ok(_) => assert(false, "offset must Err"),
+                Err(msg) => assert(strings.contains(msg, "zulu"), "mentions zulu"),
+            }
+        },
+        Err(_) => assert(false, "parse offset"),
+    }
+}

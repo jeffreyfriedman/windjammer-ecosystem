@@ -5,6 +5,7 @@ use crate::is_bcrypt_prefix
 use crate::is_empty_hash
 use crate::is_min_cost
 use crate::require_cost
+use crate::require_min_cost
 use crate::looks_like_bcrypt
 use crate::require_bcrypt
 use crate::verify_ok
@@ -139,4 +140,16 @@ fn test_require_cost_and_is_min_cost() {
     assert(is_min_cost("$2b$12$abcdefghijklmnopqrstuv", 10), "12 meets 10")
     assert(!is_min_cost("$2a$10$abcdefghijklmnopqrstuv", 12), "10 below 12")
     assert(!is_min_cost("plain", 1), "plain")
+}
+
+@test
+fn test_require_min_cost() {
+    match require_min_cost("$2b$12$abcdefghijklmnopqrstuv", 10) {
+        Ok(c) => assert_eq(c, 12),
+        Err(_) => assert(false, "12 meets 10"),
+    }
+    match require_min_cost("$2a$10$abcdefghijklmnopqrstuv", 12) {
+        Ok(_) => assert(false, "below min must Err"),
+        Err(msg) => assert(strings.contains(msg, "cost"), "mentions cost"),
+    }
 }

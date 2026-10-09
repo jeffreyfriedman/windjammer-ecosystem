@@ -253,6 +253,14 @@ pub fn require_allowed(result: RateLimitResult) -> Result<RateLimitResult, strin
     Err("expected allowed")
 }
 
+/// Retry-after milliseconds when the check denied the request.
+pub fn require_denied(result: RateLimitResult) -> Result<int, string> {
+    if is_denied(result) {
+        return Ok(retry_after_ms_of(result))
+    }
+    Err("expected denied")
+}
+
 /// True when both the limit and the window length are positive.
 pub fn is_positive_window(lim: FixedWindow) -> bool {
     limit_of(lim) > 0 && window_ms_of(lim) > 0

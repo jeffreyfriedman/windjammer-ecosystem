@@ -89,6 +89,14 @@ pub fn is_empty(query: string) -> bool {
     pair_count(query) == 0
 }
 
+/// `Ok(0)` when `query` has no pairs.
+pub fn require_empty(query: string) -> Result<int, string> {
+    if is_empty(query) {
+        return Ok(0)
+    }
+    Err("expected empty")
+}
+
 /// Number of key/value pairs in `query` (repeated keys count separately).
 pub fn pair_count(query: string) -> int {
     let pairs = parse(query)

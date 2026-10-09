@@ -95,6 +95,14 @@ pub fn is_trace_level(level: LogLevel) -> bool {
     }
 }
 
+/// `Ok(level)` when it is the trace level, otherwise `Err`.
+pub fn require_trace(level: LogLevel) -> Result<LogLevel, string> {
+    if is_trace_level(level) {
+        return Ok(level)
+    }
+    Err("expected trace level")
+}
+
 /// True when `left` is strictly more severe than `right`.
 pub fn more_severe(left: LogLevel, right: LogLevel) -> bool {
     level_rank(left) > level_rank(right)

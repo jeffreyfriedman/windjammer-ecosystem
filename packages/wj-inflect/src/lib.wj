@@ -276,6 +276,15 @@ pub fn require_snake(text: string) -> Result<string, string> {
     }
 }
 
+/// Ok(text) when `text` is SCREAMING_SNAKE; otherwise Err.
+pub fn require_constant(text: string) -> Result<string, string> {
+    if is_constant_case(text) {
+        Ok(text)
+    } else {
+        Err("expected constant case")
+    }
+}
+
 /// Ok(text) when `text` is PascalCase; otherwise Err.
 pub fn require_pascal(text: string) -> Result<string, string> {
     if is_pascal_case(text) {

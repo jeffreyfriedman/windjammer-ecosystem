@@ -11,6 +11,7 @@ use crate::parse_with_headers
 use crate::require_column
 use crate::require_row
 use crate::require_cell
+use crate::require_empty
 use crate::row_count
 use crate::write
 use std::strings
@@ -322,5 +323,23 @@ fn test_require_cell() {
             }
         },
         Err(_) => assert(false, "parse missing"),
+    }
+}
+
+@test
+fn test_require_empty() {
+    let empty: Vec<Vec<string>> = Vec::new()
+    match require_empty(empty) {
+        Ok(n) => assert_eq(n, 0),
+        Err(_) => assert(false, "empty table"),
+    }
+    match parse("a,b\n1,2") {
+        Ok(rows) => {
+            match require_empty(rows) {
+                Ok(_) => assert(false, "rows must Err"),
+                Err(msg) => assert(strings.contains(msg, "empty"), "mentions empty"),
+            }
+        },
+        Err(_) => assert(false, "parse rows"),
     }
 }

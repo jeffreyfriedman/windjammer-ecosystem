@@ -15,6 +15,7 @@ use crate::nosniff
 use crate::frame_options
 use crate::referrer_of
 use crate::require_nosniff
+use crate::require_frame_deny
 use crate::referrer_policy
 use crate::security_header_lines
 use crate::with_csp
@@ -232,5 +233,17 @@ fn test_require_nosniff() {
     match require_nosniff(cleared) {
         Ok(_) => assert(false, "cleared must Err"),
         Err(msg) => assert(strings.contains(msg, "nosniff"), "mentions nosniff"),
+    }
+}
+
+@test
+fn test_require_frame_deny() {
+    match require_frame_deny(defaults()) {
+        Ok(h) => assert(is_frame_deny(h), "deny"),
+        Err(_) => assert(false, "defaults deny"),
+    }
+    match require_frame_deny(with_frame_options(defaults(), "SAMEORIGIN")) {
+        Ok(_) => assert(false, "sameorigin must Err"),
+        Err(msg) => assert(strings.contains(msg, "deny"), "mentions deny"),
     }
 }

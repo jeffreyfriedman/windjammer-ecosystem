@@ -124,6 +124,14 @@ pub fn is_frame_deny(headers: SecurityHeaders) -> bool {
     headers.frame_options == "DENY"
 }
 
+/// `Ok(headers)` when `X-Frame-Options` is `DENY`, otherwise `Err`.
+pub fn require_frame_deny(headers: SecurityHeaders) -> Result<SecurityHeaders, string> {
+    if is_frame_deny(headers) {
+        return Ok(headers)
+    }
+    Err("expected frame deny")
+}
+
 /// Return `headers` with `referrer_policy` set.
 pub fn with_referrer(headers: SecurityHeaders, policy: string) -> SecurityHeaders {
     let mut out = headers

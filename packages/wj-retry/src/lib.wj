@@ -158,6 +158,14 @@ pub fn is_default_backoff(backoff: Backoff) -> bool {
     backoff.initial_ms == 100 && backoff.multiplier == 2 && backoff.max_ms == 30000
 }
 
+/// `Ok(backoff)` when it matches the defaults, otherwise `Err`.
+pub fn require_default_backoff(backoff: Backoff) -> Result<Backoff, string> {
+    if is_default_backoff(backoff) {
+        return Ok(backoff)
+    }
+    Err("expected default backoff")
+}
+
 /// True when `attempt` is the first try (0-based).
 pub fn is_first_attempt(attempt: int) -> bool {
     attempt == 0

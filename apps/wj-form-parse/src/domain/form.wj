@@ -143,6 +143,15 @@ pub fn last_field_name(fields: Vec<(string, string)>) -> Option<string> {
     Some(pair.0)
 }
 
+/// The sought value when any field equals it.
+pub fn require_value(fields: Vec<(string, string)>, value: string) -> Result<string, string> {
+    if has_value(fields, value) {
+        Ok(value)
+    } else {
+        Err("expected value")
+    }
+}
+
 /// True when any field value equals `value`.
 pub fn has_value(fields: Vec<(string, string)>, value: string) -> bool {
     let mut i = 0

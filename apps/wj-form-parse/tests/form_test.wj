@@ -10,6 +10,7 @@ use crate::domain::require_blank
 use crate::domain::require_empty
 use crate::domain::require_first
 use crate::domain::require_last
+use crate::domain::require_value
 use crate::domain::require_fields
 use crate::domain::require_field
 use std::strings
@@ -182,5 +183,16 @@ fn test_require_last() {
     match require_last(empty) {
         Ok(_) => assert(false, "empty must Err"),
         Err(msg) => assert(strings.contains(msg, "last"), "mentions last"),
+    }
+}
+
+fn test_require_value() {
+    match require_value(sample_fields(), "Hello") {
+        Ok(v) => assert_eq(v, "Hello"),
+        Err(_) => assert(false, "Hello present"),
+    }
+    match require_value(sample_fields(), "missing") {
+        Ok(_) => assert(false, "missing must Err"),
+        Err(msg) => assert(strings.contains(msg, "value"), "mentions value"),
     }
 }

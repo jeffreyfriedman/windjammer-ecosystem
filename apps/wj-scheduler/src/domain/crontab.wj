@@ -88,6 +88,14 @@ pub fn has_exprs(exprs: Vec<string>) -> bool {
     expr_count(exprs) > 0
 }
 
+/// First expression, or an error when the list is empty.
+pub fn require_first(exprs: Vec<string>) -> Result<string, string> {
+    match first_expr(exprs) {
+        Some(e) => Ok(e),
+        None => Err("expected first"),
+    }
+}
+
 /// First expression, or None when empty.
 pub fn first_expr(exprs: Vec<string>) -> Option<string> {
     if exprs.len() == 0 {

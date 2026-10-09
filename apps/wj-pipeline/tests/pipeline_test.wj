@@ -8,6 +8,7 @@ use crate::domain::pipeline::has_results
 use crate::domain::pipeline::is_empty_results
 use crate::domain::pipeline::max_result_value
 use crate::domain::pipeline::min_result_value
+use crate::domain::pipeline::require_by_id
 use crate::domain::pipeline::require_empty_results
 use crate::domain::pipeline::require_only_result
 use crate::domain::pipeline::result_count
@@ -119,6 +120,17 @@ fn test_require_empty_results() {
     match require_empty_results(sample_results()) {
         Ok(_) => assert(false, "sample must Err"),
         Err(msg) => assert(strings.contains(msg, "empty"), "mentions empty"),
+    }
+}
+
+fn test_require_by_id() {
+    match require_by_id(sample_results(), 1) {
+        Ok(r) => assert_eq(r.value, 6),
+        Err(_) => assert(false, "id 1"),
+    }
+    match require_by_id(sample_results(), 9) {
+        Ok(_) => assert(false, "missing must Err"),
+        Err(msg) => assert(strings.contains(msg, "result"), "mentions result"),
     }
 }
 

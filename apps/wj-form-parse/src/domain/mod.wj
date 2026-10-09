@@ -9,6 +9,7 @@ pub use form::format_fields
 pub use form::has_blank_value
 pub use form::has_field
 pub use form::has_value
+pub use form::require_value
 pub use form::is_empty_fields
 pub use form::require_empty
 pub use form::require_blank

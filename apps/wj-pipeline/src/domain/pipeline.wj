@@ -60,6 +60,14 @@ pub fn max_result_value(results: Vec<JobResult>) -> int {
     max
 }
 
+/// The result with `id`, or an error when it is missing.
+pub fn require_by_id(results: Vec<JobResult>, id: int) -> Result<JobResult, string> {
+    match find_result_by_id(results, id) {
+        Some(r) => Ok(r),
+        None => Err("expected result"),
+    }
+}
+
 pub fn find_result_by_id(results: Vec<JobResult>, id: int) -> Option<JobResult> {
     for r in results {
         if r.id == id {

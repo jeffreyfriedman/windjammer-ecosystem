@@ -10,6 +10,7 @@ use crate::new_backoff
 use crate::retry_delay
 use crate::require_exhausted
 use crate::require_first
+use crate::require_default_backoff
 use crate::should_retry
 use crate::total_delay_ms
 use crate::pause_ms
@@ -217,5 +218,16 @@ fn test_require_exhausted() {
     match require_exhausted(0, 3) {
         Ok(_) => assert(false, "retries left must Err"),
         Err(msg) => assert(strings.contains(msg, "exhausted"), "mentions exhausted"),
+    }
+}
+
+fn test_require_default_backoff() {
+    match require_default_backoff(default_backoff()) {
+        Ok(b) => assert(is_default_backoff(b), "default"),
+        Err(_) => assert(false, "default ok"),
+    }
+    match require_default_backoff(new_backoff(1, 2, 3)) {
+        Ok(_) => assert(false, "custom must Err"),
+        Err(msg) => assert(strings.contains(msg, "default"), "mentions default"),
     }
 }

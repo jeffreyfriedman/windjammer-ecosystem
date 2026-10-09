@@ -23,6 +23,7 @@ use crate::sub_secs
 use crate::to_epoch_secs
 use crate::year_of
 use crate::require_midnight
+use crate::require_leap
 use std::strings
 
 @test
@@ -419,5 +420,17 @@ fn test_require_midnight() {
     match require_midnight(sample_zulu()) {
         Ok(_) => assert(false, "noon must Err"),
         Err(msg) => assert(strings.contains(msg, "midnight"), "mentions midnight"),
+    }
+}
+
+@test
+fn test_require_leap() {
+    match require_leap(2024) {
+        Ok(year) => assert(is_leap_year(year), "leap"),
+        Err(_) => assert(false, "2024 leap"),
+    }
+    match require_leap(2023) {
+        Ok(_) => assert(false, "2023 must Err"),
+        Err(msg) => assert(strings.contains(msg, "leap"), "mentions leap"),
     }
 }

@@ -10,6 +10,7 @@ use crate::is_basic_auth_header
 use crate::is_bearer_auth_header
 use crate::is_padded
 use crate::require_basic
+use crate::require_bearer
 use crate::require_padded
 use crate::require_unpadded
 use crate::has_padding
@@ -180,5 +181,17 @@ fn test_require_unpadded() {
     match require_unpadded("SGVsbG8=") {
         Ok(_) => assert(false, "padded must Err"),
         Err(msg) => assert(strings.contains(msg, "unpadded"), "mentions unpadded"),
+    }
+}
+
+@test
+fn test_require_bearer() {
+    match require_bearer(bearer_auth_header("abc")) {
+        Ok(header) => assert(is_bearer_auth_header(header), "bearer"),
+        Err(_) => assert(false, "bearer ok"),
+    }
+    match require_bearer(basic_auth_header("u", "p")) {
+        Ok(_) => assert(false, "basic must Err"),
+        Err(msg) => assert(strings.contains(msg, "bearer"), "mentions bearer"),
     }
 }

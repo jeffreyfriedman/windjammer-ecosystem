@@ -53,6 +53,14 @@ pub fn is_bearer_auth_header(header: string) -> bool {
     strings.starts_with(strings.trim(header), "Authorization: Bearer ")
 }
 
+/// `Ok(header)` when it is a Bearer authorization line, otherwise `Err`.
+pub fn require_bearer(header: string) -> Result<string, string> {
+    if is_bearer_auth_header(header) {
+        return Ok(header)
+    }
+    Err("expected bearer")
+}
+
 /// Decode base64 text, or `default` when decoding fails.
 pub fn decode_or(text: string, default: string) -> string {
     match decode(text) {

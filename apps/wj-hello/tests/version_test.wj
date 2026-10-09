@@ -1,6 +1,7 @@
 // TDD: version string is the CI smoke contract for wj-hello.
 
 use crate::domain::crate_name
+use crate::domain::require_identity
 use crate::domain::require_smoke
 use crate::domain::require_zero_major
 use crate::domain::semver
@@ -69,5 +70,16 @@ fn test_require_smoke() {
     match require_smoke() {
         Ok(line) => assert_eq(line, "wj-hello 0.1.0"),
         Err(_) => assert(false, "smoke identity"),
+    }
+}
+
+fn test_require_identity() {
+    match require_identity("wj-hello", "0.1.0") {
+        Ok(line) => assert_eq(line, "wj-hello 0.1.0"),
+        Err(_) => assert(false, "exact identity"),
+    }
+    match require_identity("other", "0.1.0") {
+        Ok(_) => assert(false, "wrong crate must Err"),
+        Err(msg) => assert(strings.contains(msg, "identity"), "mentions identity"),
     }
 }

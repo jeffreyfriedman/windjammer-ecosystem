@@ -1,4 +1,5 @@
 use crate::domain::default_backoff
+use crate::domain::require_attempt
 use crate::domain::require_retryable
 use crate::domain::retryable_status
 use std::strings
@@ -53,5 +54,16 @@ fn test_require_retryable() {
     match require_retryable(404) {
         Ok(_) => assert(false, "404 must Err"),
         Err(msg) => assert(strings.contains(msg, "retryable"), "mentions retryable"),
+    }
+}
+
+fn test_require_attempt() {
+    match require_attempt(0, 3) {
+        Ok(n) => assert_eq(n, 0),
+        Err(_) => assert(false, "first attempt"),
+    }
+    match require_attempt(3, 3) {
+        Ok(_) => assert(false, "past max must Err"),
+        Err(msg) => assert(strings.contains(msg, "attempt"), "mentions attempt"),
     }
 }

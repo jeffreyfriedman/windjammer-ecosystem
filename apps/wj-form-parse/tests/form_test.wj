@@ -8,6 +8,7 @@ use crate::domain::has_field
 use crate::domain::parse_form_fields
 use crate::domain::require_blank
 use crate::domain::require_empty
+use crate::domain::require_first
 use crate::domain::require_fields
 use crate::domain::require_field
 use std::strings
@@ -156,5 +157,17 @@ fn test_require_empty() {
     match require_empty(sample_fields()) {
         Ok(_) => assert(false, "sample must Err"),
         Err(msg) => assert(strings.contains(msg, "empty"), "mentions empty"),
+    }
+}
+
+fn test_require_first() {
+    match require_first(sample_fields()) {
+        Ok(name) => assert_eq(name, "title"),
+        Err(_) => assert(false, "first field"),
+    }
+    let empty: Vec<(string, string)> = Vec::new()
+    match require_first(empty) {
+        Ok(_) => assert(false, "empty must Err"),
+        Err(msg) => assert(strings.contains(msg, "first"), "mentions first"),
     }
 }

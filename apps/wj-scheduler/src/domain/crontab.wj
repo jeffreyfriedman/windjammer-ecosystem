@@ -96,6 +96,14 @@ pub fn first_expr(exprs: Vec<string>) -> Option<string> {
     Some(exprs[0])
 }
 
+/// Last expression, or an error when the list is empty.
+pub fn require_last(exprs: Vec<string>) -> Result<string, string> {
+    match last_expr(exprs) {
+        Some(e) => Ok(e),
+        None => Err("expected last"),
+    }
+}
+
 /// Last expression, or None when empty.
 pub fn last_expr(exprs: Vec<string>) -> Option<string> {
     let n = exprs.len()

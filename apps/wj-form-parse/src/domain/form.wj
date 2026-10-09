@@ -125,6 +125,14 @@ pub fn first_field_name(fields: Vec<(string, string)>) -> Option<string> {
     Some(pair.0)
 }
 
+/// Name of the last field, or an error when the list is empty.
+pub fn require_last(fields: Vec<(string, string)>) -> Result<string, string> {
+    match last_field_name(fields) {
+        Some(name) => Ok(name),
+        None => Err("expected last field"),
+    }
+}
+
 /// Name of the last field, or None when empty.
 pub fn last_field_name(fields: Vec<(string, string)>) -> Option<string> {
     let n = fields.len()

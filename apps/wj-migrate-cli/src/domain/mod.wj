@@ -20,6 +20,7 @@ pub use format::format_status_result
 pub use format::has_pending
 pub use format::is_caught_up
 pub use format::last_applied
+pub use format::require_last_applied
 pub use format::only_pending
 pub use format::require_only_pending
 pub use format::require_caught_up

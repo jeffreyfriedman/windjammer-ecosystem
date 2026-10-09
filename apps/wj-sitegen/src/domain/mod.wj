@@ -9,6 +9,7 @@ pub use render::html_output_path
 pub use render::has_pages
 pub use render::is_empty_pages
 pub use render::is_html_path
+pub use render::require_html_path
 pub use render::is_markdown_path
 pub use render::only_page
 pub use render::require_only_page

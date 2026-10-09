@@ -51,6 +51,15 @@ pub fn is_safe_method(method: string) -> bool {
     method == "GET" || method == "HEAD"
 }
 
+/// Method name when it mutates server state.
+pub fn require_mutating(method: string) -> Result<string, string> {
+    if is_mutating_method(method) {
+        Ok(method)
+    } else {
+        Err("expected mutating method")
+    }
+}
+
 /// True for methods that mutate server state when forwarded.
 pub fn is_mutating_method(method: string) -> bool {
     let method = own(method)

@@ -4,6 +4,7 @@ use crate::domain::ForwardResult
 use crate::domain::can_forward_method
 use crate::domain::is_mutating_method
 use crate::domain::is_safe_method
+use crate::domain::require_mutating
 use crate::domain::require_safe_method
 use std::strings
 
@@ -143,6 +144,17 @@ fn test_safe_and_mutating_methods() {
     assert(is_mutating_method("PATCH"), "PATCH mut")
     assert(is_mutating_method("DELETE"), "DELETE mut")
     assert(!is_mutating_method("GET"), "GET not mut")
+}
+
+fn test_require_mutating() {
+    match require_mutating("POST") {
+        Ok(method) => assert_eq(method, "POST"),
+        Err(_) => assert(false, "POST mutating"),
+    }
+    match require_mutating("GET") {
+        Ok(_) => assert(false, "GET must Err"),
+        Err(msg) => assert(strings.contains(msg, "mutating"), "mentions mutating"),
+    }
 }
 
 fn test_put_proxy_records_method_in_logs() {

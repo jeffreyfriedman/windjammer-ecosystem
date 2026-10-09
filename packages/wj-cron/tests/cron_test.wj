@@ -8,6 +8,7 @@ use crate::every_minute
 use crate::is_every_day
 use crate::require_cron
 use crate::require_every_day
+use crate::require_every_hour
 use crate::format_cron
 use crate::is_every_hour
 use crate::is_every_minute
@@ -454,5 +455,16 @@ fn test_require_every_day() {
     match require_every_day(every_hour()) {
         Ok(_) => assert(false, "hourly must Err"),
         Err(msg) => assert(strings.contains(msg, "every day"), "mentions every day"),
+    }
+}
+
+fn test_require_every_hour() {
+    match require_every_hour(every_hour()) {
+        Ok(source) => assert_eq(source, "0 * * * *"),
+        Err(_) => assert(false, "hourly"),
+    }
+    match require_every_hour(every_day()) {
+        Ok(_) => assert(false, "daily must Err"),
+        Err(msg) => assert(strings.contains(msg, "every hour"), "mentions every hour"),
     }
 }

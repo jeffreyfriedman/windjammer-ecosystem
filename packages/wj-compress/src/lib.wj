@@ -85,6 +85,14 @@ pub fn is_gzip_encoding(content_encoding: string) -> bool {
     strings.to_lower(strings.trim(content_encoding)) == "gzip"
 }
 
+/// `Ok("gzip")` when `content_encoding` is gzip, otherwise `Err`.
+pub fn require_gzip_encoding(content_encoding: string) -> Result<string, string> {
+    if is_gzip_encoding(content_encoding) {
+        return Ok("gzip")
+    }
+    Err("expected gzip encoding")
+}
+
 /// True when a `Content-Encoding` value is identity.
 pub fn is_identity_encoding(content_encoding: string) -> bool {
     strings.to_lower(strings.trim(content_encoding)) == "identity"

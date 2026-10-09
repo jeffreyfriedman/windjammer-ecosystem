@@ -16,6 +16,7 @@ use crate::negotiate_or_identity
 use crate::prefer_gzip
 use crate::prefer_identity
 use crate::require_gzip
+use crate::require_gzip_encoding
 use crate::require_identity
 use crate::require_min_bytes
 use crate::should_compress
@@ -206,5 +207,17 @@ fn test_require_identity() {
     match require_identity("gzip") {
         Ok(_) => assert(false, "gzip must Err"),
         Err(msg) => assert(strings.contains(msg, "identity"), "mentions identity"),
+    }
+}
+
+@test
+fn test_require_gzip_encoding() {
+    match require_gzip_encoding(" gzip ") {
+        Ok(v) => assert_eq(v, "gzip"),
+        Err(_) => assert(false, "gzip encoding"),
+    }
+    match require_gzip_encoding("identity") {
+        Ok(_) => assert(false, "identity must Err"),
+        Err(msg) => assert(strings.contains(msg, "gzip"), "mentions gzip"),
     }
 }

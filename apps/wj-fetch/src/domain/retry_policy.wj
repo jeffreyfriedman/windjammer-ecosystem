@@ -57,6 +57,15 @@ pub fn pause_ms_for_attempt(attempt: int) -> int {
     backoff_delay(default_backoff(), attempt)
 }
 
+/// Status when another fetch attempt should be made.
+pub fn require_retry(status: u16, attempt: int, max_attempts: int) -> Result<u16, string> {
+    if should_retry_fetch(status, attempt, max_attempts) {
+        Ok(status)
+    } else {
+        Err("expected retry")
+    }
+}
+
 pub fn should_retry_fetch(status: u16, attempt: int, max_attempts: int) -> bool {
     if !retryable_status(status) {
         return false

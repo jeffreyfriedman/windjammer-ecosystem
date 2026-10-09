@@ -9,6 +9,7 @@ pub use find::hit_count
 pub use find::is_empty_hits
 pub use find::require_empty
 pub use find::last_hit
+pub use find::require_last
 pub use find::only_hit
 pub use find::require_first_hit
 pub use find::require_hits

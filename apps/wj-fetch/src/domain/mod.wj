@@ -31,6 +31,7 @@ pub use retry_policy::retryable_status
 pub use retry_policy::require_attempt
 pub use retry_policy::should_attempt
 pub use retry_policy::backoff_delay
+pub use retry_policy::require_retry
 pub use retry_policy::should_retry_fetch
 pub use retry_policy::pause_ms_for_attempt
 pub use run::run_fetch

@@ -14,6 +14,7 @@ use crate::only_program_name
 use crate::program_name
 use crate::require_first_positional
 use crate::require_no_help
+use crate::require_program
 use crate::require_long_flag_value
 use crate::require_positional_count
 use crate::has_long_flag
@@ -262,5 +263,16 @@ fn test_program_name_and_require_no_help() {
     match require_no_help(help_args) {
         Ok(_) => assert(false, "help must Err"),
         Err(msg) => assert(strings.contains(msg, "help"), "mentions help"),
+    }
+}
+
+fn test_require_program() {
+    match require_program(sample_args()) {
+        Ok(name) => assert_eq(name, "my-app"),
+        Err(_) => assert(false, "program present"),
+    }
+    match require_program(Vec::new()) {
+        Ok(_) => assert(false, "empty must Err"),
+        Err(msg) => assert(strings.contains(msg, "program"), "mentions program"),
     }
 }

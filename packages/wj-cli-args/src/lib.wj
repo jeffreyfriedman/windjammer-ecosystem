@@ -222,6 +222,14 @@ pub fn program_name(args: Vec<string>) -> Option<string> {
     Some(args[0])
 }
 
+/// Program name, or `Err` when argv is empty.
+pub fn require_program(args: Vec<string>) -> Result<string, string> {
+    match program_name(args) {
+        Some(name) => Ok(name),
+        None => Err("expected program"),
+    }
+}
+
 /// Argument count when `--help` is absent, otherwise `Err`.
 pub fn require_no_help(args: Vec<string>) -> Result<int, string> {
     if has_help_flag(args) {

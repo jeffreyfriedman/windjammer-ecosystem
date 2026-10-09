@@ -193,6 +193,14 @@ pub fn require_hsts(headers: SecurityHeaders) -> Result<SecurityHeaders, string>
     Err("expected hsts")
 }
 
+/// `X-Content-Type-Options` value when it is `nosniff`.
+pub fn require_nosniff(headers: SecurityHeaders) -> Result<string, string> {
+    if has_nosniff(headers) {
+        return Ok(content_type_of(headers))
+    }
+    Err("expected nosniff")
+}
+
 /// CSP policy when one is configured.
 pub fn require_csp(headers: SecurityHeaders) -> Result<string, string> {
     if has_csp(headers) {

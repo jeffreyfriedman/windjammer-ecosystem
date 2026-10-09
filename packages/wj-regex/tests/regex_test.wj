@@ -12,6 +12,7 @@ use crate::none_match
 use crate::replace
 use crate::replace_all
 use crate::require_match
+use crate::require_none
 use crate::split
 use std::strings
 
@@ -206,6 +207,22 @@ fn test_require_exact_count() {
         Err(msg) => assert(strings.contains(msg, "exact"), "mentions exact"),
     }
     match require_exact_count("(", "abc", 0) {
+        Ok(_) => assert(false, "bad pattern must Err"),
+        Err(msg) => assert(strings.len(msg) > 0, "pattern error"),
+    }
+}
+
+@test
+fn test_require_none() {
+    match require_none("\\d+", "abc") {
+        Ok(n) => assert_eq(n, 0),
+        Err(_) => assert(false, "no digits"),
+    }
+    match require_none("\\d+", "a1") {
+        Ok(_) => assert(false, "digit must Err"),
+        Err(msg) => assert(strings.contains(msg, "matches"), "mentions matches"),
+    }
+    match require_none("(", "abc") {
         Ok(_) => assert(false, "bad pattern must Err"),
         Err(msg) => assert(strings.len(msg) > 0, "pattern error"),
     }

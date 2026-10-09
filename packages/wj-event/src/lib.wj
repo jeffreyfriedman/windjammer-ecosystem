@@ -163,6 +163,14 @@ pub fn is_idle(bus: EventBus) -> bool {
     !has_pending(bus)
 }
 
+/// `Ok(0)` when the bus has no queued events.
+pub fn require_idle(bus: EventBus) -> Result<int, string> {
+    if is_idle(bus) {
+        return Ok(0)
+    }
+    Err("expected idle")
+}
+
 /// Event name accessor.
 pub fn event_name(event: Event) -> string {
     event.name

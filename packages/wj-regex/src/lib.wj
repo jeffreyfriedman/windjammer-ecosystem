@@ -144,3 +144,16 @@ pub fn require_exact_count(pattern: string, text: string, n: int) -> Result<int,
         Err(e) => Err(e),
     }
 }
+
+/// `Ok(0)` when `pattern` matches nothing in `text`.
+pub fn require_none(pattern: string, text: string) -> Result<int, string> {
+    match none_match(pattern, text) {
+        Ok(yes) => {
+            if yes {
+                return Ok(0)
+            }
+            Err("expected no matches")
+        },
+        Err(e) => Err(e),
+    }
+}

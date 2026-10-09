@@ -65,6 +65,7 @@ pub use coord::latch_new
 pub use coord::once_call
 pub use coord::once_new
 pub use coord::require_idle
+pub use coord::require_closed
 pub use coord::require_open
 
 pub use pipeline::channel_sum_range

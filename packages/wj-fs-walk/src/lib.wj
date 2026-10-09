@@ -179,6 +179,19 @@ pub fn is_empty_tree(root: string) -> Result<bool, string> {
     }
 }
 
+/// `Ok(0)` when `root` has no files or subdirectories.
+pub fn require_empty_tree(root: string) -> Result<int, string> {
+    match is_empty_tree(root) {
+        Ok(yes) => {
+            if yes {
+                return Ok(0)
+            }
+            Err("expected empty")
+        },
+        Err(e) => Err(e),
+    }
+}
+
 fn path_basename(path: string) -> string {
     let parts = strings.split(path, "/")
     if parts.len() == 0 {

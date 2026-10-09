@@ -145,6 +145,14 @@ pub fn require_object(text: string) -> Result<string, string> {
     Err("expected object")
 }
 
+/// `Ok(text)` when it is a JSON array, otherwise `Err`.
+pub fn require_array(text: string) -> Result<string, string> {
+    if is_arrayish(text) {
+        return Ok(text)
+    }
+    Err("expected array")
+}
+
 /// True when valid JSON is an empty object or an empty array.
 pub fn is_empty_json(text: string) -> bool {
     is_empty_object(text) || is_empty_array(text)

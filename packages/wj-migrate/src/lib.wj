@@ -239,6 +239,14 @@ pub fn name_of_version(items: Vec<Migration>, version: int) -> Option<string> {
     None
 }
 
+/// Count when `items` is non-empty; otherwise Err.
+pub fn require_migrations(items: Vec<Migration>) -> Result<int, string> {
+    if has_migrations(items) {
+        return Ok(migration_count(items))
+    }
+    Err("expected migrations")
+}
+
 /// Migration name for `version`, or Err naming the missing version.
 pub fn require_name(items: Vec<Migration>, version: int) -> Result<string, string> {
     match name_of_version(items, version) {

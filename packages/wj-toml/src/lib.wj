@@ -154,6 +154,14 @@ pub fn require(text: string, key: string) -> Result<string, string> {
     }
 }
 
+/// `Ok(0)` when the document has no keys.
+pub fn require_empty(text: string) -> Result<int, string> {
+    if is_empty(text) {
+        return Ok(0)
+    }
+    Err("expected empty")
+}
+
 /// Non-empty value for `key`. Blank and missing keys are errors.
 pub fn require_nonblank(text: string, key: string) -> Result<string, string> {
     match get(text, key) {

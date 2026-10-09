@@ -56,6 +56,14 @@ pub fn first_pending(pending_versions: Vec<int>) -> Option<int> {
     Some(pending_versions[0])
 }
 
+/// Last applied version, or an error when none are applied.
+pub fn require_last_applied(applied_versions: Vec<int>) -> Result<int, string> {
+    match last_applied(applied_versions) {
+        Some(v) => Ok(v),
+        None => Err("expected last applied"),
+    }
+}
+
 /// Last applied version, or None when none applied.
 pub fn last_applied(applied_versions: Vec<int>) -> Option<int> {
     let n = applied_versions.len()

@@ -14,5 +14,6 @@ pub use form::require_empty
 pub use form::require_blank
 pub use form::require_fields
 pub use form::last_field_name
+pub use form::require_last
 pub use form::parse_form_fields
 pub use form::require_field

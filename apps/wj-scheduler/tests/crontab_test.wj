@@ -6,6 +6,7 @@ use crate::domain::expr_count
 use crate::domain::is_empty_exprs
 use crate::domain::require_empty_exprs
 use crate::domain::parse_civil
+use crate::domain::require_last
 use crate::domain::require_only
 use std::strings
 
@@ -179,5 +180,16 @@ fn test_require_only() {
     match require_only(sample_exprs()) {
         Ok(_) => assert(false, "two must Err"),
         Err(msg) => assert(strings.contains(msg, "one"), "mentions one"),
+    }
+}
+
+fn test_require_last() {
+    match require_last(sample_exprs()) {
+        Ok(e) => assert_eq(e, "*/5 * * * *"),
+        Err(_) => assert(false, "last expr"),
+    }
+    match require_last(Vec::new()) {
+        Ok(_) => assert(false, "empty must Err"),
+        Err(msg) => assert(strings.contains(msg, "last"), "mentions last"),
     }
 }

@@ -86,6 +86,14 @@ pub fn require_results(results: Vec<JobResult>) -> Result<int, string> {
     }
 }
 
+/// The sole result, or an error when the list is empty or has more than one.
+pub fn require_only_result(results: Vec<JobResult>) -> Result<JobResult, string> {
+    match only_result(results) {
+        Some(r) => Ok(r),
+        None => Err("expected one result"),
+    }
+}
+
 /// The sole result when the list has exactly one entry.
 pub fn only_result(results: Vec<JobResult>) -> Option<JobResult> {
     let mut kept = JobResult { id: 0, value: 0 }

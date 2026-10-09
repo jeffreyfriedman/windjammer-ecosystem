@@ -56,6 +56,15 @@ pub fn has_strip_prefix(cfg: ProxyConfig) -> bool {
     strings.len(cfg.strip_prefix) > 0
 }
 
+/// Zero when the request log has no ring-buffer cap.
+pub fn require_unlimited(cfg: ProxyConfig) -> Result<int, string> {
+    if is_unlimited_log(cfg) {
+        Ok(0)
+    } else {
+        Err("expected unlimited log")
+    }
+}
+
 /// True when `log_max` is 0 (no ring-buffer cap).
 pub fn is_unlimited_log(cfg: ProxyConfig) -> bool {
     cfg.log_max == 0

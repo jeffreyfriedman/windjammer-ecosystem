@@ -8,6 +8,7 @@ pub use config::has_strip_prefix
 pub use config::require_strip
 pub use config::is_limited_log
 pub use config::is_unlimited_log
+pub use config::require_unlimited
 pub use config::log_max_of
 pub use config::port_from_env
 pub use config::rate_limit_of

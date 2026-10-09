@@ -2,6 +2,7 @@ use crate::domain::format_body
 use crate::domain::is_client_error_status
 use crate::domain::is_success_status
 use crate::domain::require_client
+use crate::domain::require_info
 use crate::domain::require_redirect
 use crate::domain::require_server
 use std::strings
@@ -151,6 +152,17 @@ fn test_require_redirect() {
     match require_redirect(200) {
         Ok(_) => assert(false, "200 must Err"),
         Err(msg) => assert(strings.contains(msg, "redirect"), "mentions redirect"),
+    }
+}
+
+fn test_require_info() {
+    match require_info(100) {
+        Ok(code) => assert_eq(code, 100),
+        Err(_) => assert(false, "100 informational"),
+    }
+    match require_info(200) {
+        Ok(_) => assert(false, "200 must Err"),
+        Err(msg) => assert(strings.contains(msg, "informational"), "mentions informational"),
     }
 }
 

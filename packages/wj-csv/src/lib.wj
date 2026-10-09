@@ -48,6 +48,14 @@ pub fn is_empty(rows: Vec<Vec<string>>) -> bool {
     row_count(rows) == 0
 }
 
+/// `Ok(0)` when the table has no rows.
+pub fn require_empty(rows: Vec<Vec<string>>) -> Result<int, string> {
+    if is_empty(rows) {
+        return Ok(0)
+    }
+    Err("expected empty")
+}
+
 /// Cell at `(row, col)`, or `None` when out of bounds.
 pub fn get_cell(rows: Vec<Vec<string>>, row: int, col: int) -> Option<string> {
     if row < 0 {

@@ -249,6 +249,14 @@ pub fn is_hidden(path: string) -> bool {
     strings.starts_with(name, ".")
 }
 
+/// Ok(path) when the final segment is a dotfile, otherwise Err.
+pub fn require_hidden(path: string) -> Result<string, string> {
+    if is_hidden(path) {
+        return Ok(path)
+    }
+    Err("expected hidden")
+}
+
 /// Ok(path) when `path` is relative; otherwise Err.
 pub fn require_relative(path: string) -> Result<string, string> {
     if is_relative(path) {

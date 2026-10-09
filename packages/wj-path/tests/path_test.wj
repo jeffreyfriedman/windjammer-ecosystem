@@ -16,6 +16,7 @@ use crate::is_root
 use crate::join_path
 use crate::normalize
 use crate::require_absolute
+use crate::require_hidden
 use crate::require_stem
 use crate::stem
 use crate::without_extension
@@ -209,5 +210,17 @@ fn test_require_stem() {
     match require_stem(".") {
         Ok(_) => assert(false, "dot must Err"),
         Err(msg) => assert(strings.contains(msg, "stem"), "mentions stem"),
+    }
+}
+
+@test
+fn test_require_hidden() {
+    match require_hidden(".env") {
+        Ok(path) => assert_eq(path, ".env"),
+        Err(_) => assert(false, "dotfile"),
+    }
+    match require_hidden("readme.md") {
+        Ok(_) => assert(false, "visible must Err"),
+        Err(msg) => assert(strings.contains(msg, "hidden"), "mentions hidden"),
     }
 }

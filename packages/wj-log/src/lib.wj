@@ -127,6 +127,14 @@ pub fn require_error(level: LogLevel) -> Result<LogLevel, string> {
     Err("expected error level")
 }
 
+/// `Ok(level)` when it is the warn level, otherwise `Err`.
+pub fn require_warn(level: LogLevel) -> Result<LogLevel, string> {
+    if is_warn_level(level) {
+        return Ok(level)
+    }
+    Err("expected warn level")
+}
+
 /// Parse `text`, or return `fallback` when unknown.
 pub fn parse_level_or(text: string, fallback: LogLevel) -> LogLevel {
     match parse_level(text) {

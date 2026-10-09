@@ -212,6 +212,14 @@ pub fn is_at_limit(result: RateLimitResult) -> bool {
     result.remaining == 0
 }
 
+/// `Ok(result)` when no slots remain, otherwise `Err`.
+pub fn require_at_limit(result: RateLimitResult) -> Result<RateLimitResult, string> {
+    if is_at_limit(result) {
+        return Ok(result)
+    }
+    Err("expected at limit")
+}
+
 /// Configured request limit for `lim`.
 pub fn limit_of(lim: FixedWindow) -> int {
     lim.limit

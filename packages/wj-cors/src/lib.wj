@@ -154,6 +154,14 @@ pub fn is_wildcard_origin(allow_origin: string) -> bool {
     allow_origin == "*"
 }
 
+/// `Ok(allow_origin)` when it is `*`, otherwise `Err`.
+pub fn require_wildcard_origin(allow_origin: string) -> Result<string, string> {
+    if is_wildcard_origin(allow_origin) {
+        return Ok(allow_origin)
+    }
+    Err("expected wildcard origin")
+}
+
 /// Number of lines from `cors_header_lines`.
 pub fn cors_line_count(headers: CorsHeaders) -> int {
     let lines = cors_header_lines(headers)

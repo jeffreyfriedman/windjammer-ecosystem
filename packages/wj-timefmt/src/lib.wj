@@ -226,6 +226,14 @@ pub fn is_leap_year(year: int) -> bool {
     year % 4 == 0
 }
 
+/// `Ok(year)` when `year` is a leap year, otherwise `Err`.
+pub fn require_leap(year: int) -> Result<int, string> {
+    if is_leap_year(year) {
+        return Ok(year)
+    }
+    Err("expected leap year")
+}
+
 pub fn days_in_month(year: int, month: int) -> int {
     if month == 2 {
         if is_leap_year(year) {

@@ -166,6 +166,14 @@ pub fn is_empty_array(text: string) -> bool {
     compact(text) == "[]"
 }
 
+/// `Ok(text)` when valid JSON is an empty array, otherwise `Err`.
+pub fn require_empty_array(text: string) -> Result<string, string> {
+    if is_empty_array(text) {
+        return Ok(text)
+    }
+    Err("expected empty array")
+}
+
 /// Set JSON at a dotted object path (`user.name`). Creates intermediate objects.
 /// `value_text` is parsed as JSON. Array-index path segments are rejected.
 pub fn path_set(text: string, path: string, value_text: string) -> Result<string, string> {

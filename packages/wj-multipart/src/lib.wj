@@ -220,6 +220,15 @@ pub fn text_count(parts: Vec<Part>) -> int {
     n
 }
 
+/// Count of plain form fields when at least one exists.
+pub fn require_text(parts: Vec<Part>) -> Result<int, string> {
+    let n = text_count(parts)
+    if n > 0 {
+        return Ok(n)
+    }
+    Err("expected text")
+}
+
 /// First part name in encounter order, if any.
 pub fn first_field_name(parts: Vec<Part>) -> Option<string> {
     let names = field_names(parts)

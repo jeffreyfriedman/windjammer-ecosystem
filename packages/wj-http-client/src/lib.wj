@@ -105,6 +105,14 @@ pub fn is_error_status(status: u16) -> bool {
     status_is_client_error(status) || status_is_server_error(status)
 }
 
+/// Status when it is 4xx or 5xx.
+pub fn require_error(result: HttpResult) -> Result<u16, string> {
+    if is_error_status(result.status) {
+        return Ok(result.status)
+    }
+    Err("expected error status")
+}
+
 /// Body text when it is non-empty.
 pub fn require_body(result: HttpResult) -> Result<string, string> {
     if has_body(result) {

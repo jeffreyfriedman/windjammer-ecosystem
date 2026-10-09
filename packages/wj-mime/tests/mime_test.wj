@@ -12,6 +12,7 @@ use crate::is_audio
 use crate::is_css
 use crate::is_html
 use crate::is_image
+use crate::require_audio
 use crate::require_image
 use crate::content_type_jpeg
 use crate::is_jpeg
@@ -191,5 +192,17 @@ fn test_require_image() {
     match require_image(json()) {
         Ok(_) => assert(false, "json must Err"),
         Err(msg) => assert(strings.contains(msg, "image"), "mentions image"),
+    }
+}
+
+@test
+fn test_require_audio() {
+    match require_audio("audio/mpeg") {
+        Ok(v) => assert(is_audio(v), "mpeg is audio"),
+        Err(_) => assert(false, "mpeg"),
+    }
+    match require_audio(png()) {
+        Ok(_) => assert(false, "png must Err"),
+        Err(msg) => assert(strings.contains(msg, "audio"), "mentions audio"),
     }
 }

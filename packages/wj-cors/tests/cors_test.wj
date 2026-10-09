@@ -17,6 +17,7 @@ use crate::preflight
 use crate::preflight_defaults
 use crate::require_origin
 use crate::require_preflight
+use crate::require_wildcard
 use std::strings
 
 @test
@@ -233,5 +234,21 @@ fn test_require_preflight() {
     match require_preflight("GET") {
         Ok(_) => assert(false, "GET must Err"),
         Err(msg) => assert(strings.contains(msg, "preflight"), "mentions preflight"),
+    }
+}
+
+@test
+fn test_require_wildcard() {
+    let mut star = Vec::new()
+    star.push("*")
+    match require_wildcard(star) {
+        Ok(n) => assert_eq(n, 1),
+        Err(_) => assert(false, "star list"),
+    }
+    let mut exact = Vec::new()
+    exact.push("https://app.example.com")
+    match require_wildcard(exact) {
+        Ok(_) => assert(false, "exact list must Err"),
+        Err(msg) => assert(strings.contains(msg, "wildcard"), "mentions wildcard"),
     }
 }

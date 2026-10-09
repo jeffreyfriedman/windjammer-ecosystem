@@ -50,6 +50,15 @@ pub fn is_audio(mime_type: string) -> bool {
     mime.is_audio(mime_type)
 }
 
+/// `Ok(mime_type)` when it is an audio type, otherwise `Err`.
+pub fn require_audio(mime_type: string) -> Result<string, string> {
+    if is_audio(mime_type) {
+        Ok(mime_type)
+    } else {
+        Err("expected audio")
+    }
+}
+
 /// True for `video/*`.
 pub fn is_video(mime_type: string) -> bool {
     mime.is_video(mime_type)

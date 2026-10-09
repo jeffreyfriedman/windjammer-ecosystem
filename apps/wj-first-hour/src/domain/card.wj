@@ -79,6 +79,15 @@ pub fn has_id(card: Card) -> bool {
     strings.len(card.id) > 0
 }
 
+/// The port when config fell back to `"0"`.
+pub fn require_default_port(card: Card) -> Result<string, string> {
+    if is_default_port(card) {
+        Ok(card_port(card))
+    } else {
+        Err("expected default port")
+    }
+}
+
 /// The card id, or Err when it is empty.
 pub fn require_id(card: Card) -> Result<string, string> {
     if has_id(card) {

@@ -37,6 +37,15 @@ pub fn require_crate(name: string) -> Result<string, string> {
     }
 }
 
+/// Current semver when the major is still 0.
+pub fn require_zero_major() -> Result<string, string> {
+    if is_zero_major() {
+        Ok(semver())
+    } else {
+        Err("expected zero major")
+    }
+}
+
 /// Ok(semver) when `ver` matches this smoke app; otherwise Err.
 pub fn require_semver(ver: string) -> Result<string, string> {
     if semver() == ver {

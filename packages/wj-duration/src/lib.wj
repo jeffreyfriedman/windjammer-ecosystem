@@ -154,6 +154,14 @@ pub fn is_at_least(ms: int, bound: int) -> bool {
     ms >= bound
 }
 
+/// `Ok(ms)` when `ms` is greater than or equal to `bound`, otherwise `Err`.
+pub fn require_at_least(ms: int, bound: int) -> Result<int, string> {
+    if is_at_least(ms, bound) {
+        return Ok(ms)
+    }
+    Err("expected at least")
+}
+
 /// True when `ms` is less than or equal to `bound`.
 pub fn is_at_most(ms: int, bound: int) -> bool {
     ms <= bound

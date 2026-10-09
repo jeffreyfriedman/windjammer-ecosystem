@@ -242,6 +242,15 @@ pub fn is_every_minute(expr: CronExpr) -> bool {
     format_cron(expr) == "* * * * *"
 }
 
+/// Source text when `expr` is the every-minute schedule, otherwise `Err`.
+pub fn require_every_minute(expr: CronExpr) -> Result<string, string> {
+    if is_every_minute(expr) {
+        Ok(source_of(expr))
+    } else {
+        Err("expected every minute")
+    }
+}
+
 /// True when `expr` is the every-hour schedule (`0 * * * *`).
 pub fn is_every_hour(expr: CronExpr) -> bool {
     format_cron(expr) == "0 * * * *"

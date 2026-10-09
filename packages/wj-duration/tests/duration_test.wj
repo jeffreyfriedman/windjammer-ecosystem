@@ -18,6 +18,7 @@ use crate::parse_secs_or
 use crate::require_negative
 use crate::require_positive
 use crate::require_zero
+use crate::require_at_least
 use crate::secs_to_ms
 use crate::sub_ms
 use crate::within_ms
@@ -259,6 +260,18 @@ fn test_require_zero() {
     match require_zero(5) {
         Ok(_) => assert(false, "nonzero must Err"),
         Err(msg) => assert(strings.contains(msg, "zero"), "mentions zero"),
+    }
+}
+
+@test
+fn test_require_at_least() {
+    match require_at_least(10, 5) {
+        Ok(n) => assert_eq(n, 10),
+        Err(_) => assert(false, "at least"),
+    }
+    match require_at_least(3, 5) {
+        Ok(_) => assert(false, "below must Err"),
+        Err(msg) => assert(strings.contains(msg, "at least"), "mentions at least"),
     }
 }
 

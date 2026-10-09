@@ -16,6 +16,7 @@ use crate::require_audio
 use crate::require_html
 use crate::require_video
 use crate::require_css
+use crate::require_xml
 use crate::require_json
 use crate::require_image
 use crate::content_type_jpeg
@@ -256,5 +257,17 @@ fn test_require_css() {
     match require_css(json()) {
         Ok(_) => assert(false, "json must Err"),
         Err(msg) => assert(strings.contains(msg, "css"), "mentions css"),
+    }
+}
+
+@test
+fn test_require_xml() {
+    match require_xml(xml()) {
+        Ok(v) => assert(is_xml(v), "xml"),
+        Err(_) => assert(false, "xml ok"),
+    }
+    match require_xml(json()) {
+        Ok(_) => assert(false, "json must Err"),
+        Err(msg) => assert(strings.contains(msg, "xml"), "mentions xml"),
     }
 }

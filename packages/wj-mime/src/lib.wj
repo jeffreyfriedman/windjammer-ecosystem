@@ -195,6 +195,15 @@ pub fn is_xml(mime_type: string) -> bool {
     false
 }
 
+/// `Ok(mime_type)` when it is XML, otherwise `Err`.
+pub fn require_xml(mime_type: string) -> Result<string, string> {
+    if is_xml(mime_type) {
+        Ok(mime_type)
+    } else {
+        Err("expected xml")
+    }
+}
+
 /// True when `mime_type` is plain text (`text/plain`, optional parameters).
 pub fn is_plain(mime_type: string) -> bool {
     let trimmed = strings.trim(mime_type)

@@ -7,6 +7,7 @@ use crate::is_pascal_case
 use crate::is_slug
 use crate::is_snake_case
 use crate::is_title_case
+use crate::is_blank
 use crate::kebab_case
 use crate::pascal_case
 use crate::slugify
@@ -15,6 +16,7 @@ use crate::require_camel
 use crate::require_pascal
 use crate::require_constant
 use crate::require_title
+use crate::require_blank
 use crate::require_kebab
 use crate::title_case
 use std::strings
@@ -242,5 +244,17 @@ fn test_require_title() {
     match require_title("hello world") {
         Ok(_) => assert(false, "lower must Err"),
         Err(msg) => assert(strings.contains(msg, "title"), "mentions title"),
+    }
+}
+
+@test
+fn test_require_blank() {
+    match require_blank("   ") {
+        Ok(s) => assert(is_blank(s), "blank"),
+        Err(_) => assert(false, "blank ok"),
+    }
+    match require_blank("a") {
+        Ok(_) => assert(false, "letter must Err"),
+        Err(msg) => assert(strings.contains(msg, "blank"), "mentions blank"),
     }
 }

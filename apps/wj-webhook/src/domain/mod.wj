@@ -6,6 +6,7 @@ pub use config::WebhookConfig
 pub use config::config_from_env
 pub use config::has_allowed_origins
 pub use config::is_dev_secret
+pub use config::require_dev
 pub use config::is_production_secret
 pub use config::max_event_len_of
 pub use config::max_id_len_of

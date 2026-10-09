@@ -2,6 +2,7 @@ use crate::domain::WebhookConfig
 use crate::domain::has_allowed_origins
 use crate::domain::is_dev_secret
 use crate::domain::max_event_len_of
+use crate::domain::require_dev
 use crate::domain::require_origins
 use crate::domain::require_production
 use crate::domain::require_secret
@@ -86,5 +87,18 @@ fn test_require_production() {
     match require_production(cfg) {
         Ok(secret) => assert_eq(secret, "prod-key"),
         Err(_) => assert(false, "prod secret"),
+    }
+}
+
+fn test_require_dev() {
+    match require_dev(WebhookConfig::defaults()) {
+        Ok(secret) => assert_eq(secret, "dev-secret"),
+        Err(_) => assert(false, "default is dev"),
+    }
+    let mut cfg = WebhookConfig::defaults()
+    cfg.secret = "prod-key"
+    match require_dev(cfg) {
+        Ok(_) => assert(false, "prod must Err"),
+        Err(msg) => assert(strings.contains(msg, "dev"), "mentions dev"),
     }
 }

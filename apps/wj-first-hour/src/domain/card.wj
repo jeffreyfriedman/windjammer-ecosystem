@@ -97,6 +97,15 @@ pub fn require_id(card: Card) -> Result<string, string> {
     }
 }
 
+/// Zero when the card query string is empty.
+pub fn require_empty_query(card: Card) -> Result<int, string> {
+    if is_empty_query(card) {
+        Ok(0)
+    } else {
+        Err("expected empty query")
+    }
+}
+
 /// True when the card query string is empty.
 pub fn is_empty_query(card: Card) -> bool {
     strings.len(card.query) == 0

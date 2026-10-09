@@ -70,6 +70,15 @@ pub fn expr_count(exprs: Vec<string>) -> int {
     n
 }
 
+/// Zero when no cron expressions are present.
+pub fn require_empty_exprs(exprs: Vec<string>) -> Result<int, string> {
+    if is_empty_exprs(exprs) {
+        Ok(0)
+    } else {
+        Err("expected empty expressions")
+    }
+}
+
 pub fn is_empty_exprs(exprs: Vec<string>) -> bool {
     expr_count(exprs) == 0
 }

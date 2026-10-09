@@ -120,6 +120,22 @@ pub fn require_lower(text: string) -> Result<string, string> {
     Err("expected lower digest")
 }
 
+/// True when `text` is an uppercase SHA-256 hex digest.
+pub fn is_upper_digest(text: string) -> bool {
+    if !is_digest(text) {
+        return false
+    }
+    text == strings.to_upper(text)
+}
+
+/// `Ok(text)` when it is an uppercase SHA-256 hex digest, otherwise `Err`.
+pub fn require_upper(text: string) -> Result<string, string> {
+    if is_upper_digest(text) {
+        return Ok(text)
+    }
+    Err("expected upper digest")
+}
+
 fn is_hex_char(ch: char) -> bool {
     if ch == '0' { return true }
     if ch == '1' { return true }

@@ -67,6 +67,14 @@ pub fn is_empty_hash(hash: string) -> bool {
     strings.len(strings.trim(hash)) == 0
 }
 
+/// `Ok(hash)` when it is not blank, otherwise `Err`.
+pub fn require_nonempty(hash: string) -> Result<string, string> {
+    if is_empty_hash(hash) {
+        return Err("expected hash")
+    }
+    Ok(hash)
+}
+
 /// Bcrypt cost, or `Err` when `hash` is not bcrypt-shaped.
 pub fn require_cost(hash: string) -> Result<int, string> {
     match bcrypt_cost(hash) {

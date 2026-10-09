@@ -276,6 +276,15 @@ pub fn require_snake(text: string) -> Result<string, string> {
     }
 }
 
+/// Ok(text) when `text` is PascalCase; otherwise Err.
+pub fn require_pascal(text: string) -> Result<string, string> {
+    if is_pascal_case(text) {
+        Ok(text)
+    } else {
+        Err("expected pascal case")
+    }
+}
+
 /// Ok(text) when `text` is camelCase; otherwise Err.
 pub fn require_camel(text: string) -> Result<string, string> {
     if is_camel_case(text) {

@@ -106,6 +106,15 @@ pub fn is_html(mime_type: string) -> bool {
     false
 }
 
+/// `Ok(mime_type)` when it is HTML, otherwise `Err`.
+pub fn require_html(mime_type: string) -> Result<string, string> {
+    if is_html(mime_type) {
+        Ok(mime_type)
+    } else {
+        Err("expected html")
+    }
+}
+
 /// True when `mime_type` is the binary fallback (`application/octet-stream`).
 pub fn is_octet_stream(mime_type: string) -> bool {
     let trimmed = strings.trim(mime_type)

@@ -1,5 +1,6 @@
 use crate::parse
 use crate::require_http
+use crate::require_root
 use crate::format_url
 use crate::has_fragment
 use crate::has_port
@@ -314,5 +315,27 @@ fn test_require_http() {
             }
         },
         Err(_) => assert(false, "parse https for require"),
+    }
+}
+
+@test
+fn test_require_root() {
+    match parse("http://example.com/") {
+        Ok(u) => {
+            match require_root(u) {
+                Ok(kept) => assert(is_root_path(kept), "root"),
+                Err(_) => assert(false, "root ok"),
+            }
+        },
+        Err(_) => assert(false, "parse root"),
+    }
+    match parse("http://example.com/api") {
+        Ok(u) => {
+            match require_root(u) {
+                Ok(_) => assert(false, "path must Err"),
+                Err(msg) => assert(strings.contains(msg, "root"), "mentions root"),
+            }
+        },
+        Err(_) => assert(false, "parse path"),
     }
 }

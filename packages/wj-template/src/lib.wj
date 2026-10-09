@@ -205,6 +205,14 @@ pub fn require_placeholder(template: string) -> Result<string, string> {
     }
 }
 
+/// Last placeholder name when one exists, otherwise `Err`.
+pub fn require_last(template: string) -> Result<string, string> {
+    match last_placeholder(template) {
+        Some(name) => Ok(name),
+        None => Err("expected last"),
+    }
+}
+
 fn list_contains(items: Vec<string>, needle: string) -> bool {
     let mut i = 0
     while i < items.len() {

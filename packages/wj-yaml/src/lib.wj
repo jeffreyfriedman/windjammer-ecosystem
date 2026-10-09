@@ -163,6 +163,19 @@ pub fn require_true(text: string, path: string) -> Result<bool, string> {
     }
 }
 
+/// `Ok(false)` when the bool at `path` is false, otherwise `Err`.
+pub fn require_false(text: string, path: string) -> Result<bool, string> {
+    match require_bool(text, path) {
+        Ok(v) => {
+            if !v {
+                return Ok(false)
+            }
+            Err("expected false")
+        },
+        Err(e) => Err(e),
+    }
+}
+
 /// The path itself when that key exists.
 pub fn require_path(text: string, path: string) -> Result<string, string> {
     if has_path(text, path) {

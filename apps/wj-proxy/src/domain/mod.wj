@@ -21,5 +21,6 @@ pub use proxy::RequestLogEntry
 pub use proxy::can_forward_method
 pub use proxy::is_mutating_method
 pub use proxy::is_safe_method
+pub use proxy::require_safe_method
 pub use proxy::stripped_path
 pub use url_join::join_upstream_url

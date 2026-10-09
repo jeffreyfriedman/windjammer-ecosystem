@@ -4,6 +4,7 @@ use crate::domain::ForwardResult
 use crate::domain::can_forward_method
 use crate::domain::is_mutating_method
 use crate::domain::is_safe_method
+use crate::domain::require_safe_method
 use std::strings
 
 fn test_health_returns_ok() {
@@ -177,6 +178,17 @@ fn test_log_max_zero_keeps_all_entries() {
     assert_str_contains(listed.body, "/v1/a")
     assert_str_contains(listed.body, "/v1/b")
     assert_str_contains(listed.body, "/v1/c")
+}
+
+fn test_require_safe_method() {
+    match require_safe_method("GET") {
+        Ok(method) => assert_eq(method, "GET"),
+        Err(_) => assert(false, "GET safe"),
+    }
+    match require_safe_method("POST") {
+        Ok(_) => assert(false, "POST must Err"),
+        Err(msg) => assert(strings.contains(msg, "safe"), "mentions safe"),
+    }
 }
 
 fn default_config() -> ProxyConfig {

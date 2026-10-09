@@ -163,3 +163,11 @@ pub fn require_rectangular(rows: Vec<Vec<string>>) -> Result<int, string> {
         Err("expected rectangular csv")
     }
 }
+
+/// Cell at `(row, col)`, or `Err` when it is out of bounds.
+pub fn require_cell(rows: Vec<Vec<string>>, row: int, col: int) -> Result<string, string> {
+    match get_cell(rows, row, col) {
+        Some(v) => Ok(v),
+        None => Err("expected cell"),
+    }
+}

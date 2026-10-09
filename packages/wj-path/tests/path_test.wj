@@ -16,6 +16,7 @@ use crate::is_root
 use crate::join_path
 use crate::normalize
 use crate::require_absolute
+use crate::require_stem
 use crate::stem
 use crate::without_extension
 use crate::without_trailing_slash
@@ -196,5 +197,17 @@ fn test_require_extension() {
     match require_extension("Makefile", ".md") {
         Ok(_) => assert(false, "no ext must Err"),
         Err(msg) => assert(strings.contains(msg, "extension"), "mentions extension"),
+    }
+}
+
+@test
+fn test_require_stem() {
+    match require_stem("readme.md") {
+        Ok(name) => assert_eq(name, "readme"),
+        Err(_) => assert(false, "stem"),
+    }
+    match require_stem(".") {
+        Ok(_) => assert(false, "dot must Err"),
+        Err(msg) => assert(strings.contains(msg, "stem"), "mentions stem"),
     }
 }

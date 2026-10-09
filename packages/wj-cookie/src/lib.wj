@@ -70,6 +70,14 @@ pub fn is_empty(map: HashMap<string, string>) -> bool {
     cookie_count(map) == 0
 }
 
+/// `Ok(0)` when the cookie map has no entries, otherwise `Err`.
+pub fn require_empty(map: HashMap<string, string>) -> Result<int, string> {
+    if is_empty(map) {
+        return Ok(0)
+    }
+    Err("expected empty")
+}
+
 /// Cookie names present in a parsed Cookie header map (HashMap iteration order).
 pub fn cookie_names(map: HashMap<string, string>) -> Vec<string> {
     let mut names = Vec::new()

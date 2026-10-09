@@ -110,6 +110,15 @@ pub fn require_level(text: string) -> Result<LogLevel, string> {
     }
 }
 
+/// `level` when it meets `minimum`; otherwise Err.
+pub fn require_enabled(level: LogLevel, minimum: LogLevel) -> Result<LogLevel, string> {
+    if is_enabled(level, minimum) {
+        Ok(level)
+    } else {
+        Err("below minimum level")
+    }
+}
+
 /// Parse `text`, or return `fallback` when unknown.
 pub fn parse_level_or(text: string, fallback: LogLevel) -> LogLevel {
     match parse_level(text) {

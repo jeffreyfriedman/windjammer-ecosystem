@@ -127,3 +127,15 @@ fn test_same_severity_and_known_level() {
     assert(!is_known_level("nope"), "unknown")
     assert(!is_known_level(""), "empty")
 }
+
+fn test_require_enabled() {
+    use crate::require_enabled
+    match require_enabled(LogLevel::Error, LogLevel::Warn) {
+        Ok(level) => assert(is_error_level(level), "error passes warn"),
+        Err(_) => assert(false, "error enabled"),
+    }
+    match require_enabled(LogLevel::Debug, LogLevel::Info) {
+        Ok(_) => assert(false, "debug below info must Err"),
+        Err(msg) => assert(strings.contains(msg, "level"), "mentions level"),
+    }
+}

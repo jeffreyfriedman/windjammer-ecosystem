@@ -230,3 +230,20 @@ fn test_bounds_and_require_nonneg() {
         Err(msg) => assert(strings.contains(msg, "nonneg"), "mentions nonneg"),
     }
 }
+
+@test
+fn test_require_within() {
+    use crate::require_within
+    match require_within(50, 0, 100) {
+        Ok(n) => assert_eq(n, 50),
+        Err(_) => assert(false, "inside"),
+    }
+    match require_within(0, 0, 100) {
+        Ok(n) => assert_eq(n, 0),
+        Err(_) => assert(false, "lo bound"),
+    }
+    match require_within(101, 0, 100) {
+        Ok(_) => assert(false, "above must Err"),
+        Err(msg) => assert(strings.contains(msg, "range"), "mentions range"),
+    }
+}

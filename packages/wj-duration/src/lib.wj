@@ -127,6 +127,15 @@ pub fn require_positive(ms: int) -> Result<int, string> {
     Err("expected positive duration")
 }
 
+/// Accept `ms` only when it is inside the inclusive range.
+pub fn require_within(ms: int, lo: int, hi: int) -> Result<int, string> {
+    if within_ms(ms, lo, hi) {
+        Ok(ms)
+    } else {
+        Err("outside range")
+    }
+}
+
 /// Inclusive range check: `lo <= ms <= hi`.
 pub fn within_ms(ms: int, lo: int, hi: int) -> bool {
     ms >= lo && ms <= hi

@@ -165,6 +165,16 @@ pub fn has_retries_left(attempt: int, max_attempts: int) -> bool {
     attempts_remaining(attempt, max_attempts) > 0
 }
 
+/// Remaining tries when another attempt is allowed.
+pub fn require_retry(attempt: int, max_attempts: int) -> Result<int, string> {
+    let left = attempts_remaining(attempt, max_attempts)
+    if left == 0 {
+        Err("expected retry")
+    } else {
+        Ok(left)
+    }
+}
+
 /// How many attempts have been consumed (clamped to `max_attempts`).
 pub fn attempts_used(attempt: int, max_attempts: int) -> int {
     if max_attempts <= 0 {

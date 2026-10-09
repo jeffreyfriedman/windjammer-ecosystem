@@ -16,6 +16,7 @@ use crate::is_wildcard_origin
 use crate::preflight
 use crate::preflight_defaults
 use crate::require_origin
+use crate::require_preflight
 use std::strings
 
 @test
@@ -220,5 +221,17 @@ fn test_require_origins_and_allow_origin_of() {
     match preflight_defaults("https://app.example.com", again) {
         Some(headers) => assert_eq(allow_origin_of(headers), "https://app.example.com"),
         None => assert(false, "defaults"),
+    }
+}
+
+@test
+fn test_require_preflight() {
+    match require_preflight("options") {
+        Ok(v) => assert_eq(v, "options"),
+        Err(_) => assert(false, "options is preflight"),
+    }
+    match require_preflight("GET") {
+        Ok(_) => assert(false, "GET must Err"),
+        Err(msg) => assert(strings.contains(msg, "preflight"), "mentions preflight"),
     }
 }

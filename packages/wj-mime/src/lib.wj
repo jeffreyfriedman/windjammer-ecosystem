@@ -36,6 +36,15 @@ pub fn is_image(mime_type: string) -> bool {
     mime.is_image(mime_type)
 }
 
+/// `Ok(mime_type)` when it is an image type, otherwise `Err`.
+pub fn require_image(mime_type: string) -> Result<string, string> {
+    if is_image(mime_type) {
+        Ok(mime_type)
+    } else {
+        Err("expected image")
+    }
+}
+
 /// True for `audio/*`.
 pub fn is_audio(mime_type: string) -> bool {
     mime.is_audio(mime_type)

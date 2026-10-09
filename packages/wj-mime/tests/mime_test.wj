@@ -12,6 +12,7 @@ use crate::is_audio
 use crate::is_css
 use crate::is_html
 use crate::is_image
+use crate::require_image
 use crate::content_type_jpeg
 use crate::is_jpeg
 use crate::is_json
@@ -31,6 +32,7 @@ use crate::plain
 use crate::png
 use crate::content_type_plain
 use crate::xml
+use std::strings
 
 @test
 fn test_json_constant() {
@@ -178,4 +180,16 @@ fn test_jpeg_helpers() {
     assert(is_jpeg("image/jpeg; charset=binary"), "jpeg params")
     assert(!is_jpeg("image/png"), "not jpeg")
     assert_eq(content_type_jpeg(), "Content-Type: image/jpeg")
+}
+
+@test
+fn test_require_image() {
+    match require_image(png()) {
+        Ok(v) => assert(is_image(v), "png is image"),
+        Err(_) => assert(false, "png"),
+    }
+    match require_image(json()) {
+        Ok(_) => assert(false, "json must Err"),
+        Err(msg) => assert(strings.contains(msg, "image"), "mentions image"),
+    }
 }

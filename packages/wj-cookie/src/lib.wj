@@ -129,6 +129,14 @@ pub fn require_secure(cookie: SetCookie) -> Result<SetCookie, string> {
     Err("expected secure")
 }
 
+/// `Ok(cookie)` when the HttpOnly flag is set, otherwise `Err`.
+pub fn require_http_only(cookie: SetCookie) -> Result<SetCookie, string> {
+    if is_http_only(cookie) {
+        return Ok(cookie)
+    }
+    Err("expected http only")
+}
+
 /// True when the cookie jar has at least one cookie.
 pub fn has_cookies(map: HashMap<string, string>) -> bool {
     !is_empty(map)

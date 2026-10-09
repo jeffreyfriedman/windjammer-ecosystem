@@ -211,3 +211,30 @@ fn test_payload_and_named_helpers() {
         None => assert(false, "peek empty"),
     }
 }
+
+@test
+fn test_require_named() {
+    use crate::require_named
+    let queued = emit(new_bus(), "tick", "payload-1")
+    let peeked = peek(queued)
+    match peeked.1 {
+        Some(ev) => {
+            match require_named(ev, "tick") {
+                Ok(name) => assert_eq(name, "tick"),
+                Err(_) => assert(false, "named tick"),
+            }
+        },
+        None => assert(false, "peek"),
+    }
+    let queued2 = emit(new_bus(), "tick", "payload-1")
+    let peeked2 = peek(queued2)
+    match peeked2.1 {
+        Some(ev) => {
+            match require_named(ev, "tock") {
+                Ok(_) => assert(false, "wrong name must Err"),
+                Err(msg) => assert(strings.contains(msg, "tock"), "mentions name"),
+            }
+        },
+        None => assert(false, "peek 2"),
+    }
+}

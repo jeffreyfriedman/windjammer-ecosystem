@@ -190,3 +190,12 @@ pub fn require_payload(event: Event) -> Result<string, string> {
     }
     Err("expected event payload")
 }
+
+/// Event name when it equals `name`.
+pub fn require_named(event: Event, name: string) -> Result<string, string> {
+    if is_named(event, name) {
+        Ok(event.name)
+    } else {
+        Err("expected event: ${name}")
+    }
+}

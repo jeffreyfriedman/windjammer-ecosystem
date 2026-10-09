@@ -250,3 +250,20 @@ fn test_require_match_and_has_meta() {
         Err(msg) => assert(strings.contains(msg, "match"), "mentions match"),
     }
 }
+
+@test
+fn test_require_exact() {
+    use crate::require_exact
+    let mut paths = Vec::new()
+    paths.push("a.txt")
+    paths.push("b.md")
+    paths.push("c.md")
+    match require_exact("*.md", paths, 2) {
+        Ok(n) => assert_eq(n, 2),
+        Err(_) => assert(false, "two md"),
+    }
+    match require_exact("*.md", paths, 1) {
+        Ok(_) => assert(false, "not exactly one"),
+        Err(msg) => assert(strings.contains(msg, "exact"), "mentions exact"),
+    }
+}

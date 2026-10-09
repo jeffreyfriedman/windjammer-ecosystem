@@ -152,6 +152,15 @@ pub fn require_clean(errors: Vec<string>) -> Result<(), string> {
     }
 }
 
+/// The only error when the list has exactly one entry.
+pub fn only_error(errors: Vec<string>) -> Option<string> {
+    if errors.len() == 1 {
+        Some(errors[0])
+    } else {
+        None
+    }
+}
+
 /// Predicate form of `require_email` (no field name).
 pub fn is_email(value: string) -> bool {
     match require_email("email", value) {

@@ -97,3 +97,13 @@ pub fn require_match(pattern: string, paths: Vec<string>) -> Result<string, stri
         None => Err("no match"),
     }
 }
+
+/// Match count when it equals `n`.
+pub fn require_exact(pattern: string, paths: Vec<string>, n: int) -> Result<int, string> {
+    let count = match_count(pattern, paths)
+    if count == n {
+        Ok(count)
+    } else {
+        Err("expected exact matches")
+    }
+}

@@ -238,3 +238,11 @@ pub fn name_of_version(items: Vec<Migration>, version: int) -> Option<string> {
     }
     None
 }
+
+/// Migration name for `version`, or Err naming the missing version.
+pub fn require_name(items: Vec<Migration>, version: int) -> Result<string, string> {
+    match name_of_version(items, version) {
+        Some(name) => Ok(name),
+        None => Err("missing migration: ${version}"),
+    }
+}

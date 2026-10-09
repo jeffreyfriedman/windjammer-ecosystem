@@ -11,6 +11,7 @@ use crate::is_zero_retry
 use crate::require_allowed
 use crate::require_denied
 use crate::require_positive_window
+use crate::require_at_limit
 use crate::limit_of
 use crate::peek_fixed_window
 use crate::remaining_slots
@@ -264,5 +265,20 @@ fn test_require_denied() {
     match require_denied(denied.1) {
         Ok(ms) => assert(ms > 0, "retry after"),
         Err(_) => assert(false, "denied"),
+    }
+}
+
+@test
+fn test_require_at_limit() {
+    let lim = fixed_window(2, 60000)
+    let first = check_fixed_window(lim, empty_bucket(), 1000)
+    match require_at_limit(first.1) {
+        Ok(_) => assert(false, "one slot left must Err"),
+        Err(msg) => assert(strings.contains(msg, "limit"), "mentions limit"),
+    }
+    let second = check_fixed_window(lim, first.0, 1000)
+    match require_at_limit(second.1) {
+        Ok(result) => assert(is_at_limit(result), "at limit"),
+        Err(_) => assert(false, "second request is at limit"),
     }
 }

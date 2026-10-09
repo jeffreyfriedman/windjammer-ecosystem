@@ -18,6 +18,7 @@ use crate::preflight_defaults
 use crate::require_origin
 use crate::require_preflight
 use crate::require_wildcard
+use crate::require_wildcard_origin
 use std::strings
 
 @test
@@ -249,6 +250,18 @@ fn test_require_wildcard() {
     exact.push("https://app.example.com")
     match require_wildcard(exact) {
         Ok(_) => assert(false, "exact list must Err"),
+        Err(msg) => assert(strings.contains(msg, "wildcard"), "mentions wildcard"),
+    }
+}
+
+@test
+fn test_require_wildcard_origin() {
+    match require_wildcard_origin("*") {
+        Ok(origin) => assert(is_wildcard_origin(origin), "star"),
+        Err(_) => assert(false, "star ok"),
+    }
+    match require_wildcard_origin("https://app.example.com") {
+        Ok(_) => assert(false, "exact must Err"),
         Err(msg) => assert(strings.contains(msg, "wildcard"), "mentions wildcard"),
     }
 }

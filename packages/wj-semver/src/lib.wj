@@ -179,6 +179,14 @@ pub fn is_zero_major(v: SemVer) -> bool {
     major_of(v) == 0
 }
 
+/// `Ok(v)` when the major component is zero, otherwise `Err`.
+pub fn require_zero_major(v: SemVer) -> Result<SemVer, string> {
+    if is_zero_major(v) {
+        return Ok(v)
+    }
+    Err("expected zero major")
+}
+
 /// `Ok(v)` when `v` has no prerelease, otherwise `Err`.
 pub fn require_stable(v: SemVer) -> Result<SemVer, string> {
     if is_stable(v) {

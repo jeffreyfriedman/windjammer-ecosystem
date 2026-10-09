@@ -8,6 +8,7 @@ use crate::has_path
 use crate::is_empty
 use crate::is_valid
 use crate::require_bool
+use crate::require_false
 use crate::require_true
 use crate::require_int
 use crate::require_str
@@ -268,5 +269,17 @@ fn test_require_true() {
     match require_true("active: false\n", "active") {
         Ok(_) => assert(false, "false must Err"),
         Err(msg) => assert(strings.contains(msg, "true"), "mentions true"),
+    }
+}
+
+@test
+fn test_require_false() {
+    match require_false("active: false\n", "active") {
+        Ok(v) => assert(!v, "false"),
+        Err(_) => assert(false, "false ok"),
+    }
+    match require_false("active: true\n", "active") {
+        Ok(_) => assert(false, "true must Err"),
+        Err(msg) => assert(strings.contains(msg, "false"), "mentions false"),
     }
 }

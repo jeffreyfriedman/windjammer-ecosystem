@@ -15,6 +15,8 @@ use crate::match_count
 use crate::none_match
 use crate::require_none
 use crate::require_all
+use crate::require_one
+use crate::require_at_most
 use std::strings
 
 @test
@@ -329,5 +331,41 @@ fn test_require_all() {
     match require_all("*.md", miss) {
         Ok(_) => assert(false, "txt must Err"),
         Err(msg) => assert(strings.contains(msg, "all"), "mentions all"),
+    }
+}
+
+@test
+fn test_require_one() {
+    let mut one = Vec::new()
+    one.push("a.txt")
+    one.push("b.md")
+    match require_one("*.md", one) {
+        Ok(n) => assert_eq(n, 1),
+        Err(_) => assert(false, "one md"),
+    }
+    let mut two = Vec::new()
+    two.push("a.md")
+    two.push("b.md")
+    match require_one("*.md", two) {
+        Ok(_) => assert(false, "two must Err"),
+        Err(msg) => assert(strings.contains(msg, "one"), "mentions one"),
+    }
+}
+
+@test
+fn test_require_at_most() {
+    let mut paths = Vec::new()
+    paths.push("a.md")
+    paths.push("b.txt")
+    match require_at_most("*.md", paths, 1) {
+        Ok(n) => assert_eq(n, 1),
+        Err(_) => assert(false, "one md"),
+    }
+    let mut many = Vec::new()
+    many.push("a.md")
+    many.push("b.md")
+    match require_at_most("*.md", many, 1) {
+        Ok(_) => assert(false, "two must Err"),
+        Err(msg) => assert(strings.contains(msg, "at most"), "mentions at most"),
     }
 }

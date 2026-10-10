@@ -20,6 +20,8 @@ use crate::require_created
 use crate::require_not_found
 use crate::require_unauthorized
 use crate::require_no_content
+use crate::require_redirect
+use crate::require_success
 use crate::error_message
 use crate::from_parts
 use std::strings
@@ -186,5 +188,27 @@ fn test_require_no_content() {
     match require_no_content(200) {
         Ok(_) => assert(false, "ok must Err"),
         Err(msg) => assert(strings.contains(msg, "no content"), "mentions no content"),
+    }
+}
+
+fn test_require_redirect() {
+    match require_redirect(301) {
+        Ok(status) => assert(status_is_redirect(status), "redirect"),
+        Err(_) => assert(false, "301 ok"),
+    }
+    match require_redirect(200) {
+        Ok(_) => assert(false, "ok must Err"),
+        Err(msg) => assert(strings.contains(msg, "redirect"), "mentions redirect"),
+    }
+}
+
+fn test_require_success() {
+    match require_success(204) {
+        Ok(status) => assert(status_is_success(status), "success"),
+        Err(_) => assert(false, "204 ok"),
+    }
+    match require_success(404) {
+        Ok(_) => assert(false, "missing must Err"),
+        Err(msg) => assert(strings.contains(msg, "success"), "mentions success"),
     }
 }

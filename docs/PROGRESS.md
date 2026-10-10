@@ -4,6 +4,8 @@ Weekly build health for seed apps and packages.
 
 | Week | Date | Apps / packages green | `extern fn` | Crates via interop | Compiler issues | Notes |
 |------|------|----------------------|-------------|--------------------|-----------------|-------|
+| 2 | 2026-10-10 | deepen `wj-http-client`/`wj-glob`/`wj-querystring` | 0 | 0 | private CARGO_HOME | `require_success`, `require_at_most`, `require_first_key`; tip **18+31+27** green |
+| 2 | 2026-10-10 | deepen `wj-http-client`/`wj-glob`/`wj-querystring` | 0 | 0 | private CARGO_HOME | `require_redirect`, `require_one`, `require_last_key`; tip **17+30+26** green |
 | 2 | 2026-10-10 | deepen `wj-http-client`/`wj-glob`/`wj-duration` | 0 | 0 | private CARGO_HOME | `require_no_content`, `require_all`, `require_outside`; tip **16+29+30** green |
 | 2 | 2026-10-10 | deepen `wj-http-client`/`wj-base64`/`wj-glob` | 0 | 0 | private CARGO_HOME | `require_unauthorized`, `require_alphabet`, `require_none`; tip **15+20+28** green |
 | 2 | 2026-10-10 | deepen `wj-http-client`/`wj-regex`/`wj-fs-walk` | 0 | 0 | private CARGO_HOME | `require_not_found`, `require_at_least`, `require_suffix`; tip **14+19+18** green |

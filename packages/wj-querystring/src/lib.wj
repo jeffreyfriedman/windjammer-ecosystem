@@ -178,6 +178,14 @@ pub fn first_key(query: string) -> Option<string> {
     Some(ks[0])
 }
 
+/// The first unique key, or `Err` when the query is empty.
+pub fn require_first_key(query: string) -> Result<string, string> {
+    match first_key(query) {
+        Some(k) => Ok(k),
+        None => Err("expected first"),
+    }
+}
+
 /// Last unique key in parse order, if any.
 pub fn last_key(query: string) -> Option<string> {
     let ks = keys(query)
@@ -185,6 +193,14 @@ pub fn last_key(query: string) -> Option<string> {
         return None
     }
     Some(ks[ks.len() - 1])
+}
+
+/// The last unique key, or `Err` when the query is empty.
+pub fn require_last_key(query: string) -> Result<string, string> {
+    match last_key(query) {
+        Some(k) => Ok(k),
+        None => Err("expected last"),
+    }
 }
 
 /// True when the query has exactly one key/value pair.

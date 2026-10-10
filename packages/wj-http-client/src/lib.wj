@@ -50,6 +50,14 @@ pub fn status_is_no_content(status: u16) -> bool {
     status == 204
 }
 
+/// `Ok(status)` when it is `204 No Content`, otherwise `Err`.
+pub fn require_no_content(status: u16) -> Result<u16, string> {
+    if status_is_no_content(status) {
+        return Ok(status)
+    }
+    Err("expected no content")
+}
+
 /// Body length of `result`.
 pub fn body_len(result: HttpResult) -> int {
     strings.len(result.body)
@@ -73,6 +81,14 @@ pub fn status_is_informational(status: u16) -> bool {
 /// True when `status` is exactly `401 Unauthorized`.
 pub fn status_is_unauthorized(status: u16) -> bool {
     status == 401
+}
+
+/// `Ok(status)` when it is `401 Unauthorized`, otherwise `Err`.
+pub fn require_unauthorized(status: u16) -> Result<u16, string> {
+    if status_is_unauthorized(status) {
+        return Ok(status)
+    }
+    Err("expected unauthorized")
 }
 
 /// True when `status` is exactly `404 Not Found`.

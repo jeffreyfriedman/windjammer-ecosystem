@@ -135,6 +135,14 @@ pub fn outside_ms(ms: int, lo: int, hi: int) -> bool {
     !within_ms(ms, lo, hi)
 }
 
+/// Accept `ms` only when it is outside the inclusive range.
+pub fn require_outside(ms: int, lo: int, hi: int) -> Result<int, string> {
+    if outside_ms(ms, lo, hi) {
+        return Ok(ms)
+    }
+    Err("expected outside")
+}
+
 /// Accept `ms` only when positive; else return an error.
 pub fn require_positive(ms: int) -> Result<int, string> {
     if is_positive(ms) {

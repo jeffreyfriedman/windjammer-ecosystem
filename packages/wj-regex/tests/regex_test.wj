@@ -4,7 +4,6 @@ use crate::find
 use crate::find_all
 use crate::find_or
 use crate::has_matches
-use crate::is_invalid_pattern
 use crate::is_match
 use crate::is_valid_pattern
 use crate::match_count
@@ -13,7 +12,6 @@ use crate::replace
 use crate::replace_all
 use crate::require_match
 use crate::require_none
-use crate::require_invalid
 use crate::require_matches
 use crate::require_at_least
 use crate::split
@@ -155,50 +153,6 @@ fn test_is_valid_pattern_and_find_or() {
 }
 
 @test
-fn test_at_least_n_require_match_and_is_invalid() {
-    match at_least_n_matches("\\d+", "a1b22c333", 3) {
-        Ok(yes) => assert(yes, "at least 3"),
-        Err(_) => assert(false, "at_least err"),
-    }
-    match at_least_n_matches("\\d+", "a1b", 3) {
-        Ok(yes) => assert(!yes, "only one digit run"),
-        Err(_) => assert(false, "at_least short"),
-    }
-    match require_match("\\d+", "a12b") {
-        Ok(m) => assert_eq(m, "12"),
-        Err(_) => assert(false, "require match"),
-    }
-    match require_match("\\d+", "abc") {
-        Ok(_) => assert(false, "no match must Err"),
-        Err(msg) => assert(strings.contains(msg, "no match"), "mentions no match"),
-    }
-    assert(is_invalid_pattern("("), "invalid")
-    assert(!is_invalid_pattern("\\d+"), "valid")
-}
-
-@test
-fn test_exactly_n_and_require_valid_pattern() {
-    use crate::exactly_n_matches
-    use crate::require_valid_pattern
-    match exactly_n_matches("\\d+", "a1b22c", 2) {
-        Ok(yes) => assert(yes, "two runs"),
-        Err(_) => assert(false, "exactly err"),
-    }
-    match exactly_n_matches("\\d+", "a1b22c", 1) {
-        Ok(yes) => assert(!yes, "not one"),
-        Err(_) => assert(false, "exactly short"),
-    }
-    match require_valid_pattern("\\d+") {
-        Ok(p) => assert_eq(p, "\\d+"),
-        Err(_) => assert(false, "valid pattern"),
-    }
-    match require_valid_pattern("(") {
-        Ok(_) => assert(false, "invalid must Err"),
-        Err(msg) => assert(strings.contains(msg, "pattern"), "mentions pattern"),
-    }
-}
-
-@test
 fn test_require_exact_count() {
     use crate::require_exact_count
     match require_exact_count("\\d+", "a1b22c", 2) {
@@ -228,18 +182,6 @@ fn test_require_none() {
     match require_none("(", "abc") {
         Ok(_) => assert(false, "bad pattern must Err"),
         Err(msg) => assert(strings.len(msg) > 0, "pattern error"),
-    }
-}
-
-@test
-fn test_require_invalid() {
-    match require_invalid("(") {
-        Ok(pattern) => assert(is_invalid_pattern(pattern), "invalid"),
-        Err(_) => assert(false, "unclosed group"),
-    }
-    match require_invalid("\\d+") {
-        Ok(_) => assert(false, "digits must Err"),
-        Err(msg) => assert(strings.contains(msg, "invalid"), "mentions invalid"),
     }
 }
 

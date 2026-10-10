@@ -45,22 +45,6 @@ pub fn latch_is_open(latch: Latch) -> bool {
     latch.remaining <= 0
 }
 
-/// Remaining count when the latch is open, otherwise `Err`.
-pub fn require_open(latch: Latch) -> Result<int, string> {
-    if latch_is_open(latch) {
-        return Ok(latch_count(latch))
-    }
-    Err("expected open latch")
-}
-
-/// Remaining count when the latch is still closed, otherwise `Err`.
-pub fn require_closed(latch: Latch) -> Result<int, string> {
-    if !latch_is_open(latch) {
-        return Ok(latch_count(latch))
-    }
-    Err("expected closed latch")
-}
-
 pub fn latch_count(latch: Latch) -> int {
     latch.remaining
 }

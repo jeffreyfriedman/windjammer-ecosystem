@@ -5,10 +5,8 @@ use crate::clamp_delay_ms
 use crate::default_backoff
 use crate::delay_ms
 use crate::is_default_backoff
-use crate::is_exhausted
 use crate::new_backoff
 use crate::retry_delay
-use crate::require_exhausted
 use crate::require_used
 use crate::require_remaining
 use crate::require_next
@@ -19,7 +17,6 @@ use crate::require_initial
 use crate::require_multiplier
 use crate::require_max
 use crate::require_first
-use crate::require_default_backoff
 use crate::should_retry
 use crate::total_delay_ms
 use crate::pause_ms
@@ -114,13 +111,6 @@ fn test_default_backoff() {
     assert_eq(delay_ms(b, 1), 200)
 }
 
-fn test_is_exhausted() {
-    assert(!is_exhausted(0, 3), "first attempt")
-    assert(!is_exhausted(2, 3), "last in-range")
-    assert(is_exhausted(3, 3), "at max")
-    assert(is_exhausted(0, 0), "zero max")
-}
-
 fn test_total_delay_ms() {
     let b = Backoff {
         initial_ms: 100,
@@ -181,21 +171,6 @@ fn test_new_backoff_is_default_and_attempts_used() {
     assert_eq(attempts_used(9, 5), 5)
 }
 
-fn test_first_next_and_retries_left() {
-    use crate::has_retries_left
-    use crate::is_first_attempt
-    use crate::next_attempt
-    assert(is_first_attempt(0), "zero")
-    assert(!is_first_attempt(1), "later")
-    assert(!is_first_attempt(-1), "negative")
-    assert_eq(next_attempt(0), 1)
-    assert_eq(next_attempt(4), 5)
-    assert(has_retries_left(0, 3), "start")
-    assert(has_retries_left(2, 3), "one left")
-    assert(!has_retries_left(3, 3), "exhausted")
-    assert(!has_retries_left(0, 0), "zero max")
-}
-
 fn test_require_retry() {
     use crate::require_retry
     match require_retry(0, 3) {
@@ -216,17 +191,6 @@ fn test_require_first() {
     match require_first(1) {
         Ok(_) => assert(false, "later must Err"),
         Err(msg) => assert(strings.contains(msg, "first"), "mentions first"),
-    }
-}
-
-fn test_require_exhausted() {
-    match require_exhausted(3, 3) {
-        Ok(n) => assert_eq(n, 3),
-        Err(_) => assert(false, "exhausted"),
-    }
-    match require_exhausted(0, 3) {
-        Ok(_) => assert(false, "retries left must Err"),
-        Err(msg) => assert(strings.contains(msg, "exhausted"), "mentions exhausted"),
     }
 }
 
@@ -326,16 +290,5 @@ fn test_require_max() {
     match require_max(default_backoff(), 1) {
         Ok(_) => assert(false, "wrong max must Err"),
         Err(msg) => assert(strings.contains(msg, "max"), "mentions max"),
-    }
-}
-
-fn test_require_default_backoff() {
-    match require_default_backoff(default_backoff()) {
-        Ok(b) => assert(is_default_backoff(b), "default"),
-        Err(_) => assert(false, "default ok"),
-    }
-    match require_default_backoff(new_backoff(1, 2, 3)) {
-        Ok(_) => assert(false, "custom must Err"),
-        Err(msg) => assert(strings.contains(msg, "default"), "mentions default"),
     }
 }

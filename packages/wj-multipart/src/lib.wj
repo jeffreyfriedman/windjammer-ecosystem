@@ -218,11 +218,6 @@ pub fn has_file(parts: Vec<Part>, name: string) -> bool {
     }
 }
 
-/// True when `parts` has at least one part.
-pub fn has_parts(parts: Vec<Part>) -> bool {
-    !is_empty(parts)
-}
-
 /// Number of parts without a filename (plain form fields).
 pub fn text_count(parts: Vec<Part>) -> int {
     let mut n = 0
@@ -260,14 +255,6 @@ pub fn require_first_name(parts: Vec<Part>) -> Result<string, string> {
         Some(name) => Ok(name),
         None => Err("expected first"),
     }
-}
-
-/// Part count when `parts` is nonempty, otherwise `Err`.
-pub fn require_parts(parts: Vec<Part>) -> Result<int, string> {
-    if !has_parts(parts) {
-        return Err("expected parts")
-    }
-    Ok(part_count(parts))
 }
 
 /// File part named `name`, or `Err` naming the missing file field.

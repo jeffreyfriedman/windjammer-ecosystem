@@ -7,6 +7,7 @@ use crate::pending_count
 use crate::record_applied_sql
 use crate::require_migrations
 use crate::require_empty_migrations
+use crate::require_pending
 use crate::is_empty_migrations
 use crate::schema_table_sql
 use crate::select_applied_sql
@@ -270,5 +271,21 @@ fn test_require_empty_migrations() {
     match require_empty_migrations(sample_migrations()) {
         Ok(_) => assert(false, "sample must Err"),
         Err(msg) => assert(strings.contains(msg, "empty"), "mentions empty"),
+    }
+}
+
+@test
+fn test_require_pending() {
+    let mut applied = Vec::new()
+    applied.push(1)
+    match require_pending(sample_migrations(), applied, 2) {
+        Ok(version) => assert_eq(version, 2),
+        Err(_) => assert(false, "2 pending"),
+    }
+    let mut done = Vec::new()
+    done.push(1)
+    match require_pending(sample_migrations(), done, 1) {
+        Ok(_) => assert(false, "applied must Err"),
+        Err(msg) => assert(strings.contains(msg, "pending"), "mentions pending"),
     }
 }

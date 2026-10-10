@@ -21,6 +21,7 @@ use crate::require_plain
 use crate::require_javascript
 use crate::require_jpeg
 use crate::require_png
+use crate::require_text
 use crate::require_json
 use crate::require_image
 use crate::content_type_jpeg
@@ -321,5 +322,17 @@ fn test_require_png() {
     match require_png(json()) {
         Ok(_) => assert(false, "json must Err"),
         Err(msg) => assert(strings.contains(msg, "png"), "mentions png"),
+    }
+}
+
+@test
+fn test_require_text() {
+    match require_text(plain()) {
+        Ok(v) => assert(is_text(v), "text"),
+        Err(_) => assert(false, "plain is text"),
+    }
+    match require_text(png()) {
+        Ok(_) => assert(false, "png must Err"),
+        Err(msg) => assert(strings.contains(msg, "text"), "mentions text"),
     }
 }

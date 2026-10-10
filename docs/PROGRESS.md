@@ -4,6 +4,7 @@ Weekly build health for seed apps and packages.
 
 | Week | Date | Apps / packages green | `extern fn` | Crates via interop | Compiler issues | Notes |
 |------|------|----------------------|-------------|--------------------|-----------------|-------|
+| 2 | 2026-10-09 | deepen `wj-mime`/`wj-dotenv`/`wj-migrate` | 0 | 0 | private CARGO_HOME | `require_text`, `require_blank`, `require_pending`; tip **34+18+24** green |
 | 2 | 2026-10-09 | deepen `wj-rate-limit`/`wj-timefmt`/`wj-semver` | 0 | 0 | private CARGO_HOME | `require_fresh`, `require_same_year`, `require_newer`; tip **23+33+25** green |
 | 2 | 2026-10-09 | deepen `wj-timefmt`/`wj-json-util`/`wj-mime` | 0 | 0 | private CARGO_HOME | `require_same_month`, `require_empty_json`, `require_png`; tip **32+29+33** green |
 | 2 | 2026-10-09 | deepen `wj-mime`/`wj-semver`/`wj-migrate` | 0 | 0 | private CARGO_HOME | `require_jpeg`, `require_older`, `require_empty_migrations`; tip **32+24+23** green |

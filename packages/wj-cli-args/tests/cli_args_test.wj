@@ -18,6 +18,7 @@ use crate::require_program
 use crate::require_empty_args
 use crate::require_only_program
 use crate::require_positionals
+use crate::require_any_flag
 use crate::require_version
 use crate::require_long_flag_value
 use crate::require_positional_count
@@ -330,5 +331,18 @@ fn test_require_positionals() {
     match require_positionals(flags) {
         Ok(_) => assert(false, "flags only must Err"),
         Err(msg) => assert(strings.contains(msg, "positional"), "mentions positional"),
+    }
+}
+
+fn test_require_any_flag() {
+    match require_any_flag(sample_args()) {
+        Ok(n) => assert_eq(n, 1),
+        Err(_) => assert(false, "has flags"),
+    }
+    let mut prog = Vec::new()
+    prog.push("my-app")
+    match require_any_flag(prog) {
+        Ok(_) => assert(false, "program only must Err"),
+        Err(msg) => assert(strings.contains(msg, "flag"), "mentions flag"),
     }
 }

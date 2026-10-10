@@ -241,6 +241,14 @@ pub fn has_trailing_slash(path: string) -> bool {
     strings.len(path) > 0 && strings.ends_with(path, "/")
 }
 
+/// `Ok(path)` when `path` ends with `/`, otherwise `Err`.
+pub fn require_trailing(path: string) -> Result<string, string> {
+    if has_trailing_slash(path) {
+        return Ok(path)
+    }
+    Err("expected trailing slash")
+}
+
 /// True when `path` is exactly `.` (current directory).
 pub fn is_dot(path: string) -> bool {
     path == "."

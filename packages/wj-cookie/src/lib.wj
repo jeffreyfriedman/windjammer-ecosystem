@@ -137,6 +137,14 @@ pub fn is_none_same_site(cookie: SetCookie) -> bool {
     same_site_of(cookie) == "None"
 }
 
+/// `Ok(cookie)` when SameSite is None, otherwise `Err`.
+pub fn require_none(cookie: SetCookie) -> Result<SetCookie, string> {
+    if is_none_same_site(cookie) {
+        return Ok(cookie)
+    }
+    Err("expected none")
+}
+
 /// `Ok(cookie)` when the Secure flag is set, otherwise `Err`.
 pub fn require_secure(cookie: SetCookie) -> Result<SetCookie, string> {
     if is_secure(cookie) {

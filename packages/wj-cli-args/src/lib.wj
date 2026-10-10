@@ -222,6 +222,14 @@ pub fn only_program_name(args: Vec<string>) -> bool {
     arg_count(args) == 1
 }
 
+/// `Ok(1)` when argv is only the program name, otherwise `Err`.
+pub fn require_only_program(args: Vec<string>) -> Result<int, string> {
+    if only_program_name(args) {
+        return Ok(1)
+    }
+    Err("expected only program")
+}
+
 /// First argument (the program name), if any.
 pub fn program_name(args: Vec<string>) -> Option<string> {
     if args.len() == 0 {

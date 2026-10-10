@@ -229,6 +229,14 @@ pub fn is_empty_path(path: string) -> bool {
     strings.len(path) == 0
 }
 
+/// `Ok(path)` when `path` is empty, otherwise `Err`.
+pub fn require_empty_path(path: string) -> Result<string, string> {
+    if is_empty_path(path) {
+        return Ok(path)
+    }
+    Err("expected empty path")
+}
+
 pub fn has_trailing_slash(path: string) -> bool {
     strings.len(path) > 0 && strings.ends_with(path, "/")
 }

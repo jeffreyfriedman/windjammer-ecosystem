@@ -24,6 +24,8 @@ use crate::require_redirect
 use crate::require_success
 use crate::require_client_error
 use crate::require_server_error
+use crate::require_ok_status
+use crate::require_informational
 use crate::error_message
 use crate::from_parts
 use std::strings
@@ -234,5 +236,27 @@ fn test_require_server_error() {
     match require_server_error(404) {
         Ok(_) => assert(false, "client must Err"),
         Err(msg) => assert(strings.contains(msg, "server"), "mentions server"),
+    }
+}
+
+fn test_require_ok_status() {
+    match require_ok_status(200) {
+        Ok(status) => assert(status_is_ok(status), "ok status"),
+        Err(_) => assert(false, "200 ok"),
+    }
+    match require_ok_status(404) {
+        Ok(_) => assert(false, "missing must Err"),
+        Err(msg) => assert(strings.contains(msg, "ok status"), "mentions ok status"),
+    }
+}
+
+fn test_require_informational() {
+    match require_informational(100) {
+        Ok(status) => assert(status_is_informational(status), "informational"),
+        Err(_) => assert(false, "100 ok"),
+    }
+    match require_informational(200) {
+        Ok(_) => assert(false, "ok must Err"),
+        Err(msg) => assert(strings.contains(msg, "informational"), "mentions informational"),
     }
 }

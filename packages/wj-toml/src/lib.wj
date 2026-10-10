@@ -88,6 +88,14 @@ pub fn first_key(text: string) -> Option<string> {
     Some(ks[0])
 }
 
+/// The first key, or `Err` when the document is empty.
+pub fn require_first_key(text: string) -> Result<string, string> {
+    match first_key(text) {
+        Some(k) => Ok(k),
+        None => Err("expected first"),
+    }
+}
+
 /// Last key from map iteration order.
 pub fn last_key(text: string) -> Option<string> {
     let ks = keys(text)
@@ -95,6 +103,14 @@ pub fn last_key(text: string) -> Option<string> {
         return None
     }
     Some(ks[ks.len() - 1])
+}
+
+/// The last key, or `Err` when the document is empty.
+pub fn require_last_key(text: string) -> Result<string, string> {
+    match last_key(text) {
+        Some(k) => Ok(k),
+        None => Err("expected last"),
+    }
 }
 
 /// Number of values after parse (same as `key_count` for flat maps).

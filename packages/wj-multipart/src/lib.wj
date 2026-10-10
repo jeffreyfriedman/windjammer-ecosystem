@@ -181,6 +181,14 @@ pub fn require_empty(parts: Vec<Part>) -> Result<int, string> {
     Err("expected empty")
 }
 
+/// `Ok(1)` when at least one part is a file upload, otherwise `Err`.
+pub fn require_files(parts: Vec<Part>) -> Result<int, string> {
+    if file_count(parts) > 0 {
+        return Ok(1)
+    }
+    Err("expected files")
+}
+
 /// Number of parts that include a filename (file uploads).
 pub fn file_count(parts: Vec<Part>) -> int {
     let mut n = 0
@@ -244,6 +252,14 @@ pub fn first_field_name(parts: Vec<Part>) -> Option<string> {
         return None
     }
     Some(names[0])
+}
+
+/// The first part name, or `Err` when there are no parts.
+pub fn require_first_name(parts: Vec<Part>) -> Result<string, string> {
+    match first_field_name(parts) {
+        Some(name) => Ok(name),
+        None => Err("expected first"),
+    }
 }
 
 /// Part count when `parts` is nonempty, otherwise `Err`.

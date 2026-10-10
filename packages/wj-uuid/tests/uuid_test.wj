@@ -22,6 +22,7 @@ use crate::require_v4
 use crate::require_nil
 use crate::require_v1
 use crate::require_canonical
+use crate::require_v5
 use crate::require_v7
 use crate::require_valid
 use crate::require_version
@@ -310,5 +311,16 @@ fn test_require_canonical() {
     match require_canonical("550E8400-E29B-41D4-A716-446655440000") {
         Ok(_) => assert(false, "upper must Err"),
         Err(msg) => assert(strings.contains(msg, "canonical"), "mentions canonical"),
+    }
+}
+
+fn test_require_v5() {
+    match require_v5("2ed6657d-e927-568b-95e1-2665a8aea6a2") {
+        Ok(id) => assert(is_v5(id), "v5"),
+        Err(_) => assert(false, "require v5"),
+    }
+    match require_v5("04afc000-833b-11ee-83d8-123456789abc") {
+        Ok(_) => assert(false, "v1 must Err"),
+        Err(msg) => assert(strings.contains(msg, "v5"), "mentions v5"),
     }
 }

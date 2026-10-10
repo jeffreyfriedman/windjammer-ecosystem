@@ -75,6 +75,14 @@ pub fn has_pending(bus: EventBus) -> bool {
     queue_len(bus) > 0
 }
 
+/// `Ok(1)` when the bus has a queued event, otherwise `Err`.
+pub fn require_pending(bus: EventBus) -> Result<int, string> {
+    if has_pending(bus) {
+        return Ok(1)
+    }
+    Err("expected pending")
+}
+
 pub fn clear_queue(bus: EventBus) -> EventBus {
     EventBus {
         listeners: bus.listeners,

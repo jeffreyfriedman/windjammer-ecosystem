@@ -19,6 +19,7 @@ use crate::pending_count
 use crate::require_idle
 use crate::require_empty
 use crate::require_listener
+use crate::require_pending
 use crate::queue_len
 use crate::subscribe
 use crate::unsubscribe
@@ -275,5 +276,17 @@ fn test_require_listener() {
     match require_listener(new_bus(), "missing") {
         Ok(_) => assert(false, "absent must Err"),
         Err(msg) => assert(strings.contains(msg, "listener"), "mentions listener"),
+    }
+}
+
+@test
+fn test_require_pending() {
+    match require_pending(emit(new_bus(), "tick", "1")) {
+        Ok(n) => assert(n > 0, "queued"),
+        Err(_) => assert(false, "pending ok"),
+    }
+    match require_pending(new_bus()) {
+        Ok(_) => assert(false, "fresh must Err"),
+        Err(msg) => assert(strings.contains(msg, "pending"), "mentions pending"),
     }
 }

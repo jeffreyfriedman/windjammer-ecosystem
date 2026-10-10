@@ -1,6 +1,7 @@
 use crate::parse
 use crate::require_http
 use crate::require_root
+use crate::require_query
 use crate::format_url
 use crate::has_fragment
 use crate::has_port
@@ -337,5 +338,27 @@ fn test_require_root() {
             }
         },
         Err(_) => assert(false, "parse path"),
+    }
+}
+
+@test
+fn test_require_query() {
+    match parse("https://example.com/api?x=1") {
+        Ok(u) => {
+            match require_query(u) {
+                Ok(kept) => assert(has_query(kept), "query"),
+                Err(_) => assert(false, "query ok"),
+            }
+        },
+        Err(_) => assert(false, "parse query"),
+    }
+    match parse("https://example.com/api") {
+        Ok(u) => {
+            match require_query(u) {
+                Ok(_) => assert(false, "bare must Err"),
+                Err(msg) => assert(strings.contains(msg, "query"), "mentions query"),
+            }
+        },
+        Err(_) => assert(false, "parse bare"),
     }
 }

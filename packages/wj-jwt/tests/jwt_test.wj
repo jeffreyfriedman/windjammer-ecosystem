@@ -7,6 +7,7 @@ use crate::is_expired
 use crate::require_bearer
 use crate::require_email
 use crate::require_unexpired
+use crate::require_expired
 use crate::is_bearer_header
 use crate::looks_like_jwt
 use crate::require_jwt
@@ -273,5 +274,28 @@ fn test_email_of_require_email_and_is_expired() {
             }
         },
         Err(_) => assert(false, "sign_scoped"),
+    }
+}
+
+@test
+fn test_require_expired() {
+    match sign("user-1", "acme", "secret", 3600) {
+        Ok(token) => {
+            match verify(token, "secret") {
+                Ok(claims) => {
+                    let exp = expires_at(claims)
+                    match require_expired(claims, exp) {
+                        Ok(at) => assert_eq(at, exp),
+                        Err(_) => assert(false, "at exp"),
+                    }
+                    match require_expired(claims, 1) {
+                        Ok(_) => assert(false, "fresh must Err"),
+                        Err(msg) => assert(strings.contains(msg, "expired"), "mentions expired"),
+                    }
+                },
+                Err(_) => assert(false, "verify"),
+            }
+        },
+        Err(_) => assert(false, "sign"),
     }
 }

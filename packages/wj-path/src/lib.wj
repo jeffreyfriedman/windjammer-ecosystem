@@ -238,6 +238,14 @@ pub fn is_dot(path: string) -> bool {
     path == "."
 }
 
+/// `Ok(path)` when `path` is exactly `.`, otherwise `Err`.
+pub fn require_dot(path: string) -> Result<string, string> {
+    if is_dot(path) {
+        return Ok(path)
+    }
+    Err("expected dot")
+}
+
 /// True when `path` is exactly `..` (parent directory).
 pub fn is_dot_dot(path: string) -> bool {
     path == ".."

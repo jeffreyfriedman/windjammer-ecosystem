@@ -119,6 +119,14 @@ pub fn is_empty(bus: EventBus) -> bool {
     listener_count(bus) == 0
 }
 
+/// `Ok(0)` when the bus has no subscribers, otherwise `Err`.
+pub fn require_empty(bus: EventBus) -> Result<int, string> {
+    if is_empty(bus) {
+        return Ok(0)
+    }
+    Err("expected empty")
+}
+
 /// True when the bus has at least one subscriber.
 pub fn has_listeners(bus: EventBus) -> bool {
     !is_empty(bus)

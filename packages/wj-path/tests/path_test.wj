@@ -18,6 +18,7 @@ use crate::normalize
 use crate::require_absolute
 use crate::require_hidden
 use crate::require_root
+use crate::require_dot
 use crate::require_stem
 use crate::stem
 use crate::without_extension
@@ -235,5 +236,17 @@ fn test_require_root() {
     match require_root("a") {
         Ok(_) => assert(false, "relative must Err"),
         Err(msg) => assert(strings.contains(msg, "root"), "mentions root"),
+    }
+}
+
+@test
+fn test_require_dot() {
+    match require_dot(".") {
+        Ok(path) => assert(is_dot(path), "dot"),
+        Err(_) => assert(false, "current dir"),
+    }
+    match require_dot("a") {
+        Ok(_) => assert(false, "name must Err"),
+        Err(msg) => assert(strings.contains(msg, "dot"), "mentions dot"),
     }
 }

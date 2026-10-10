@@ -80,6 +80,14 @@ pub fn exactly_one_match(pattern: string, paths: Vec<string>) -> bool {
     match_count(pattern, paths) == 1
 }
 
+/// `Ok(1)` when exactly one path matches `pattern`, otherwise `Err`.
+pub fn require_one(pattern: string, paths: Vec<string>) -> Result<int, string> {
+    if exactly_one_match(pattern, paths) {
+        return Ok(1)
+    }
+    Err("expected one")
+}
+
 /// Last path that matches `pattern`, or `None`.
 pub fn last_match(pattern: string, paths: Vec<string>) -> Option<string> {
     let hits = filter(pattern, paths)
@@ -96,6 +104,14 @@ pub fn at_least_n_matches(pattern: string, paths: Vec<string>, n: int) -> bool {
 
 pub fn at_most_n_matches(pattern: string, paths: Vec<string>, n: int) -> bool {
     match_count(pattern, paths) <= n
+}
+
+/// `Ok(n)` when at most `n` paths match `pattern`, otherwise `Err`.
+pub fn require_at_most(pattern: string, paths: Vec<string>, n: int) -> Result<int, string> {
+    if at_most_n_matches(pattern, paths, n) {
+        return Ok(n)
+    }
+    Err("expected at most")
 }
 
 /// True when exactly `n` paths match `pattern`.

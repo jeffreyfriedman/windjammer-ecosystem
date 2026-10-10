@@ -17,6 +17,14 @@ pub fn status_is_success(status: u16) -> bool {
     status >= 200 && status < 300
 }
 
+/// `Ok(status)` when it is a 2xx success, otherwise `Err`.
+pub fn require_success(status: u16) -> Result<u16, string> {
+    if status_is_success(status) {
+        return Ok(status)
+    }
+    Err("expected success")
+}
+
 /// True when `status` is in the 4xx range.
 pub fn status_is_client_error(status: u16) -> bool {
     status >= 400 && status < 500
@@ -71,6 +79,14 @@ pub fn is_empty_body(result: HttpResult) -> bool {
 /// True when `status` is in the 3xx range.
 pub fn status_is_redirect(status: u16) -> bool {
     status >= 300 && status < 400
+}
+
+/// `Ok(status)` when it is a 3xx redirect, otherwise `Err`.
+pub fn require_redirect(status: u16) -> Result<u16, string> {
+    if status_is_redirect(status) {
+        return Ok(status)
+    }
+    Err("expected redirect")
 }
 
 /// True when `status` is in the 1xx range.

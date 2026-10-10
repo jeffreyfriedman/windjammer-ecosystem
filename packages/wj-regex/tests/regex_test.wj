@@ -14,6 +14,7 @@ use crate::replace_all
 use crate::require_match
 use crate::require_none
 use crate::require_invalid
+use crate::require_matches
 use crate::split
 use std::strings
 
@@ -238,5 +239,21 @@ fn test_require_invalid() {
     match require_invalid("\\d+") {
         Ok(_) => assert(false, "digits must Err"),
         Err(msg) => assert(strings.contains(msg, "invalid"), "mentions invalid"),
+    }
+}
+
+@test
+fn test_require_matches() {
+    match require_matches("\\d+", "a1") {
+        Ok(n) => assert_eq(n, 1),
+        Err(_) => assert(false, "digit"),
+    }
+    match require_matches("\\d+", "abc") {
+        Ok(_) => assert(false, "no digit must Err"),
+        Err(msg) => assert(strings.contains(msg, "matches"), "mentions matches"),
+    }
+    match require_matches("(", "abc") {
+        Ok(_) => assert(false, "bad pattern must Err"),
+        Err(msg) => assert(strings.len(msg) > 0, "pattern error"),
     }
 }

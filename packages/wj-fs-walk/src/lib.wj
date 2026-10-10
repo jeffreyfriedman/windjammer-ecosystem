@@ -110,6 +110,19 @@ pub fn has_entries(root: string) -> Result<bool, string> {
     }
 }
 
+/// `Ok(1)` when `root` contains a file or directory, otherwise `Err`.
+pub fn require_entries(root: string) -> Result<int, string> {
+    match has_entries(root) {
+        Ok(yes) => {
+            if yes {
+                return Ok(1)
+            }
+            Err("expected entries")
+        },
+        Err(e) => Err(e),
+    }
+}
+
 /// Like `walk_files`, but skips entries whose basename starts with `.`.
 pub fn walk_files_skip_hidden(root: string) -> Result<Vec<string>, string> {
     match walk_files(root) {

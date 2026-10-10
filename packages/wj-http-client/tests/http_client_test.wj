@@ -16,6 +16,7 @@ use crate::status_is_unauthorized
 use crate::status_of
 use crate::require_error
 use crate::require_ok
+use crate::require_created
 use crate::error_message
 use crate::from_parts
 use std::strings
@@ -138,5 +139,16 @@ fn test_require_error() {
     match require_error(from_parts(200, "ok")) {
         Ok(_) => assert(false, "success must Err"),
         Err(msg) => assert(strings.contains(msg, "error"), "mentions error"),
+    }
+}
+
+fn test_require_created() {
+    match require_created(201) {
+        Ok(status) => assert(status_is_created(status), "created"),
+        Err(_) => assert(false, "201"),
+    }
+    match require_created(200) {
+        Ok(_) => assert(false, "ok must Err"),
+        Err(msg) => assert(strings.contains(msg, "created"), "mentions created"),
     }
 }

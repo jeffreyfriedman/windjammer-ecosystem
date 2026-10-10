@@ -60,6 +60,19 @@ pub fn has_matches(pattern: string, text: string) -> Result<bool, string> {
     }
 }
 
+/// `Ok(1)` when `pattern` matches at least once, otherwise `Err`.
+pub fn require_matches(pattern: string, text: string) -> Result<int, string> {
+    match has_matches(pattern, text) {
+        Ok(yes) => {
+            if yes {
+                return Ok(1)
+            }
+            Err("expected matches")
+        },
+        Err(e) => Err(e),
+    }
+}
+
 /// True when `pattern` matches zero times in `text`.
 pub fn none_match(pattern: string, text: string) -> Result<bool, string> {
     match match_count(pattern, text) {

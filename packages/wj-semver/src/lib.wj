@@ -108,6 +108,14 @@ pub fn is_compatible(a: SemVer, b: SemVer) -> bool {
     a.major == b.major
 }
 
+/// `Ok(a)` when `a` and `b` share a major version, otherwise `Err`.
+pub fn require_compatible(a: SemVer, b: SemVer) -> Result<SemVer, string> {
+    if is_compatible(a, b) {
+        return Ok(a)
+    }
+    Err("expected compatible")
+}
+
 /// True when `v` has a non-empty prerelease identifier.
 pub fn has_prerelease(v: SemVer) -> bool {
     strings.len(v.pre) > 0

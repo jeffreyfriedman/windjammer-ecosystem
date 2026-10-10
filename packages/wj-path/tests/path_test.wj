@@ -17,6 +17,7 @@ use crate::join_path
 use crate::normalize
 use crate::require_absolute
 use crate::require_hidden
+use crate::require_root
 use crate::require_stem
 use crate::stem
 use crate::without_extension
@@ -222,5 +223,17 @@ fn test_require_hidden() {
     match require_hidden("readme.md") {
         Ok(_) => assert(false, "visible must Err"),
         Err(msg) => assert(strings.contains(msg, "hidden"), "mentions hidden"),
+    }
+}
+
+@test
+fn test_require_root() {
+    match require_root("/") {
+        Ok(path) => assert(is_root(path), "root"),
+        Err(_) => assert(false, "slash root"),
+    }
+    match require_root("a") {
+        Ok(_) => assert(false, "relative must Err"),
+        Err(msg) => assert(strings.contains(msg, "root"), "mentions root"),
     }
 }

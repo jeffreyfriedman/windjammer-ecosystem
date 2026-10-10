@@ -13,6 +13,7 @@ use crate::replace
 use crate::replace_all
 use crate::require_match
 use crate::require_none
+use crate::require_invalid
 use crate::split
 use std::strings
 
@@ -225,5 +226,17 @@ fn test_require_none() {
     match require_none("(", "abc") {
         Ok(_) => assert(false, "bad pattern must Err"),
         Err(msg) => assert(strings.len(msg) > 0, "pattern error"),
+    }
+}
+
+@test
+fn test_require_invalid() {
+    match require_invalid("(") {
+        Ok(pattern) => assert(is_invalid_pattern(pattern), "invalid"),
+        Err(_) => assert(false, "unclosed group"),
+    }
+    match require_invalid("\\d+") {
+        Ok(_) => assert(false, "digits must Err"),
+        Err(msg) => assert(strings.contains(msg, "invalid"), "mentions invalid"),
     }
 }

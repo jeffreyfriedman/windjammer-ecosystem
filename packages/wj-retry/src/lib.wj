@@ -85,6 +85,14 @@ pub fn require_exhausted(attempt: int, max_attempts: int) -> Result<int, string>
     Err("expected exhausted")
 }
 
+/// `Ok(n)` when the summed retry delay equals `n`, otherwise `Err`.
+pub fn require_total(backoff: Backoff, max_attempts: int, n: int) -> Result<int, string> {
+    if total_delay_ms(backoff, max_attempts) == n {
+        return Ok(n)
+    }
+    Err("expected total")
+}
+
 /// Sum of `delay_ms` for attempts `0 .. max_attempts-1` (0 when non-positive).
 pub fn total_delay_ms(backoff: Backoff, max_attempts: int) -> int {
     if max_attempts <= 0 {
@@ -190,6 +198,14 @@ pub fn require_first(attempt: int) -> Result<int, string> {
 /// The attempt index that follows `attempt`.
 pub fn next_attempt(attempt: int) -> int {
     attempt + 1
+}
+
+/// `Ok(expected)` when the following attempt index is `expected`, otherwise `Err`.
+pub fn require_next(attempt: int, expected: int) -> Result<int, string> {
+    if next_attempt(attempt) == expected {
+        return Ok(expected)
+    }
+    Err("expected next")
 }
 
 /// True when another try remains after `attempt` within `max_attempts`.

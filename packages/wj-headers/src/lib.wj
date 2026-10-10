@@ -156,6 +156,14 @@ pub fn is_same_origin_frame(headers: SecurityHeaders) -> bool {
     headers.frame_options == "SAMEORIGIN"
 }
 
+/// `Ok(headers)` when `X-Frame-Options` is `SAMEORIGIN`, otherwise `Err`.
+pub fn require_same_origin(headers: SecurityHeaders) -> Result<SecurityHeaders, string> {
+    if is_same_origin_frame(headers) {
+        return Ok(headers)
+    }
+    Err("expected same origin")
+}
+
 pub fn has_nosniff(headers: SecurityHeaders) -> bool {
     headers.content_type_options == "nosniff"
 }

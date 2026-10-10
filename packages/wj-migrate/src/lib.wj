@@ -220,6 +220,14 @@ pub fn is_empty_migrations(items: Vec<Migration>) -> bool {
     migration_count(items) == 0
 }
 
+/// `Ok(0)` when there are no migrations, otherwise `Err`.
+pub fn require_empty_migrations(items: Vec<Migration>) -> Result<int, string> {
+    if is_empty_migrations(items) {
+        return Ok(0)
+    }
+    Err("expected empty migrations")
+}
+
 /// Lowest version in `items`, or `0` when empty.
 pub fn earliest_version(items: Vec<Migration>) -> int {
     let sorted = sort_migrations(items)

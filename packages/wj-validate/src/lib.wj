@@ -109,6 +109,14 @@ pub fn has_errors(errors: Vec<string>) -> bool {
     errors.len() > 0
 }
 
+/// `Ok(1)` when `errors` is non-empty, otherwise `Err`.
+pub fn require_errors(errors: Vec<string>) -> Result<int, string> {
+    if has_errors(errors) {
+        return Ok(1)
+    }
+    Err("expected errors")
+}
+
 pub fn error_count(errors: Vec<string>) -> int {
     let mut n = 0
     for _ in errors {

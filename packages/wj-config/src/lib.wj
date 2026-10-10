@@ -131,6 +131,14 @@ pub fn values(map: HashMap<string, string>) -> Vec<string> {
     out
 }
 
+/// `Ok(1)` when every key in `needed` is present, otherwise `Err`.
+pub fn require_keys(map: HashMap<string, string>, needed: Vec<string>) -> Result<int, string> {
+    if has_keys(map, needed) {
+        return Ok(1)
+    }
+    Err("expected keys")
+}
+
 /// True when every key in `needed` is present in `map`.
 pub fn has_keys(map: HashMap<string, string>, needed: Vec<string>) -> bool {
     let mut i = 0

@@ -16,6 +16,7 @@ use crate::require_empty
 use crate::require_entries
 use crate::require_value
 use crate::require_blank
+use crate::require_keys
 use crate::key_count
 use crate::keys
 use crate::require
@@ -332,5 +333,25 @@ fn test_require_empty() {
     match require_empty(map) {
         Ok(_) => assert(false, "entries must Err"),
         Err(msg) => assert(strings.contains(msg, "empty"), "mentions empty"),
+    }
+}
+
+@test
+fn test_require_keys() {
+    let mut present = HashMap::new()
+    present.insert("HOST", "localhost")
+    let mut needed = Vec::new()
+    needed.push("HOST")
+    match require_keys(present, needed) {
+        Ok(n) => assert_eq(n, 1),
+        Err(_) => assert(false, "host present"),
+    }
+    let mut present2 = HashMap::new()
+    present2.insert("HOST", "localhost")
+    let mut missing = Vec::new()
+    missing.push("PORT")
+    match require_keys(present2, missing) {
+        Ok(_) => assert(false, "missing must Err"),
+        Err(msg) => assert(strings.contains(msg, "keys"), "mentions keys"),
     }
 }

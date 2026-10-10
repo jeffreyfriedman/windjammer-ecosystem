@@ -217,6 +217,14 @@ pub fn is_root(path: string) -> bool {
     path == "/" || strings.len(path) == 0
 }
 
+/// `Ok(path)` when `path` is `/` or empty, otherwise `Err`.
+pub fn require_root(path: string) -> Result<string, string> {
+    if is_root(path) {
+        return Ok(path)
+    }
+    Err("expected root")
+}
+
 pub fn is_empty_path(path: string) -> bool {
     strings.len(path) == 0
 }

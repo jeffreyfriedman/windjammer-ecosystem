@@ -150,6 +150,14 @@ pub fn is_equal(a: Rfc3339, b: Rfc3339) -> bool {
     compare(a, b) == 0
 }
 
+/// `Ok(a)` when `a` and `b` are the same instant, otherwise `Err`.
+pub fn require_equal(a: Rfc3339, b: Rfc3339) -> Result<Rfc3339, string> {
+    if is_equal(a, b) {
+        return Ok(a)
+    }
+    Err("expected equal")
+}
+
 /// Shift `t` by `delta` seconds (UTC epoch arithmetic).
 pub fn add_secs(t: Rfc3339, delta: int) -> Rfc3339 {
     from_epoch_secs(to_epoch_secs(t) + delta)

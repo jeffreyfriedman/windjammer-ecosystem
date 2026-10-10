@@ -19,6 +19,7 @@ use crate::require_absolute
 use crate::require_hidden
 use crate::require_root
 use crate::require_dot
+use crate::require_empty_path
 use crate::require_stem
 use crate::stem
 use crate::without_extension
@@ -248,5 +249,17 @@ fn test_require_dot() {
     match require_dot("a") {
         Ok(_) => assert(false, "name must Err"),
         Err(msg) => assert(strings.contains(msg, "dot"), "mentions dot"),
+    }
+}
+
+@test
+fn test_require_empty_path() {
+    match require_empty_path("") {
+        Ok(path) => assert(is_empty_path(path), "empty"),
+        Err(_) => assert(false, "blank path"),
+    }
+    match require_empty_path("a") {
+        Ok(_) => assert(false, "name must Err"),
+        Err(msg) => assert(strings.contains(msg, "empty"), "mentions empty"),
     }
 }

@@ -12,6 +12,7 @@ use crate::last_placeholder
 use crate::missing_count
 use crate::require_plain
 use crate::require_last
+use crate::require_missing
 use crate::require_placeholder
 use crate::missing_keys
 use crate::placeholder_count
@@ -216,5 +217,17 @@ fn test_require_last() {
     match require_last("Hello world") {
         Ok(_) => assert(false, "plain must Err"),
         Err(msg) => assert(strings.contains(msg, "last"), "mentions last"),
+    }
+}
+
+@test
+fn test_require_missing() {
+    match require_missing("Hello {{name}}!", HashMap::new()) {
+        Ok(kept) => assert(strings.contains(kept, "{{name}}"), "unbound"),
+        Err(_) => assert(false, "missing name"),
+    }
+    match require_missing("Hello {{name}}!", vars_one()) {
+        Ok(_) => assert(false, "bound must Err"),
+        Err(msg) => assert(strings.contains(msg, "missing"), "mentions missing"),
     }
 }

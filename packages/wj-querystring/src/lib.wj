@@ -109,6 +109,14 @@ pub fn pair_count(query: string) -> int {
     n
 }
 
+/// `Ok(n)` when `query` has exactly `n` pairs, otherwise `Err`.
+pub fn require_pair_count(query: string, n: int) -> Result<int, string> {
+    if pair_count(query) == n {
+        return Ok(n)
+    }
+    Err("expected pair count")
+}
+
 /// Unique keys in first-seen order.
 pub fn keys(query: string) -> Vec<string> {
     let pairs = parse(query)
@@ -142,6 +150,14 @@ pub fn unique_key_count(query: string) -> int {
         i = i + 1
     }
     n
+}
+
+/// `Ok(n)` when `query` has exactly `n` unique keys, otherwise `Err`.
+pub fn require_unique(query: string, n: int) -> Result<int, string> {
+    if unique_key_count(query) == n {
+        return Ok(n)
+    }
+    Err("expected unique")
 }
 
 /// `Ok(n)` when `key` has exactly `n` values, otherwise `Err`.

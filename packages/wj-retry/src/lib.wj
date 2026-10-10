@@ -166,14 +166,38 @@ pub fn initial_of(backoff: Backoff) -> int {
     backoff.initial_ms
 }
 
+/// `Ok(n)` when the initial delay is `n`, otherwise `Err`.
+pub fn require_initial(backoff: Backoff, n: int) -> Result<int, string> {
+    if initial_of(backoff) == n {
+        return Ok(n)
+    }
+    Err("expected initial")
+}
+
 /// Multiplier applied per attempt.
 pub fn multiplier_of(backoff: Backoff) -> int {
     backoff.multiplier
 }
 
+/// `Ok(n)` when the multiplier is `n`, otherwise `Err`.
+pub fn require_multiplier(backoff: Backoff, n: int) -> Result<int, string> {
+    if multiplier_of(backoff) == n {
+        return Ok(n)
+    }
+    Err("expected multiplier")
+}
+
 /// Maximum delay cap in milliseconds.
 pub fn max_of(backoff: Backoff) -> int {
     backoff.max_ms
+}
+
+/// `Ok(n)` when the delay cap is `n`, otherwise `Err`.
+pub fn require_max(backoff: Backoff, n: int) -> Result<int, string> {
+    if max_of(backoff) == n {
+        return Ok(n)
+    }
+    Err("expected max")
 }
 
 /// Build a `Backoff` from explicit components.

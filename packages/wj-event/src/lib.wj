@@ -94,6 +94,14 @@ pub fn listener_count(bus: EventBus) -> int {
     bus.listeners.len()
 }
 
+/// `Ok(n)` when exactly `n` listeners are registered, otherwise `Err`.
+pub fn require_listener_count(bus: EventBus, n: int) -> Result<int, string> {
+    if listener_count(bus) == n {
+        return Ok(n)
+    }
+    Err("expected listener count")
+}
+
 pub fn listener_ids(bus: EventBus, event_name: string) -> Vec<string> {
     let mut out = Vec::new()
     let mut i = 0
@@ -160,6 +168,14 @@ pub fn peek(bus: EventBus) -> (EventBus, Option<Event>) {
 /// Number of queued events (alias of `queue_len`).
 pub fn pending_count(bus: EventBus) -> int {
     queue_len(bus)
+}
+
+/// `Ok(n)` when the queue holds exactly `n` events, otherwise `Err`.
+pub fn require_pending_count(bus: EventBus, n: int) -> Result<int, string> {
+    if pending_count(bus) == n {
+        return Ok(n)
+    }
+    Err("expected pending count")
 }
 
 /// True when a listener with `id` is registered.

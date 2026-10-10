@@ -74,6 +74,14 @@ pub fn is_older(a: SemVer, b: SemVer) -> bool {
     compare(a, b) < 0
 }
 
+/// `Ok(a)` when `a` is strictly older than `b`, otherwise `Err`.
+pub fn require_older(a: SemVer, b: SemVer) -> Result<SemVer, string> {
+    if is_older(a, b) {
+        return Ok(a)
+    }
+    Err("expected older")
+}
+
 /// True when `a` and `b` compare equal (build metadata ignored).
 pub fn is_equal(a: SemVer, b: SemVer) -> bool {
     compare(a, b) == 0

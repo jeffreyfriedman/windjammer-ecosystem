@@ -322,6 +322,15 @@ pub fn is_jpeg(mime_type: string) -> bool {
     false
 }
 
+/// `Ok(mime_type)` when it is JPEG, otherwise `Err`.
+pub fn require_jpeg(mime_type: string) -> Result<string, string> {
+    if is_jpeg(mime_type) {
+        Ok(mime_type)
+    } else {
+        Err("expected jpeg")
+    }
+}
+
 /// True when `mime_type` is PNG (`image/png`, optional parameters).
 pub fn is_png(mime_type: string) -> bool {
     let trimmed = strings.trim(mime_type)

@@ -24,6 +24,7 @@ use crate::require_build
 use crate::require_prerelease
 use crate::require_zero_major
 use crate::require_zero_version
+use crate::require_older
 use std::strings
 use crate::minor_of
 use crate::patch_of
@@ -402,5 +403,36 @@ fn test_require_zero_version() {
             }
         },
         Err(_) => assert(false, "parse minor"),
+    }
+}
+
+fn test_require_older() {
+    match parse("1.0.0") {
+        Ok(older) => {
+            match parse("2.0.0") {
+                Ok(newer) => {
+                    match require_older(older, newer) {
+                        Ok(kept) => assert(is_older(kept, newer), "older"),
+                        Err(_) => assert(false, "older ok"),
+                    }
+                },
+                Err(_) => assert(false, "parse newer"),
+            }
+        },
+        Err(_) => assert(false, "parse older"),
+    }
+    match parse("2.0.0") {
+        Ok(newer) => {
+            match parse("1.0.0") {
+                Ok(older) => {
+                    match require_older(newer, older) {
+                        Ok(_) => assert(false, "newer must Err"),
+                        Err(msg) => assert(strings.contains(msg, "older"), "mentions older"),
+                    }
+                },
+                Err(_) => assert(false, "parse older again"),
+            }
+        },
+        Err(_) => assert(false, "parse newer again"),
     }
 }

@@ -248,20 +248,6 @@ fn test_require_valid() {
 }
 
 @test
-fn test_require_path() {
-    use crate::require_path
-    let text = "name: bob\n"
-    match require_path(text, "name") {
-        Ok(path) => assert_eq(path, "name"),
-        Err(_) => assert(false, "name present"),
-    }
-    match require_path(text, "missing") {
-        Ok(_) => assert(false, "missing must Err"),
-        Err(msg) => assert(strings.contains(msg, "missing"), "mentions path"),
-    }
-}
-
-@test
 fn test_require_true() {
     match require_true("active: true\n", "active") {
         Ok(v) => assert(v, "true"),

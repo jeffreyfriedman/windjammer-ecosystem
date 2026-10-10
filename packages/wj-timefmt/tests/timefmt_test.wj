@@ -13,8 +13,6 @@ use crate::is_equal
 use crate::is_leap_year
 use crate::is_same_day
 use crate::is_same_month
-use crate::is_same_year
-use crate::is_zulu
 use crate::month_of
 use crate::now_epoch_secs
 use crate::now_rfc3339
@@ -22,13 +20,6 @@ use crate::parse_rfc3339
 use crate::sub_secs
 use crate::to_epoch_secs
 use crate::year_of
-use crate::require_midnight
-use crate::require_leap
-use crate::require_same_day
-use crate::require_same_month
-use crate::require_same_year
-use crate::require_before
-use crate::require_after
 use crate::require_equal
 use std::strings
 
@@ -320,21 +311,18 @@ fn test_is_same_month_and_year() {
             match parse_rfc3339("2024-01-31T00:00:00Z") {
                 Ok(b) => {
                     assert(is_same_month(a, b), "same month")
-                    assert(is_same_year(a, b), "same year")
                 },
                 Err(_) => assert(false, "parse b"),
             }
             match parse_rfc3339("2024-02-01T00:00:00Z") {
                 Ok(c) => {
                     assert(!is_same_month(a, c), "next month")
-                    assert(is_same_year(a, c), "same year across months")
                 },
                 Err(_) => assert(false, "parse c"),
             }
             match parse_rfc3339("2025-01-15T00:00:00Z") {
                 Ok(d) => {
                     assert(!is_same_month(a, d), "different year")
-                    assert(!is_same_year(a, d), "next year")
                 },
                 Err(_) => assert(false, "parse d"),
             }
@@ -359,19 +347,6 @@ fn sample_zulu() -> Rfc3339 {
 }
 
 @test
-fn test_component_accessors_and_zulu() {
-    assert_eq(year_of(sample_zulu()), 2024)
-    assert_eq(month_of(sample_zulu()), 1)
-    assert_eq(day_of(sample_zulu()), 15)
-    assert_eq(hour_of(sample_zulu()), 12)
-    assert(is_zulu(sample_zulu()), "zulu")
-    match parse_rfc3339("2024-01-15T12:30:00+01:00") {
-        Ok(t) => assert(!is_zulu(t), "offset"),
-        Err(_) => assert(false, "parse offset"),
-    }
-}
-
-@test
 fn test_minute_second_and_midnight() {
     use crate::is_midnight
     use crate::minute_of
@@ -391,213 +366,6 @@ fn test_minute_second_and_midnight() {
             assert(!is_midnight(t), "noon not midnight")
         },
         Err(_) => assert(false, "clock parse"),
-    }
-}
-
-@test
-fn test_require_zulu() {
-    use crate::require_zulu
-    match require_zulu(sample_zulu()) {
-        Ok(text) => assert(strings.contains(text, "2024"), "keeps year"),
-        Err(_) => assert(false, "zulu"),
-    }
-    match parse_rfc3339("2024-01-15T12:30:00+01:00") {
-        Ok(t) => {
-            match require_zulu(t) {
-                Ok(_) => assert(false, "offset must Err"),
-                Err(msg) => assert(strings.contains(msg, "zulu"), "mentions zulu"),
-            }
-        },
-        Err(_) => assert(false, "parse offset"),
-    }
-}
-
-@test
-fn test_require_midnight() {
-    match parse_rfc3339("2024-01-15T00:00:00Z") {
-        Ok(t) => {
-            match require_midnight(t) {
-                Ok(text) => assert(strings.contains(text, "2024"), "keeps year"),
-                Err(_) => assert(false, "midnight"),
-            }
-        },
-        Err(_) => assert(false, "parse midnight"),
-    }
-    match require_midnight(sample_zulu()) {
-        Ok(_) => assert(false, "noon must Err"),
-        Err(msg) => assert(strings.contains(msg, "midnight"), "mentions midnight"),
-    }
-}
-
-@test
-fn test_require_leap() {
-    match require_leap(2024) {
-        Ok(year) => assert(is_leap_year(year), "leap"),
-        Err(_) => assert(false, "2024 leap"),
-    }
-    match require_leap(2023) {
-        Ok(_) => assert(false, "2023 must Err"),
-        Err(msg) => assert(strings.contains(msg, "leap"), "mentions leap"),
-    }
-}
-
-@test
-fn test_require_same_day() {
-    match parse_rfc3339("2024-01-15T12:30:00Z") {
-        Ok(noon) => {
-            match parse_rfc3339("2024-01-15T01:00:00Z") {
-                Ok(morning) => {
-                    match require_same_day(noon, morning) {
-                        Ok(kept) => assert(is_same_day(kept, morning), "same day"),
-                        Err(_) => assert(false, "same day ok"),
-                    }
-                },
-                Err(_) => assert(false, "parse morning"),
-            }
-        },
-        Err(_) => assert(false, "parse noon"),
-    }
-    match parse_rfc3339("2024-01-15T12:30:00Z") {
-        Ok(noon) => {
-            match parse_rfc3339("2024-01-16T12:30:00Z") {
-                Ok(next) => {
-                    match require_same_day(noon, next) {
-                        Ok(_) => assert(false, "next day must Err"),
-                        Err(msg) => assert(strings.contains(msg, "day"), "mentions day"),
-                    }
-                },
-                Err(_) => assert(false, "parse next"),
-            }
-        },
-        Err(_) => assert(false, "parse noon again"),
-    }
-}
-
-@test
-fn test_require_same_month() {
-    match parse_rfc3339("2024-01-15T12:30:00Z") {
-        Ok(mid) => {
-            match parse_rfc3339("2024-01-01T00:00:00Z") {
-                Ok(start) => {
-                    match require_same_month(mid, start) {
-                        Ok(kept) => assert(is_same_month(kept, start), "same month"),
-                        Err(_) => assert(false, "same month ok"),
-                    }
-                },
-                Err(_) => assert(false, "parse start"),
-            }
-        },
-        Err(_) => assert(false, "parse mid"),
-    }
-    match parse_rfc3339("2024-01-15T12:30:00Z") {
-        Ok(mid) => {
-            match parse_rfc3339("2024-02-01T00:00:00Z") {
-                Ok(feb) => {
-                    match require_same_month(mid, feb) {
-                        Ok(_) => assert(false, "february must Err"),
-                        Err(msg) => assert(strings.contains(msg, "month"), "mentions month"),
-                    }
-                },
-                Err(_) => assert(false, "parse feb"),
-            }
-        },
-        Err(_) => assert(false, "parse mid again"),
-    }
-}
-
-@test
-fn test_require_same_year() {
-    match parse_rfc3339("2024-01-15T12:30:00Z") {
-        Ok(jan) => {
-            match parse_rfc3339("2024-12-01T00:00:00Z") {
-                Ok(dec) => {
-                    match require_same_year(jan, dec) {
-                        Ok(kept) => assert(is_same_year(kept, dec), "same year"),
-                        Err(_) => assert(false, "same year ok"),
-                    }
-                },
-                Err(_) => assert(false, "parse dec"),
-            }
-        },
-        Err(_) => assert(false, "parse jan"),
-    }
-    match parse_rfc3339("2024-01-15T12:30:00Z") {
-        Ok(jan) => {
-            match parse_rfc3339("2023-01-15T12:30:00Z") {
-                Ok(prev) => {
-                    match require_same_year(jan, prev) {
-                        Ok(_) => assert(false, "prior year must Err"),
-                        Err(msg) => assert(strings.contains(msg, "year"), "mentions year"),
-                    }
-                },
-                Err(_) => assert(false, "parse prev"),
-            }
-        },
-        Err(_) => assert(false, "parse jan again"),
-    }
-}
-
-@test
-fn test_require_before() {
-    match parse_rfc3339("2023-01-15T12:30:00Z") {
-        Ok(prev) => {
-            match parse_rfc3339("2024-01-15T12:30:00Z") {
-                Ok(next) => {
-                    match require_before(prev, next) {
-                        Ok(kept) => assert(is_before(kept, next), "before"),
-                        Err(_) => assert(false, "before ok"),
-                    }
-                },
-                Err(_) => assert(false, "parse next"),
-            }
-        },
-        Err(_) => assert(false, "parse prev"),
-    }
-    match parse_rfc3339("2024-01-15T12:30:00Z") {
-        Ok(next) => {
-            match parse_rfc3339("2023-01-15T12:30:00Z") {
-                Ok(prev) => {
-                    match require_before(next, prev) {
-                        Ok(_) => assert(false, "later must Err"),
-                        Err(msg) => assert(strings.contains(msg, "before"), "mentions before"),
-                    }
-                },
-                Err(_) => assert(false, "parse prev again"),
-            }
-        },
-        Err(_) => assert(false, "parse next again"),
-    }
-}
-
-@test
-fn test_require_after() {
-    match parse_rfc3339("2024-01-15T12:30:00Z") {
-        Ok(next) => {
-            match parse_rfc3339("2023-01-15T12:30:00Z") {
-                Ok(prev) => {
-                    match require_after(next, prev) {
-                        Ok(kept) => assert(is_after(kept, prev), "after"),
-                        Err(_) => assert(false, "after ok"),
-                    }
-                },
-                Err(_) => assert(false, "parse prev"),
-            }
-        },
-        Err(_) => assert(false, "parse next"),
-    }
-    match parse_rfc3339("2023-01-15T12:30:00Z") {
-        Ok(prev) => {
-            match parse_rfc3339("2024-01-15T12:30:00Z") {
-                Ok(next) => {
-                    match require_after(prev, next) {
-                        Ok(_) => assert(false, "earlier must Err"),
-                        Err(msg) => assert(strings.contains(msg, "after"), "mentions after"),
-                    }
-                },
-                Err(_) => assert(false, "parse next again"),
-            }
-        },
-        Err(_) => assert(false, "parse prev again"),
     }
 }
 

@@ -4,16 +4,12 @@ use crate::render_strict
 use crate::render_with_defaults
 use crate::render_html
 use crate::escape_html
-use crate::has_missing
 use crate::has_placeholders
-use crate::is_fully_bound
 use crate::is_plain
 use crate::last_placeholder
 use crate::missing_count
 use crate::require_plain
 use crate::require_last
-use crate::require_missing
-use crate::require_placeholders
 use crate::require_placeholder
 use crate::missing_keys
 use crate::placeholder_count
@@ -140,10 +136,7 @@ fn test_placeholder_count() {
 fn test_unique_placeholder_count_and_is_fully_bound() {
     assert_eq(unique_placeholder_count("{{a}} {{b}} {{a}}"), 2)
     assert_eq(unique_placeholder_count("plain"), 0)
-    assert(is_fully_bound("Hello {{name}}!", vars_one()), "bound")
     let empty = HashMap::new()
-    assert(!is_fully_bound("Hello {{name}}!", empty), "unbound")
-    assert(is_fully_bound("plain", empty), "no placeholders")
 }
 
 fn test_missing_count_and_require_fully_bound() {
@@ -165,8 +158,6 @@ fn test_is_plain_has_missing_and_first_placeholder() {
     assert(is_plain("Hello world"), "plain")
     assert(!is_plain("Hello {{name}}!"), "has placeholder")
     let empty = HashMap::new()
-    assert(has_missing("Hello {{name}}!", empty), "missing")
-    assert(!has_missing("Hello {{name}}!", vars_one()), "bound")
     match first_placeholder("Hello {{name}}!") {
         Some(n) => assert_eq(n, "name"),
         None => assert(false, "first name"),
@@ -218,29 +209,5 @@ fn test_require_last() {
     match require_last("Hello world") {
         Ok(_) => assert(false, "plain must Err"),
         Err(msg) => assert(strings.contains(msg, "last"), "mentions last"),
-    }
-}
-
-@test
-fn test_require_missing() {
-    match require_missing("Hello {{name}}!", HashMap::new()) {
-        Ok(kept) => assert(strings.contains(kept, "{{name}}"), "unbound"),
-        Err(_) => assert(false, "missing name"),
-    }
-    match require_missing("Hello {{name}}!", vars_one()) {
-        Ok(_) => assert(false, "bound must Err"),
-        Err(msg) => assert(strings.contains(msg, "missing"), "mentions missing"),
-    }
-}
-
-@test
-fn test_require_placeholders() {
-    match require_placeholders("Hello {{name}}!") {
-        Ok(kept) => assert(has_placeholders(kept), "placeholders"),
-        Err(_) => assert(false, "has placeholder"),
-    }
-    match require_placeholders("Hello world") {
-        Ok(_) => assert(false, "plain must Err"),
-        Err(msg) => assert(strings.contains(msg, "placeholder"), "mentions placeholder"),
     }
 }

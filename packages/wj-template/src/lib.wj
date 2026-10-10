@@ -166,6 +166,14 @@ pub fn is_plain(template: string) -> bool {
     !has_placeholders(template)
 }
 
+/// `Ok(template)` when it contains a placeholder, otherwise `Err`.
+pub fn require_placeholders(template: string) -> Result<string, string> {
+    if has_placeholders(template) {
+        return Ok(template)
+    }
+    Err("expected placeholder")
+}
+
 /// True when at least one placeholder is unbound in `vars`.
 pub fn has_missing(template: string, vars: HashMap<string, string>) -> bool {
     missing_count(template, vars) > 0

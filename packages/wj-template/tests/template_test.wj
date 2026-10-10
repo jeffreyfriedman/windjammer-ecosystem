@@ -13,6 +13,7 @@ use crate::missing_count
 use crate::require_plain
 use crate::require_last
 use crate::require_missing
+use crate::require_placeholders
 use crate::require_placeholder
 use crate::missing_keys
 use crate::placeholder_count
@@ -229,5 +230,17 @@ fn test_require_missing() {
     match require_missing("Hello {{name}}!", vars_one()) {
         Ok(_) => assert(false, "bound must Err"),
         Err(msg) => assert(strings.contains(msg, "missing"), "mentions missing"),
+    }
+}
+
+@test
+fn test_require_placeholders() {
+    match require_placeholders("Hello {{name}}!") {
+        Ok(kept) => assert(has_placeholders(kept), "placeholders"),
+        Err(_) => assert(false, "has placeholder"),
+    }
+    match require_placeholders("Hello world") {
+        Ok(_) => assert(false, "plain must Err"),
+        Err(msg) => assert(strings.contains(msg, "placeholder"), "mentions placeholder"),
     }
 }

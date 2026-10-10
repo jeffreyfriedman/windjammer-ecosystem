@@ -17,6 +17,7 @@ use crate::referrer_of
 use crate::require_nosniff
 use crate::require_frame_deny
 use crate::require_no_referrer
+use crate::require_same_origin
 use crate::referrer_policy
 use crate::security_header_lines
 use crate::with_csp
@@ -258,5 +259,17 @@ fn test_require_no_referrer() {
     match require_no_referrer(with_referrer(defaults(), "origin")) {
         Ok(_) => assert(false, "origin must Err"),
         Err(msg) => assert(strings.contains(msg, "referrer"), "mentions referrer"),
+    }
+}
+
+@test
+fn test_require_same_origin() {
+    match require_same_origin(with_frame_options(defaults(), "SAMEORIGIN")) {
+        Ok(h) => assert(is_same_origin_frame(h), "same origin"),
+        Err(_) => assert(false, "sameorigin ok"),
+    }
+    match require_same_origin(defaults()) {
+        Ok(_) => assert(false, "deny must Err"),
+        Err(msg) => assert(strings.contains(msg, "same"), "mentions same"),
     }
 }

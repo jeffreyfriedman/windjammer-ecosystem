@@ -8,6 +8,7 @@ use crate::require_valid
 use crate::require_array
 use crate::require_empty_array
 use crate::require_null
+use crate::require_empty_object
 use crate::require_object
 use crate::is_nullish
 use crate::is_objectish
@@ -270,5 +271,16 @@ fn test_require_null() {
     match require_null("[]") {
         Ok(_) => assert(false, "array must Err"),
         Err(msg) => assert(strings.contains(msg, "null"), "mentions null"),
+    }
+}
+
+fn test_require_empty_object() {
+    match require_empty_object("{}") {
+        Ok(text) => assert(is_empty_object(text), "empty object"),
+        Err(_) => assert(false, "empty object ok"),
+    }
+    match require_empty_object("{\"a\":1}") {
+        Ok(_) => assert(false, "object must Err"),
+        Err(msg) => assert(strings.contains(msg, "empty"), "mentions empty"),
     }
 }

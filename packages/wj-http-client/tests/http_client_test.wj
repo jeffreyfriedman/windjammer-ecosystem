@@ -26,6 +26,8 @@ use crate::require_client_error
 use crate::require_server_error
 use crate::require_ok_status
 use crate::require_informational
+use crate::require_empty_body
+use crate::require_error_status
 use crate::error_message
 use crate::from_parts
 use std::strings
@@ -258,5 +260,29 @@ fn test_require_informational() {
     match require_informational(200) {
         Ok(_) => assert(false, "ok must Err"),
         Err(msg) => assert(strings.contains(msg, "informational"), "mentions informational"),
+    }
+}
+
+fn test_require_empty_body() {
+    let empty = from_parts(204, "")
+    match require_empty_body(empty) {
+        Ok(n) => assert_eq(n, 1),
+        Err(_) => assert(false, "empty body"),
+    }
+    let filled = from_parts(200, "hello")
+    match require_empty_body(filled) {
+        Ok(_) => assert(false, "body must Err"),
+        Err(msg) => assert(strings.contains(msg, "empty body"), "mentions empty body"),
+    }
+}
+
+fn test_require_error_status() {
+    match require_error_status(404) {
+        Ok(status) => assert_eq(status, 404),
+        Err(_) => assert(false, "404 ok"),
+    }
+    match require_error_status(200) {
+        Ok(_) => assert(false, "ok must Err"),
+        Err(msg) => assert(strings.contains(msg, "error code"), "mentions error code"),
     }
 }

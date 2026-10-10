@@ -220,6 +220,14 @@ pub fn has_port(u: Url) -> bool {
     strings.len(u.port) > 0
 }
 
+/// `Ok(u)` when the URL has an explicit port, otherwise `Err`.
+pub fn require_port(u: Url) -> Result<Url, string> {
+    if has_port(u) {
+        return Ok(u)
+    }
+    Err("expected port")
+}
+
 /// True when the URL has a non-empty fragment.
 pub fn has_fragment(u: Url) -> bool {
     strings.len(u.fragment) > 0

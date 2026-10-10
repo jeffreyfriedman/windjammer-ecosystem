@@ -9,6 +9,8 @@ use crate::is_exhausted
 use crate::new_backoff
 use crate::retry_delay
 use crate::require_exhausted
+use crate::require_used
+use crate::require_remaining
 use crate::require_first
 use crate::require_default_backoff
 use crate::should_retry
@@ -218,6 +220,28 @@ fn test_require_exhausted() {
     match require_exhausted(0, 3) {
         Ok(_) => assert(false, "retries left must Err"),
         Err(msg) => assert(strings.contains(msg, "exhausted"), "mentions exhausted"),
+    }
+}
+
+fn test_require_used() {
+    match require_used(2, 5, 2) {
+        Ok(n) => assert_eq(n, 2),
+        Err(_) => assert(false, "two used"),
+    }
+    match require_used(2, 5, 4) {
+        Ok(_) => assert(false, "four must Err"),
+        Err(msg) => assert(strings.contains(msg, "used"), "mentions used"),
+    }
+}
+
+fn test_require_remaining() {
+    match require_remaining(0, 3, 3) {
+        Ok(n) => assert_eq(n, 3),
+        Err(_) => assert(false, "three left"),
+    }
+    match require_remaining(3, 3, 1) {
+        Ok(_) => assert(false, "none left must Err"),
+        Err(msg) => assert(strings.contains(msg, "remaining"), "mentions remaining"),
     }
 }
 

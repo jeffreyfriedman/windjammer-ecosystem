@@ -55,6 +55,14 @@ pub fn attempts_remaining(attempt: int, max_attempts: int) -> int {
     max_attempts - attempt
 }
 
+/// `Ok(n)` when that many attempts remain, otherwise `Err`.
+pub fn require_remaining(attempt: int, max_attempts: int, n: int) -> Result<int, string> {
+    if attempts_remaining(attempt, max_attempts) == n {
+        return Ok(n)
+    }
+    Err("expected remaining")
+}
+
 /// Sensible HTTP/client defaults: 100ms ×2, cap 30s.
 pub fn default_backoff() -> Backoff {
     Backoff {
@@ -211,6 +219,14 @@ pub fn attempts_used(attempt: int, max_attempts: int) -> int {
         return max_attempts
     }
     attempt
+}
+
+/// `Ok(n)` when `attempts_used` equals `n`, otherwise `Err`.
+pub fn require_used(attempt: int, max_attempts: int, n: int) -> Result<int, string> {
+    if attempts_used(attempt, max_attempts) == n {
+        return Ok(n)
+    }
+    Err("expected used")
 }
 
 /// Blocking pause between retry attempts (milliseconds).

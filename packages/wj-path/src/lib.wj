@@ -259,6 +259,14 @@ pub fn is_dot_dot(path: string) -> bool {
     path == ".."
 }
 
+/// `Ok(path)` when `path` is exactly `..`, otherwise `Err`.
+pub fn require_dot_dot(path: string) -> Result<string, string> {
+    if is_dot_dot(path) {
+        return Ok(path)
+    }
+    Err("expected parent")
+}
+
 /// True when `path` starts with `/`.
 pub fn has_leading_slash(path: string) -> bool {
     strings.starts_with(path, "/")

@@ -185,6 +185,14 @@ pub fn has_positionals(args: Vec<string>) -> bool {
     positional_count(args) > 0
 }
 
+/// `Ok(1)` when argv has a positional token, otherwise `Err`.
+pub fn require_positionals(args: Vec<string>) -> Result<int, string> {
+    if has_positionals(args) {
+        return Ok(1)
+    }
+    Err("expected positional")
+}
+
 /// Number of `--…` long flags in `args`.
 pub fn long_flag_count(args: Vec<string>) -> int {
     let mut n = 0

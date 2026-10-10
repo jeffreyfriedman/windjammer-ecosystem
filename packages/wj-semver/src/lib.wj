@@ -95,6 +95,14 @@ pub fn is_equal(a: SemVer, b: SemVer) -> bool {
     compare(a, b) == 0
 }
 
+/// `Ok(a)` when `a` and `b` compare equal, otherwise `Err`.
+pub fn require_equal(a: SemVer, b: SemVer) -> Result<SemVer, string> {
+    if is_equal(a, b) {
+        return Ok(a)
+    }
+    Err("expected equal")
+}
+
 /// True when `a` and `b` share the same major version (caret-compatible).
 pub fn is_compatible(a: SemVer, b: SemVer) -> bool {
     a.major == b.major

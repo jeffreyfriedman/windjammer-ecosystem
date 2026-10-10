@@ -210,6 +210,14 @@ pub fn is_empty_args(args: Vec<string>) -> bool {
     arg_count(args) == 0
 }
 
+/// `Ok(0)` when argv is empty, otherwise `Err`.
+pub fn require_empty_args(args: Vec<string>) -> Result<int, string> {
+    if is_empty_args(args) {
+        return Ok(0)
+    }
+    Err("expected empty")
+}
+
 pub fn only_program_name(args: Vec<string>) -> bool {
     arg_count(args) == 1
 }

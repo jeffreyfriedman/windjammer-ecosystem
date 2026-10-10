@@ -147,6 +147,14 @@ pub fn pending_count(bus: EventBus) -> int {
 }
 
 /// True when a listener with `id` is registered.
+/// `Ok(id)` when a listener with `id` is registered, otherwise `Err`.
+pub fn require_listener(bus: EventBus, id: string) -> Result<string, string> {
+    if has_listener(bus, id) {
+        return Ok(id)
+    }
+    Err("expected listener")
+}
+
 pub fn has_listener(bus: EventBus, id: string) -> bool {
     let mut i = 0
     while i < bus.listeners.len() {

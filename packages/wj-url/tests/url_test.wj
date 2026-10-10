@@ -2,6 +2,7 @@ use crate::parse
 use crate::require_http
 use crate::require_root
 use crate::require_query
+use crate::require_port
 use crate::format_url
 use crate::has_fragment
 use crate::has_port
@@ -360,5 +361,27 @@ fn test_require_query() {
             }
         },
         Err(_) => assert(false, "parse bare"),
+    }
+}
+
+@test
+fn test_require_port() {
+    match parse("https://example.com:8443/api") {
+        Ok(u) => {
+            match require_port(u) {
+                Ok(kept) => assert(has_port(kept), "port"),
+                Err(_) => assert(false, "port ok"),
+            }
+        },
+        Err(_) => assert(false, "parse port"),
+    }
+    match parse("https://example.com/api") {
+        Ok(u) => {
+            match require_port(u) {
+                Ok(_) => assert(false, "bare host must Err"),
+                Err(msg) => assert(strings.contains(msg, "port"), "mentions port"),
+            }
+        },
+        Err(_) => assert(false, "parse host"),
     }
 }

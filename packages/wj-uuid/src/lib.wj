@@ -142,6 +142,14 @@ pub fn is_canonical(text: string) -> bool {
     text == normalize(text) && is_valid(text)
 }
 
+/// `Ok(text)` when `text` is already canonical, otherwise `Err`.
+pub fn require_canonical(text: string) -> Result<string, string> {
+    if is_canonical(text) {
+        return Ok(text)
+    }
+    Err("expected canonical")
+}
+
 /// True when `text` is the nil UUID (all zeros).
 pub fn is_nil(text: string) -> bool {
     normalize(text) == "00000000-0000-0000-0000-000000000000"

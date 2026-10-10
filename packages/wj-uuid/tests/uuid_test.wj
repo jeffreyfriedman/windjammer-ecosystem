@@ -21,6 +21,7 @@ use crate::hyphen_count
 use crate::require_v4
 use crate::require_nil
 use crate::require_v1
+use crate::require_canonical
 use crate::require_v7
 use crate::require_valid
 use crate::require_version
@@ -298,5 +299,16 @@ fn test_require_v1() {
     match require_v1("017f22e2-79b0-7cc3-98c4-dc0c0c07398f") {
         Ok(_) => assert(false, "v7 must Err"),
         Err(msg) => assert(strings.contains(msg, "v1"), "mentions v1"),
+    }
+}
+
+fn test_require_canonical() {
+    match require_canonical("550e8400-e29b-41d4-a716-446655440000") {
+        Ok(id) => assert(is_canonical(id), "canonical"),
+        Err(_) => assert(false, "lower dashed"),
+    }
+    match require_canonical("550E8400-E29B-41D4-A716-446655440000") {
+        Ok(_) => assert(false, "upper must Err"),
+        Err(msg) => assert(strings.contains(msg, "canonical"), "mentions canonical"),
     }
 }

@@ -4,6 +4,7 @@ Weekly build health for seed apps and packages.
 
 | Week | Date | Apps / packages green | `extern fn` | Crates via interop | Compiler issues | Notes |
 |------|------|----------------------|-------------|--------------------|-----------------|-------|
+| 2 | 2026-10-09 | deepen `wj-uuid`/`wj-url`/`wj-event` | 0 | 0 | private CARGO_HOME | `require_canonical`, `require_port`, `require_listener`; tip **30+27+22** green |
 | 2 | 2026-10-09 | deepen `wj-uuid`/`wj-url`/`wj-jwt` | 0 | 0 | private CARGO_HOME | `require_v1`, `require_query`, `require_expired`; tip **29+26+15** green |
 | 2 | 2026-10-09 | deepen `wj-path`/`wj-cli-args`/`wj-csv` | 0 | 0 | private CARGO_HOME | `require_leading`, `require_help`, `require_rows`; tip **30+25+18** green |
 | 2 | 2026-10-09 | deepen `wj-path`/`wj-cli-args`/`wj-yaml` | 0 | 0 | private CARGO_HOME | `require_trailing`, `require_any_flag`, `require_empty`; tip **29+24+27** green |

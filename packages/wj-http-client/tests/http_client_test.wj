@@ -22,6 +22,8 @@ use crate::require_unauthorized
 use crate::require_no_content
 use crate::require_redirect
 use crate::require_success
+use crate::require_client_error
+use crate::require_server_error
 use crate::error_message
 use crate::from_parts
 use std::strings
@@ -210,5 +212,27 @@ fn test_require_success() {
     match require_success(404) {
         Ok(_) => assert(false, "missing must Err"),
         Err(msg) => assert(strings.contains(msg, "success"), "mentions success"),
+    }
+}
+
+fn test_require_client_error() {
+    match require_client_error(404) {
+        Ok(status) => assert(status_is_client_error(status), "client error"),
+        Err(_) => assert(false, "404 ok"),
+    }
+    match require_client_error(200) {
+        Ok(_) => assert(false, "ok must Err"),
+        Err(msg) => assert(strings.contains(msg, "client"), "mentions client"),
+    }
+}
+
+fn test_require_server_error() {
+    match require_server_error(503) {
+        Ok(status) => assert(status_is_server_error(status), "server error"),
+        Err(_) => assert(false, "503 ok"),
+    }
+    match require_server_error(404) {
+        Ok(_) => assert(false, "client must Err"),
+        Err(msg) => assert(strings.contains(msg, "server"), "mentions server"),
     }
 }

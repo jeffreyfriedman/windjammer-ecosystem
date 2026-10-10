@@ -144,6 +144,14 @@ pub fn unique_key_count(query: string) -> int {
     n
 }
 
+/// `Ok(n)` when `key` has exactly `n` values, otherwise `Err`.
+pub fn require_count(query: string, key: string, n: int) -> Result<int, string> {
+    if value_count(query, key) == n {
+        return Ok(n)
+    }
+    Err("expected count")
+}
+
 /// How many values are associated with `key` (including duplicates).
 pub fn value_count(query: string, key: string) -> int {
     let vals = get_all(query, key)
@@ -215,6 +223,14 @@ pub fn last_value(query: string, key: string) -> Option<string> {
         return None
     }
     Some(values[values.len() - 1])
+}
+
+/// The last value for `key`, or `Err` when the key is absent.
+pub fn require_last_value(query: string, key: string) -> Result<string, string> {
+    match last_value(query, key) {
+        Some(v) => Ok(v),
+        None => Err("expected value"),
+    }
 }
 
 /// The sole key when the query has exactly one pair, otherwise `Err`.

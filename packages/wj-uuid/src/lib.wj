@@ -114,6 +114,14 @@ pub fn is_v1(text: string) -> bool {
     is_version(text, 1)
 }
 
+/// Normalized UUID when `text` is version 1, otherwise `Err`.
+pub fn require_v1(text: string) -> Result<string, string> {
+    if is_v1(text) {
+        return Ok(normalize(text))
+    }
+    Err("expected v1")
+}
+
 /// True when `text` is a valid UUID version 4.
 pub fn is_v4(text: string) -> bool {
     is_version(text, 4)

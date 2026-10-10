@@ -230,6 +230,14 @@ pub fn has_query(u: Url) -> bool {
     strings.len(u.query) > 0
 }
 
+/// `Ok(u)` when the URL has a query string, otherwise `Err`.
+pub fn require_query(u: Url) -> Result<Url, string> {
+    if has_query(u) {
+        return Ok(u)
+    }
+    Err("expected query")
+}
+
 /// Return a copy of `u` with the fragment cleared.
 pub fn without_fragment(u: Url) -> Url {
     Url {

@@ -158,6 +158,14 @@ pub fn is_expired(claims: Claims, now_secs: int) -> bool {
     expires_at(claims) <= now_secs
 }
 
+/// Expiration time when the token is expired at `now_secs`, otherwise `Err`.
+pub fn require_expired(claims: Claims, now_secs: int) -> Result<int, string> {
+    if is_expired(claims, now_secs) {
+        return Ok(expires_at(claims))
+    }
+    Err("expected expired")
+}
+
 /// Expiration time when the token is still valid at `now_secs`, otherwise `Err`.
 pub fn require_unexpired(claims: Claims, now_secs: int) -> Result<int, string> {
     if is_expired(claims, now_secs) {

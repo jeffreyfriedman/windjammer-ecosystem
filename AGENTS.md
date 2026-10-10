@@ -81,3 +81,24 @@ Both should be empty for application sources.
 
 - Public docs: no private agent meta-narrative or internal “do not claim…” language.
 - Dual license files match the compiler repo: `LICENSE-MIT` and `LICENSE-APACHE`.
+
+
+
+## Dogfood rules (apply to every Windjammer project repo)
+
+1. **Compiler-first.** If `wj` generates wrong or non-compiling Rust, file a minimal, generic repro in the compiler repo's `tests/` and fix it there. Never add shims (`+ ""`, spurious `.clone()`, `.as_str()`), never hand-edit generated Rust, never restructure idiomatic code to dodge a codegen bug.
+2. **No compiler bug tracking here.** Status/"tip RED/GREEN" commits, repro queues and compiler incident docs live in the compiler repo only.
+3. **Pin the compiler.** Record the known-good `wj` commit in `WJ_PIN.md`; bump deliberately, in its own commit.
+4. **Generated output is never source.** Don't commit `build/`, `gen/` or transpiled `.rs` unless this repo's section below says otherwise; never edit them by hand.
+5. **No status-report files.** No `*_COMPLETE.md`, `SESSION_SUMMARY*`, `*_STATUS.md` in the repo; record decisions in `docs/` ADRs and progress in commit messages.
+6. **Real tests only.** Each feature needs a behavior test; no padding with trivial predicate/getter functions or placeholder `-> true` stubs.
+7. **Races.** Other agents may be working: run `git status` before committing, stage only your own paths, never `git add -A` blindly, never force-push.
+8. **Disk.** Use the shared target dir (`export CARGO_TARGET_DIR="$(wj cache path)"`); run `wj cache prune` when free disk is low; tests must write only to temp dirs.
+9. **Claims need evidence.** Don't write "working/complete" without a command output or screenshot that proves it.
+
+## Ecosystem rules
+- A package earns its place by covering a real Pareto use case (HTTP, serde, DB, auth, logging, config...). Each addition needs a capability and an app-level test.
+- **No padding**: no `require_*`/`status_is_*`/`is_*` predicate wrappers over existing getters; delete existing ones when touched.
+- Dependencies between packages point at source (`path = "../wj-x"`), not at `build/` output.
+- All packages stay on one released version series; bump with a CHANGELOG entry.
+- Missing capability needing compiler/runtime work (typed serde, async HTTP, rust-interop) → file in the compiler repo, don't emulate it.

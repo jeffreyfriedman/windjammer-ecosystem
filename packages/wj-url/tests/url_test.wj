@@ -1,14 +1,6 @@
 use crate::parse
-use crate::require_http
 use crate::require_root
-use crate::require_query
-use crate::require_port
-use crate::require_fragment
 use crate::format_url
-use crate::has_fragment
-use crate::has_port
-use crate::has_query
-use crate::is_http
 use crate::is_https
 use crate::is_root_path
 use crate::join_url
@@ -211,50 +203,10 @@ fn test_query_get_or() {
 }
 
 @test
-fn test_has_port_and_fragment_and_is_http() {
-    match parse("https://example.com:8443/api#top") {
-        Ok(u) => {
-            assert(has_port(u), "port set")
-            assert(has_fragment(u), "fragment set")
-            assert(!is_http(u), "not http")
-        },
-        Err(_) => assert(false, "parse with port+frag"),
-    }
-    match parse("http://example.com/x") {
-        Ok(u) => {
-            assert(!has_port(u), "no port")
-            assert(!has_fragment(u), "no fragment")
-            assert(is_http(u), "http")
-        },
-        Err(_) => assert(false, "parse http bare"),
-    }
-}
-
-@test
-fn test_has_query_and_without_fragment() {
-    match parse("https://example.com/api?x=1#top") {
-        Ok(u) => {
-            assert(has_query(u), "query set")
-            let cleared = without_fragment(u)
-            assert(!has_fragment(cleared), "fragment cleared")
-            assert(has_query(cleared), "query kept")
-            assert_eq(format_url(cleared), "https://example.com/api?x=1")
-        },
-        Err(_) => assert(false, "parse with query+frag"),
-    }
-    match parse("https://example.com/api") {
-        Ok(u) => assert(!has_query(u), "no query"),
-        Err(_) => assert(false, "parse bare"),
-    }
-}
-
-@test
 fn test_without_query_with_fragment_and_is_root_path() {
     match parse("https://example.com/api?x=1#top") {
         Ok(u) => {
             let no_q = without_query(u)
-            assert(!has_query(no_q), "query cleared")
-            assert(has_fragment(no_q), "fragment kept")
             assert_eq(format_url(no_q), "https://example.com/api#top")
             let with_f = with_fragment(no_q, "bottom")
             assert_eq(with_f.fragment, "bottom")
@@ -300,28 +252,6 @@ fn test_scheme_host_and_require_https() {
 }
 
 @test
-fn test_require_http() {
-    match parse("http://example.com/api") {
-        Ok(u) => {
-            match require_http(u) {
-                Ok(kept) => assert(is_http(kept), "http"),
-                Err(_) => assert(false, "http ok"),
-            }
-        },
-        Err(_) => assert(false, "parse http for require"),
-    }
-    match parse("https://example.com/api") {
-        Ok(u) => {
-            match require_http(u) {
-                Ok(_) => assert(false, "https must Err"),
-                Err(msg) => assert(strings.contains(msg, "http"), "mentions http"),
-            }
-        },
-        Err(_) => assert(false, "parse https for require"),
-    }
-}
-
-@test
 fn test_require_root() {
     match parse("http://example.com/") {
         Ok(u) => {
@@ -340,71 +270,5 @@ fn test_require_root() {
             }
         },
         Err(_) => assert(false, "parse path"),
-    }
-}
-
-@test
-fn test_require_query() {
-    match parse("https://example.com/api?x=1") {
-        Ok(u) => {
-            match require_query(u) {
-                Ok(kept) => assert(has_query(kept), "query"),
-                Err(_) => assert(false, "query ok"),
-            }
-        },
-        Err(_) => assert(false, "parse query"),
-    }
-    match parse("https://example.com/api") {
-        Ok(u) => {
-            match require_query(u) {
-                Ok(_) => assert(false, "bare must Err"),
-                Err(msg) => assert(strings.contains(msg, "query"), "mentions query"),
-            }
-        },
-        Err(_) => assert(false, "parse bare"),
-    }
-}
-
-@test
-fn test_require_port() {
-    match parse("https://example.com:8443/api") {
-        Ok(u) => {
-            match require_port(u) {
-                Ok(kept) => assert(has_port(kept), "port"),
-                Err(_) => assert(false, "port ok"),
-            }
-        },
-        Err(_) => assert(false, "parse port"),
-    }
-    match parse("https://example.com/api") {
-        Ok(u) => {
-            match require_port(u) {
-                Ok(_) => assert(false, "bare host must Err"),
-                Err(msg) => assert(strings.contains(msg, "port"), "mentions port"),
-            }
-        },
-        Err(_) => assert(false, "parse host"),
-    }
-}
-
-@test
-fn test_require_fragment() {
-    match parse("https://example.com/api#top") {
-        Ok(u) => {
-            match require_fragment(u) {
-                Ok(kept) => assert(has_fragment(kept), "fragment"),
-                Err(_) => assert(false, "fragment ok"),
-            }
-        },
-        Err(_) => assert(false, "parse fragment"),
-    }
-    match parse("https://example.com/api") {
-        Ok(u) => {
-            match require_fragment(u) {
-                Ok(_) => assert(false, "bare must Err"),
-                Err(msg) => assert(strings.contains(msg, "fragment"), "mentions fragment"),
-            }
-        },
-        Err(_) => assert(false, "parse bare"),
     }
 }

@@ -202,56 +202,12 @@ pub fn is_https(u: Url) -> bool {
     u.scheme == "https"
 }
 
-/// True when scheme is `http` (case-sensitive, as parsed).
-pub fn is_http(u: Url) -> bool {
-    u.scheme == "http"
-}
-
 /// First query value for `key`, or `default` when missing.
 pub fn query_get_or(query: string, key: string, default: string) -> string {
     match query_get(query, key) {
         Some(v) => v,
         None => default,
     }
-}
-
-/// True when the URL has an explicit port.
-pub fn has_port(u: Url) -> bool {
-    strings.len(u.port) > 0
-}
-
-/// `Ok(u)` when the URL has an explicit port, otherwise `Err`.
-pub fn require_port(u: Url) -> Result<Url, string> {
-    if has_port(u) {
-        return Ok(u)
-    }
-    Err("expected port")
-}
-
-/// True when the URL has a non-empty fragment.
-pub fn has_fragment(u: Url) -> bool {
-    strings.len(u.fragment) > 0
-}
-
-/// `Ok(u)` when the URL has a fragment, otherwise `Err`.
-pub fn require_fragment(u: Url) -> Result<Url, string> {
-    if has_fragment(u) {
-        return Ok(u)
-    }
-    Err("expected fragment")
-}
-
-/// True when the URL has a non-empty query string.
-pub fn has_query(u: Url) -> bool {
-    strings.len(u.query) > 0
-}
-
-/// `Ok(u)` when the URL has a query string, otherwise `Err`.
-pub fn require_query(u: Url) -> Result<Url, string> {
-    if has_query(u) {
-        return Ok(u)
-    }
-    Err("expected query")
 }
 
 /// Return a copy of `u` with the fragment cleared.
@@ -305,14 +261,6 @@ pub fn require_https(u: Url) -> Result<Url, string> {
         return Ok(u)
     }
     Err("expected https url")
-}
-
-/// Ok(url) when the scheme is `http`; otherwise Err.
-pub fn require_http(u: Url) -> Result<Url, string> {
-    if is_http(u) {
-        return Ok(u)
-    }
-    Err("expected http url")
 }
 
 /// True when path is empty or exactly `/`.

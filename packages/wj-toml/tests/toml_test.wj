@@ -17,7 +17,6 @@ use crate::require_singleton
 use crate::require_first_key
 use crate::require_last_key
 use crate::require_values
-use crate::require_present
 use crate::value_count
 use crate::values
 use std::strings
@@ -410,17 +409,5 @@ fn test_require_values() {
     match require_values("host = \"localhost\"\n", 2) {
         Ok(_) => assert(false, "one must Err"),
         Err(msg) => assert(strings.contains(msg, "values"), "mentions values"),
-    }
-}
-
-@test
-fn test_require_present() {
-    match require_present("host = \"localhost\"\n", "host") {
-        Ok(k) => assert_eq(k, "host"),
-        Err(_) => assert(false, "host present"),
-    }
-    match require_present("host = \"localhost\"\n", "port") {
-        Ok(_) => assert(false, "missing must Err"),
-        Err(msg) => assert(strings.contains(msg, "present"), "mentions present"),
     }
 }

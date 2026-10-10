@@ -59,14 +59,6 @@ pub fn has(text: string, key: string) -> bool {
     }
 }
 
-/// `Ok(key)` when `key` is present, otherwise `Err`.
-pub fn require_present(text: string, key: string) -> Result<string, string> {
-    if has(text, key) {
-        return Ok(key)
-    }
-    Err("expected present")
-}
-
 /// Number of keys after parse.
 pub fn key_count(text: string) -> int {
     let map = parse(text)

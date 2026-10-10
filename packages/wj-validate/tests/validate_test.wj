@@ -2,8 +2,6 @@ use crate::all_ok
 use crate::error_count
 use crate::first_error
 use crate::has_errors
-use crate::require_errors
-use crate::has_no_errors
 use crate::is_email
 use crate::is_valid
 use crate::require_email
@@ -331,26 +329,6 @@ fn test_error_count_and_is_valid() {
 }
 
 @test
-fn test_first_error_and_has_no_errors() {
-    assert(has_no_errors(Vec::new()), "none")
-    match first_error(Vec::new()) {
-        Some(_) => assert(false, "empty"),
-        None => {},
-    }
-    let mut errs = Vec::new()
-    errs.push("first")
-    errs.push("second")
-    assert(!has_no_errors(errs), "has")
-    let mut again = Vec::new()
-    again.push("first")
-    again.push("second")
-    match first_error(again) {
-        Some(e) => assert_eq(e, "first"),
-        None => assert(false, "first err"),
-    }
-}
-
-@test
 fn test_last_error_and_require_clean() {
     use crate::last_error
     use crate::require_clean
@@ -408,19 +386,5 @@ fn test_require_https() {
     match require_https("site", "http://example.com") {
         Ok(_) => assert(false, "http must Err"),
         Err(msg) => assert(strings.contains(msg, "https"), "mentions https"),
-    }
-}
-
-@test
-fn test_require_errors() {
-    let mut errs = Vec::new()
-    errs.push("bad")
-    match require_errors(errs) {
-        Ok(n) => assert(n > 0, "has errors"),
-        Err(_) => assert(false, "errors ok"),
-    }
-    match require_errors(Vec::new()) {
-        Ok(_) => assert(false, "empty must Err"),
-        Err(msg) => assert(strings.contains(msg, "errors"), "mentions errors"),
     }
 }

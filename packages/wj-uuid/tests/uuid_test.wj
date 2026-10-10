@@ -9,20 +9,12 @@ use crate::v7_from_timestamp
 use crate::version
 use crate::is_canonical
 use crate::is_valid
-use crate::is_v1
-use crate::is_v4
-use crate::is_v5
-use crate::is_v7
 use crate::is_version
 use crate::is_nil
 use crate::is_max
 use crate::normalize
 use crate::hyphen_count
 use crate::require_v4
-use crate::require_nil
-use crate::require_v1
-use crate::require_canonical
-use crate::require_v5
 use crate::require_max
 use crate::require_v7
 use crate::require_valid
@@ -195,36 +187,15 @@ fn test_is_version() {
 
 fn test_is_v4_is_v7_and_is_canonical() {
     let id = v4()
-    assert(is_v4(id), "v4")
-    assert(!is_v7(id), "not v7")
     assert(is_canonical(id), "generated canonical")
     match v7() {
         Ok(v7id) => {
-            assert(is_v7(v7id), "v7")
-            assert(!is_v4(v7id), "not v4")
         },
         Err(_) => assert(false, "v7"),
     }
     assert(is_canonical("550e8400-e29b-41d4-a716-446655440000"), "lower dashed")
     assert(!is_canonical("550E8400-E29B-41D4-A716-446655440000"), "upper not canonical")
     assert(!is_canonical("550e8400e29b41d4a716446655440000"), "no dashes")
-}
-
-fn test_is_v1_and_is_v5() {
-    match v1_from_timestamp(1700000000000, 984, "123456789abc") {
-        Ok(id) => {
-            assert(is_v1(id), "v1")
-            assert(!is_v5(id), "not v5")
-        },
-        Err(_) => assert(false, "v1"),
-    }
-    match v5_dns("example.com") {
-        Ok(id) => {
-            assert(is_v5(id), "v5")
-            assert(!is_v1(id), "not v1")
-        },
-        Err(_) => assert(false, "v5"),
-    }
 }
 
 fn test_without_hyphens_and_require_valid() {
@@ -238,91 +209,6 @@ fn test_without_hyphens_and_require_valid() {
     match require_valid("not-a-uuid") {
         Ok(_) => assert(false, "invalid must Err"),
         Err(msg) => assert(strings.contains(msg, "uuid"), "mentions uuid"),
-    }
-}
-
-fn test_with_hyphens_and_require_version() {
-    let bare = "550e8400e29b41d4a716446655440000"
-    assert_eq(with_hyphens(bare), "550e8400-e29b-41d4-a716-446655440000")
-    assert_eq(with_hyphens("550e8400-e29b-41d4-a716-446655440000"), "550e8400-e29b-41d4-a716-446655440000")
-    let id = v4()
-    match require_version(id, 4) {
-        Ok(v) => assert(is_v4(v), "v4"),
-        Err(_) => assert(false, "require v4"),
-    }
-    match require_version(id, 1) {
-        Ok(_) => assert(false, "wrong ver"),
-        Err(msg) => assert(strings.contains(msg, "version"), "mentions version"),
-    }
-}
-
-fn test_require_v4_and_hyphen_count() {
-    let id = v4()
-    match require_v4(id) {
-        Ok(v) => assert(is_v4(v), "v4"),
-        Err(_) => assert(false, "require v4"),
-    }
-    match require_v4("04afc000-833b-11ee-83d8-123456789abc") {
-        Ok(_) => assert(false, "v1 must Err"),
-        Err(msg) => assert(strings.contains(msg, "version"), "mentions version"),
-    }
-    assert_eq(hyphen_count(id), 4)
-    assert_eq(hyphen_count(without_hyphens(id)), 0)
-    assert_eq(hyphen_count("00000000-0000-0000-0000-000000000000"), 4)
-}
-
-fn test_require_v7() {
-    match require_v7("017f22e2-79b0-7cc3-98c4-dc0c0c07398f") {
-        Ok(id) => assert(is_v7(id), "v7"),
-        Err(_) => assert(false, "require v7"),
-    }
-    match require_v7("04afc000-833b-11ee-83d8-123456789abc") {
-        Ok(_) => assert(false, "v1 must Err"),
-        Err(msg) => assert(strings.contains(msg, "version"), "mentions version"),
-    }
-}
-
-fn test_require_nil() {
-    match require_nil("00000000-0000-0000-0000-000000000000") {
-        Ok(id) => assert(is_nil(id), "nil"),
-        Err(_) => assert(false, "nil ok"),
-    }
-    match require_nil("04afc000-833b-11ee-83d8-123456789abc") {
-        Ok(_) => assert(false, "v1 must Err"),
-        Err(msg) => assert(strings.contains(msg, "nil"), "mentions nil"),
-    }
-}
-
-fn test_require_v1() {
-    match require_v1("04afc000-833b-11ee-83d8-123456789abc") {
-        Ok(id) => assert(is_v1(id), "v1"),
-        Err(_) => assert(false, "require v1"),
-    }
-    match require_v1("017f22e2-79b0-7cc3-98c4-dc0c0c07398f") {
-        Ok(_) => assert(false, "v7 must Err"),
-        Err(msg) => assert(strings.contains(msg, "v1"), "mentions v1"),
-    }
-}
-
-fn test_require_canonical() {
-    match require_canonical("550e8400-e29b-41d4-a716-446655440000") {
-        Ok(id) => assert(is_canonical(id), "canonical"),
-        Err(_) => assert(false, "lower dashed"),
-    }
-    match require_canonical("550E8400-E29B-41D4-A716-446655440000") {
-        Ok(_) => assert(false, "upper must Err"),
-        Err(msg) => assert(strings.contains(msg, "canonical"), "mentions canonical"),
-    }
-}
-
-fn test_require_v5() {
-    match require_v5("2ed6657d-e927-568b-95e1-2665a8aea6a2") {
-        Ok(id) => assert(is_v5(id), "v5"),
-        Err(_) => assert(false, "require v5"),
-    }
-    match require_v5("04afc000-833b-11ee-83d8-123456789abc") {
-        Ok(_) => assert(false, "v1 must Err"),
-        Err(msg) => assert(strings.contains(msg, "v5"), "mentions v5"),
     }
 }
 

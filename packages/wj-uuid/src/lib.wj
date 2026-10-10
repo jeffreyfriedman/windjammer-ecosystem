@@ -23,7 +23,6 @@ pub fn v4() -> string {
     uuid.v4()
 }
 
-
 /// Time-based UUID version 1 using the current UTC clock.
 pub fn v1() -> Result<string, string> {
     let millis = time.utc_now().timestamp_millis()
@@ -109,66 +108,14 @@ pub fn is_version(text: string, ver: int) -> bool {
     }
 }
 
-/// True when `text` is a valid UUID version 1.
-pub fn is_v1(text: string) -> bool {
-    is_version(text, 1)
-}
-
-/// Normalized UUID when `text` is version 1, otherwise `Err`.
-pub fn require_v1(text: string) -> Result<string, string> {
-    if is_v1(text) {
-        return Ok(normalize(text))
-    }
-    Err("expected v1")
-}
-
-/// True when `text` is a valid UUID version 4.
-pub fn is_v4(text: string) -> bool {
-    is_version(text, 4)
-}
-
-/// True when `text` is a valid UUID version 5.
-pub fn is_v5(text: string) -> bool {
-    is_version(text, 5)
-}
-
-/// Normalized UUID when `text` is version 5, otherwise `Err`.
-pub fn require_v5(text: string) -> Result<string, string> {
-    if is_v5(text) {
-        return Ok(normalize(text))
-    }
-    Err("expected v5")
-}
-
-/// True when `text` is a valid UUID version 7.
-pub fn is_v7(text: string) -> bool {
-    is_version(text, 7)
-}
-
 /// True when `text` is already lowercase dotted-hex UUID form (no normalize needed).
 pub fn is_canonical(text: string) -> bool {
     text == normalize(text) && is_valid(text)
 }
 
-/// `Ok(text)` when `text` is already canonical, otherwise `Err`.
-pub fn require_canonical(text: string) -> Result<string, string> {
-    if is_canonical(text) {
-        return Ok(text)
-    }
-    Err("expected canonical")
-}
-
 /// True when `text` is the nil UUID (all zeros).
 pub fn is_nil(text: string) -> bool {
     normalize(text) == "00000000-0000-0000-0000-000000000000"
-}
-
-/// Normalized nil UUID, or `Err` when `text` is not nil.
-pub fn require_nil(text: string) -> Result<string, string> {
-    if is_nil(text) {
-        return Ok(normalize(text))
-    }
-    Err("expected nil")
 }
 
 /// True when `text` is the max UUID (all ones).

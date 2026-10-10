@@ -126,24 +126,8 @@ pub fn is_before(a: Rfc3339, b: Rfc3339) -> bool {
     compare(a, b) < 0
 }
 
-/// `Ok(a)` when `a` is strictly before `b`, otherwise `Err`.
-pub fn require_before(a: Rfc3339, b: Rfc3339) -> Result<Rfc3339, string> {
-    if is_before(a, b) {
-        return Ok(a)
-    }
-    Err("expected before")
-}
-
 pub fn is_after(a: Rfc3339, b: Rfc3339) -> bool {
     compare(a, b) > 0
-}
-
-/// `Ok(a)` when `a` is strictly after `b`, otherwise `Err`.
-pub fn require_after(a: Rfc3339, b: Rfc3339) -> Result<Rfc3339, string> {
-    if is_after(a, b) {
-        return Ok(a)
-    }
-    Err("expected after")
 }
 
 pub fn is_equal(a: Rfc3339, b: Rfc3339) -> bool {
@@ -178,38 +162,9 @@ pub fn is_same_day(a: Rfc3339, b: Rfc3339) -> bool {
     a.year == b.year && a.month == b.month && a.day == b.day
 }
 
-/// `Ok(a)` when `a` and `b` share a UTC calendar day, otherwise `Err`.
-pub fn require_same_day(a: Rfc3339, b: Rfc3339) -> Result<Rfc3339, string> {
-    if is_same_day(a, b) {
-        return Ok(a)
-    }
-    Err("expected same day")
-}
-
 /// True when `a` and `b` share the same UTC calendar year/month.
 pub fn is_same_month(a: Rfc3339, b: Rfc3339) -> bool {
     a.year == b.year && a.month == b.month
-}
-
-/// `Ok(a)` when `a` and `b` share a UTC calendar month, otherwise `Err`.
-pub fn require_same_month(a: Rfc3339, b: Rfc3339) -> Result<Rfc3339, string> {
-    if is_same_month(a, b) {
-        return Ok(a)
-    }
-    Err("expected same month")
-}
-
-/// True when `a` and `b` share the same UTC calendar year.
-pub fn is_same_year(a: Rfc3339, b: Rfc3339) -> bool {
-    a.year == b.year
-}
-
-/// `Ok(a)` when `a` and `b` share a UTC calendar year, otherwise `Err`.
-pub fn require_same_year(a: Rfc3339, b: Rfc3339) -> Result<Rfc3339, string> {
-    if is_same_year(a, b) {
-        return Ok(a)
-    }
-    Err("expected same year")
 }
 
 pub fn year_of(t: Rfc3339) -> int {
@@ -241,29 +196,6 @@ pub fn is_midnight(t: Rfc3339) -> bool {
     t.hour == 0 && t.minute == 0 && t.second == 0
 }
 
-/// True when the timestamp uses Zulu offset (`offset_minutes == 0`).
-pub fn is_zulu(t: Rfc3339) -> bool {
-    t.offset_minutes == 0
-}
-
-/// Formatted timestamp when the offset is Zulu.
-pub fn require_zulu(t: Rfc3339) -> Result<string, string> {
-    if is_zulu(t) {
-        Ok(format_rfc3339(t))
-    } else {
-        Err("expected zulu")
-    }
-}
-
-/// Formatted timestamp when the clock is 00:00:00.
-pub fn require_midnight(t: Rfc3339) -> Result<string, string> {
-    if is_midnight(t) {
-        Ok(format_rfc3339(t))
-    } else {
-        Err("expected midnight")
-    }
-}
-
 pub fn is_leap_year(year: int) -> bool {
     if year % 400 == 0 {
         return true
@@ -272,14 +204,6 @@ pub fn is_leap_year(year: int) -> bool {
         return false
     }
     year % 4 == 0
-}
-
-/// `Ok(year)` when `year` is a leap year, otherwise `Err`.
-pub fn require_leap(year: int) -> Result<int, string> {
-    if is_leap_year(year) {
-        return Ok(year)
-    }
-    Err("expected leap year")
 }
 
 pub fn days_in_month(year: int, month: int) -> int {

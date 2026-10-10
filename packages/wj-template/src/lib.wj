@@ -142,11 +142,6 @@ pub fn unique_placeholder_count(template: string) -> int {
     seen.len()
 }
 
-/// True when every placeholder in `template` has a binding in `vars`.
-pub fn is_fully_bound(template: string, vars: HashMap<string, string>) -> bool {
-    missing_keys(template, vars).len() == 0
-}
-
 /// Number of unbound placeholder names in `template`.
 pub fn missing_count(template: string, vars: HashMap<string, string>) -> int {
     missing_keys(template, vars).len()
@@ -164,27 +159,6 @@ pub fn require_fully_bound(template: string, vars: HashMap<string, string>) -> R
 /// True when `template` has no well-formed placeholders.
 pub fn is_plain(template: string) -> bool {
     !has_placeholders(template)
-}
-
-/// `Ok(template)` when it contains a placeholder, otherwise `Err`.
-pub fn require_placeholders(template: string) -> Result<string, string> {
-    if has_placeholders(template) {
-        return Ok(template)
-    }
-    Err("expected placeholder")
-}
-
-/// True when at least one placeholder is unbound in `vars`.
-pub fn has_missing(template: string, vars: HashMap<string, string>) -> bool {
-    missing_count(template, vars) > 0
-}
-
-/// `Ok(template)` when a placeholder is unbound, otherwise `Err`.
-pub fn require_missing(template: string, vars: HashMap<string, string>) -> Result<string, string> {
-    if has_missing(template, vars) {
-        return Ok(template)
-    }
-    Err("expected missing")
 }
 
 /// Last `{{key}}` name in `template`, or `None` when plain.

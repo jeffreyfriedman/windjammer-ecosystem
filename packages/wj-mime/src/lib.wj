@@ -134,6 +134,15 @@ pub fn require_html(mime_type: string) -> Result<string, string> {
 }
 
 /// True when `mime_type` is the binary fallback (`application/octet-stream`).
+/// `Ok(mime_type)` when it is `application/octet-stream`, otherwise `Err`.
+pub fn require_octet(mime_type: string) -> Result<string, string> {
+    if is_octet_stream(mime_type) {
+        Ok(mime_type)
+    } else {
+        Err("expected octet")
+    }
+}
+
 pub fn is_octet_stream(mime_type: string) -> bool {
     let trimmed = strings.trim(mime_type)
     if strings.starts_with(trimmed, "application/octet-stream") {

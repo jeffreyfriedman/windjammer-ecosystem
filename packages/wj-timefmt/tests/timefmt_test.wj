@@ -28,6 +28,7 @@ use crate::require_same_day
 use crate::require_same_month
 use crate::require_same_year
 use crate::require_before
+use crate::require_after
 use std::strings
 
 @test
@@ -564,5 +565,37 @@ fn test_require_before() {
             }
         },
         Err(_) => assert(false, "parse next again"),
+    }
+}
+
+@test
+fn test_require_after() {
+    match parse_rfc3339("2024-01-15T12:30:00Z") {
+        Ok(next) => {
+            match parse_rfc3339("2023-01-15T12:30:00Z") {
+                Ok(prev) => {
+                    match require_after(next, prev) {
+                        Ok(kept) => assert(is_after(kept, prev), "after"),
+                        Err(_) => assert(false, "after ok"),
+                    }
+                },
+                Err(_) => assert(false, "parse prev"),
+            }
+        },
+        Err(_) => assert(false, "parse next"),
+    }
+    match parse_rfc3339("2023-01-15T12:30:00Z") {
+        Ok(prev) => {
+            match parse_rfc3339("2024-01-15T12:30:00Z") {
+                Ok(next) => {
+                    match require_after(prev, next) {
+                        Ok(_) => assert(false, "earlier must Err"),
+                        Err(msg) => assert(strings.contains(msg, "after"), "mentions after"),
+                    }
+                },
+                Err(_) => assert(false, "parse next again"),
+            }
+        },
+        Err(_) => assert(false, "parse prev again"),
     }
 }

@@ -27,6 +27,7 @@ use crate::require_zero_version
 use crate::require_older
 use crate::require_newer
 use crate::require_equal
+use crate::require_compatible
 use std::strings
 use crate::minor_of
 use crate::patch_of
@@ -492,6 +493,37 @@ fn test_require_equal() {
                     match require_equal(left, right) {
                         Ok(_) => assert(false, "mismatch must Err"),
                         Err(msg) => assert(strings.contains(msg, "equal"), "mentions equal"),
+                    }
+                },
+                Err(_) => assert(false, "parse right again"),
+            }
+        },
+        Err(_) => assert(false, "parse left again"),
+    }
+}
+
+fn test_require_compatible() {
+    match parse("1.2.3") {
+        Ok(left) => {
+            match parse("1.9.0") {
+                Ok(right) => {
+                    match require_compatible(left, right) {
+                        Ok(kept) => assert(is_compatible(kept, right), "compatible"),
+                        Err(_) => assert(false, "compatible ok"),
+                    }
+                },
+                Err(_) => assert(false, "parse right"),
+            }
+        },
+        Err(_) => assert(false, "parse left"),
+    }
+    match parse("2.0.0") {
+        Ok(left) => {
+            match parse("1.0.0") {
+                Ok(right) => {
+                    match require_compatible(left, right) {
+                        Ok(_) => assert(false, "major mismatch must Err"),
+                        Err(msg) => assert(strings.contains(msg, "compatible"), "mentions compatible"),
                     }
                 },
                 Err(_) => assert(false, "parse right again"),

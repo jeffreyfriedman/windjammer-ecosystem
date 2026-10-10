@@ -138,6 +138,14 @@ pub fn is_after(a: Rfc3339, b: Rfc3339) -> bool {
     compare(a, b) > 0
 }
 
+/// `Ok(a)` when `a` is strictly after `b`, otherwise `Err`.
+pub fn require_after(a: Rfc3339, b: Rfc3339) -> Result<Rfc3339, string> {
+    if is_after(a, b) {
+        return Ok(a)
+    }
+    Err("expected after")
+}
+
 pub fn is_equal(a: Rfc3339, b: Rfc3339) -> bool {
     compare(a, b) == 0
 }

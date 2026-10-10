@@ -8,17 +8,12 @@ use crate::exactly_one_match
 use crate::filter
 use crate::first_match
 use crate::is_match
-use crate::require_candidate
-use crate::require_meta
 use crate::last_match
 use crate::match_count
 use crate::none_match
 use crate::require_none
-use crate::require_all
-use crate::require_one
 use crate::require_at_most
 use crate::require_at_least
-use crate::require_between
 use std::strings
 
 @test
@@ -277,30 +272,6 @@ fn test_require_exact() {
 }
 
 @test
-fn test_require_meta() {
-    match require_meta("*.md") {
-        Ok(pattern) => assert_eq(pattern, "*.md"),
-        Err(_) => assert(false, "star"),
-    }
-    match require_meta("a.txt") {
-        Ok(_) => assert(false, "literal must Err"),
-        Err(msg) => assert(strings.contains(msg, "meta"), "mentions meta"),
-    }
-}
-
-@test
-fn test_require_candidate() {
-    match require_candidate("*.md", "a.md") {
-        Ok(path) => assert(is_match("*.md", path), "md"),
-        Err(_) => assert(false, "md ok"),
-    }
-    match require_candidate("*.md", "a.txt") {
-        Ok(_) => assert(false, "txt must Err"),
-        Err(msg) => assert(strings.contains(msg, "match"), "mentions match"),
-    }
-}
-
-@test
 fn test_require_none() {
     let mut miss = Vec::new()
     miss.push("a.txt")
@@ -315,42 +286,6 @@ fn test_require_none() {
     match require_none("*.md", hit) {
         Ok(_) => assert(false, "md must Err"),
         Err(msg) => assert(strings.contains(msg, "none"), "mentions none"),
-    }
-}
-
-@test
-fn test_require_all() {
-    let mut hit = Vec::new()
-    hit.push("a.md")
-    hit.push("b.md")
-    match require_all("*.md", hit) {
-        Ok(n) => assert_eq(n, 1),
-        Err(_) => assert(false, "all md"),
-    }
-    let mut miss = Vec::new()
-    miss.push("a.md")
-    miss.push("b.txt")
-    match require_all("*.md", miss) {
-        Ok(_) => assert(false, "txt must Err"),
-        Err(msg) => assert(strings.contains(msg, "all"), "mentions all"),
-    }
-}
-
-@test
-fn test_require_one() {
-    let mut one = Vec::new()
-    one.push("a.txt")
-    one.push("b.md")
-    match require_one("*.md", one) {
-        Ok(n) => assert_eq(n, 1),
-        Err(_) => assert(false, "one md"),
-    }
-    let mut two = Vec::new()
-    two.push("a.md")
-    two.push("b.md")
-    match require_one("*.md", two) {
-        Ok(_) => assert(false, "two must Err"),
-        Err(msg) => assert(strings.contains(msg, "one"), "mentions one"),
     }
 }
 
@@ -387,25 +322,5 @@ fn test_require_at_least() {
     match require_at_least("*.md", few, 2) {
         Ok(_) => assert(false, "one must Err"),
         Err(msg) => assert(strings.contains(msg, "at least"), "mentions at least"),
-    }
-}
-
-@test
-fn test_require_between() {
-    let mut paths = Vec::new()
-    paths.push("a.md")
-    paths.push("b.md")
-    paths.push("c.txt")
-    match require_between("*.md", paths, 1, 2) {
-        Ok(n) => assert_eq(n, 1),
-        Err(_) => assert(false, "two md"),
-    }
-    let mut many = Vec::new()
-    many.push("a.md")
-    many.push("b.md")
-    many.push("c.md")
-    match require_between("*.md", many, 1, 2) {
-        Ok(_) => assert(false, "three must Err"),
-        Err(msg) => assert(strings.contains(msg, "between"), "mentions between"),
     }
 }

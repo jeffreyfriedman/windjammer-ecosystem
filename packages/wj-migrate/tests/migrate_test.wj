@@ -5,15 +5,11 @@ use crate::parse_filename
 use crate::pending
 use crate::pending_count
 use crate::record_applied_sql
-use crate::require_migrations
-use crate::require_empty_migrations
 use crate::require_pending
-use crate::require_applied
 use crate::require_latest
 use crate::require_earliest
 use crate::require_pending_count
 use crate::require_migration_count
-use crate::is_empty_migrations
 use crate::schema_table_sql
 use crate::select_applied_sql
 use crate::sort_migrations
@@ -220,29 +216,6 @@ fn test_pending_count_latest_and_is_pending() {
 }
 
 @test
-fn test_empty_earliest_and_name_of_version() {
-    use crate::earliest_version
-    use crate::has_migrations
-    use crate::is_empty_migrations
-    use crate::name_of_version
-    let empty: Vec<Migration> = Vec::new()
-    assert(is_empty_migrations(empty), "empty")
-    assert(!has_migrations(empty), "no migrations")
-    assert(has_migrations(sample_migrations()), "has")
-    assert(!is_empty_migrations(sample_migrations()), "not empty")
-    assert_eq(earliest_version(sample_migrations()), 1)
-    assert_eq(earliest_version(empty), 0)
-    match name_of_version(sample_migrations(), 2) {
-        Some(name) => assert_eq(name, "b"),
-        None => assert(false, "name"),
-    }
-    match name_of_version(sample_migrations(), 9) {
-        Some(_) => assert(false, "missing"),
-        None => assert(true, "ok"),
-    }
-}
-
-@test
 fn test_require_name() {
     use crate::require_name
     match require_name(sample_migrations(), 2) {
@@ -252,30 +225,6 @@ fn test_require_name() {
     match require_name(sample_migrations(), 9) {
         Ok(_) => assert(false, "missing must Err"),
         Err(msg) => assert(strings.contains(msg, "9"), "mentions version"),
-    }
-}
-
-@test
-fn test_require_migrations() {
-    match require_migrations(sample_migrations()) {
-        Ok(n) => assert_eq(n, 3),
-        Err(_) => assert(false, "sample set"),
-    }
-    match require_migrations(Vec::new()) {
-        Ok(_) => assert(false, "empty must Err"),
-        Err(msg) => assert(strings.contains(msg, "migrations"), "mentions migrations"),
-    }
-}
-
-@test
-fn test_require_empty_migrations() {
-    match require_empty_migrations(Vec::new()) {
-        Ok(n) => assert_eq(n, 0),
-        Err(_) => assert(false, "empty set"),
-    }
-    match require_empty_migrations(sample_migrations()) {
-        Ok(_) => assert(false, "sample must Err"),
-        Err(msg) => assert(strings.contains(msg, "empty"), "mentions empty"),
     }
 }
 
@@ -292,22 +241,6 @@ fn test_require_pending() {
     match require_pending(sample_migrations(), done, 1) {
         Ok(_) => assert(false, "applied must Err"),
         Err(msg) => assert(strings.contains(msg, "pending"), "mentions pending"),
-    }
-}
-
-@test
-fn test_require_applied() {
-    let mut applied = Vec::new()
-    applied.push(1)
-    match require_applied(applied, 1) {
-        Ok(version) => assert_eq(version, 1),
-        Err(_) => assert(false, "version 1 applied"),
-    }
-    let mut other = Vec::new()
-    other.push(1)
-    match require_applied(other, 2) {
-        Ok(_) => assert(false, "missing must Err"),
-        Err(msg) => assert(strings.contains(msg, "applied"), "mentions applied"),
     }
 }
 

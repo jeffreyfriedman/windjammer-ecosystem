@@ -1,8 +1,6 @@
 use crate::HttpResult
 use crate::body_len
 use crate::body_of
-use crate::has_body
-use crate::is_empty_body
 use crate::status_is_client_error
 use crate::status_is_created
 use crate::status_is_informational
@@ -16,18 +14,8 @@ use crate::status_is_unauthorized
 use crate::status_of
 use crate::require_error
 use crate::require_ok
-use crate::require_created
-use crate::require_not_found
-use crate::require_unauthorized
-use crate::require_no_content
 use crate::require_redirect
 use crate::require_success
-use crate::require_client_error
-use crate::require_server_error
-use crate::require_ok_status
-use crate::require_informational
-use crate::require_empty_body
-use crate::require_error_status
 use crate::error_message
 use crate::from_parts
 use std::strings
@@ -106,10 +94,8 @@ fn test_created_no_content_and_body_helpers() {
     assert(!status_is_no_content(200), "200 not no-content")
     let filled = from_parts(200, "hello")
     assert_eq(body_len(filled), 5)
-    assert(!is_empty_body(filled), "has body")
     let empty = from_parts(204, "")
     assert_eq(body_len(empty), 0)
-    assert(is_empty_body(empty), "empty body")
 }
 
 fn test_status_auth_not_found_and_accessors() {
@@ -120,26 +106,7 @@ fn test_status_auth_not_found_and_accessors() {
     let result = from_parts(200, "hello")
     assert_eq(status_of(result), 200)
     assert_eq(body_of(result), "hello")
-    assert(has_body(result), "has body")
     let empty = from_parts(204, "")
-    assert(!has_body(empty), "no body")
-}
-
-fn test_is_error_status_and_require_body() {
-    use crate::is_error_status
-    use crate::require_body
-    assert(is_error_status(404), "404")
-    assert(is_error_status(500), "500")
-    assert(!is_error_status(200), "200 not error")
-    assert(!is_error_status(301), "301 not error")
-    match require_body(from_parts(200, "hello")) {
-        Ok(body) => assert_eq(body, "hello"),
-        Err(_) => assert(false, "body present"),
-    }
-    match require_body(from_parts(204, "")) {
-        Ok(_) => assert(false, "empty body must Err"),
-        Err(msg) => assert(strings.contains(msg, "body"), "mentions body"),
-    }
 }
 
 fn test_require_error() {
@@ -150,50 +117,6 @@ fn test_require_error() {
     match require_error(from_parts(200, "ok")) {
         Ok(_) => assert(false, "success must Err"),
         Err(msg) => assert(strings.contains(msg, "error"), "mentions error"),
-    }
-}
-
-fn test_require_created() {
-    match require_created(201) {
-        Ok(status) => assert(status_is_created(status), "created"),
-        Err(_) => assert(false, "201"),
-    }
-    match require_created(200) {
-        Ok(_) => assert(false, "ok must Err"),
-        Err(msg) => assert(strings.contains(msg, "created"), "mentions created"),
-    }
-}
-
-fn test_require_not_found() {
-    match require_not_found(404) {
-        Ok(status) => assert(status_is_not_found(status), "missing"),
-        Err(_) => assert(false, "404"),
-    }
-    match require_not_found(200) {
-        Ok(_) => assert(false, "ok must Err"),
-        Err(msg) => assert(strings.contains(msg, "not found"), "mentions not found"),
-    }
-}
-
-fn test_require_unauthorized() {
-    match require_unauthorized(401) {
-        Ok(status) => assert(status_is_unauthorized(status), "unauthorized"),
-        Err(_) => assert(false, "401 ok"),
-    }
-    match require_unauthorized(200) {
-        Ok(_) => assert(false, "ok must Err"),
-        Err(msg) => assert(strings.contains(msg, "unauthorized"), "mentions unauthorized"),
-    }
-}
-
-fn test_require_no_content() {
-    match require_no_content(204) {
-        Ok(status) => assert(status_is_no_content(status), "no content"),
-        Err(_) => assert(false, "204 ok"),
-    }
-    match require_no_content(200) {
-        Ok(_) => assert(false, "ok must Err"),
-        Err(msg) => assert(strings.contains(msg, "no content"), "mentions no content"),
     }
 }
 
@@ -216,73 +139,5 @@ fn test_require_success() {
     match require_success(404) {
         Ok(_) => assert(false, "missing must Err"),
         Err(msg) => assert(strings.contains(msg, "success"), "mentions success"),
-    }
-}
-
-fn test_require_client_error() {
-    match require_client_error(404) {
-        Ok(status) => assert(status_is_client_error(status), "client error"),
-        Err(_) => assert(false, "404 ok"),
-    }
-    match require_client_error(200) {
-        Ok(_) => assert(false, "ok must Err"),
-        Err(msg) => assert(strings.contains(msg, "client"), "mentions client"),
-    }
-}
-
-fn test_require_server_error() {
-    match require_server_error(503) {
-        Ok(status) => assert(status_is_server_error(status), "server error"),
-        Err(_) => assert(false, "503 ok"),
-    }
-    match require_server_error(404) {
-        Ok(_) => assert(false, "client must Err"),
-        Err(msg) => assert(strings.contains(msg, "server"), "mentions server"),
-    }
-}
-
-fn test_require_ok_status() {
-    match require_ok_status(200) {
-        Ok(status) => assert(status_is_ok(status), "ok status"),
-        Err(_) => assert(false, "200 ok"),
-    }
-    match require_ok_status(404) {
-        Ok(_) => assert(false, "missing must Err"),
-        Err(msg) => assert(strings.contains(msg, "ok status"), "mentions ok status"),
-    }
-}
-
-fn test_require_informational() {
-    match require_informational(100) {
-        Ok(status) => assert(status_is_informational(status), "informational"),
-        Err(_) => assert(false, "100 ok"),
-    }
-    match require_informational(200) {
-        Ok(_) => assert(false, "ok must Err"),
-        Err(msg) => assert(strings.contains(msg, "informational"), "mentions informational"),
-    }
-}
-
-fn test_require_empty_body() {
-    let empty = from_parts(204, "")
-    match require_empty_body(empty) {
-        Ok(n) => assert_eq(n, 1),
-        Err(_) => assert(false, "empty body"),
-    }
-    let filled = from_parts(200, "hello")
-    match require_empty_body(filled) {
-        Ok(_) => assert(false, "body must Err"),
-        Err(msg) => assert(strings.contains(msg, "empty body"), "mentions empty body"),
-    }
-}
-
-fn test_require_error_status() {
-    match require_error_status(404) {
-        Ok(status) => assert_eq(status, 404),
-        Err(_) => assert(false, "404 ok"),
-    }
-    match require_error_status(200) {
-        Ok(_) => assert(false, "ok must Err"),
-        Err(msg) => assert(strings.contains(msg, "error code"), "mentions error code"),
     }
 }

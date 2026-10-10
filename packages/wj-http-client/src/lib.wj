@@ -30,25 +30,9 @@ pub fn status_is_client_error(status: u16) -> bool {
     status >= 400 && status < 500
 }
 
-/// `Ok(status)` when it is a 4xx client error, otherwise `Err`.
-pub fn require_client_error(status: u16) -> Result<u16, string> {
-    if status_is_client_error(status) {
-        return Ok(status)
-    }
-    Err("expected client error")
-}
-
 /// True when `status` is in the 5xx range.
 pub fn status_is_server_error(status: u16) -> bool {
     status >= 500 && status < 600
-}
-
-/// `Ok(status)` when it is a 5xx server error, otherwise `Err`.
-pub fn require_server_error(status: u16) -> Result<u16, string> {
-    if status_is_server_error(status) {
-        return Ok(status)
-    }
-    Err("expected server error")
 }
 
 /// True when `status` is exactly `200 OK`.
@@ -56,25 +40,9 @@ pub fn status_is_ok(status: u16) -> bool {
     status == 200
 }
 
-/// `Ok(status)` when it is exactly `200 OK`, otherwise `Err`.
-pub fn require_ok_status(status: u16) -> Result<u16, string> {
-    if status_is_ok(status) {
-        return Ok(status)
-    }
-    Err("expected ok status")
-}
-
 /// True when `status` is exactly `201 Created`.
 pub fn status_is_created(status: u16) -> bool {
     status == 201
-}
-
-/// `Ok(status)` when it is `201 Created`, otherwise `Err`.
-pub fn require_created(status: u16) -> Result<u16, string> {
-    if status_is_created(status) {
-        return Ok(status)
-    }
-    Err("expected created")
 }
 
 /// True when `status` is exactly `204 No Content`.
@@ -82,30 +50,9 @@ pub fn status_is_no_content(status: u16) -> bool {
     status == 204
 }
 
-/// `Ok(status)` when it is `204 No Content`, otherwise `Err`.
-pub fn require_no_content(status: u16) -> Result<u16, string> {
-    if status_is_no_content(status) {
-        return Ok(status)
-    }
-    Err("expected no content")
-}
-
 /// Body length of `result`.
 pub fn body_len(result: HttpResult) -> int {
     strings.len(result.body)
-}
-
-/// True when `result` has an empty body.
-pub fn is_empty_body(result: HttpResult) -> bool {
-    body_len(result) == 0
-}
-
-/// `Ok(1)` when the response body is empty, otherwise `Err`.
-pub fn require_empty_body(result: HttpResult) -> Result<int, string> {
-    if is_empty_body(result) {
-        return Ok(1)
-    }
-    Err("expected empty body")
 }
 
 /// True when `status` is in the 3xx range.
@@ -126,38 +73,14 @@ pub fn status_is_informational(status: u16) -> bool {
     status >= 100 && status < 200
 }
 
-/// `Ok(status)` when it is a 1xx informational status, otherwise `Err`.
-pub fn require_informational(status: u16) -> Result<u16, string> {
-    if status_is_informational(status) {
-        return Ok(status)
-    }
-    Err("expected informational")
-}
-
 /// True when `status` is exactly `401 Unauthorized`.
 pub fn status_is_unauthorized(status: u16) -> bool {
     status == 401
 }
 
-/// `Ok(status)` when it is `401 Unauthorized`, otherwise `Err`.
-pub fn require_unauthorized(status: u16) -> Result<u16, string> {
-    if status_is_unauthorized(status) {
-        return Ok(status)
-    }
-    Err("expected unauthorized")
-}
-
 /// True when `status` is exactly `404 Not Found`.
 pub fn status_is_not_found(status: u16) -> bool {
     status == 404
-}
-
-/// `Ok(status)` when it is `404 Not Found`, otherwise `Err`.
-pub fn require_not_found(status: u16) -> Result<u16, string> {
-    if status_is_not_found(status) {
-        return Ok(status)
-    }
-    Err("expected not found")
 }
 
 /// Status code accessor.
@@ -168,11 +91,6 @@ pub fn status_of(result: HttpResult) -> u16 {
 /// Body text accessor.
 pub fn body_of(result: HttpResult) -> string {
     result.body
-}
-
-/// True when `result` has a non-empty body.
-pub fn has_body(result: HttpResult) -> bool {
-    !is_empty_body(result)
 }
 
 /// Human-readable error for a failed response.
@@ -193,29 +111,12 @@ pub fn is_error_status(status: u16) -> bool {
     status_is_client_error(status) || status_is_server_error(status)
 }
 
-/// `Ok(status)` when it is 4xx or 5xx, otherwise `Err`.
-pub fn require_error_status(status: u16) -> Result<u16, string> {
-    if is_error_status(status) {
-        return Ok(status)
-    }
-    Err("expected error code")
-}
-
 /// Status when it is 4xx or 5xx.
 pub fn require_error(result: HttpResult) -> Result<u16, string> {
     if is_error_status(result.status) {
         return Ok(result.status)
     }
     Err("expected error status")
-}
-
-/// Body text when it is non-empty.
-pub fn require_body(result: HttpResult) -> Result<string, string> {
-    if has_body(result) {
-        Ok(result.body)
-    } else {
-        Err("expected body")
-    }
 }
 
 impl HttpResult {

@@ -121,28 +121,12 @@ pub fn is_nullish(text: string) -> bool {
     strings.trim(text) == "null"
 }
 
-/// `Ok(text)` when trimmed text is JSON `null`, otherwise `Err`.
-pub fn require_null(text: string) -> Result<string, string> {
-    if is_nullish(text) {
-        return Ok(text)
-    }
-    Err("expected null")
-}
-
 /// True when valid JSON whose top-level value is an empty object.
 pub fn is_empty_object(text: string) -> bool {
     if !is_objectish(text) {
         return false
     }
     compact(text) == "{}"
-}
-
-/// `Ok(text)` when valid JSON is an empty object, otherwise `Err`.
-pub fn require_empty_object(text: string) -> Result<string, string> {
-    if is_empty_object(text) {
-        return Ok(text)
-    }
-    Err("expected empty object")
 }
 
 /// Accept `text` only when it is valid JSON.
@@ -153,33 +137,9 @@ pub fn require_valid(text: string) -> Result<string, string> {
     Err("invalid json")
 }
 
-/// `Ok(text)` when it is a JSON object, otherwise `Err`.
-pub fn require_object(text: string) -> Result<string, string> {
-    if is_objectish(text) {
-        return Ok(text)
-    }
-    Err("expected object")
-}
-
-/// `Ok(text)` when it is a JSON array, otherwise `Err`.
-pub fn require_array(text: string) -> Result<string, string> {
-    if is_arrayish(text) {
-        return Ok(text)
-    }
-    Err("expected array")
-}
-
 /// True when valid JSON is an empty object or an empty array.
 pub fn is_empty_json(text: string) -> bool {
     is_empty_object(text) || is_empty_array(text)
-}
-
-/// `Ok(text)` when valid JSON is an empty object or empty array, otherwise `Err`.
-pub fn require_empty_json(text: string) -> Result<string, string> {
-    if is_empty_json(text) {
-        return Ok(text)
-    }
-    Err("expected empty json")
 }
 
 /// True when valid JSON whose top-level value is an empty array.
@@ -188,14 +148,6 @@ pub fn is_empty_array(text: string) -> bool {
         return false
     }
     compact(text) == "[]"
-}
-
-/// `Ok(text)` when valid JSON is an empty array, otherwise `Err`.
-pub fn require_empty_array(text: string) -> Result<string, string> {
-    if is_empty_array(text) {
-        return Ok(text)
-    }
-    Err("expected empty array")
 }
 
 /// Set JSON at a dotted object path (`user.name`). Creates intermediate objects.

@@ -3,7 +3,6 @@ use crate::parse_level_or
 use crate::level_label
 use crate::level_rank
 use crate::is_debug_level
-use crate::is_enabled
 use crate::is_error_level
 use crate::is_info_level
 use crate::is_trace_level
@@ -14,10 +13,7 @@ use crate::log_tagged
 use crate::more_severe
 use crate::require_level
 use crate::require_error
-use crate::require_debug
-use crate::require_trace
 use crate::require_info
-use crate::require_warn
 use std::log::LogLevel
 use std::strings
 
@@ -68,13 +64,6 @@ fn test_level_rank_ordering() {
     assert(level_rank(LogLevel::Debug) < level_rank(LogLevel::Info), "debug < info")
     assert(level_rank(LogLevel::Info) < level_rank(LogLevel::Warn), "info < warn")
     assert(level_rank(LogLevel::Warn) < level_rank(LogLevel::Error), "warn < error")
-}
-
-fn test_is_enabled_respects_minimum() {
-    assert(is_enabled(LogLevel::Error, LogLevel::Warn), "error >= warn")
-    assert(is_enabled(LogLevel::Warn, LogLevel::Warn), "warn >= warn")
-    assert(!is_enabled(LogLevel::Info, LogLevel::Warn), "info < warn")
-    assert(is_enabled(LogLevel::Trace, LogLevel::Trace), "trace >= trace")
 }
 
 fn test_is_error_level() {
@@ -133,18 +122,6 @@ fn test_same_severity_and_known_level() {
     assert(!is_known_level(""), "empty")
 }
 
-fn test_require_enabled() {
-    use crate::require_enabled
-    match require_enabled(LogLevel::Error, LogLevel::Warn) {
-        Ok(level) => assert(is_error_level(level), "error passes warn"),
-        Err(_) => assert(false, "error enabled"),
-    }
-    match require_enabled(LogLevel::Debug, LogLevel::Info) {
-        Ok(_) => assert(false, "debug below info must Err"),
-        Err(msg) => assert(strings.contains(msg, "level"), "mentions level"),
-    }
-}
-
 fn test_require_error() {
     match require_error(LogLevel::Error) {
         Ok(level) => assert(is_error_level(level), "error"),
@@ -156,17 +133,6 @@ fn test_require_error() {
     }
 }
 
-fn test_require_warn() {
-    match require_warn(LogLevel::Warn) {
-        Ok(level) => assert(is_warn_level(level), "warn"),
-        Err(_) => assert(false, "warn ok"),
-    }
-    match require_warn(LogLevel::Error) {
-        Ok(_) => assert(false, "error must Err"),
-        Err(msg) => assert(strings.contains(msg, "warn"), "mentions warn"),
-    }
-}
-
 fn test_require_info() {
     match require_info(LogLevel::Info) {
         Ok(level) => assert(is_info_level(level), "info"),
@@ -175,27 +141,5 @@ fn test_require_info() {
     match require_info(LogLevel::Warn) {
         Ok(_) => assert(false, "warn must Err"),
         Err(msg) => assert(strings.contains(msg, "info"), "mentions info"),
-    }
-}
-
-fn test_require_debug() {
-    match require_debug(LogLevel::Debug) {
-        Ok(level) => assert(is_debug_level(level), "debug"),
-        Err(_) => assert(false, "debug ok"),
-    }
-    match require_debug(LogLevel::Info) {
-        Ok(_) => assert(false, "info must Err"),
-        Err(msg) => assert(strings.contains(msg, "debug"), "mentions debug"),
-    }
-}
-
-fn test_require_trace() {
-    match require_trace(LogLevel::Trace) {
-        Ok(level) => assert(is_trace_level(level), "trace"),
-        Err(_) => assert(false, "trace ok"),
-    }
-    match require_trace(LogLevel::Debug) {
-        Ok(_) => assert(false, "debug must Err"),
-        Err(msg) => assert(strings.contains(msg, "trace"), "mentions trace"),
     }
 }

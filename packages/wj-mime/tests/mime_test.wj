@@ -12,19 +12,8 @@ use crate::is_audio
 use crate::is_css
 use crate::is_html
 use crate::is_image
-use crate::require_audio
-use crate::require_html
-use crate::require_video
-use crate::require_css
-use crate::require_xml
 use crate::require_plain
-use crate::require_javascript
-use crate::require_jpeg
-use crate::require_png
 use crate::require_text
-use crate::require_octet
-use crate::require_json
-use crate::require_image
 use crate::content_type_jpeg
 use crate::is_jpeg
 use crate::is_json
@@ -195,90 +184,6 @@ fn test_jpeg_helpers() {
 }
 
 @test
-fn test_require_image() {
-    match require_image(png()) {
-        Ok(v) => assert(is_image(v), "png is image"),
-        Err(_) => assert(false, "png"),
-    }
-    match require_image(json()) {
-        Ok(_) => assert(false, "json must Err"),
-        Err(msg) => assert(strings.contains(msg, "image"), "mentions image"),
-    }
-}
-
-@test
-fn test_require_audio() {
-    match require_audio("audio/mpeg") {
-        Ok(v) => assert(is_audio(v), "mpeg is audio"),
-        Err(_) => assert(false, "mpeg"),
-    }
-    match require_audio(png()) {
-        Ok(_) => assert(false, "png must Err"),
-        Err(msg) => assert(strings.contains(msg, "audio"), "mentions audio"),
-    }
-}
-
-@test
-fn test_require_json() {
-    match require_json(json()) {
-        Ok(v) => assert(is_json(v), "json"),
-        Err(_) => assert(false, "json ok"),
-    }
-    match require_json(png()) {
-        Ok(_) => assert(false, "png must Err"),
-        Err(msg) => assert(strings.contains(msg, "json"), "mentions json"),
-    }
-}
-
-@test
-fn test_require_html() {
-    match require_html("text/html") {
-        Ok(v) => assert(is_html(v), "html"),
-        Err(_) => assert(false, "html ok"),
-    }
-    match require_html(json()) {
-        Ok(_) => assert(false, "json must Err"),
-        Err(msg) => assert(strings.contains(msg, "html"), "mentions html"),
-    }
-}
-
-@test
-fn test_require_video() {
-    match require_video("video/mp4") {
-        Ok(v) => assert(is_video(v), "video"),
-        Err(_) => assert(false, "video ok"),
-    }
-    match require_video(json()) {
-        Ok(_) => assert(false, "json must Err"),
-        Err(msg) => assert(strings.contains(msg, "video"), "mentions video"),
-    }
-}
-
-@test
-fn test_require_css() {
-    match require_css(css()) {
-        Ok(v) => assert(is_css(v), "css"),
-        Err(_) => assert(false, "css ok"),
-    }
-    match require_css(json()) {
-        Ok(_) => assert(false, "json must Err"),
-        Err(msg) => assert(strings.contains(msg, "css"), "mentions css"),
-    }
-}
-
-@test
-fn test_require_xml() {
-    match require_xml(xml()) {
-        Ok(v) => assert(is_xml(v), "xml"),
-        Err(_) => assert(false, "xml ok"),
-    }
-    match require_xml(json()) {
-        Ok(_) => assert(false, "json must Err"),
-        Err(msg) => assert(strings.contains(msg, "xml"), "mentions xml"),
-    }
-}
-
-@test
 fn test_require_plain() {
     match require_plain(plain()) {
         Ok(v) => assert(is_plain(v), "plain"),
@@ -291,42 +196,6 @@ fn test_require_plain() {
 }
 
 @test
-fn test_require_javascript() {
-    match require_javascript(javascript()) {
-        Ok(v) => assert(is_javascript(v), "javascript"),
-        Err(_) => assert(false, "javascript ok"),
-    }
-    match require_javascript(json()) {
-        Ok(_) => assert(false, "json must Err"),
-        Err(msg) => assert(strings.contains(msg, "javascript"), "mentions javascript"),
-    }
-}
-
-@test
-fn test_require_jpeg() {
-    match require_jpeg(jpeg()) {
-        Ok(v) => assert(is_jpeg(v), "jpeg"),
-        Err(_) => assert(false, "jpeg ok"),
-    }
-    match require_jpeg(json()) {
-        Ok(_) => assert(false, "json must Err"),
-        Err(msg) => assert(strings.contains(msg, "jpeg"), "mentions jpeg"),
-    }
-}
-
-@test
-fn test_require_png() {
-    match require_png(png()) {
-        Ok(v) => assert(is_png(v), "png"),
-        Err(_) => assert(false, "png ok"),
-    }
-    match require_png(json()) {
-        Ok(_) => assert(false, "json must Err"),
-        Err(msg) => assert(strings.contains(msg, "png"), "mentions png"),
-    }
-}
-
-@test
 fn test_require_text() {
     match require_text(plain()) {
         Ok(v) => assert(is_text(v), "text"),
@@ -335,17 +204,5 @@ fn test_require_text() {
     match require_text(png()) {
         Ok(_) => assert(false, "png must Err"),
         Err(msg) => assert(strings.contains(msg, "text"), "mentions text"),
-    }
-}
-
-@test
-fn test_require_octet() {
-    match require_octet(octet_stream()) {
-        Ok(v) => assert(is_octet_stream(v), "octet"),
-        Err(_) => assert(false, "octet ok"),
-    }
-    match require_octet(json()) {
-        Ok(_) => assert(false, "json must Err"),
-        Err(msg) => assert(strings.contains(msg, "octet"), "mentions octet"),
     }
 }

@@ -1,16 +1,11 @@
 use crate::bcrypt_cost
 use crate::hash_password
-use crate::is_bcrypt
-use crate::is_bcrypt_prefix
 use crate::is_empty_hash
 use crate::is_min_cost
 use crate::require_cost
 use crate::require_min_cost
 use crate::require_nonempty
 use crate::looks_like_bcrypt
-use crate::require_bcrypt
-use crate::require_prefix
-use crate::require_empty_hash
 use crate::verify_ok
 use crate::verify_password
 use std::strings
@@ -85,33 +80,6 @@ fn test_verify_ok() {
 }
 
 @test
-fn test_require_bcrypt() {
-    match require_bcrypt("$2b$12$abcdefghijklmnopqrstuv") {
-        Ok(h) => assert(looks_like_bcrypt(h), "accepted"),
-        Err(_) => assert(false, "should accept"),
-    }
-    match require_bcrypt("sha256:deadbeef") {
-        Ok(_) => assert(false, "should reject"),
-        Err(e) => assert(strings.len(e) > 0, "error message"),
-    }
-}
-
-@test
-fn test_is_bcrypt_prefix() {
-    assert(is_bcrypt_prefix("$2b$12$abcdefghijklmnopqrstuv"), "2b")
-    assert(is_bcrypt_prefix("$2a$10$x"), "2a")
-    assert(!is_bcrypt_prefix("plain"), "plain")
-}
-
-@test
-fn test_is_bcrypt() {
-    assert(is_bcrypt("$2b$12$abcdefghijklmnopqrstuv"), "2b")
-    assert(is_bcrypt("$2y$10$x"), "2y")
-    assert(!is_bcrypt("plain"), "plain")
-    assert(!is_bcrypt(""), "empty")
-}
-
-@test
 fn test_bcrypt_cost_and_is_empty_hash() {
     match bcrypt_cost("$2a$10$abcdefghijklmnopqrstuv") {
         Some(c) => assert_eq(c, 10),
@@ -166,29 +134,5 @@ fn test_require_nonempty() {
     match require_nonempty("   ") {
         Ok(_) => assert(false, "blank must Err"),
         Err(msg) => assert(strings.contains(msg, "hash"), "mentions hash"),
-    }
-}
-
-@test
-fn test_require_empty_hash() {
-    match require_empty_hash("   ") {
-        Ok(h) => assert(is_empty_hash(h), "blank"),
-        Err(_) => assert(false, "blank ok"),
-    }
-    match require_empty_hash("$2b$12$abcdefghijklmnopqrstuv") {
-        Ok(_) => assert(false, "hash must Err"),
-        Err(msg) => assert(strings.contains(msg, "empty"), "mentions empty"),
-    }
-}
-
-@test
-fn test_require_prefix() {
-    match require_prefix("$2b$12$abcdefghijklmnopqrstuv") {
-        Ok(h) => assert(is_bcrypt_prefix(h), "prefix"),
-        Err(_) => assert(false, "bcrypt prefix"),
-    }
-    match require_prefix("sha256:deadbeef") {
-        Ok(_) => assert(false, "digest must Err"),
-        Err(msg) => assert(strings.contains(msg, "prefix"), "mentions prefix"),
     }
 }

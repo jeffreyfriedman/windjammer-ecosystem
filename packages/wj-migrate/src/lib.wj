@@ -120,14 +120,6 @@ pub fn version_applied(applied: Vec<int>, version: int) -> bool {
     false
 }
 
-/// `Ok(version)` when that version is already applied, otherwise `Err`.
-pub fn require_applied(applied: Vec<int>, version: int) -> Result<int, string> {
-    if version_applied(applied, version) {
-        return Ok(version)
-    }
-    Err("expected applied")
-}
-
 fn split_version_name(stem: string) -> Result<(int, string), string> {
     let mut i = 0
     while i < strings.len(stem) {
@@ -251,24 +243,6 @@ pub fn require_pending(all: Vec<Migration>, applied: Vec<int>, version: int) -> 
     Err("expected pending")
 }
 
-/// True when `items` contains at least one migration.
-pub fn has_migrations(items: Vec<Migration>) -> bool {
-    migration_count(items) > 0
-}
-
-/// True when `items` is empty.
-pub fn is_empty_migrations(items: Vec<Migration>) -> bool {
-    migration_count(items) == 0
-}
-
-/// `Ok(0)` when there are no migrations, otherwise `Err`.
-pub fn require_empty_migrations(items: Vec<Migration>) -> Result<int, string> {
-    if is_empty_migrations(items) {
-        return Ok(0)
-    }
-    Err("expected empty migrations")
-}
-
 /// Lowest version in `items`, or `0` when empty.
 pub fn earliest_version(items: Vec<Migration>) -> int {
     let sorted = sort_migrations(items)
@@ -295,14 +269,6 @@ pub fn name_of_version(items: Vec<Migration>, version: int) -> Option<string> {
         }
     }
     None
-}
-
-/// Count when `items` is non-empty; otherwise Err.
-pub fn require_migrations(items: Vec<Migration>) -> Result<int, string> {
-    if has_migrations(items) {
-        return Ok(migration_count(items))
-    }
-    Err("expected migrations")
 }
 
 /// Migration name for `version`, or Err naming the missing version.

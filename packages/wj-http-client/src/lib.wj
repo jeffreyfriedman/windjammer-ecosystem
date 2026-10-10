@@ -56,6 +56,14 @@ pub fn status_is_ok(status: u16) -> bool {
     status == 200
 }
 
+/// `Ok(status)` when it is exactly `200 OK`, otherwise `Err`.
+pub fn require_ok_status(status: u16) -> Result<u16, string> {
+    if status_is_ok(status) {
+        return Ok(status)
+    }
+    Err("expected ok status")
+}
+
 /// True when `status` is exactly `201 Created`.
 pub fn status_is_created(status: u16) -> bool {
     status == 201
@@ -108,6 +116,14 @@ pub fn require_redirect(status: u16) -> Result<u16, string> {
 /// True when `status` is in the 1xx range.
 pub fn status_is_informational(status: u16) -> bool {
     status >= 100 && status < 200
+}
+
+/// `Ok(status)` when it is a 1xx informational status, otherwise `Err`.
+pub fn require_informational(status: u16) -> Result<u16, string> {
+    if status_is_informational(status) {
+        return Ok(status)
+    }
+    Err("expected informational")
 }
 
 /// True when `status` is exactly `401 Unauthorized`.

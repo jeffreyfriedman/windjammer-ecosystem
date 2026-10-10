@@ -5,6 +5,7 @@ use crate::require_files
 use crate::require_dirs
 use crate::require_empty_tree
 use crate::require_hidden
+use crate::require_entries
 use crate::count_files
 use crate::count_visible_files
 use crate::has_dirs
@@ -370,4 +371,27 @@ fn test_require_hidden() {
         Ok(_) => assert(false, "plain must Err"),
         Err(msg) => assert(strings.contains(msg, "hidden"), "mentions hidden"),
     }
+}
+
+fn test_require_entries() {
+    let root = "/tmp/wj-fs-walk-tree-require-entries"
+    match setup_tree(root) {
+        Ok(_) => {},
+        Err(e) => assert(false, "setup failed: ${e}"),
+    }
+    match require_entries(root) {
+        Ok(n) => assert(n > 0, "has entries"),
+        Err(e) => assert(false, "require_entries: ${e}"),
+    }
+    teardown_tree(root)
+    let empty_root = "/tmp/wj-fs-walk-empty-require-entries"
+    match fs.create_dir_all(empty_root) {
+        Ok(_) => {},
+        Err(_) => assert(false, "create empty"),
+    }
+    match require_entries(empty_root) {
+        Ok(_) => assert(false, "empty must Err"),
+        Err(msg) => assert(strings.contains(msg, "entries"), "mentions entries"),
+    }
+    teardown_tree(empty_root)
 }

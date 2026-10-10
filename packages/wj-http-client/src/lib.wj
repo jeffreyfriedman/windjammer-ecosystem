@@ -37,6 +37,14 @@ pub fn status_is_created(status: u16) -> bool {
     status == 201
 }
 
+/// `Ok(status)` when it is `201 Created`, otherwise `Err`.
+pub fn require_created(status: u16) -> Result<u16, string> {
+    if status_is_created(status) {
+        return Ok(status)
+    }
+    Err("expected created")
+}
+
 /// True when `status` is exactly `204 No Content`.
 pub fn status_is_no_content(status: u16) -> bool {
     status == 204

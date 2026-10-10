@@ -24,6 +24,7 @@ use crate::to_epoch_secs
 use crate::year_of
 use crate::require_midnight
 use crate::require_leap
+use crate::require_same_day
 use std::strings
 
 @test
@@ -432,5 +433,37 @@ fn test_require_leap() {
     match require_leap(2023) {
         Ok(_) => assert(false, "2023 must Err"),
         Err(msg) => assert(strings.contains(msg, "leap"), "mentions leap"),
+    }
+}
+
+@test
+fn test_require_same_day() {
+    match parse_rfc3339("2024-01-15T12:30:00Z") {
+        Ok(noon) => {
+            match parse_rfc3339("2024-01-15T01:00:00Z") {
+                Ok(morning) => {
+                    match require_same_day(noon, morning) {
+                        Ok(kept) => assert(is_same_day(kept, morning), "same day"),
+                        Err(_) => assert(false, "same day ok"),
+                    }
+                },
+                Err(_) => assert(false, "parse morning"),
+            }
+        },
+        Err(_) => assert(false, "parse noon"),
+    }
+    match parse_rfc3339("2024-01-15T12:30:00Z") {
+        Ok(noon) => {
+            match parse_rfc3339("2024-01-16T12:30:00Z") {
+                Ok(next) => {
+                    match require_same_day(noon, next) {
+                        Ok(_) => assert(false, "next day must Err"),
+                        Err(msg) => assert(strings.contains(msg, "day"), "mentions day"),
+                    }
+                },
+                Err(_) => assert(false, "parse next"),
+            }
+        },
+        Err(_) => assert(false, "parse noon again"),
     }
 }

@@ -19,6 +19,7 @@ use crate::require_origin
 use crate::require_preflight
 use crate::require_wildcard
 use crate::require_wildcard_origin
+use crate::require_empty_allow
 use std::strings
 
 @test
@@ -263,5 +264,20 @@ fn test_require_wildcard_origin() {
     match require_wildcard_origin("https://app.example.com") {
         Ok(_) => assert(false, "exact must Err"),
         Err(msg) => assert(strings.contains(msg, "wildcard"), "mentions wildcard"),
+    }
+}
+
+@test
+fn test_require_empty_allow() {
+    let empty = Vec::new()
+    match require_empty_allow(empty) {
+        Ok(n) => assert_eq(n, 0),
+        Err(_) => assert(false, "empty list"),
+    }
+    let mut exact = Vec::new()
+    exact.push("https://app.example.com")
+    match require_empty_allow(exact) {
+        Ok(_) => assert(false, "origin must Err"),
+        Err(msg) => assert(strings.contains(msg, "empty"), "mentions empty"),
     }
 }

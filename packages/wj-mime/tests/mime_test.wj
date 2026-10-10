@@ -18,6 +18,7 @@ use crate::require_video
 use crate::require_css
 use crate::require_xml
 use crate::require_plain
+use crate::require_javascript
 use crate::require_json
 use crate::require_image
 use crate::content_type_jpeg
@@ -282,5 +283,17 @@ fn test_require_plain() {
     match require_plain(json()) {
         Ok(_) => assert(false, "json must Err"),
         Err(msg) => assert(strings.contains(msg, "plain"), "mentions plain"),
+    }
+}
+
+@test
+fn test_require_javascript() {
+    match require_javascript(javascript()) {
+        Ok(v) => assert(is_javascript(v), "javascript"),
+        Err(_) => assert(false, "javascript ok"),
+    }
+    match require_javascript(json()) {
+        Ok(_) => assert(false, "json must Err"),
+        Err(msg) => assert(strings.contains(msg, "javascript"), "mentions javascript"),
     }
 }

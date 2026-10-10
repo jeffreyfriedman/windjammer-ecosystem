@@ -244,15 +244,6 @@ pub fn is_title_case(text: string) -> bool {
     title_case(text) == text
 }
 
-/// Ok(text) when `text` is Title Case; otherwise Err.
-pub fn require_title(text: string) -> Result<string, string> {
-    if is_title_case(text) {
-        Ok(text)
-    } else {
-        Err("expected title case")
-    }
-}
-
 /// True when `text` is empty or only whitespace.
 pub fn is_blank(text: string) -> bool {
     strings.len(strings.trim(text)) == 0
@@ -275,59 +266,6 @@ pub fn word_count(text: string) -> int {
         n = n + 1
     }
     n
-}
-
-/// Ok(text) when `text` is a slug; otherwise Err.
-pub fn require_slug(text: string) -> Result<string, string> {
-    if is_slug(text) {
-        return Ok(text)
-    }
-    Err("expected slug")
-}
-
-/// Ok(text) when `text` is snake_case; otherwise Err.
-pub fn require_snake(text: string) -> Result<string, string> {
-    if is_snake_case(text) {
-        Ok(text)
-    } else {
-        Err("expected snake case")
-    }
-}
-
-/// Ok(text) when `text` is SCREAMING_SNAKE; otherwise Err.
-pub fn require_constant(text: string) -> Result<string, string> {
-    if is_constant_case(text) {
-        Ok(text)
-    } else {
-        Err("expected constant case")
-    }
-}
-
-/// Ok(text) when `text` is PascalCase; otherwise Err.
-pub fn require_pascal(text: string) -> Result<string, string> {
-    if is_pascal_case(text) {
-        Ok(text)
-    } else {
-        Err("expected pascal case")
-    }
-}
-
-/// Ok(text) when `text` is camelCase; otherwise Err.
-pub fn require_camel(text: string) -> Result<string, string> {
-    if is_camel_case(text) {
-        Ok(text)
-    } else {
-        Err("expected camel case")
-    }
-}
-
-/// Ok(text) when `text` is kebab-case; otherwise Err.
-pub fn require_kebab(text: string) -> Result<string, string> {
-    if is_kebab_case(text) {
-        Ok(text)
-    } else {
-        Err("expected kebab case")
-    }
 }
 
 fn split_words(text: string) -> Vec<string> {

@@ -45,41 +45,14 @@ pub fn is_image(mime_type: string) -> bool {
     mime.is_image(mime_type)
 }
 
-/// `Ok(mime_type)` when it is an image type, otherwise `Err`.
-pub fn require_image(mime_type: string) -> Result<string, string> {
-    if is_image(mime_type) {
-        Ok(mime_type)
-    } else {
-        Err("expected image")
-    }
-}
-
 /// True for `audio/*`.
 pub fn is_audio(mime_type: string) -> bool {
     mime.is_audio(mime_type)
 }
 
-/// `Ok(mime_type)` when it is an audio type, otherwise `Err`.
-pub fn require_audio(mime_type: string) -> Result<string, string> {
-    if is_audio(mime_type) {
-        Ok(mime_type)
-    } else {
-        Err("expected audio")
-    }
-}
-
 /// True for `video/*`.
 pub fn is_video(mime_type: string) -> bool {
     mime.is_video(mime_type)
-}
-
-/// `Ok(mime_type)` when it is a video type, otherwise `Err`.
-pub fn require_video(mime_type: string) -> Result<string, string> {
-    if is_video(mime_type) {
-        Ok(mime_type)
-    } else {
-        Err("expected video")
-    }
 }
 
 /// `Content-Type` response header line for `mime_type`.
@@ -101,15 +74,6 @@ pub fn is_json(mime_type: string) -> bool {
     false
 }
 
-/// `Ok(mime_type)` when it is JSON, otherwise `Err`.
-pub fn require_json(mime_type: string) -> Result<string, string> {
-    if is_json(mime_type) {
-        Ok(mime_type)
-    } else {
-        Err("expected json")
-    }
-}
-
 /// True when `mime_type` is HTML (`text/html`, optional parameters).
 pub fn is_html(mime_type: string) -> bool {
     let trimmed = strings.trim(mime_type)
@@ -122,25 +86,6 @@ pub fn is_html(mime_type: string) -> bool {
         return next == ";"
     }
     false
-}
-
-/// `Ok(mime_type)` when it is HTML, otherwise `Err`.
-pub fn require_html(mime_type: string) -> Result<string, string> {
-    if is_html(mime_type) {
-        Ok(mime_type)
-    } else {
-        Err("expected html")
-    }
-}
-
-/// True when `mime_type` is the binary fallback (`application/octet-stream`).
-/// `Ok(mime_type)` when it is `application/octet-stream`, otherwise `Err`.
-pub fn require_octet(mime_type: string) -> Result<string, string> {
-    if is_octet_stream(mime_type) {
-        Ok(mime_type)
-    } else {
-        Err("expected octet")
-    }
 }
 
 pub fn is_octet_stream(mime_type: string) -> bool {
@@ -190,15 +135,6 @@ pub fn is_css(mime_type: string) -> bool {
     false
 }
 
-/// `Ok(mime_type)` when it is CSS, otherwise `Err`.
-pub fn require_css(mime_type: string) -> Result<string, string> {
-    if is_css(mime_type) {
-        Ok(mime_type)
-    } else {
-        Err("expected css")
-    }
-}
-
 /// True when `mime_type` is XML (`application/xml`, optional parameters).
 pub fn is_xml(mime_type: string) -> bool {
     let trimmed = strings.trim(mime_type)
@@ -211,15 +147,6 @@ pub fn is_xml(mime_type: string) -> bool {
         return next == ";"
     }
     false
-}
-
-/// `Ok(mime_type)` when it is XML, otherwise `Err`.
-pub fn require_xml(mime_type: string) -> Result<string, string> {
-    if is_xml(mime_type) {
-        Ok(mime_type)
-    } else {
-        Err("expected xml")
-    }
 }
 
 /// True when `mime_type` is plain text (`text/plain`, optional parameters).
@@ -297,15 +224,6 @@ pub fn is_javascript(mime_type: string) -> bool {
     false
 }
 
-/// `Ok(mime_type)` when it is JavaScript, otherwise `Err`.
-pub fn require_javascript(mime_type: string) -> Result<string, string> {
-    if is_javascript(mime_type) {
-        Ok(mime_type)
-    } else {
-        Err("expected javascript")
-    }
-}
-
 /// Common MIME type for PNG images.
 pub fn png() -> string {
     "image/png"
@@ -340,15 +258,6 @@ pub fn is_jpeg(mime_type: string) -> bool {
     false
 }
 
-/// `Ok(mime_type)` when it is JPEG, otherwise `Err`.
-pub fn require_jpeg(mime_type: string) -> Result<string, string> {
-    if is_jpeg(mime_type) {
-        Ok(mime_type)
-    } else {
-        Err("expected jpeg")
-    }
-}
-
 /// True when `mime_type` is PNG (`image/png`, optional parameters).
 pub fn is_png(mime_type: string) -> bool {
     let trimmed = strings.trim(mime_type)
@@ -361,13 +270,4 @@ pub fn is_png(mime_type: string) -> bool {
         return next == ";"
     }
     false
-}
-
-/// `Ok(mime_type)` when it is PNG, otherwise `Err`.
-pub fn require_png(mime_type: string) -> Result<string, string> {
-    if is_png(mime_type) {
-        Ok(mime_type)
-    } else {
-        Err("expected png")
-    }
 }

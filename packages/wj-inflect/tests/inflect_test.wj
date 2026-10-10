@@ -12,12 +12,7 @@ use crate::kebab_case
 use crate::pascal_case
 use crate::slugify
 use crate::snake_case
-use crate::require_camel
-use crate::require_pascal
-use crate::require_constant
-use crate::require_title
 use crate::require_blank
-use crate::require_kebab
 use crate::title_case
 use std::strings
 
@@ -147,104 +142,6 @@ fn test_is_slug_and_is_title_case() {
     assert(is_title_case(title_case("hello world")), "titled")
     assert(is_title_case("Hello World"), "title")
     assert(!is_title_case("hello world"), "lower")
-}
-
-@test
-fn test_blank_word_count_and_require_slug() {
-    use crate::is_blank
-    use crate::require_slug
-    use crate::word_count
-    assert(is_blank(""), "empty")
-    assert(is_blank("   "), "spaces")
-    assert(!is_blank("a"), "letter")
-    assert_eq(word_count("hello world"), 2)
-    assert_eq(word_count("HelloWorld"), 2)
-    assert_eq(word_count(""), 0)
-    match require_slug("hello-world") {
-        Ok(s) => assert_eq(s, "hello-world"),
-        Err(_) => assert(false, "slug"),
-    }
-    match require_slug("Hello World") {
-        Ok(_) => assert(false, "spaces must Err"),
-        Err(msg) => assert(strings.contains(msg, "slug"), "mentions slug"),
-    }
-}
-
-@test
-fn test_require_snake() {
-    use crate::require_snake
-    match require_snake("hello_world") {
-        Ok(s) => assert_eq(s, "hello_world"),
-        Err(_) => assert(false, "snake"),
-    }
-    match require_snake("HelloWorld") {
-        Ok(_) => assert(false, "pascal must Err"),
-        Err(msg) => assert(strings.contains(msg, "snake"), "mentions snake"),
-    }
-    match require_snake("") {
-        Ok(_) => assert(false, "empty must Err"),
-        Err(msg) => assert(strings.contains(msg, "snake"), "mentions snake"),
-    }
-}
-
-@test
-fn test_require_kebab() {
-    match require_kebab("hello-world") {
-        Ok(s) => assert_eq(s, "hello-world"),
-        Err(_) => assert(false, "kebab"),
-    }
-    match require_kebab("hello_world") {
-        Ok(_) => assert(false, "snake must Err"),
-        Err(msg) => assert(strings.contains(msg, "kebab"), "mentions kebab"),
-    }
-}
-
-@test
-fn test_require_camel() {
-    match require_camel("helloWorld") {
-        Ok(s) => assert_eq(s, "helloWorld"),
-        Err(_) => assert(false, "camel"),
-    }
-    match require_camel("HelloWorld") {
-        Ok(_) => assert(false, "pascal must Err"),
-        Err(msg) => assert(strings.contains(msg, "camel"), "mentions camel"),
-    }
-}
-
-@test
-fn test_require_pascal() {
-    match require_pascal("HelloWorld") {
-        Ok(s) => assert_eq(s, "HelloWorld"),
-        Err(_) => assert(false, "pascal"),
-    }
-    match require_pascal("helloWorld") {
-        Ok(_) => assert(false, "camel must Err"),
-        Err(msg) => assert(strings.contains(msg, "pascal"), "mentions pascal"),
-    }
-}
-
-@test
-fn test_require_constant() {
-    match require_constant("HELLO_WORLD") {
-        Ok(s) => assert_eq(s, "HELLO_WORLD"),
-        Err(_) => assert(false, "constant"),
-    }
-    match require_constant("helloWorld") {
-        Ok(_) => assert(false, "camel must Err"),
-        Err(msg) => assert(strings.contains(msg, "constant"), "mentions constant"),
-    }
-}
-
-@test
-fn test_require_title() {
-    match require_title("Hello World") {
-        Ok(s) => assert(is_title_case(s), "title"),
-        Err(_) => assert(false, "title ok"),
-    }
-    match require_title("hello world") {
-        Ok(_) => assert(false, "lower must Err"),
-        Err(msg) => assert(strings.contains(msg, "title"), "mentions title"),
-    }
 }
 
 @test

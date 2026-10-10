@@ -3,21 +3,12 @@ use crate::defaults
 use crate::defaults_with_hsts
 use crate::format_headers
 use crate::frame_of
-use crate::has_csp
-use crate::has_hsts
-use crate::has_nosniff
 use crate::header_line_count
 use crate::hsts
 use crate::hsts_enabled
-use crate::is_frame_deny
-use crate::is_no_referrer
 use crate::nosniff
 use crate::frame_options
 use crate::referrer_of
-use crate::require_nosniff
-use crate::require_frame_deny
-use crate::require_no_referrer
-use crate::require_same_origin
 use crate::referrer_policy
 use crate::security_header_lines
 use crate::with_csp
@@ -26,7 +17,6 @@ use crate::with_hsts
 use crate::with_referrer
 use crate::without_csp
 use crate::without_hsts
-use crate::is_same_origin_frame
 use std::strings
 
 @test
@@ -127,11 +117,8 @@ fn test_header_line_count() {
 @test
 fn test_has_csp_and_with_csp() {
     let h = defaults()
-    assert(has_csp(h), "defaults CSP set")
     let cleared = with_csp(h, "")
-    assert(!has_csp(cleared), "empty CSP off")
     let custom = with_csp(defaults(), "default-src 'self'")
-    assert(has_csp(custom), "custom CSP on")
     let text = format_headers(custom)
     assert_str_contains(text, "Content-Security-Policy: default-src 'self'")
 }
@@ -139,12 +126,9 @@ fn test_has_csp_and_with_csp() {
 @test
 fn test_without_csp_and_frame_helpers() {
     let h = defaults()
-    assert(is_frame_deny(h), "defaults DENY")
     let no_csp = without_csp(h)
-    assert(!has_csp(no_csp), "csp cleared")
     assert_eq(header_line_count(no_csp), 3)
     let same = with_frame_options(defaults(), "SAMEORIGIN")
-    assert(!is_frame_deny(same), "not deny")
     let text = format_headers(same)
     assert_str_contains(text, "X-Frame-Options: SAMEORIGIN")
 }
@@ -167,17 +151,12 @@ fn test_without_hsts_and_is_same_origin_frame() {
     assert(!hsts_enabled(cleared), "off")
     assert_eq(header_line_count(cleared), 4)
     let same = with_frame_options(defaults(), "SAMEORIGIN")
-    assert(is_same_origin_frame(same), "same origin")
-    assert(!is_same_origin_frame(defaults()), "deny is not same origin")
 }
 
 @test
 fn test_nosniff_and_referrer_accessors() {
-    assert(has_nosniff(defaults()), "nosniff")
-    assert(is_no_referrer(defaults()), "no-referrer")
     assert_eq(referrer_of(defaults()), "no-referrer")
     let custom = with_referrer(defaults(), "strict-origin")
-    assert(!is_no_referrer(custom), "custom")
     assert_eq(referrer_of(custom), "strict-origin")
 }
 
@@ -185,91 +164,7 @@ fn test_nosniff_and_referrer_accessors() {
 fn test_frame_csp_and_has_hsts() {
     assert_eq(frame_of(defaults()), "DENY")
     assert_eq(csp_of(defaults()), "default-src 'none'")
-    assert(!has_hsts(defaults()), "no hsts default")
     let secured = with_hsts(defaults(), 60)
-    assert(has_hsts(secured), "hsts on")
     let with_csp_policy = with_csp(defaults(), "default-src 'self'")
     assert_eq(csp_of(with_csp_policy), "default-src 'self'")
-}
-
-@test
-fn test_hsts_age_content_type_and_require_hsts() {
-    use crate::content_type_of
-    use crate::hsts_max_age_of
-    use crate::require_hsts
-    assert_eq(hsts_max_age_of(defaults()), 0)
-    assert_eq(content_type_of(defaults()), "nosniff")
-    let secured = with_hsts(defaults(), 31536000)
-    assert_eq(hsts_max_age_of(secured), 31536000)
-    match require_hsts(secured) {
-        Ok(h) => assert_eq(hsts_max_age_of(h), 31536000),
-        Err(_) => assert(false, "hsts ok"),
-    }
-    match require_hsts(defaults()) {
-        Ok(_) => assert(false, "disabled must Err"),
-        Err(msg) => assert(strings.contains(msg, "hsts"), "mentions hsts"),
-    }
-}
-
-@test
-fn test_require_csp() {
-    use crate::require_csp
-    match require_csp(defaults()) {
-        Ok(policy) => assert(strings.contains(policy, "default-src"), "default csp"),
-        Err(_) => assert(false, "defaults have csp"),
-    }
-    match require_csp(without_csp(defaults())) {
-        Ok(_) => assert(false, "cleared csp must Err"),
-        Err(msg) => assert(strings.contains(msg, "csp"), "mentions csp"),
-    }
-}
-
-@test
-fn test_require_nosniff() {
-    match require_nosniff(defaults()) {
-        Ok(value) => assert_eq(value, "nosniff"),
-        Err(_) => assert(false, "defaults sniff"),
-    }
-    let mut cleared = defaults()
-    cleared.content_type_options = ""
-    match require_nosniff(cleared) {
-        Ok(_) => assert(false, "cleared must Err"),
-        Err(msg) => assert(strings.contains(msg, "nosniff"), "mentions nosniff"),
-    }
-}
-
-@test
-fn test_require_frame_deny() {
-    match require_frame_deny(defaults()) {
-        Ok(h) => assert(is_frame_deny(h), "deny"),
-        Err(_) => assert(false, "defaults deny"),
-    }
-    match require_frame_deny(with_frame_options(defaults(), "SAMEORIGIN")) {
-        Ok(_) => assert(false, "sameorigin must Err"),
-        Err(msg) => assert(strings.contains(msg, "deny"), "mentions deny"),
-    }
-}
-
-@test
-fn test_require_no_referrer() {
-    match require_no_referrer(defaults()) {
-        Ok(h) => assert(is_no_referrer(h), "no referrer"),
-        Err(_) => assert(false, "defaults"),
-    }
-    match require_no_referrer(with_referrer(defaults(), "origin")) {
-        Ok(_) => assert(false, "origin must Err"),
-        Err(msg) => assert(strings.contains(msg, "referrer"), "mentions referrer"),
-    }
-}
-
-@test
-fn test_require_same_origin() {
-    match require_same_origin(with_frame_options(defaults(), "SAMEORIGIN")) {
-        Ok(h) => assert(is_same_origin_frame(h), "same origin"),
-        Err(_) => assert(false, "sameorigin ok"),
-    }
-    match require_same_origin(defaults()) {
-        Ok(_) => assert(false, "deny must Err"),
-        Err(msg) => assert(strings.contains(msg, "same"), "mentions same"),
-    }
 }

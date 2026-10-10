@@ -95,11 +95,6 @@ pub fn header_line_count(headers: SecurityHeaders) -> int {
     n
 }
 
-/// True when a Content-Security-Policy value is configured.
-pub fn has_csp(headers: SecurityHeaders) -> bool {
-    strings.len(headers.content_security_policy) > 0
-}
-
 /// Return `headers` with `content_security_policy` set to `policy`.
 pub fn with_csp(headers: SecurityHeaders, policy: string) -> SecurityHeaders {
     let mut out = headers
@@ -117,19 +112,6 @@ pub fn with_frame_options(headers: SecurityHeaders, directive: string) -> Securi
     let mut out = headers
     out.frame_options = directive
     out
-}
-
-/// True when `X-Frame-Options` is `DENY`.
-pub fn is_frame_deny(headers: SecurityHeaders) -> bool {
-    headers.frame_options == "DENY"
-}
-
-/// `Ok(headers)` when `X-Frame-Options` is `DENY`, otherwise `Err`.
-pub fn require_frame_deny(headers: SecurityHeaders) -> Result<SecurityHeaders, string> {
-    if is_frame_deny(headers) {
-        return Ok(headers)
-    }
-    Err("expected frame deny")
 }
 
 /// Return `headers` with `referrer_policy` set.
@@ -151,35 +133,6 @@ pub fn without_hsts(headers: SecurityHeaders) -> SecurityHeaders {
     with_hsts(headers, 0)
 }
 
-/// True when `X-Frame-Options` is `SAMEORIGIN`.
-pub fn is_same_origin_frame(headers: SecurityHeaders) -> bool {
-    headers.frame_options == "SAMEORIGIN"
-}
-
-/// `Ok(headers)` when `X-Frame-Options` is `SAMEORIGIN`, otherwise `Err`.
-pub fn require_same_origin(headers: SecurityHeaders) -> Result<SecurityHeaders, string> {
-    if is_same_origin_frame(headers) {
-        return Ok(headers)
-    }
-    Err("expected same origin")
-}
-
-pub fn has_nosniff(headers: SecurityHeaders) -> bool {
-    headers.content_type_options == "nosniff"
-}
-
-pub fn is_no_referrer(headers: SecurityHeaders) -> bool {
-    headers.referrer_policy == "no-referrer"
-}
-
-/// `Ok(headers)` when the referrer policy is `no-referrer`, otherwise `Err`.
-pub fn require_no_referrer(headers: SecurityHeaders) -> Result<SecurityHeaders, string> {
-    if is_no_referrer(headers) {
-        return Ok(headers)
-    }
-    Err("expected no referrer")
-}
-
 pub fn referrer_of(headers: SecurityHeaders) -> string {
     headers.referrer_policy
 }
@@ -194,11 +147,6 @@ pub fn csp_of(headers: SecurityHeaders) -> string {
     headers.content_security_policy
 }
 
-/// Alias of `hsts_enabled`.
-pub fn has_hsts(headers: SecurityHeaders) -> bool {
-    hsts_enabled(headers)
-}
-
 /// Configured HSTS max-age in seconds (`0` when disabled).
 pub fn hsts_max_age_of(headers: SecurityHeaders) -> int {
     headers.hsts_max_age_secs
@@ -207,29 +155,4 @@ pub fn hsts_max_age_of(headers: SecurityHeaders) -> int {
 /// `X-Content-Type-Options` value accessor.
 pub fn content_type_of(headers: SecurityHeaders) -> string {
     headers.content_type_options
-}
-
-/// Ok(headers) when HSTS is enabled; otherwise Err.
-pub fn require_hsts(headers: SecurityHeaders) -> Result<SecurityHeaders, string> {
-    if has_hsts(headers) {
-        return Ok(headers)
-    }
-    Err("expected hsts")
-}
-
-/// `X-Content-Type-Options` value when it is `nosniff`.
-pub fn require_nosniff(headers: SecurityHeaders) -> Result<string, string> {
-    if has_nosniff(headers) {
-        return Ok(content_type_of(headers))
-    }
-    Err("expected nosniff")
-}
-
-/// CSP policy when one is configured.
-pub fn require_csp(headers: SecurityHeaders) -> Result<string, string> {
-    if has_csp(headers) {
-        Ok(csp_of(headers))
-    } else {
-        Err("expected csp")
-    }
 }

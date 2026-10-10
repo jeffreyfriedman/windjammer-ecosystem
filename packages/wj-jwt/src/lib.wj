@@ -109,14 +109,6 @@ pub fn looks_like_jwt(token: string) -> bool {
     true
 }
 
-/// Accept `token` only when it looks like a JWT; else return an error.
-pub fn require_jwt(token: string) -> Result<string, string> {
-    if looks_like_jwt(token) {
-        return Ok(token)
-    }
-    Err("invalid jwt shape")
-}
-
 /// Subject claim (`sub`).
 pub fn subject(claims: Claims) -> string {
     claims.sub
@@ -151,25 +143,4 @@ pub fn require_email(claims: Claims) -> Result<string, string> {
         Some(email) => Ok(email),
         None => Err("missing email"),
     }
-}
-
-/// True when `now_secs` is at or past the expiration claim.
-pub fn is_expired(claims: Claims, now_secs: int) -> bool {
-    expires_at(claims) <= now_secs
-}
-
-/// Expiration time when the token is expired at `now_secs`, otherwise `Err`.
-pub fn require_expired(claims: Claims, now_secs: int) -> Result<int, string> {
-    if is_expired(claims, now_secs) {
-        return Ok(expires_at(claims))
-    }
-    Err("expected expired")
-}
-
-/// Expiration time when the token is still valid at `now_secs`, otherwise `Err`.
-pub fn require_unexpired(claims: Claims, now_secs: int) -> Result<int, string> {
-    if is_expired(claims, now_secs) {
-        return Err("expected unexpired")
-    }
-    Ok(expires_at(claims))
 }

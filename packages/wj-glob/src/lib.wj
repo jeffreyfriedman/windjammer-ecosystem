@@ -7,14 +7,6 @@ pub fn is_match(pattern: string, candidate: string) -> bool {
     path.glob_match(pattern, candidate)
 }
 
-/// `Ok(candidate)` when it matches `pattern`, otherwise `Err`.
-pub fn require_candidate(pattern: string, candidate: string) -> Result<string, string> {
-    if is_match(pattern, candidate) {
-        return Ok(candidate)
-    }
-    Err("expected match")
-}
-
 /// Paths that match `pattern`.
 pub fn filter(pattern: string, paths: Vec<string>) -> Vec<string> {
     let mut out = Vec::new()
@@ -67,25 +59,9 @@ pub fn all_match(pattern: string, paths: Vec<string>) -> bool {
     match_count(pattern, paths) == total
 }
 
-/// `Ok(1)` when every path matches `pattern`, otherwise `Err`.
-pub fn require_all(pattern: string, paths: Vec<string>) -> Result<int, string> {
-    if all_match(pattern, paths) {
-        return Ok(1)
-    }
-    Err("expected all")
-}
-
 /// True when exactly one path matches `pattern`.
 pub fn exactly_one_match(pattern: string, paths: Vec<string>) -> bool {
     match_count(pattern, paths) == 1
-}
-
-/// `Ok(1)` when exactly one path matches `pattern`, otherwise `Err`.
-pub fn require_one(pattern: string, paths: Vec<string>) -> Result<int, string> {
-    if exactly_one_match(pattern, paths) {
-        return Ok(1)
-    }
-    Err("expected one")
 }
 
 /// Last path that matches `pattern`, or `None`.
@@ -133,25 +109,9 @@ pub fn between_n_matches(pattern: string, paths: Vec<string>, lo: int, hi: int) 
     n >= lo && n <= hi
 }
 
-/// `Ok(1)` when the match count is inside `[lo, hi]`, otherwise `Err`.
-pub fn require_between(pattern: string, paths: Vec<string>, lo: int, hi: int) -> Result<int, string> {
-    if between_n_matches(pattern, paths, lo, hi) {
-        return Ok(1)
-    }
-    Err("expected between")
-}
-
 /// True when `pattern` contains `*` or `?`.
 pub fn has_meta(pattern: string) -> bool {
     strings.contains(pattern, "*") || strings.contains(pattern, "?")
-}
-
-/// `Ok(pattern)` when it contains `*` or `?`, otherwise `Err`.
-pub fn require_meta(pattern: string) -> Result<string, string> {
-    if has_meta(pattern) {
-        return Ok(pattern)
-    }
-    Err("expected meta")
 }
 
 /// First matching path, or Err when nothing matches.

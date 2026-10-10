@@ -8,7 +8,6 @@ Replaces the old weekly log. Levels:
 
 Numbers are counted from the source (`pub fn` in `src/`, `fn test_*` in `*_test.wj`). Nothing was
 built or run when this table was written, so "tests" means "tests present", not "passing".
-Per-package details are in each package's README.
 
 | Package | Level | pub fns | tests |
 |---|---|---|---|

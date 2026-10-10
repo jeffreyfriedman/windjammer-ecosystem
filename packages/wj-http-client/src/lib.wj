@@ -30,9 +30,25 @@ pub fn status_is_client_error(status: u16) -> bool {
     status >= 400 && status < 500
 }
 
+/// `Ok(status)` when it is a 4xx client error, otherwise `Err`.
+pub fn require_client_error(status: u16) -> Result<u16, string> {
+    if status_is_client_error(status) {
+        return Ok(status)
+    }
+    Err("expected client error")
+}
+
 /// True when `status` is in the 5xx range.
 pub fn status_is_server_error(status: u16) -> bool {
     status >= 500 && status < 600
+}
+
+/// `Ok(status)` when it is a 5xx server error, otherwise `Err`.
+pub fn require_server_error(status: u16) -> Result<u16, string> {
+    if status_is_server_error(status) {
+        return Ok(status)
+    }
+    Err("expected server error")
 }
 
 /// True when `status` is exactly `200 OK`.

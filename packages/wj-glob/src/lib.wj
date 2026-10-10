@@ -102,6 +102,14 @@ pub fn at_least_n_matches(pattern: string, paths: Vec<string>, n: int) -> bool {
     match_count(pattern, paths) >= n
 }
 
+/// `Ok(n)` when at least `n` paths match `pattern`, otherwise `Err`.
+pub fn require_at_least(pattern: string, paths: Vec<string>, n: int) -> Result<int, string> {
+    if at_least_n_matches(pattern, paths, n) {
+        return Ok(n)
+    }
+    Err("expected at least")
+}
+
 pub fn at_most_n_matches(pattern: string, paths: Vec<string>, n: int) -> bool {
     match_count(pattern, paths) <= n
 }
@@ -123,6 +131,14 @@ pub fn exactly_n_matches(pattern: string, paths: Vec<string>, n: int) -> bool {
 pub fn between_n_matches(pattern: string, paths: Vec<string>, lo: int, hi: int) -> bool {
     let n = match_count(pattern, paths)
     n >= lo && n <= hi
+}
+
+/// `Ok(1)` when the match count is inside `[lo, hi]`, otherwise `Err`.
+pub fn require_between(pattern: string, paths: Vec<string>, lo: int, hi: int) -> Result<int, string> {
+    if between_n_matches(pattern, paths, lo, hi) {
+        return Ok(1)
+    }
+    Err("expected between")
 }
 
 /// True when `pattern` contains `*` or `?`.

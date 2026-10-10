@@ -279,6 +279,15 @@ pub fn is_javascript(mime_type: string) -> bool {
     false
 }
 
+/// `Ok(mime_type)` when it is JavaScript, otherwise `Err`.
+pub fn require_javascript(mime_type: string) -> Result<string, string> {
+    if is_javascript(mime_type) {
+        Ok(mime_type)
+    } else {
+        Err("expected javascript")
+    }
+}
+
 /// Common MIME type for PNG images.
 pub fn png() -> string {
     "image/png"

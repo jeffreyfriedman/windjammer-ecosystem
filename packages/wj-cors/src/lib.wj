@@ -189,6 +189,14 @@ pub fn is_empty_allow_list(allowed: Vec<string>) -> bool {
     allowed_origin_count(allowed) == 0
 }
 
+/// `Ok(0)` when the allow-list has no origins, otherwise `Err`.
+pub fn require_empty_allow(allowed: Vec<string>) -> Result<int, string> {
+    if is_empty_allow_list(allowed) {
+        return Ok(0)
+    }
+    Err("expected empty allow list")
+}
+
 pub fn has_origins(allowed: Vec<string>) -> bool {
     !is_empty_allow_list(allowed)
 }

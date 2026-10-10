@@ -13,6 +13,8 @@ use crate::require_used
 use crate::require_remaining
 use crate::require_next
 use crate::require_total
+use crate::require_clamp
+use crate::require_delay
 use crate::require_first
 use crate::require_default_backoff
 use crate::should_retry
@@ -266,6 +268,28 @@ fn test_require_total() {
     match require_total(default_backoff(), 1, 0) {
         Ok(_) => assert(false, "zero must Err"),
         Err(msg) => assert(strings.contains(msg, "total"), "mentions total"),
+    }
+}
+
+fn test_require_clamp() {
+    match require_clamp(5, 10, 20, 10) {
+        Ok(n) => assert_eq(n, 10),
+        Err(_) => assert(false, "raised to min"),
+    }
+    match require_clamp(5, 10, 20, 5) {
+        Ok(_) => assert(false, "raw must Err"),
+        Err(msg) => assert(strings.contains(msg, "clamp"), "mentions clamp"),
+    }
+}
+
+fn test_require_delay() {
+    match require_delay(default_backoff(), 0, 100) {
+        Ok(n) => assert_eq(n, 100),
+        Err(_) => assert(false, "initial delay"),
+    }
+    match require_delay(default_backoff(), 0, 1) {
+        Ok(_) => assert(false, "wrong delay must Err"),
+        Err(msg) => assert(strings.contains(msg, "delay"), "mentions delay"),
     }
 }
 

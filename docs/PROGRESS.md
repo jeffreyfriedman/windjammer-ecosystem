@@ -4,6 +4,8 @@ Weekly build health for seed apps and packages.
 
 | Week | Date | Apps / packages green | `extern fn` | Crates via interop | Compiler issues | Notes |
 |------|------|----------------------|-------------|--------------------|-----------------|-------|
+| 2 | 2026-10-10 | deepen `wj-cli-args`/`wj-retry` | 0 | 0 | private CARGO_HOME | `require_nth`, `require_tail`, `require_delay`; tip **31+27** green |
+| 2 | 2026-10-10 | deepen `wj-cli-args`/`wj-retry`/`wj-migrate` | 0 | 0 | private CARGO_HOME | `require_last_positional`, `require_clamp`, `require_migration_count`; tip **29+26+29** green |
 | 2 | 2026-10-10 | deepen `wj-migrate`/`wj-retry`/`wj-cli-args` | 0 | 0 | private CARGO_HOME | `require_pending_count`, `require_total`, `require_long_flags`; tip **28+25+28** green |
 | 2 | 2026-10-10 | deepen `wj-migrate`/`wj-retry`/`wj-cli-args` | 0 | 0 | private CARGO_HOME | `require_earliest`, `require_next`, `require_argc`; tip **27+24+27** green |
 | 2 | 2026-10-10 | deepen `wj-compress`/`wj-migrate`/`wj-retry` | 0 | 0 | private CARGO_HOME | `require_negotiated`, `require_latest`, `require_remaining`; tip **27+26+23** green |

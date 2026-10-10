@@ -17,6 +17,15 @@ pub fn tail(args: Vec<string>) -> Vec<string> {
     out
 }
 
+/// `Ok(n)` when there are `n` tokens after the program name, otherwise `Err`.
+pub fn require_tail(args: Vec<string>, n: int) -> Result<int, string> {
+    let rest = tail(args)
+    if rest.len() == n {
+        return Ok(n)
+    }
+    Err("expected tail")
+}
+
 fn long_prefix(name: string) -> string {
     "--${name}"
 }
@@ -137,6 +146,14 @@ pub fn nth_positional(args: Vec<string>, index: int) -> Option<string> {
     Some(pos[index])
 }
 
+/// Positional at `index`, or `Err` when it is missing.
+pub fn require_nth(args: Vec<string>, index: int) -> Result<string, string> {
+    match nth_positional(args, index) {
+        Some(value) => Ok(value),
+        None => Err("expected nth"),
+    }
+}
+
 /// First positional or a usage error when none is present.
 pub fn require_first_positional(args: Vec<string>, usage: string) -> Result<string, string> {
     match first_positional(args) {
@@ -174,6 +191,14 @@ pub fn last_positional(args: Vec<string>) -> Option<string> {
         return None
     }
     Some(pos[n - 1])
+}
+
+/// The last positional argument, or `Err` when there is none.
+pub fn require_last_positional(args: Vec<string>) -> Result<string, string> {
+    match last_positional(args) {
+        Some(value) => Ok(value),
+        None => Err("expected last"),
+    }
 }
 
 /// `Ok(1)` when argv contains a `--` flag, otherwise `Err`.

@@ -186,6 +186,14 @@ pub fn migration_count(items: Vec<Migration>) -> int {
     n
 }
 
+/// `Ok(n)` when `items` has exactly `n` migrations, otherwise `Err`.
+pub fn require_migration_count(items: Vec<Migration>, n: int) -> Result<int, string> {
+    if migration_count(items) == n {
+        return Ok(n)
+    }
+    Err("expected count")
+}
+
 /// Highest version in `items`, or `0` when empty.
 pub fn latest_version(items: Vec<Migration>) -> int {
     let sorted = sort_migrations(items)

@@ -7,6 +7,14 @@ pub struct Backoff {
     pub max_ms: int,
 }
 
+/// `Ok(expected)` when the delay before `attempt` equals `expected`, otherwise `Err`.
+pub fn require_delay(backoff: Backoff, attempt: int, expected: int) -> Result<int, string> {
+    if delay_ms(backoff, attempt) == expected {
+        return Ok(expected)
+    }
+    Err("expected delay")
+}
+
 /// Delay before attempt `n` (0-based): `min(initial * multiplier^n, max)`.
 pub fn delay_ms(backoff: Backoff, attempt: int) -> int {
     if attempt < 0 {
@@ -116,6 +124,14 @@ pub fn clamp_delay_ms(ms: int, min_ms: int, max_ms: int) -> int {
         return max_ms
     }
     ms
+}
+
+/// `Ok(expected)` when clamping `ms` into the range yields `expected`, otherwise `Err`.
+pub fn require_clamp(ms: int, min_ms: int, max_ms: int, expected: int) -> Result<int, string> {
+    if clamp_delay_ms(ms, min_ms, max_ms) == expected {
+        return Ok(expected)
+    }
+    Err("expected clamp")
 }
 
 /// Copy of `backoff` with `max_ms` replaced.

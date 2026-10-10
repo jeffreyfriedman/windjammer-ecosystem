@@ -176,6 +176,14 @@ pub fn is_max(text: string) -> bool {
     normalize(text) == "ffffffff-ffff-ffff-ffff-ffffffffffff"
 }
 
+/// Normalized max UUID, or `Err` when `text` is not max.
+pub fn require_max(text: string) -> Result<string, string> {
+    if is_max(text) {
+        return Ok(normalize(text))
+    }
+    Err("expected max")
+}
+
 fn is_valid_normalized(id: string) -> bool {
     if strings.len(id) != 36 {
         return false

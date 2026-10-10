@@ -23,6 +23,7 @@ use crate::require_nil
 use crate::require_v1
 use crate::require_canonical
 use crate::require_v5
+use crate::require_max
 use crate::require_v7
 use crate::require_valid
 use crate::require_version
@@ -322,5 +323,16 @@ fn test_require_v5() {
     match require_v5("04afc000-833b-11ee-83d8-123456789abc") {
         Ok(_) => assert(false, "v1 must Err"),
         Err(msg) => assert(strings.contains(msg, "v5"), "mentions v5"),
+    }
+}
+
+fn test_require_max() {
+    match require_max("ffffffff-ffff-ffff-ffff-ffffffffffff") {
+        Ok(id) => assert(is_max(id), "max"),
+        Err(_) => assert(false, "max ok"),
+    }
+    match require_max("00000000-0000-0000-0000-000000000000") {
+        Ok(_) => assert(false, "nil must Err"),
+        Err(msg) => assert(strings.contains(msg, "max"), "mentions max"),
     }
 }

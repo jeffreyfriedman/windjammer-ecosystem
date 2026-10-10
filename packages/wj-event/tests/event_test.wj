@@ -20,6 +20,7 @@ use crate::require_idle
 use crate::require_empty
 use crate::require_listener
 use crate::require_pending
+use crate::require_listeners
 use crate::queue_len
 use crate::subscribe
 use crate::unsubscribe
@@ -288,5 +289,17 @@ fn test_require_pending() {
     match require_pending(new_bus()) {
         Ok(_) => assert(false, "fresh must Err"),
         Err(msg) => assert(strings.contains(msg, "pending"), "mentions pending"),
+    }
+}
+
+@test
+fn test_require_listeners() {
+    match require_listeners(subscribe(new_bus(), "a", "tick")) {
+        Ok(n) => assert(n > 0, "subscribed"),
+        Err(_) => assert(false, "listeners ok"),
+    }
+    match require_listeners(new_bus()) {
+        Ok(_) => assert(false, "fresh must Err"),
+        Err(msg) => assert(strings.contains(msg, "listeners"), "mentions listeners"),
     }
 }

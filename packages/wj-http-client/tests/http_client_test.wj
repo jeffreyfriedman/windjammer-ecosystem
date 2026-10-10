@@ -17,6 +17,7 @@ use crate::status_of
 use crate::require_error
 use crate::require_ok
 use crate::require_created
+use crate::require_not_found
 use crate::error_message
 use crate::from_parts
 use std::strings
@@ -150,5 +151,16 @@ fn test_require_created() {
     match require_created(200) {
         Ok(_) => assert(false, "ok must Err"),
         Err(msg) => assert(strings.contains(msg, "created"), "mentions created"),
+    }
+}
+
+fn test_require_not_found() {
+    match require_not_found(404) {
+        Ok(status) => assert(status_is_not_found(status), "missing"),
+        Err(_) => assert(false, "404"),
+    }
+    match require_not_found(200) {
+        Ok(_) => assert(false, "ok must Err"),
+        Err(msg) => assert(strings.contains(msg, "not found"), "mentions not found"),
     }
 }

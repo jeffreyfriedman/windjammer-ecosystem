@@ -110,6 +110,19 @@ pub fn at_least_n_matches(pattern: string, text: string, n: int) -> Result<bool,
     }
 }
 
+/// `Ok(n)` when `pattern` has at least `n` matches, otherwise `Err`.
+pub fn require_at_least(pattern: string, text: string, n: int) -> Result<int, string> {
+    match at_least_n_matches(pattern, text, n) {
+        Ok(yes) => {
+            if yes {
+                return Ok(n)
+            }
+            Err("expected at least")
+        },
+        Err(e) => Err(e),
+    }
+}
+
 /// First match substring, or `Err` when missing / invalid pattern.
 pub fn require_match(pattern: string, text: string) -> Result<string, string> {
     match find(pattern, text) {

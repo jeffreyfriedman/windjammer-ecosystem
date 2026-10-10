@@ -22,6 +22,7 @@ use crate::require_dot
 use crate::require_empty_path
 use crate::require_dot_dot
 use crate::require_trailing
+use crate::require_leading
 use crate::require_stem
 use crate::stem
 use crate::without_extension
@@ -287,5 +288,17 @@ fn test_require_trailing() {
     match require_trailing("tmp") {
         Ok(_) => assert(false, "bare must Err"),
         Err(msg) => assert(strings.contains(msg, "trailing"), "mentions trailing"),
+    }
+}
+
+@test
+fn test_require_leading() {
+    match require_leading("/tmp") {
+        Ok(path) => assert(has_leading_slash(path), "leading"),
+        Err(_) => assert(false, "absolute"),
+    }
+    match require_leading("tmp") {
+        Ok(_) => assert(false, "relative must Err"),
+        Err(msg) => assert(strings.contains(msg, "leading"), "mentions leading"),
     }
 }

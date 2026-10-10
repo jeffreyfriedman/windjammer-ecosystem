@@ -275,6 +275,14 @@ pub fn has_help_flag(args: Vec<string>) -> bool {
     has_long_flag(args, "help")
 }
 
+/// `Ok(1)` when `--help` is present, otherwise `Err`.
+pub fn require_help(args: Vec<string>) -> Result<int, string> {
+    if has_help_flag(args) {
+        return Ok(1)
+    }
+    Err("expected help")
+}
+
 /// True when `--version` is present.
 pub fn has_version_flag(args: Vec<string>) -> bool {
     has_long_flag(args, "version")

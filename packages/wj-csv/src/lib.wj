@@ -122,6 +122,14 @@ pub fn has_rows(rows: Vec<Vec<string>>) -> bool {
     !is_empty(rows)
 }
 
+/// `Ok(1)` when the table has at least one row, otherwise `Err`.
+pub fn require_rows(rows: Vec<Vec<string>>) -> Result<int, string> {
+    if has_rows(rows) {
+        return Ok(1)
+    }
+    Err("expected rows")
+}
+
 /// Row at `index`, or `Err` naming the missing index.
 pub fn require_row(rows: Vec<Vec<string>>, index: int) -> Result<Vec<string>, string> {
     match get_row(rows, index) {

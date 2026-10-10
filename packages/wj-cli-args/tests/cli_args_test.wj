@@ -19,6 +19,7 @@ use crate::require_empty_args
 use crate::require_only_program
 use crate::require_positionals
 use crate::require_any_flag
+use crate::require_help
 use crate::require_version
 use crate::require_long_flag_value
 use crate::require_positional_count
@@ -344,5 +345,19 @@ fn test_require_any_flag() {
     match require_any_flag(prog) {
         Ok(_) => assert(false, "program only must Err"),
         Err(msg) => assert(strings.contains(msg, "flag"), "mentions flag"),
+    }
+}
+
+fn test_require_help() {
+    let mut help_args = Vec::new()
+    help_args.push("tool")
+    help_args.push("--help")
+    match require_help(help_args) {
+        Ok(n) => assert_eq(n, 1),
+        Err(_) => assert(false, "help present"),
+    }
+    match require_help(sample_args()) {
+        Ok(_) => assert(false, "no help must Err"),
+        Err(msg) => assert(strings.contains(msg, "help"), "mentions help"),
     }
 }

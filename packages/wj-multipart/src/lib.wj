@@ -173,6 +173,14 @@ pub fn is_empty(parts: Vec<Part>) -> bool {
     part_count(parts) == 0
 }
 
+/// `Ok(0)` when `parts` is empty, otherwise `Err`.
+pub fn require_empty(parts: Vec<Part>) -> Result<int, string> {
+    if is_empty(parts) {
+        return Ok(0)
+    }
+    Err("expected empty")
+}
+
 /// Number of parts that include a filename (file uploads).
 pub fn file_count(parts: Vec<Part>) -> int {
     let mut n = 0

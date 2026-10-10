@@ -6,6 +6,14 @@ pub fn is_hidden_name(name: string) -> bool {
     strings.starts_with(name, ".")
 }
 
+/// `Ok(name)` when `name` is a hidden dotfile name, otherwise `Err`.
+pub fn require_hidden(name: string) -> Result<string, string> {
+    if is_hidden_name(name) {
+        return Ok(name)
+    }
+    Err("expected hidden name")
+}
+
 /// Depth-first list of every file and directory path under `root` (not including `root`).
 pub fn walk(root: string) -> Result<Vec<string>, string> {
     walk_into(root, true, true)

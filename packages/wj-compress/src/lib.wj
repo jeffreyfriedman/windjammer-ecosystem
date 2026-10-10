@@ -70,14 +70,6 @@ pub fn should_compress(accept_encoding: string, body_len: int, min_bytes: int) -
     accepts_gzip(accept_encoding)
 }
 
-/// `Ok(1)` when gzip is acceptable and the body meets `min_bytes`, otherwise `Err`.
-pub fn require_compress(accept_encoding: string, body_len: int, min_bytes: int) -> Result<int, string> {
-    if should_compress(accept_encoding, body_len, min_bytes) {
-        return Ok(1)
-    }
-    Err("expected compress")
-}
-
 /// Default minimum body size (bytes) before gzip is worthwhile.
 pub fn default_min_bytes() -> int {
     1024
@@ -88,38 +80,14 @@ pub fn should_compress_default(accept_encoding: string, body_len: int) -> bool {
     should_compress(accept_encoding, body_len, default_min_bytes())
 }
 
-/// `Ok(1)` when gzip is worthwhile at the default size floor, otherwise `Err`.
-pub fn require_default(accept_encoding: string, body_len: int) -> Result<int, string> {
-    if should_compress_default(accept_encoding, body_len) {
-        return Ok(1)
-    }
-    Err("expected default")
-}
-
 /// True when a `Content-Encoding` value is gzip.
 pub fn is_gzip_encoding(content_encoding: string) -> bool {
     strings.to_lower(strings.trim(content_encoding)) == "gzip"
 }
 
-/// `Ok("gzip")` when `content_encoding` is gzip, otherwise `Err`.
-pub fn require_gzip_encoding(content_encoding: string) -> Result<string, string> {
-    if is_gzip_encoding(content_encoding) {
-        return Ok("gzip")
-    }
-    Err("expected gzip encoding")
-}
-
 /// True when a `Content-Encoding` value is identity.
 pub fn is_identity_encoding(content_encoding: string) -> bool {
     strings.to_lower(strings.trim(content_encoding)) == "identity"
-}
-
-/// `Ok(content_encoding)` when the value is identity, otherwise `Err`.
-pub fn require_identity_encoding(content_encoding: string) -> Result<string, string> {
-    if is_identity_encoding(content_encoding) {
-        return Ok(content_encoding)
-    }
-    Err("expected identity encoding")
 }
 
 /// Identity content-encoding token.
@@ -140,14 +108,6 @@ pub fn meets_min_bytes(body_len: int, min_bytes: int) -> bool {
 /// True when `body_len` is strictly below `min_bytes`.
 pub fn below_min_bytes(body_len: int, min_bytes: int) -> bool {
     !meets_min_bytes(body_len, min_bytes)
-}
-
-/// `Ok(body_len)` when the body is strictly below `min_bytes`, otherwise `Err`.
-pub fn require_below(body_len: int, min_bytes: int) -> Result<int, string> {
-    if below_min_bytes(body_len, min_bytes) {
-        return Ok(body_len)
-    }
-    Err("expected below")
 }
 
 /// Negotiated coding, or `"identity"` when none match.
@@ -189,28 +149,12 @@ pub fn prefer_gzip(accept_encoding: string) -> bool {
     accepts_gzip(accept_encoding)
 }
 
-/// `Ok("gzip")` when gzip is acceptable, otherwise `Err`.
-pub fn require_gzip(accept_encoding: string) -> Result<string, string> {
-    if prefer_gzip(accept_encoding) {
-        return Ok("gzip")
-    }
-    Err("expected gzip")
-}
-
 /// `Ok("identity")` when identity is acceptable, otherwise `Err`.
 pub fn require_identity(accept_encoding: string) -> Result<string, string> {
     if accepts_identity(accept_encoding) {
         return Ok("identity")
     }
     Err("expected identity")
-}
-
-/// `Ok(body_len)` when the body meets `min_bytes`, otherwise `Err`.
-pub fn require_min_bytes(body_len: int, min_bytes: int) -> Result<int, string> {
-    if meets_min_bytes(body_len, min_bytes) {
-        return Ok(body_len)
-    }
-    Err("below min bytes")
 }
 
 fn coding_allows_identity(token: string) -> bool {

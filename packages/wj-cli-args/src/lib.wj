@@ -60,14 +60,6 @@ fn value_from_equals_token(token: string, name: string) -> Option<string> {
     Some(strings.join(value_parts, "="))
 }
 
-/// `Ok(1)` when `--name` is present, otherwise `Err`.
-pub fn require_named_flag(args: Vec<string>, name: string) -> Result<int, string> {
-    if has_long_flag(args, name) {
-        return Ok(1)
-    }
-    Err("expected flag")
-}
-
 /// True when `--name` or `--name=value` appears in argv (after the program name).
 pub fn has_long_flag(args: Vec<string>, name: string) -> bool {
     let rest = tail(args)
@@ -201,14 +193,6 @@ pub fn require_last_positional(args: Vec<string>) -> Result<string, string> {
     }
 }
 
-/// `Ok(1)` when argv contains a `--` flag, otherwise `Err`.
-pub fn require_any_flag(args: Vec<string>) -> Result<int, string> {
-    if has_any_long_flag(args) {
-        return Ok(1)
-    }
-    Err("expected flag")
-}
-
 /// True when `args` contains any `--…` long flag.
 pub fn has_any_long_flag(args: Vec<string>) -> bool {
     let mut i = 0
@@ -219,19 +203,6 @@ pub fn has_any_long_flag(args: Vec<string>) -> bool {
         i = i + 1
     }
     false
-}
-
-/// True when there is at least one positional argument.
-pub fn has_positionals(args: Vec<string>) -> bool {
-    positional_count(args) > 0
-}
-
-/// `Ok(1)` when argv has a positional token, otherwise `Err`.
-pub fn require_positionals(args: Vec<string>) -> Result<int, string> {
-    if has_positionals(args) {
-        return Ok(1)
-    }
-    Err("expected positional")
 }
 
 /// Number of `--…` long flags in `args`.
@@ -271,28 +242,8 @@ pub fn require_argc(args: Vec<string>, n: int) -> Result<int, string> {
     Err("expected argc")
 }
 
-pub fn is_empty_args(args: Vec<string>) -> bool {
-    arg_count(args) == 0
-}
-
-/// `Ok(0)` when argv is empty, otherwise `Err`.
-pub fn require_empty_args(args: Vec<string>) -> Result<int, string> {
-    if is_empty_args(args) {
-        return Ok(0)
-    }
-    Err("expected empty")
-}
-
 pub fn only_program_name(args: Vec<string>) -> bool {
     arg_count(args) == 1
-}
-
-/// `Ok(1)` when argv is only the program name, otherwise `Err`.
-pub fn require_only_program(args: Vec<string>) -> Result<int, string> {
-    if only_program_name(args) {
-        return Ok(1)
-    }
-    Err("expected only program")
 }
 
 /// First argument (the program name), if any.
@@ -311,25 +262,9 @@ pub fn require_program(args: Vec<string>) -> Result<string, string> {
     }
 }
 
-/// Argument count when `--help` is absent, otherwise `Err`.
-pub fn require_no_help(args: Vec<string>) -> Result<int, string> {
-    if has_help_flag(args) {
-        return Err("unexpected help flag")
-    }
-    Ok(arg_count(args))
-}
-
 /// True when `--help` is present.
 pub fn has_help_flag(args: Vec<string>) -> bool {
     has_long_flag(args, "help")
-}
-
-/// `Ok(1)` when `--help` is present, otherwise `Err`.
-pub fn require_help(args: Vec<string>) -> Result<int, string> {
-    if has_help_flag(args) {
-        return Ok(1)
-    }
-    Err("expected help")
 }
 
 /// True when `--version` is present.

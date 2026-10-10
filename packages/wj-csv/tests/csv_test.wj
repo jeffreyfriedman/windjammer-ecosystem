@@ -4,7 +4,6 @@ use crate::column_index
 use crate::get_cell
 use crate::get_row
 use crate::has_column
-use crate::has_rows
 use crate::is_empty
 use crate::parse
 use crate::parse_with_headers
@@ -12,7 +11,6 @@ use crate::require_column
 use crate::require_row
 use crate::require_cell
 use crate::require_empty
-use crate::require_rows
 use crate::row_count
 use crate::write
 use std::strings
@@ -219,7 +217,6 @@ fn test_require_column_and_get_row() {
 fn test_has_rows_require_row_and_cell_or() {
     match parse("a,b\n1,2") {
         Ok(rows) => {
-            assert(has_rows(rows), "has rows")
             match require_row(rows, 1) {
                 Ok(row) => {
                     assert_eq(row[0], "1")
@@ -237,7 +234,6 @@ fn test_has_rows_require_row_and_cell_or() {
         Err(_) => assert(false, "parse"),
     }
     let empty: Vec<Vec<string>> = Vec::new()
-    assert(!has_rows(empty), "empty has no rows")
 }
 
 @test
@@ -271,37 +267,6 @@ fn test_last_row_and_rectangular() {
     match last_row(empty) {
         Some(_) => assert(false, "empty last"),
         None => {},
-    }
-}
-
-@test
-fn test_require_rectangular() {
-    use crate::require_rectangular
-    match parse("a,b\n1,2\n3,4") {
-        Ok(rows) => {
-            match require_rectangular(rows) {
-                Ok(n) => assert_eq(n, 3),
-                Err(_) => assert(false, "even rows"),
-            }
-        },
-        Err(_) => assert(false, "parse"),
-    }
-    let mut ragged: Vec<Vec<string>> = Vec::new()
-    let mut wide = Vec::new()
-    wide.push("a")
-    wide.push("b")
-    ragged.push(wide)
-    let mut short = Vec::new()
-    short.push("1")
-    ragged.push(short)
-    match require_rectangular(ragged) {
-        Ok(_) => assert(false, "ragged must Err"),
-        Err(msg) => assert(strings.contains(msg, "rectangular"), "mentions rectangular"),
-    }
-    let empty: Vec<Vec<string>> = Vec::new()
-    match require_rectangular(empty) {
-        Ok(n) => assert_eq(n, 0),
-        Err(_) => assert(false, "empty table is rectangular"),
     }
 }
 
@@ -342,23 +307,5 @@ fn test_require_empty() {
             }
         },
         Err(_) => assert(false, "parse rows"),
-    }
-}
-
-@test
-fn test_require_rows() {
-    match parse("a,b\n1,2") {
-        Ok(rows) => {
-            match require_rows(rows) {
-                Ok(n) => assert(n > 0, "has rows"),
-                Err(_) => assert(false, "rows ok"),
-            }
-        },
-        Err(_) => assert(false, "parse"),
-    }
-    let empty: Vec<Vec<string>> = Vec::new()
-    match require_rows(empty) {
-        Ok(_) => assert(false, "empty must Err"),
-        Err(msg) => assert(strings.contains(msg, "rows"), "mentions rows"),
     }
 }

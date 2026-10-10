@@ -213,14 +213,6 @@ pub fn is_wildcard_field(field: string) -> bool {
     field == "*"
 }
 
-/// `Ok(field)` when the cron field is `*`, otherwise `Err`.
-pub fn require_wildcard_field(field: string) -> Result<string, string> {
-    if is_wildcard_field(field) {
-        return Ok(field)
-    }
-    Err("expected wildcard field")
-}
-
 /// Expression that matches every minute (`* * * * *`).
 pub fn every_minute() -> CronExpr {
     CronExpr {
@@ -245,34 +237,6 @@ pub fn every_hour() -> CronExpr {
     }
 }
 
-/// True when `expr` is the every-minute schedule.
-pub fn is_every_minute(expr: CronExpr) -> bool {
-    format_cron(expr) == "* * * * *"
-}
-
-/// Source text when `expr` is the every-minute schedule, otherwise `Err`.
-pub fn require_every_minute(expr: CronExpr) -> Result<string, string> {
-    if is_every_minute(expr) {
-        Ok(source_of(expr))
-    } else {
-        Err("expected every minute")
-    }
-}
-
-/// True when `expr` is the every-hour schedule (`0 * * * *`).
-pub fn is_every_hour(expr: CronExpr) -> bool {
-    format_cron(expr) == "0 * * * *"
-}
-
-/// Source text when `expr` is the every-hour schedule, otherwise `Err`.
-pub fn require_every_hour(expr: CronExpr) -> Result<string, string> {
-    if is_every_hour(expr) {
-        Ok(source_of(expr))
-    } else {
-        Err("expected every hour")
-    }
-}
-
 /// Expression that matches midnight every day (`0 0 * * *`).
 pub fn every_day() -> CronExpr {
     CronExpr {
@@ -282,20 +246,6 @@ pub fn every_day() -> CronExpr {
         month: "*",
         day_of_week: "*",
         source: "0 0 * * *",
-    }
-}
-
-/// True when `expr` is the every-day schedule (`0 0 * * *`).
-pub fn is_every_day(expr: CronExpr) -> bool {
-    format_cron(expr) == "0 0 * * *"
-}
-
-/// Source text when `expr` is the every-day schedule, otherwise `Err`.
-pub fn require_every_day(expr: CronExpr) -> Result<string, string> {
-    if is_every_day(expr) {
-        Ok(source_of(expr))
-    } else {
-        Err("expected every day")
     }
 }
 

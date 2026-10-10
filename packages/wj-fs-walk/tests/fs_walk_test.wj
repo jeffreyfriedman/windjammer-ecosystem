@@ -6,6 +6,7 @@ use crate::require_dirs
 use crate::require_empty_tree
 use crate::require_hidden
 use crate::require_entries
+use crate::require_suffix
 use crate::count_files
 use crate::count_visible_files
 use crate::has_dirs
@@ -392,6 +393,29 @@ fn test_require_entries() {
     match require_entries(empty_root) {
         Ok(_) => assert(false, "empty must Err"),
         Err(msg) => assert(strings.contains(msg, "entries"), "mentions entries"),
+    }
+    teardown_tree(empty_root)
+}
+
+fn test_require_suffix() {
+    let root = "/tmp/wj-fs-walk-tree-require-suffix"
+    match setup_tree(root) {
+        Ok(_) => {},
+        Err(e) => assert(false, "setup failed: ${e}"),
+    }
+    match require_suffix(root, ".txt") {
+        Ok(n) => assert(n > 0, "txt files"),
+        Err(e) => assert(false, "require_suffix: ${e}"),
+    }
+    teardown_tree(root)
+    let empty_root = "/tmp/wj-fs-walk-empty-require-suffix"
+    match fs.create_dir_all(empty_root) {
+        Ok(_) => {},
+        Err(_) => assert(false, "create empty"),
+    }
+    match require_suffix(empty_root, ".txt") {
+        Ok(_) => assert(false, "empty must Err"),
+        Err(msg) => assert(strings.contains(msg, "suffix"), "mentions suffix"),
     }
     teardown_tree(empty_root)
 }

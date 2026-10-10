@@ -80,6 +80,14 @@ pub fn status_is_not_found(status: u16) -> bool {
     status == 404
 }
 
+/// `Ok(status)` when it is `404 Not Found`, otherwise `Err`.
+pub fn require_not_found(status: u16) -> Result<u16, string> {
+    if status_is_not_found(status) {
+        return Ok(status)
+    }
+    Err("expected not found")
+}
+
 /// Status code accessor.
 pub fn status_of(result: HttpResult) -> u16 {
     result.status

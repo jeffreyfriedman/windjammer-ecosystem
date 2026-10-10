@@ -161,6 +161,19 @@ pub fn has_suffix_files(root: string, suffix: string) -> Result<bool, string> {
     }
 }
 
+/// `Ok(1)` when `root` has a file ending in `suffix`, otherwise `Err`.
+pub fn require_suffix(root: string, suffix: string) -> Result<int, string> {
+    match has_suffix_files(root, suffix) {
+        Ok(yes) => {
+            if yes {
+                return Ok(1)
+            }
+            Err("expected suffix")
+        },
+        Err(e) => Err(e),
+    }
+}
+
 /// Final path segment of `path`.
 pub fn basename_of(path: string) -> string {
     path_basename(path)

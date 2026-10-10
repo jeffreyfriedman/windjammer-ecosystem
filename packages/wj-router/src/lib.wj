@@ -100,6 +100,14 @@ pub fn is_empty_params(params: HashMap<string, string>) -> bool {
     param_count(params) == 0
 }
 
+/// `Ok(0)` when the route captured no params, otherwise `Err`.
+pub fn require_empty_params(params: HashMap<string, string>) -> Result<int, string> {
+    if is_empty_params(params) {
+        return Ok(0)
+    }
+    Err("expected empty params")
+}
+
 /// True when `params` has at least one entry.
 pub fn has_params(params: HashMap<string, string>) -> bool {
     !is_empty_params(params)

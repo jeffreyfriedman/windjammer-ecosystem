@@ -4,6 +4,7 @@ use crate::count_entries
 use crate::require_files
 use crate::require_dirs
 use crate::require_empty_tree
+use crate::require_hidden
 use crate::count_files
 use crate::count_visible_files
 use crate::has_dirs
@@ -358,4 +359,15 @@ fn test_require_empty_tree() {
         Err(msg) => assert(strings.contains(msg, "empty"), "mentions empty"),
     }
     teardown_tree(root)
+}
+
+fn test_require_hidden() {
+    match require_hidden(".git") {
+        Ok(name) => assert(is_hidden_name(name), "hidden"),
+        Err(_) => assert(false, "dotfile"),
+    }
+    match require_hidden("git") {
+        Ok(_) => assert(false, "plain must Err"),
+        Err(msg) => assert(strings.contains(msg, "hidden"), "mentions hidden"),
+    }
 }

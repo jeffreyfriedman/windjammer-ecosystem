@@ -18,6 +18,7 @@ use crate::part_count
 use crate::require_field
 use crate::require_text
 use crate::require_file
+use crate::require_empty
 use crate::text_count
 use crate::MultipartBody
 use crate::Part
@@ -336,5 +337,25 @@ fn test_require_text() {
             }
         },
         Err(_) => assert(false, "parse file"),
+    }
+}
+
+@test
+fn test_require_empty() {
+    let empty = Vec::new()
+    match require_empty(empty) {
+        Ok(n) => assert_eq(n, 0),
+        Err(_) => assert(false, "empty parts"),
+    }
+    let boundary = "----ne"
+    let body = "--${boundary}\r\nContent-Disposition: form-data; name=\"msg\"\r\n\r\nok\r\n--${boundary}--"
+    match parse_multipart(boundary, body) {
+        Ok(parts) => {
+            match require_empty(parts) {
+                Ok(_) => assert(false, "nonempty must Err"),
+                Err(msg) => assert(strings.contains(msg, "empty"), "mentions empty"),
+            }
+        },
+        Err(_) => assert(false, "parse nonempty"),
     }
 }

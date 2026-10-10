@@ -40,6 +40,14 @@ pub fn is_bcrypt_prefix(hash: string) -> bool {
     looks_like_bcrypt(hash)
 }
 
+/// `Ok(hash)` when it has a bcrypt prefix, otherwise `Err`.
+pub fn require_prefix(hash: string) -> Result<string, string> {
+    if is_bcrypt_prefix(hash) {
+        return Ok(hash)
+    }
+    Err("expected prefix")
+}
+
 /// Alias of `looks_like_bcrypt` (predicate-shaped name).
 pub fn is_bcrypt(hash: string) -> bool {
     looks_like_bcrypt(hash)

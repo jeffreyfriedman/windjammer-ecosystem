@@ -113,6 +113,14 @@ pub fn has_params(params: HashMap<string, string>) -> bool {
     !is_empty_params(params)
 }
 
+/// `Ok(1)` when the route captured a param, otherwise `Err`.
+pub fn require_params(params: HashMap<string, string>) -> Result<int, string> {
+    if has_params(params) {
+        return Ok(1)
+    }
+    Err("expected params")
+}
+
 /// True when `pattern` has no `:param` segments.
 pub fn is_static_pattern(pattern: string) -> bool {
     !is_param_pattern(pattern)

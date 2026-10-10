@@ -20,6 +20,7 @@ use crate::require_only_program
 use crate::require_positionals
 use crate::require_any_flag
 use crate::require_help
+use crate::require_named_flag
 use crate::require_version
 use crate::require_long_flag_value
 use crate::require_positional_count
@@ -359,5 +360,16 @@ fn test_require_help() {
     match require_help(sample_args()) {
         Ok(_) => assert(false, "no help must Err"),
         Err(msg) => assert(strings.contains(msg, "help"), "mentions help"),
+    }
+}
+
+fn test_require_named_flag() {
+    match require_named_flag(sample_args(), "verbose") {
+        Ok(n) => assert_eq(n, 1),
+        Err(_) => assert(false, "verbose present"),
+    }
+    match require_named_flag(sample_args(), "help") {
+        Ok(_) => assert(false, "missing flag must Err"),
+        Err(msg) => assert(strings.contains(msg, "flag"), "mentions flag"),
     }
 }

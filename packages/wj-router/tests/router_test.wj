@@ -15,6 +15,7 @@ use crate::require_match
 use crate::require_param_pattern
 use crate::require_static
 use crate::require_empty_params
+use crate::require_params
 use crate::require_param
 use std::collections::HashMap
 use std::collections::HashMap
@@ -268,5 +269,27 @@ fn test_require_empty_params() {
             }
         },
         None => assert(false, "users"),
+    }
+}
+
+@test
+fn test_require_params() {
+    match match_route("/users/:id", "/users/1") {
+        Some(params) => {
+            match require_params(params) {
+                Ok(n) => assert(n > 0, "captured"),
+                Err(_) => assert(false, "params ok"),
+            }
+        },
+        None => assert(false, "users"),
+    }
+    match match_route("/health", "/health") {
+        Some(params) => {
+            match require_params(params) {
+                Ok(_) => assert(false, "static must Err"),
+                Err(msg) => assert(strings.contains(msg, "params"), "mentions params"),
+            }
+        },
+        None => assert(false, "health"),
     }
 }

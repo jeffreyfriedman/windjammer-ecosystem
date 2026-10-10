@@ -140,6 +140,14 @@ pub fn has_listeners(bus: EventBus) -> bool {
     !is_empty(bus)
 }
 
+/// `Ok(1)` when the bus has a subscriber, otherwise `Err`.
+pub fn require_listeners(bus: EventBus) -> Result<int, string> {
+    if has_listeners(bus) {
+        return Ok(1)
+    }
+    Err("expected listeners")
+}
+
 /// Peek at the front queued event without draining (`(bus, Option<Event>)`).
 pub fn peek(bus: EventBus) -> (EventBus, Option<Event>) {
     if bus.queue.len() == 0 {

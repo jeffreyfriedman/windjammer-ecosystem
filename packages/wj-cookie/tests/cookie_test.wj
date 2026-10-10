@@ -21,6 +21,7 @@ use crate::require_strict
 use crate::require_empty
 use crate::require_lax
 use crate::require_none
+use crate::require_cookies
 use crate::require_secure
 use crate::same_site_of
 use crate::parse_cookie_header
@@ -392,5 +393,27 @@ fn test_require_none() {
     match require_none(session_cookie("sid", "abc")) {
         Ok(_) => assert(false, "lax must Err"),
         Err(msg) => assert(strings.contains(msg, "none"), "mentions none"),
+    }
+}
+
+@test
+fn test_require_cookies() {
+    match parse_cookie_header("sid=abc") {
+        Ok(map) => {
+            match require_cookies(map) {
+                Ok(n) => assert(n > 0, "has cookies"),
+                Err(_) => assert(false, "cookies ok"),
+            }
+        },
+        Err(_) => assert(false, "parse sid"),
+    }
+    match parse_cookie_header("") {
+        Ok(map) => {
+            match require_cookies(map) {
+                Ok(_) => assert(false, "empty must Err"),
+                Err(msg) => assert(strings.contains(msg, "cookies"), "mentions cookies"),
+            }
+        },
+        Err(_) => assert(false, "parse empty"),
     }
 }

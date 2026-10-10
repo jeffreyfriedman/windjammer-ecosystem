@@ -7,6 +7,14 @@ pub fn is_match(pattern: string, candidate: string) -> bool {
     path.glob_match(pattern, candidate)
 }
 
+/// `Ok(candidate)` when it matches `pattern`, otherwise `Err`.
+pub fn require_candidate(pattern: string, candidate: string) -> Result<string, string> {
+    if is_match(pattern, candidate) {
+        return Ok(candidate)
+    }
+    Err("expected match")
+}
+
 /// Paths that match `pattern`.
 pub fn filter(pattern: string, paths: Vec<string>) -> Vec<string> {
     let mut out = Vec::new()

@@ -20,6 +20,7 @@ use crate::require_http_only
 use crate::require_strict
 use crate::require_empty
 use crate::require_lax
+use crate::require_none
 use crate::require_secure
 use crate::same_site_of
 use crate::parse_cookie_header
@@ -379,5 +380,17 @@ fn test_require_lax() {
     match require_lax(with_same_site(session_cookie("sid", "abc"), "Strict")) {
         Ok(_) => assert(false, "strict must Err"),
         Err(msg) => assert(strings.contains(msg, "lax"), "mentions lax"),
+    }
+}
+
+@test
+fn test_require_none() {
+    match require_none(with_same_site(session_cookie("sid", "abc"), "None")) {
+        Ok(c) => assert(is_none_same_site(c), "none"),
+        Err(_) => assert(false, "none ok"),
+    }
+    match require_none(session_cookie("sid", "abc")) {
+        Ok(_) => assert(false, "lax must Err"),
+        Err(msg) => assert(strings.contains(msg, "none"), "mentions none"),
     }
 }

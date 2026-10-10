@@ -9,6 +9,7 @@ use crate::require_min_cost
 use crate::require_nonempty
 use crate::looks_like_bcrypt
 use crate::require_bcrypt
+use crate::require_empty_hash
 use crate::verify_ok
 use crate::verify_password
 use std::strings
@@ -164,5 +165,17 @@ fn test_require_nonempty() {
     match require_nonempty("   ") {
         Ok(_) => assert(false, "blank must Err"),
         Err(msg) => assert(strings.contains(msg, "hash"), "mentions hash"),
+    }
+}
+
+@test
+fn test_require_empty_hash() {
+    match require_empty_hash("   ") {
+        Ok(h) => assert(is_empty_hash(h), "blank"),
+        Err(_) => assert(false, "blank ok"),
+    }
+    match require_empty_hash("$2b$12$abcdefghijklmnopqrstuv") {
+        Ok(_) => assert(false, "hash must Err"),
+        Err(msg) => assert(strings.contains(msg, "empty"), "mentions empty"),
     }
 }

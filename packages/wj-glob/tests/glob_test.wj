@@ -8,6 +8,7 @@ use crate::exactly_one_match
 use crate::filter
 use crate::first_match
 use crate::is_match
+use crate::require_candidate
 use crate::require_meta
 use crate::last_match
 use crate::match_count
@@ -278,5 +279,17 @@ fn test_require_meta() {
     match require_meta("a.txt") {
         Ok(_) => assert(false, "literal must Err"),
         Err(msg) => assert(strings.contains(msg, "meta"), "mentions meta"),
+    }
+}
+
+@test
+fn test_require_candidate() {
+    match require_candidate("*.md", "a.md") {
+        Ok(path) => assert(is_match("*.md", path), "md"),
+        Err(_) => assert(false, "md ok"),
+    }
+    match require_candidate("*.md", "a.txt") {
+        Ok(_) => assert(false, "txt must Err"),
+        Err(msg) => assert(strings.contains(msg, "match"), "mentions match"),
     }
 }

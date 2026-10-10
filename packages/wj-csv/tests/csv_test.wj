@@ -12,6 +12,7 @@ use crate::require_column
 use crate::require_row
 use crate::require_cell
 use crate::require_empty
+use crate::require_rows
 use crate::row_count
 use crate::write
 use std::strings
@@ -341,5 +342,23 @@ fn test_require_empty() {
             }
         },
         Err(_) => assert(false, "parse rows"),
+    }
+}
+
+@test
+fn test_require_rows() {
+    match parse("a,b\n1,2") {
+        Ok(rows) => {
+            match require_rows(rows) {
+                Ok(n) => assert(n > 0, "has rows"),
+                Err(_) => assert(false, "rows ok"),
+            }
+        },
+        Err(_) => assert(false, "parse"),
+    }
+    let empty: Vec<Vec<string>> = Vec::new()
+    match require_rows(empty) {
+        Ok(_) => assert(false, "empty must Err"),
+        Err(msg) => assert(strings.contains(msg, "rows"), "mentions rows"),
     }
 }

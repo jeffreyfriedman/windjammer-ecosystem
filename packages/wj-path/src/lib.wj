@@ -280,6 +280,14 @@ pub fn has_leading_slash(path: string) -> bool {
     strings.starts_with(path, "/")
 }
 
+/// `Ok(path)` when `path` starts with `/`, otherwise `Err`.
+pub fn require_leading(path: string) -> Result<string, string> {
+    if has_leading_slash(path) {
+        return Ok(path)
+    }
+    Err("expected leading slash")
+}
+
 /// True when the final segment is a dotfile (not `.` or `..`).
 pub fn is_hidden(path: string) -> bool {
     let name = basename(path)

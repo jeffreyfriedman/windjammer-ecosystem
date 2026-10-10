@@ -24,6 +24,8 @@ use crate::require
 use crate::set
 use crate::stringify
 use crate::unique_key_count
+use crate::require_unique
+use crate::require_pair_count
 use crate::value_count
 use std::strings
 
@@ -313,5 +315,29 @@ fn test_require_count() {
     match require_count("a=1", "a", 2) {
         Ok(_) => assert(false, "one must Err"),
         Err(msg) => assert(strings.contains(msg, "count"), "mentions count"),
+    }
+}
+
+@test
+fn test_require_unique() {
+    match require_unique("a=1&b=2", 2) {
+        Ok(n) => assert_eq(n, 2),
+        Err(_) => assert(false, "two keys"),
+    }
+    match require_unique("a=1&a=2", 2) {
+        Ok(_) => assert(false, "duplicate must Err"),
+        Err(msg) => assert(strings.contains(msg, "unique"), "mentions unique"),
+    }
+}
+
+@test
+fn test_require_pair_count() {
+    match require_pair_count("a=1&a=2", 2) {
+        Ok(n) => assert_eq(n, 2),
+        Err(_) => assert(false, "two pairs"),
+    }
+    match require_pair_count("a=1", 2) {
+        Ok(_) => assert(false, "one must Err"),
+        Err(msg) => assert(strings.contains(msg, "pair count"), "mentions pair count"),
     }
 }

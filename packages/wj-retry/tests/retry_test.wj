@@ -15,6 +15,9 @@ use crate::require_next
 use crate::require_total
 use crate::require_clamp
 use crate::require_delay
+use crate::require_initial
+use crate::require_multiplier
+use crate::require_max
 use crate::require_first
 use crate::require_default_backoff
 use crate::should_retry
@@ -290,6 +293,39 @@ fn test_require_delay() {
     match require_delay(default_backoff(), 0, 1) {
         Ok(_) => assert(false, "wrong delay must Err"),
         Err(msg) => assert(strings.contains(msg, "delay"), "mentions delay"),
+    }
+}
+
+fn test_require_initial() {
+    match require_initial(default_backoff(), 100) {
+        Ok(n) => assert_eq(n, 100),
+        Err(_) => assert(false, "initial 100"),
+    }
+    match require_initial(default_backoff(), 1) {
+        Ok(_) => assert(false, "wrong initial must Err"),
+        Err(msg) => assert(strings.contains(msg, "initial"), "mentions initial"),
+    }
+}
+
+fn test_require_multiplier() {
+    match require_multiplier(default_backoff(), 2) {
+        Ok(n) => assert_eq(n, 2),
+        Err(_) => assert(false, "multiplier 2"),
+    }
+    match require_multiplier(default_backoff(), 1) {
+        Ok(_) => assert(false, "wrong multiplier must Err"),
+        Err(msg) => assert(strings.contains(msg, "multiplier"), "mentions multiplier"),
+    }
+}
+
+fn test_require_max() {
+    match require_max(default_backoff(), 30000) {
+        Ok(n) => assert_eq(n, 30000),
+        Err(_) => assert(false, "max 30000"),
+    }
+    match require_max(default_backoff(), 1) {
+        Ok(_) => assert(false, "wrong max must Err"),
+        Err(msg) => assert(strings.contains(msg, "max"), "mentions max"),
     }
 }
 

@@ -210,6 +210,14 @@ pub fn is_pending(all: Vec<Migration>, applied: Vec<int>, version: int) -> bool 
     false
 }
 
+/// `Ok(version)` when that migration exists and is not yet applied, otherwise `Err`.
+pub fn require_pending(all: Vec<Migration>, applied: Vec<int>, version: int) -> Result<int, string> {
+    if is_pending(all, applied, version) {
+        return Ok(version)
+    }
+    Err("expected pending")
+}
+
 /// True when `items` contains at least one migration.
 pub fn has_migrations(items: Vec<Migration>) -> bool {
     migration_count(items) > 0

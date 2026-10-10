@@ -31,6 +31,15 @@ pub fn is_text(mime_type: string) -> bool {
     mime.is_text(mime_type)
 }
 
+/// `Ok(mime_type)` when it is a text type, otherwise `Err`.
+pub fn require_text(mime_type: string) -> Result<string, string> {
+    if is_text(mime_type) {
+        Ok(mime_type)
+    } else {
+        Err("expected text")
+    }
+}
+
 /// True for `image/*`.
 pub fn is_image(mime_type: string) -> bool {
     mime.is_image(mime_type)

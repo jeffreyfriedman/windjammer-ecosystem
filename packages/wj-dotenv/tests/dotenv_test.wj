@@ -8,6 +8,7 @@ use crate::key_count
 use crate::require_empty
 use crate::require_nonempty
 use crate::require_value
+use crate::require_blank
 use crate::keys
 use crate::merge
 use crate::parse
@@ -170,5 +171,16 @@ fn test_require_empty() {
     match require_empty(parse("A=1\n")) {
         Ok(_) => assert(false, "entry must Err"),
         Err(msg) => assert(strings.contains(msg, "empty"), "mentions empty"),
+    }
+}
+
+fn test_require_blank() {
+    match require_blank(parse("A=\n"), "A") {
+        Ok(key) => assert_eq(key, "A"),
+        Err(_) => assert(false, "blank value"),
+    }
+    match require_blank(parse("A=1\n"), "A") {
+        Ok(_) => assert(false, "present must Err"),
+        Err(msg) => assert(strings.contains(msg, "blank"), "mentions blank"),
     }
 }

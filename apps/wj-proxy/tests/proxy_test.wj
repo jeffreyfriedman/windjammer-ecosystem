@@ -4,8 +4,6 @@ use crate::domain::ForwardResult
 use crate::domain::can_forward_method
 use crate::domain::is_mutating_method
 use crate::domain::is_safe_method
-use crate::domain::require_mutating
-use crate::domain::require_safe_method
 use std::strings
 
 fn test_health_returns_ok() {
@@ -146,17 +144,6 @@ fn test_safe_and_mutating_methods() {
     assert(!is_mutating_method("GET"), "GET not mut")
 }
 
-fn test_require_mutating() {
-    match require_mutating("POST") {
-        Ok(method) => assert_eq(method, "POST"),
-        Err(_) => assert(false, "POST mutating"),
-    }
-    match require_mutating("GET") {
-        Ok(_) => assert(false, "GET must Err"),
-        Err(msg) => assert(strings.contains(msg, "mutating"), "mentions mutating"),
-    }
-}
-
 fn test_put_proxy_records_method_in_logs() {
     let mut app = ProxyApp::new(default_config())
     let forward = ForwardResult { status: 201, body: "created" }
@@ -190,17 +177,6 @@ fn test_log_max_zero_keeps_all_entries() {
     assert_str_contains(listed.body, "/v1/a")
     assert_str_contains(listed.body, "/v1/b")
     assert_str_contains(listed.body, "/v1/c")
-}
-
-fn test_require_safe_method() {
-    match require_safe_method("GET") {
-        Ok(method) => assert_eq(method, "GET"),
-        Err(_) => assert(false, "GET safe"),
-    }
-    match require_safe_method("POST") {
-        Ok(_) => assert(false, "POST must Err"),
-        Err(msg) => assert(strings.contains(msg, "safe"), "mentions safe"),
-    }
 }
 
 fn default_config() -> ProxyConfig {

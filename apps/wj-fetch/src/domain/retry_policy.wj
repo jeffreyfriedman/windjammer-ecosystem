@@ -10,15 +10,6 @@ pub fn default_backoff() -> Backoff {
     }
 }
 
-/// Status code when it is a transient retry candidate.
-pub fn require_retryable(status: u16) -> Result<u16, string> {
-    if retryable_status(status) {
-        Ok(status)
-    } else {
-        Err("expected retryable")
-    }
-}
-
 pub fn retryable_status(status: u16) -> bool {
     let code = copy_u16(status)
     if code == 429 {
@@ -34,15 +25,6 @@ pub fn retryable_status(status: u16) -> bool {
         return true
     }
     false
-}
-
-/// Attempt index when another try is still allowed.
-pub fn require_attempt(attempt: int, max_attempts: int) -> Result<int, string> {
-    if should_attempt(attempt, max_attempts) {
-        Ok(attempt)
-    } else {
-        Err("expected attempt")
-    }
 }
 
 pub fn should_attempt(attempt: int, max_attempts: int) -> bool {

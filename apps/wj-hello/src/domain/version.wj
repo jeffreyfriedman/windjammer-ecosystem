@@ -64,15 +64,6 @@ pub fn require_semver(ver: string) -> Result<string, string> {
     }
 }
 
-/// Identity line when it is the crate name plus its semver.
-pub fn require_smoke() -> Result<string, string> {
-    if is_smoke_identity() {
-        Ok(version())
-    } else {
-        Err("expected smoke identity")
-    }
-}
-
 /// True when the identity line is the crate name plus its semver.
 pub fn is_smoke_identity() -> bool {
     let line = version()

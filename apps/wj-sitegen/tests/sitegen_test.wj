@@ -1,8 +1,6 @@
 use crate::domain::html_filename
 use crate::domain::html_output_path
 use crate::domain::is_html_path
-use crate::domain::require_empty_pages
-use crate::domain::require_html_path
 use crate::domain::is_markdown_path
 use crate::domain::page_count
 use crate::domain::relative_path_from_root
@@ -32,53 +30,6 @@ fn test_path_predicates_and_page_count() {
     pages.push(generate_page("b.md", "# B\n"))
     assert_eq(page_count(pages), 2)
     assert_eq(page_count(Vec::new()), 0)
-}
-
-fn test_has_pages_and_require_markdown() {
-    use crate::domain::has_pages
-    use crate::domain::is_empty_pages
-    use crate::domain::require_markdown_path
-    let empty: Vec<GeneratedPage> = Vec::new()
-    assert(is_empty_pages(empty), "empty")
-    let mut pages = Vec::new()
-    pages.push(generate_page("a.md", "# A\n"))
-    assert(has_pages(pages), "has pages")
-    let mut pages2 = Vec::new()
-    pages2.push(generate_page("a.md", "# A\n"))
-    assert(!is_empty_pages(pages2), "not empty")
-    match require_markdown_path("posts/x.md") {
-        Ok(p) => assert_eq(p, "posts/x.md"),
-        Err(_) => assert(false, "md ok"),
-    }
-    match require_markdown_path("posts/x.html") {
-        Ok(_) => assert(false, "html must Err"),
-        Err(msg) => assert(strings.contains(msg, "markdown"), "mentions markdown"),
-    }
-}
-
-fn test_require_html_path() {
-    match require_html_path("posts/x.html") {
-        Ok(p) => assert_eq(p, "posts/x.html"),
-        Err(_) => assert(false, "html ok"),
-    }
-    match require_html_path("posts/x.md") {
-        Ok(_) => assert(false, "md must Err"),
-        Err(msg) => assert(strings.contains(msg, "html"), "mentions html"),
-    }
-}
-
-fn test_require_empty_pages() {
-    let empty: Vec<GeneratedPage> = Vec::new()
-    match require_empty_pages(empty) {
-        Ok(n) => assert_eq(n, 0),
-        Err(_) => assert(false, "empty pages"),
-    }
-    let mut pages = Vec::new()
-    pages.push(generate_page("a.md", "# A\n"))
-    match require_empty_pages(pages) {
-        Ok(_) => assert(false, "one page must Err"),
-        Err(msg) => assert(strings.contains(msg, "empty"), "mentions empty"),
-    }
 }
 
 fn test_only_page_and_require_pages() {

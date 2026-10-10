@@ -1,7 +1,5 @@
 use crate::domain::format_status_result
 use crate::domain::has_pending
-use crate::domain::is_caught_up
-use crate::domain::require_caught_up
 use crate::domain::require_first_pending
 use crate::domain::require_last_applied
 use crate::domain::require_only_pending
@@ -40,8 +38,6 @@ fn test_status_version_helpers() {
     assert_eq(version_count(sample_pending()), 2)
     assert(has_pending(sample_pending()), "has pending")
     assert(!has_pending(Vec::new()), "no pending")
-    assert(is_caught_up(Vec::new()), "caught up")
-    assert(!is_caught_up(sample_pending()), "not caught up")
 }
 
 fn test_first_pending_last_applied_total() {
@@ -88,17 +84,6 @@ fn test_only_pending_and_require_pending() {
     match only_pending(sample_pending()) {
         Some(_) => assert(false, "two pending is not only"),
         None => {},
-    }
-}
-
-fn test_require_caught_up() {
-    match require_caught_up(Vec::new()) {
-        Ok(n) => assert_eq(n, 0),
-        Err(_) => assert(false, "empty is caught up"),
-    }
-    match require_caught_up(sample_pending()) {
-        Ok(_) => assert(false, "pending must Err"),
-        Err(msg) => assert(strings.contains(msg, "caught"), "mentions caught"),
     }
 }
 

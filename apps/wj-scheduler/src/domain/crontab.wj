@@ -70,24 +70,6 @@ pub fn expr_count(exprs: Vec<string>) -> int {
     n
 }
 
-/// Zero when no cron expressions are present.
-pub fn require_empty_exprs(exprs: Vec<string>) -> Result<int, string> {
-    if is_empty_exprs(exprs) {
-        Ok(0)
-    } else {
-        Err("expected empty expressions")
-    }
-}
-
-pub fn is_empty_exprs(exprs: Vec<string>) -> bool {
-    expr_count(exprs) == 0
-}
-
-/// True when at least one cron expression is present.
-pub fn has_exprs(exprs: Vec<string>) -> bool {
-    expr_count(exprs) > 0
-}
-
 /// First expression, or an error when the list is empty.
 pub fn require_first(exprs: Vec<string>) -> Result<string, string> {
     match first_expr(exprs) {

@@ -11,6 +11,8 @@ use crate::retry_delay
 use crate::require_exhausted
 use crate::require_used
 use crate::require_remaining
+use crate::require_next
+use crate::require_total
 use crate::require_first
 use crate::require_default_backoff
 use crate::should_retry
@@ -242,6 +244,28 @@ fn test_require_remaining() {
     match require_remaining(3, 3, 1) {
         Ok(_) => assert(false, "none left must Err"),
         Err(msg) => assert(strings.contains(msg, "remaining"), "mentions remaining"),
+    }
+}
+
+fn test_require_next() {
+    match require_next(1, 2) {
+        Ok(n) => assert_eq(n, 2),
+        Err(_) => assert(false, "next attempt"),
+    }
+    match require_next(1, 9) {
+        Ok(_) => assert(false, "wrong next must Err"),
+        Err(msg) => assert(strings.contains(msg, "next"), "mentions next"),
+    }
+}
+
+fn test_require_total() {
+    match require_total(default_backoff(), 1, 100) {
+        Ok(n) => assert_eq(n, 100),
+        Err(_) => assert(false, "first delay"),
+    }
+    match require_total(default_backoff(), 1, 0) {
+        Ok(_) => assert(false, "zero must Err"),
+        Err(msg) => assert(strings.contains(msg, "total"), "mentions total"),
     }
 }
 

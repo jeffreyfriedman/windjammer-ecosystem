@@ -214,6 +214,14 @@ pub fn pending_count(all: Vec<Migration>, applied: Vec<int>) -> int {
     n
 }
 
+/// `Ok(n)` when that many migrations are still pending, otherwise `Err`.
+pub fn require_pending_count(all: Vec<Migration>, applied: Vec<int>, n: int) -> Result<int, string> {
+    if pending_count(all, applied) == n {
+        return Ok(n)
+    }
+    Err("expected pending count")
+}
+
 /// True when `version` exists in `all` and is not yet applied.
 pub fn is_pending(all: Vec<Migration>, applied: Vec<int>, version: int) -> bool {
     if version_applied(applied, version) {
@@ -260,6 +268,15 @@ pub fn earliest_version(items: Vec<Migration>) -> int {
         return 0
     }
     sorted[0].version
+}
+
+/// `Ok(version)` for the lowest migration, or `Err` when the set is empty.
+pub fn require_earliest(items: Vec<Migration>) -> Result<int, string> {
+    let version = earliest_version(items)
+    if version > 0 {
+        return Ok(version)
+    }
+    Err("expected earliest")
 }
 
 /// Migration name for `version`, or None when absent.

@@ -222,12 +222,28 @@ pub fn long_flag_count(args: Vec<string>) -> int {
     n
 }
 
+/// `Ok(n)` when `args` has exactly `n` long flags, otherwise `Err`.
+pub fn require_long_flags(args: Vec<string>, n: int) -> Result<int, string> {
+    if long_flag_count(args) == n {
+        return Ok(n)
+    }
+    Err("expected long flags")
+}
+
 pub fn arg_count(args: Vec<string>) -> int {
     let mut n = 0
     for _ in args {
         n = n + 1
     }
     n
+}
+
+/// `Ok(n)` when `args` has exactly `n` entries, otherwise `Err`.
+pub fn require_argc(args: Vec<string>, n: int) -> Result<int, string> {
+    if arg_count(args) == n {
+        return Ok(n)
+    }
+    Err("expected argc")
 }
 
 pub fn is_empty_args(args: Vec<string>) -> bool {

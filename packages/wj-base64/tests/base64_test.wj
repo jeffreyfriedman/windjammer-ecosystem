@@ -19,6 +19,7 @@ use crate::is_unpadded
 use crate::looks_like_base64
 use crate::needs_padding
 use crate::require_encoded
+use crate::require_needs
 use crate::strip_padding
 use std::strings
 
@@ -193,5 +194,17 @@ fn test_require_bearer() {
     match require_bearer(basic_auth_header("u", "p")) {
         Ok(_) => assert(false, "basic must Err"),
         Err(msg) => assert(strings.contains(msg, "bearer"), "mentions bearer"),
+    }
+}
+
+@test
+fn test_require_needs() {
+    match require_needs("SGVsbG8") {
+        Ok(text) => assert(needs_padding(text), "needs"),
+        Err(_) => assert(false, "short ok"),
+    }
+    match require_needs("SGVsbG8=") {
+        Ok(_) => assert(false, "padded must Err"),
+        Err(msg) => assert(strings.contains(msg, "padding"), "mentions padding"),
     }
 }

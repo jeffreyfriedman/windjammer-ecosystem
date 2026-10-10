@@ -133,6 +133,14 @@ pub fn needs_padding(text: string) -> bool {
     ensure_padding(text) != strings.trim(text)
 }
 
+/// `Ok(text)` when `text` still needs `=` padding, otherwise `Err`.
+pub fn require_needs(text: string) -> Result<string, string> {
+    if needs_padding(text) {
+        return Ok(text)
+    }
+    Err("expected padding")
+}
+
 /// True when `text` has no trailing `=` padding.
 pub fn is_unpadded(text: string) -> bool {
     !has_padding(text)

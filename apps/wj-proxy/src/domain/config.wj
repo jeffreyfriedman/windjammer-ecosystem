@@ -43,38 +43,6 @@ pub fn port_from_env() -> int {
     }
 }
 
-/// Strip prefix when one is configured.
-pub fn require_strip(cfg: ProxyConfig) -> Result<string, string> {
-    if has_strip_prefix(cfg) {
-        Ok(cfg.strip_prefix)
-    } else {
-        Err("expected strip prefix")
-    }
-}
-
-pub fn has_strip_prefix(cfg: ProxyConfig) -> bool {
-    strings.len(cfg.strip_prefix) > 0
-}
-
-/// Zero when the request log has no ring-buffer cap.
-pub fn require_unlimited(cfg: ProxyConfig) -> Result<int, string> {
-    if is_unlimited_log(cfg) {
-        Ok(0)
-    } else {
-        Err("expected unlimited log")
-    }
-}
-
-/// True when `log_max` is 0 (no ring-buffer cap).
-pub fn is_unlimited_log(cfg: ProxyConfig) -> bool {
-    cfg.log_max == 0
-}
-
-/// True when the request log is capped (`log_max` > 0).
-pub fn is_limited_log(cfg: ProxyConfig) -> bool {
-    !is_unlimited_log(cfg)
-}
-
 /// Configured upstream base URL.
 pub fn upstream_of(cfg: ProxyConfig) -> string {
     cfg.upstream
@@ -106,14 +74,6 @@ pub fn require_rate_limit(cfg: ProxyConfig) -> Result<int, string> {
     } else {
         Ok(cfg.rate_limit)
     }
-}
-
-/// Log cap when the request log is limited, otherwise `Err`.
-pub fn require_limited_log(cfg: ProxyConfig) -> Result<int, string> {
-    if is_limited_log(cfg) {
-        return Ok(log_max_of(cfg))
-    }
-    Err("expected limited log")
 }
 
 fn upstream_from_env() -> string {

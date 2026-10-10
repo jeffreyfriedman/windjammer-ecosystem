@@ -9,9 +9,3 @@ pub use card::card_port
 pub use card::card_query
 pub use card::card_summary
 pub use card::format_card
-pub use card::has_id
-pub use card::is_default_port
-pub use card::is_empty_query
-pub use card::require_empty_query
-pub use card::require_default_port
-pub use card::require_id

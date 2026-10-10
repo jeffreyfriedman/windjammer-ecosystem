@@ -3,10 +3,7 @@ use crate::domain::done_count
 use crate::domain::filter_pending
 use crate::domain::filter_done
 use crate::domain::find_by_id
-use crate::domain::has_done
 use crate::domain::has_pending
-use crate::domain::is_empty_todos
-use crate::domain::require_empty_todos
 use crate::domain::pending_count
 use crate::domain::sort_todos_by_id
 use crate::domain::count_todos
@@ -76,8 +73,6 @@ fn sample_todos() -> Vec<Todo> {
 fn test_pending_done_find_and_empty() {
     assert_eq(pending_count(sample_todos()), 2)
     assert_eq(done_count(sample_todos()), 1)
-    assert(!is_empty_todos(sample_todos()), "nonempty")
-    assert(is_empty_todos(Vec::new()), "empty")
     match find_by_id(sample_todos(), 2) {
         Some(t) => {
             assert_eq(t.id, 2)
@@ -93,10 +88,8 @@ fn test_pending_done_find_and_empty() {
 
 fn test_has_pending_done_and_total() {
     assert(has_pending(sample_todos()), "pending")
-    assert(has_done(sample_todos()), "done")
     assert_eq(total_count(sample_todos()), 3)
     assert(!has_pending(Vec::new()), "empty no pending")
-    assert(!has_done(Vec::new()), "empty no done")
     assert_eq(total_count(Vec::new()), 0)
 }
 
@@ -143,16 +136,5 @@ fn test_require_only_pending() {
     match require_only_pending(sample_todos()) {
         Ok(_) => assert(false, "two must Err"),
         Err(msg) => assert(strings.contains(msg, "one"), "mentions one"),
-    }
-}
-
-fn test_require_empty_todos() {
-    match require_empty_todos(Vec::new()) {
-        Ok(n) => assert_eq(n, 0),
-        Err(_) => assert(false, "empty todos"),
-    }
-    match require_empty_todos(sample_todos()) {
-        Ok(_) => assert(false, "sample must Err"),
-        Err(msg) => assert(strings.contains(msg, "empty"), "mentions empty"),
     }
 }

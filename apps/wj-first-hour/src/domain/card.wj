@@ -52,11 +52,6 @@ pub fn card_port(card: Card) -> string {
     card.port
 }
 
-/// True when config fell back to port `"0"`.
-pub fn is_default_port(card: Card) -> bool {
-    card.port == "0"
-}
-
 /// Short human line for CLI demos.
 pub fn card_summary(card: Card) -> string {
     "${card.app}@${card.port}"
@@ -72,43 +67,6 @@ pub fn card_data_path(card: Card) -> string {
 
 pub fn card_query(card: Card) -> string {
     card.query
-}
-
-/// True when the card has a non-empty id.
-pub fn has_id(card: Card) -> bool {
-    strings.len(card.id) > 0
-}
-
-/// The port when config fell back to `"0"`.
-pub fn require_default_port(card: Card) -> Result<string, string> {
-    if is_default_port(card) {
-        Ok(card_port(card))
-    } else {
-        Err("expected default port")
-    }
-}
-
-/// The card id, or Err when it is empty.
-pub fn require_id(card: Card) -> Result<string, string> {
-    if has_id(card) {
-        Ok(card.id)
-    } else {
-        Err("expected id")
-    }
-}
-
-/// Zero when the card query string is empty.
-pub fn require_empty_query(card: Card) -> Result<int, string> {
-    if is_empty_query(card) {
-        Ok(0)
-    } else {
-        Err("expected empty query")
-    }
-}
-
-/// True when the card query string is empty.
-pub fn is_empty_query(card: Card) -> bool {
-    strings.len(card.query) == 0
 }
 
 fn flat_get(flat: HashMap<string, string>, key: string, fallback: string) -> string {

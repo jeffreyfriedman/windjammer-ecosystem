@@ -52,19 +52,6 @@ pub fn done_count(todos: Vec<Todo>) -> int {
     counts.2
 }
 
-/// Zero when the todo list is empty.
-pub fn require_empty_todos(todos: Vec<Todo>) -> Result<int, string> {
-    if is_empty_todos(todos) {
-        Ok(0)
-    } else {
-        Err("expected empty")
-    }
-}
-
-pub fn is_empty_todos(todos: Vec<Todo>) -> bool {
-    todos.len() == 0
-}
-
 pub fn find_by_id(todos: Vec<Todo>, id: int) -> Option<Todo> {
     for todo in todos {
         if todo.id == id {
@@ -76,10 +63,6 @@ pub fn find_by_id(todos: Vec<Todo>, id: int) -> Option<Todo> {
 
 pub fn has_pending(todos: Vec<Todo>) -> bool {
     pending_count(todos) > 0
-}
-
-pub fn has_done(todos: Vec<Todo>) -> bool {
-    done_count(todos) > 0
 }
 
 pub fn total_count(todos: Vec<Todo>) -> int {

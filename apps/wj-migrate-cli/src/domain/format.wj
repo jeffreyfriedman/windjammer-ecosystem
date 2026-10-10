@@ -43,11 +43,6 @@ pub fn has_pending(pending_versions: Vec<int>) -> bool {
     version_count(pending_versions) > 0
 }
 
-/// True when there are no pending migration versions.
-pub fn is_caught_up(pending_versions: Vec<int>) -> bool {
-    version_count(pending_versions) == 0
-}
-
 /// First pending version, or an error when caught up.
 pub fn require_first_pending(pending_versions: Vec<int>) -> Result<int, string> {
     match first_pending(pending_versions) {
@@ -100,15 +95,6 @@ pub fn only_pending(pending_versions: Vec<int>) -> Option<int> {
         Some(pending_versions[0])
     } else {
         None
-    }
-}
-
-/// Zero when no versions are outstanding.
-pub fn require_caught_up(pending_versions: Vec<int>) -> Result<int, string> {
-    if is_caught_up(pending_versions) {
-        Ok(0)
-    } else {
-        Err("expected caught up")
     }
 }
 

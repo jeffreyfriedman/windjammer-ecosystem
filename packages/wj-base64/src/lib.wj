@@ -87,6 +87,14 @@ pub fn looks_like_base64(text: string) -> bool {
     true
 }
 
+/// `Ok(text)` when it uses only the base64 alphabet, otherwise `Err`.
+pub fn require_alphabet(text: string) -> Result<string, string> {
+    if looks_like_base64(text) {
+        return Ok(text)
+    }
+    Err("expected alphabet")
+}
+
 /// True when `text` looks like base64 and successfully decodes.
 pub fn is_encoded(text: string) -> bool {
     if !looks_like_base64(text) {

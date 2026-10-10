@@ -53,10 +53,26 @@ pub fn none_match(pattern: string, paths: Vec<string>) -> bool {
     !any_match(pattern, paths)
 }
 
+/// `Ok(1)` when no path matches `pattern`, otherwise `Err`.
+pub fn require_none(pattern: string, paths: Vec<string>) -> Result<int, string> {
+    if none_match(pattern, paths) {
+        return Ok(1)
+    }
+    Err("expected none")
+}
+
 /// True when every path matches `pattern` (true for an empty path list).
 pub fn all_match(pattern: string, paths: Vec<string>) -> bool {
     let total = paths.len()
     match_count(pattern, paths) == total
+}
+
+/// `Ok(1)` when every path matches `pattern`, otherwise `Err`.
+pub fn require_all(pattern: string, paths: Vec<string>) -> Result<int, string> {
+    if all_match(pattern, paths) {
+        return Ok(1)
+    }
+    Err("expected all")
 }
 
 /// True when exactly one path matches `pattern`.

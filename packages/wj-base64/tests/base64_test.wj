@@ -20,6 +20,7 @@ use crate::looks_like_base64
 use crate::needs_padding
 use crate::require_encoded
 use crate::require_needs
+use crate::require_alphabet
 use crate::strip_padding
 use std::strings
 
@@ -206,5 +207,17 @@ fn test_require_needs() {
     match require_needs("SGVsbG8=") {
         Ok(_) => assert(false, "padded must Err"),
         Err(msg) => assert(strings.contains(msg, "padding"), "mentions padding"),
+    }
+}
+
+@test
+fn test_require_alphabet() {
+    match require_alphabet("SGVsbG8=") {
+        Ok(text) => assert(looks_like_base64(text), "alphabet"),
+        Err(_) => assert(false, "padded ok"),
+    }
+    match require_alphabet("!!!") {
+        Ok(_) => assert(false, "junk must Err"),
+        Err(msg) => assert(strings.contains(msg, "alphabet"), "mentions alphabet"),
     }
 }

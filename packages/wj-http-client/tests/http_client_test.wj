@@ -18,6 +18,8 @@ use crate::require_error
 use crate::require_ok
 use crate::require_created
 use crate::require_not_found
+use crate::require_unauthorized
+use crate::require_no_content
 use crate::error_message
 use crate::from_parts
 use std::strings
@@ -162,5 +164,27 @@ fn test_require_not_found() {
     match require_not_found(200) {
         Ok(_) => assert(false, "ok must Err"),
         Err(msg) => assert(strings.contains(msg, "not found"), "mentions not found"),
+    }
+}
+
+fn test_require_unauthorized() {
+    match require_unauthorized(401) {
+        Ok(status) => assert(status_is_unauthorized(status), "unauthorized"),
+        Err(_) => assert(false, "401 ok"),
+    }
+    match require_unauthorized(200) {
+        Ok(_) => assert(false, "ok must Err"),
+        Err(msg) => assert(strings.contains(msg, "unauthorized"), "mentions unauthorized"),
+    }
+}
+
+fn test_require_no_content() {
+    match require_no_content(204) {
+        Ok(status) => assert(status_is_no_content(status), "no content"),
+        Err(_) => assert(false, "204 ok"),
+    }
+    match require_no_content(200) {
+        Ok(_) => assert(false, "ok must Err"),
+        Err(msg) => assert(strings.contains(msg, "no content"), "mentions no content"),
     }
 }

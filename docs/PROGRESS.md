@@ -4,6 +4,8 @@ Weekly build health for seed apps and packages.
 
 | Week | Date | Apps / packages green | `extern fn` | Crates via interop | Compiler issues | Notes |
 |------|------|----------------------|-------------|--------------------|-----------------|-------|
+| 2 | 2026-10-10 | deepen `wj-http-client`/`wj-glob`/`wj-duration` | 0 | 0 | private CARGO_HOME | `require_no_content`, `require_all`, `require_outside`; tip **16+29+30** green |
+| 2 | 2026-10-10 | deepen `wj-http-client`/`wj-base64`/`wj-glob` | 0 | 0 | private CARGO_HOME | `require_unauthorized`, `require_alphabet`, `require_none`; tip **15+20+28** green |
 | 2 | 2026-10-10 | deepen `wj-http-client`/`wj-regex`/`wj-fs-walk` | 0 | 0 | private CARGO_HOME | `require_not_found`, `require_at_least`, `require_suffix`; tip **14+19+18** green |
 | 2 | 2026-10-10 | deepen `wj-http-client`/`wj-regex`/`wj-fs-walk` | 0 | 0 | private CARGO_HOME | `require_created`, `require_matches`, `require_entries`; tip **13+18+17** green |
 | 2 | 2026-10-10 | deepen `wj-config`/`wj-base64`/`wj-validate` | 0 | 0 | private CARGO_HOME | `require_keys`, `require_needs`, `require_errors`; tip **19+19+38** green |

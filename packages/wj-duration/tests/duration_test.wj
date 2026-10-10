@@ -21,6 +21,7 @@ use crate::require_zero
 use crate::require_at_least
 use crate::require_at_most
 use crate::require_nonzero
+use crate::require_outside
 use crate::secs_to_ms
 use crate::sub_ms
 use crate::within_ms
@@ -310,5 +311,17 @@ fn test_require_negative() {
     match require_negative(0) {
         Ok(_) => assert(false, "zero must Err"),
         Err(msg) => assert(strings.contains(msg, "negative"), "mentions negative"),
+    }
+}
+
+@test
+fn test_require_outside() {
+    match require_outside(9, 1, 5) {
+        Ok(n) => assert(outside_ms(n, 1, 5), "outside"),
+        Err(_) => assert(false, "nine"),
+    }
+    match require_outside(3, 1, 5) {
+        Ok(_) => assert(false, "inside must Err"),
+        Err(msg) => assert(strings.contains(msg, "outside"), "mentions outside"),
     }
 }

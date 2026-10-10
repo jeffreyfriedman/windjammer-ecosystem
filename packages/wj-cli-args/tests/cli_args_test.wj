@@ -26,6 +26,9 @@ use crate::require_long_flag_value
 use crate::require_positional_count
 use crate::require_argc
 use crate::require_long_flags
+use crate::require_last_positional
+use crate::require_nth
+use crate::require_tail
 use crate::has_long_flag
 use crate::long_flag_value
 use crate::long_flag_value_or
@@ -395,5 +398,40 @@ fn test_require_long_flags() {
     match require_long_flags(sample_args(), 0) {
         Ok(_) => assert(false, "flags must Err"),
         Err(msg) => assert(strings.contains(msg, "long"), "mentions long"),
+    }
+}
+
+fn test_require_last_positional() {
+    match require_last_positional(sample_args()) {
+        Ok(url) => assert_eq(url, "https://example.com"),
+        Err(_) => assert(false, "url"),
+    }
+    let mut bare = Vec::new()
+    bare.push("tool")
+    match require_last_positional(bare) {
+        Ok(_) => assert(false, "program only must Err"),
+        Err(msg) => assert(strings.contains(msg, "last"), "mentions last"),
+    }
+}
+
+fn test_require_nth() {
+    match require_nth(sample_args(), 0) {
+        Ok(url) => assert_eq(url, "https://example.com"),
+        Err(_) => assert(false, "first positional"),
+    }
+    match require_nth(sample_args(), 3) {
+        Ok(_) => assert(false, "missing must Err"),
+        Err(msg) => assert(strings.contains(msg, "nth"), "mentions nth"),
+    }
+}
+
+fn test_require_tail() {
+    match require_tail(sample_args(), 3) {
+        Ok(n) => assert_eq(n, 3),
+        Err(_) => assert(false, "three tail tokens"),
+    }
+    match require_tail(sample_args(), 0) {
+        Ok(_) => assert(false, "tail must Err"),
+        Err(msg) => assert(strings.contains(msg, "tail"), "mentions tail"),
     }
 }

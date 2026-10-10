@@ -6,6 +6,7 @@ use crate::get_str
 use crate::get_str_or
 use crate::has_path
 use crate::is_empty
+use crate::require_empty
 use crate::is_valid
 use crate::require_bool
 use crate::require_false
@@ -281,5 +282,17 @@ fn test_require_false() {
     match require_false("active: true\n", "active") {
         Ok(_) => assert(false, "true must Err"),
         Err(msg) => assert(strings.contains(msg, "false"), "mentions false"),
+    }
+}
+
+@test
+fn test_require_empty() {
+    match require_empty("   \n") {
+        Ok(text) => assert(is_empty(text), "blank"),
+        Err(_) => assert(false, "whitespace"),
+    }
+    match require_empty("name: bob\n") {
+        Ok(_) => assert(false, "document must Err"),
+        Err(msg) => assert(strings.contains(msg, "empty"), "mentions empty"),
     }
 }

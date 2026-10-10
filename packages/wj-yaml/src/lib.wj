@@ -118,6 +118,14 @@ pub fn is_empty(text: string) -> bool {
     strings.len(strings.trim(text)) == 0
 }
 
+/// `Ok(text)` when `text` is empty or whitespace, otherwise `Err`.
+pub fn require_empty(text: string) -> Result<string, string> {
+    if is_empty(text) {
+        return Ok(text)
+    }
+    Err("expected empty")
+}
+
 /// Look up string path, or `Err` naming the missing path.
 pub fn require_str(text: string, path: string) -> Result<string, string> {
     match get_str(text, path) {

@@ -168,6 +168,14 @@ pub fn last_positional(args: Vec<string>) -> Option<string> {
     Some(pos[n - 1])
 }
 
+/// `Ok(1)` when argv contains a `--` flag, otherwise `Err`.
+pub fn require_any_flag(args: Vec<string>) -> Result<int, string> {
+    if has_any_long_flag(args) {
+        return Ok(1)
+    }
+    Err("expected flag")
+}
+
 /// True when `args` contains any `--…` long flag.
 pub fn has_any_long_flag(args: Vec<string>) -> bool {
     let mut i = 0

@@ -180,6 +180,14 @@ pub fn is_same_year(a: Rfc3339, b: Rfc3339) -> bool {
     a.year == b.year
 }
 
+/// `Ok(a)` when `a` and `b` share a UTC calendar year, otherwise `Err`.
+pub fn require_same_year(a: Rfc3339, b: Rfc3339) -> Result<Rfc3339, string> {
+    if is_same_year(a, b) {
+        return Ok(a)
+    }
+    Err("expected same year")
+}
+
 pub fn year_of(t: Rfc3339) -> int {
     t.year
 }

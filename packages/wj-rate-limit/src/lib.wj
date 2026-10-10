@@ -235,6 +235,14 @@ pub fn is_fresh_bucket(bucket: WindowBucket) -> bool {
     bucket.count == 0 && bucket.window_start_ms == 0
 }
 
+/// `Ok(bucket)` when it has never recorded a request, otherwise `Err`.
+pub fn require_fresh(bucket: WindowBucket) -> Result<WindowBucket, string> {
+    if is_fresh_bucket(bucket) {
+        return Ok(bucket)
+    }
+    Err("expected fresh bucket")
+}
+
 pub fn retry_after_ms_of(result: RateLimitResult) -> int {
     result.retry_after_ms
 }

@@ -13,6 +13,7 @@ use crate::require_denied
 use crate::require_positive_window
 use crate::require_at_limit
 use crate::require_zero_retry
+use crate::require_fresh
 use crate::limit_of
 use crate::peek_fixed_window
 use crate::remaining_slots
@@ -296,5 +297,19 @@ fn test_require_zero_retry() {
     match require_zero_retry(denied.1) {
         Ok(_) => assert(false, "denied must Err"),
         Err(msg) => assert(strings.contains(msg, "retry"), "mentions retry"),
+    }
+}
+
+@test
+fn test_require_fresh() {
+    match require_fresh(empty_bucket()) {
+        Ok(bucket) => assert(is_fresh_bucket(bucket), "fresh"),
+        Err(_) => assert(false, "empty bucket"),
+    }
+    let lim = fixed_window(1, 1000)
+    let used = check_fixed_window(lim, empty_bucket(), 500)
+    match require_fresh(used.0) {
+        Ok(_) => assert(false, "used bucket must Err"),
+        Err(msg) => assert(strings.contains(msg, "fresh"), "mentions fresh"),
     }
 }

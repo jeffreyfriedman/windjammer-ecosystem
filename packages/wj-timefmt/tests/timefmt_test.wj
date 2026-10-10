@@ -25,6 +25,7 @@ use crate::year_of
 use crate::require_midnight
 use crate::require_leap
 use crate::require_same_day
+use crate::require_same_month
 use std::strings
 
 @test
@@ -465,5 +466,37 @@ fn test_require_same_day() {
             }
         },
         Err(_) => assert(false, "parse noon again"),
+    }
+}
+
+@test
+fn test_require_same_month() {
+    match parse_rfc3339("2024-01-15T12:30:00Z") {
+        Ok(mid) => {
+            match parse_rfc3339("2024-01-01T00:00:00Z") {
+                Ok(start) => {
+                    match require_same_month(mid, start) {
+                        Ok(kept) => assert(is_same_month(kept, start), "same month"),
+                        Err(_) => assert(false, "same month ok"),
+                    }
+                },
+                Err(_) => assert(false, "parse start"),
+            }
+        },
+        Err(_) => assert(false, "parse mid"),
+    }
+    match parse_rfc3339("2024-01-15T12:30:00Z") {
+        Ok(mid) => {
+            match parse_rfc3339("2024-02-01T00:00:00Z") {
+                Ok(feb) => {
+                    match require_same_month(mid, feb) {
+                        Ok(_) => assert(false, "february must Err"),
+                        Err(msg) => assert(strings.contains(msg, "month"), "mentions month"),
+                    }
+                },
+                Err(_) => assert(false, "parse feb"),
+            }
+        },
+        Err(_) => assert(false, "parse mid again"),
     }
 }

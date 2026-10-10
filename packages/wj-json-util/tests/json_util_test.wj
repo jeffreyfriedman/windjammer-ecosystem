@@ -9,6 +9,7 @@ use crate::require_array
 use crate::require_empty_array
 use crate::require_null
 use crate::require_empty_object
+use crate::require_empty_json
 use crate::require_object
 use crate::is_nullish
 use crate::is_objectish
@@ -280,6 +281,17 @@ fn test_require_empty_object() {
         Err(_) => assert(false, "empty object ok"),
     }
     match require_empty_object("{\"a\":1}") {
+        Ok(_) => assert(false, "object must Err"),
+        Err(msg) => assert(strings.contains(msg, "empty"), "mentions empty"),
+    }
+}
+
+fn test_require_empty_json() {
+    match require_empty_json("[]") {
+        Ok(text) => assert(is_empty_json(text), "empty array"),
+        Err(_) => assert(false, "empty json ok"),
+    }
+    match require_empty_json("{\"a\":1}") {
         Ok(_) => assert(false, "object must Err"),
         Err(msg) => assert(strings.contains(msg, "empty"), "mentions empty"),
     }

@@ -167,6 +167,14 @@ pub fn is_same_month(a: Rfc3339, b: Rfc3339) -> bool {
     a.year == b.year && a.month == b.month
 }
 
+/// `Ok(a)` when `a` and `b` share a UTC calendar month, otherwise `Err`.
+pub fn require_same_month(a: Rfc3339, b: Rfc3339) -> Result<Rfc3339, string> {
+    if is_same_month(a, b) {
+        return Ok(a)
+    }
+    Err("expected same month")
+}
+
 /// True when `a` and `b` share the same UTC calendar year.
 pub fn is_same_year(a: Rfc3339, b: Rfc3339) -> bool {
     a.year == b.year

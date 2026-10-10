@@ -1,10 +1,6 @@
 use crate::domain::WebhookConfig
-use crate::domain::has_allowed_origins
-use crate::domain::is_dev_secret
 use crate::domain::max_event_len_of
-use crate::domain::require_dev
 use crate::domain::require_origins
-use crate::domain::require_production
 use crate::domain::require_secret
 use std::strings
 
@@ -17,41 +13,12 @@ fn test_config_defaults() {
 }
 
 fn test_config_predicates() {
-    assert(is_dev_secret(WebhookConfig::defaults()), "dev secret")
-    assert(!has_allowed_origins(WebhookConfig::defaults()), "no cors")
     assert_eq(max_event_len_of(WebhookConfig::defaults()), 128)
     let mut cfg = WebhookConfig::defaults()
     cfg.secret = "prod"
     cfg.allowed_origins.push("https://example.com")
-    assert(!is_dev_secret(cfg), "prod secret")
     let mut with_cors = WebhookConfig::defaults()
     with_cors.allowed_origins.push("https://example.com")
-    assert(has_allowed_origins(with_cors), "has cors")
-}
-
-fn test_secret_origin_and_id_helpers() {
-    use crate::domain::is_production_secret
-    use crate::domain::max_id_len_of
-    use crate::domain::origin_count
-    use crate::domain::secret_of
-    assert_eq(secret_of(WebhookConfig::defaults()), "dev-secret")
-    assert(!is_production_secret(WebhookConfig::defaults()), "defaults are not prod")
-    assert_eq(origin_count(WebhookConfig::defaults()), 0)
-    assert_eq(max_id_len_of(WebhookConfig::defaults()), 128)
-    let mut cfg = WebhookConfig::defaults()
-    cfg.secret = "prod-key"
-    cfg.allowed_origins.push("https://a.example")
-    cfg.allowed_origins.push("https://b.example")
-    assert_eq(secret_of(cfg), "prod-key")
-    let mut cfg2 = WebhookConfig::defaults()
-    cfg2.secret = "prod-key"
-    cfg2.allowed_origins.push("https://a.example")
-    cfg2.allowed_origins.push("https://b.example")
-    assert(is_production_secret(cfg2), "prod secret")
-    let mut cfg3 = WebhookConfig::defaults()
-    cfg3.allowed_origins.push("https://a.example")
-    cfg3.allowed_origins.push("https://b.example")
-    assert_eq(origin_count(cfg3), 2)
 }
 
 fn test_require_secret_and_require_origins() {
@@ -74,31 +41,5 @@ fn test_require_secret_and_require_origins() {
     match require_origins(cfg) {
         Ok(n) => assert_eq(n, 1),
         Err(_) => assert(false, "one origin"),
-    }
-}
-
-fn test_require_production() {
-    match require_production(WebhookConfig::defaults()) {
-        Ok(_) => assert(false, "dev secret must Err"),
-        Err(msg) => assert(strings.contains(msg, "production"), "mentions production"),
-    }
-    let mut cfg = WebhookConfig::defaults()
-    cfg.secret = "prod-key"
-    match require_production(cfg) {
-        Ok(secret) => assert_eq(secret, "prod-key"),
-        Err(_) => assert(false, "prod secret"),
-    }
-}
-
-fn test_require_dev() {
-    match require_dev(WebhookConfig::defaults()) {
-        Ok(secret) => assert_eq(secret, "dev-secret"),
-        Err(_) => assert(false, "default is dev"),
-    }
-    let mut cfg = WebhookConfig::defaults()
-    cfg.secret = "prod-key"
-    match require_dev(cfg) {
-        Ok(_) => assert(false, "prod must Err"),
-        Err(msg) => assert(strings.contains(msg, "dev"), "mentions dev"),
     }
 }

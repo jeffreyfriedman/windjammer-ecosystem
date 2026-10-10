@@ -143,19 +143,6 @@ pub fn require_empty(bus: EventBus) -> Result<int, string> {
     Err("expected empty")
 }
 
-/// True when the bus has at least one subscriber.
-pub fn has_listeners(bus: EventBus) -> bool {
-    !is_empty(bus)
-}
-
-/// `Ok(1)` when the bus has a subscriber, otherwise `Err`.
-pub fn require_listeners(bus: EventBus) -> Result<int, string> {
-    if has_listeners(bus) {
-        return Ok(1)
-    }
-    Err("expected listeners")
-}
-
 /// Peek at the front queued event without draining (`(bus, Option<Event>)`).
 pub fn peek(bus: EventBus) -> (EventBus, Option<Event>) {
     if bus.queue.len() == 0 {
@@ -176,15 +163,6 @@ pub fn require_pending_count(bus: EventBus, n: int) -> Result<int, string> {
         return Ok(n)
     }
     Err("expected pending count")
-}
-
-/// True when a listener with `id` is registered.
-/// `Ok(id)` when a listener with `id` is registered, otherwise `Err`.
-pub fn require_listener(bus: EventBus, id: string) -> Result<string, string> {
-    if has_listener(bus, id) {
-        return Ok(id)
-    }
-    Err("expected listener")
 }
 
 pub fn has_listener(bus: EventBus, id: string) -> bool {
@@ -227,31 +205,4 @@ pub fn event_name(event: Event) -> string {
 /// Event payload accessor.
 pub fn event_payload(event: Event) -> string {
     event.payload
-}
-
-/// True when the payload is non-empty.
-pub fn has_payload(event: Event) -> bool {
-    strings.len(event.payload) > 0
-}
-
-/// True when the event name equals `name`.
-pub fn is_named(event: Event, name: string) -> bool {
-    event.name == name
-}
-
-/// Payload text, or Err when it is empty.
-pub fn require_payload(event: Event) -> Result<string, string> {
-    if has_payload(event) {
-        return Ok(event.payload)
-    }
-    Err("expected event payload")
-}
-
-/// Event name when it equals `name`.
-pub fn require_named(event: Event, name: string) -> Result<string, string> {
-    if is_named(event, name) {
-        Ok(event.name)
-    } else {
-        Err("expected event: ${name}")
-    }
 }

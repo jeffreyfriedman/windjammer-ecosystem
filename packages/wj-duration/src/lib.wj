@@ -95,14 +95,6 @@ pub fn is_negative(ms: int) -> bool {
     ms < 0
 }
 
-/// `Ok(ms)` when it is strictly less than zero, otherwise `Err`.
-pub fn require_negative(ms: int) -> Result<int, string> {
-    if is_negative(ms) {
-        return Ok(ms)
-    }
-    Err("expected negative")
-}
-
 pub fn min_ms(a: int, b: int) -> int {
     if a < b {
         return a
@@ -117,30 +109,9 @@ pub fn max_ms(a: int, b: int) -> int {
     b
 }
 
-/// True when `ms` is not zero.
-pub fn is_nonzero(ms: int) -> bool {
-    !is_zero(ms)
-}
-
-/// `Ok(ms)` when `ms` is not zero, otherwise `Err`.
-pub fn require_nonzero(ms: int) -> Result<int, string> {
-    if is_nonzero(ms) {
-        return Ok(ms)
-    }
-    Err("expected nonzero")
-}
-
 /// True when `ms` is outside the inclusive `[lo, hi]` range.
 pub fn outside_ms(ms: int, lo: int, hi: int) -> bool {
     !within_ms(ms, lo, hi)
-}
-
-/// Accept `ms` only when it is outside the inclusive range.
-pub fn require_outside(ms: int, lo: int, hi: int) -> Result<int, string> {
-    if outside_ms(ms, lo, hi) {
-        return Ok(ms)
-    }
-    Err("expected outside")
 }
 
 /// Accept `ms` only when positive; else return an error.
@@ -149,15 +120,6 @@ pub fn require_positive(ms: int) -> Result<int, string> {
         return Ok(ms)
     }
     Err("expected positive duration")
-}
-
-/// Accept `ms` only when it is inside the inclusive range.
-pub fn require_within(ms: int, lo: int, hi: int) -> Result<int, string> {
-    if within_ms(ms, lo, hi) {
-        Ok(ms)
-    } else {
-        Err("outside range")
-    }
 }
 
 /// Inclusive range check: `lo <= ms <= hi`.
@@ -197,12 +159,4 @@ pub fn require_nonneg(ms: int) -> Result<int, string> {
         return Ok(ms)
     }
     Err("expected nonneg duration")
-}
-
-/// `Ok(0)` when `ms` is zero, otherwise `Err`.
-pub fn require_zero(ms: int) -> Result<int, string> {
-    if is_zero(ms) {
-        return Ok(0)
-    }
-    Err("expected zero")
 }

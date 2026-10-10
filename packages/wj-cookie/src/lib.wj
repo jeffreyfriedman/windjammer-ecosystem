@@ -109,24 +109,6 @@ pub fn cookie_path(cookie: SetCookie) -> string {
     cookie.path
 }
 
-/// True when SameSite is Lax (session-cookie default).
-pub fn is_lax_same_site(cookie: SetCookie) -> bool {
-    cookie.same_site == "Lax"
-}
-
-/// `Ok(cookie)` when SameSite is Lax, otherwise `Err`.
-pub fn require_lax(cookie: SetCookie) -> Result<SetCookie, string> {
-    if is_lax_same_site(cookie) {
-        return Ok(cookie)
-    }
-    Err("expected lax")
-}
-
-/// True when SameSite is Strict.
-pub fn is_strict_same_site(cookie: SetCookie) -> bool {
-    cookie.same_site == "Strict"
-}
-
 /// SameSite attribute text (`""`, `Lax`, `Strict`, or `None`).
 pub fn same_site_of(cookie: SetCookie) -> string {
     cookie.same_site
@@ -143,43 +125,6 @@ pub fn require_none(cookie: SetCookie) -> Result<SetCookie, string> {
         return Ok(cookie)
     }
     Err("expected none")
-}
-
-/// `Ok(cookie)` when the Secure flag is set, otherwise `Err`.
-pub fn require_secure(cookie: SetCookie) -> Result<SetCookie, string> {
-    if is_secure(cookie) {
-        return Ok(cookie)
-    }
-    Err("expected secure")
-}
-
-/// `Ok(cookie)` when the HttpOnly flag is set, otherwise `Err`.
-pub fn require_http_only(cookie: SetCookie) -> Result<SetCookie, string> {
-    if is_http_only(cookie) {
-        return Ok(cookie)
-    }
-    Err("expected http only")
-}
-
-/// SameSite text when it is `Strict`.
-pub fn require_strict(cookie: SetCookie) -> Result<string, string> {
-    if is_strict_same_site(cookie) {
-        return Ok(same_site_of(cookie))
-    }
-    Err("expected strict")
-}
-
-/// True when the cookie jar has at least one cookie.
-pub fn has_cookies(map: HashMap<string, string>) -> bool {
-    !is_empty(map)
-}
-
-/// `Ok(1)` when the jar has a cookie, otherwise `Err`.
-pub fn require_cookies(map: HashMap<string, string>) -> Result<int, string> {
-    if has_cookies(map) {
-        return Ok(1)
-    }
-    Err("expected cookies")
 }
 
 /// Copy of `cookie` with `same_site` replaced.

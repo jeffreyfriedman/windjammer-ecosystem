@@ -75,20 +75,6 @@ pub fn preflight(
     }
 }
 
-/// True for the CORS preflight HTTP method (`OPTIONS`, case-insensitive).
-pub fn is_preflight_method(method: string) -> bool {
-    strings.to_upper(method) == "OPTIONS"
-}
-
-/// `Ok(method)` for a CORS preflight method, otherwise `Err`.
-pub fn require_preflight(method: string) -> Result<string, string> {
-    if is_preflight_method(method) {
-        Ok(method)
-    } else {
-        Err("expected preflight")
-    }
-}
-
 /// CORS response headers as individual lines (for HTTP adapters).
 pub fn cors_header_lines(headers: CorsHeaders) -> Vec<string> {
     let mut lines = Vec::new()
@@ -129,14 +115,6 @@ pub fn preflight_defaults(origin: string, allowed: Vec<string>) -> Option<CorsHe
     preflight(origin, allowed, default_allow_methods(), default_allow_headers())
 }
 
-/// Allow-list length when it contains `*`, otherwise `Err`.
-pub fn require_wildcard(allowed: Vec<string>) -> Result<int, string> {
-    if allows_wildcard(allowed) {
-        return Ok(allowed_origin_count(allowed))
-    }
-    Err("expected wildcard")
-}
-
 /// True when `allowed` contains a `*` entry.
 pub fn allows_wildcard(allowed: Vec<string>) -> bool {
     let mut i = 0
@@ -152,14 +130,6 @@ pub fn allows_wildcard(allowed: Vec<string>) -> bool {
 /// True when `allow_origin` is the CORS wildcard `*`.
 pub fn is_wildcard_origin(allow_origin: string) -> bool {
     allow_origin == "*"
-}
-
-/// `Ok(allow_origin)` when it is `*`, otherwise `Err`.
-pub fn require_wildcard_origin(allow_origin: string) -> Result<string, string> {
-    if is_wildcard_origin(allow_origin) {
-        return Ok(allow_origin)
-    }
-    Err("expected wildcard origin")
 }
 
 /// Number of lines from `cors_header_lines`.
@@ -187,14 +157,6 @@ pub fn allowed_origin_count(allowed: Vec<string>) -> int {
 
 pub fn is_empty_allow_list(allowed: Vec<string>) -> bool {
     allowed_origin_count(allowed) == 0
-}
-
-/// `Ok(0)` when the allow-list has no origins, otherwise `Err`.
-pub fn require_empty_allow(allowed: Vec<string>) -> Result<int, string> {
-    if is_empty_allow_list(allowed) {
-        return Ok(0)
-    }
-    Err("expected empty allow list")
 }
 
 pub fn has_origins(allowed: Vec<string>) -> bool {

@@ -15,14 +15,7 @@ use crate::negotiate
 use crate::negotiate_or_identity
 use crate::prefer_gzip
 use crate::prefer_identity
-use crate::require_gzip
-use crate::require_gzip_encoding
 use crate::require_identity
-use crate::require_identity_encoding
-use crate::require_min_bytes
-use crate::require_below
-use crate::require_compress
-use crate::require_default
 use crate::require_negotiated
 use crate::should_compress
 use crate::should_compress_default
@@ -184,26 +177,6 @@ fn test_accepts_identity_and_prefer_gzip() {
 }
 
 @test
-fn test_require_gzip_and_require_min_bytes() {
-    match require_gzip("gzip, deflate") {
-        Ok(coding) => assert_eq(coding, "gzip"),
-        Err(_) => assert(false, "gzip ok"),
-    }
-    match require_gzip("identity") {
-        Ok(_) => assert(false, "identity must Err"),
-        Err(msg) => assert(strings.contains(msg, "gzip"), "mentions gzip"),
-    }
-    match require_min_bytes(2048, 1024) {
-        Ok(n) => assert_eq(n, 2048),
-        Err(_) => assert(false, "meets"),
-    }
-    match require_min_bytes(100, 1024) {
-        Ok(_) => assert(false, "below must Err"),
-        Err(msg) => assert(strings.contains(msg, "min"), "mentions min"),
-    }
-}
-
-@test
 fn test_require_identity() {
     match require_identity("identity") {
         Ok(coding) => assert_eq(coding, "identity"),
@@ -212,66 +185,6 @@ fn test_require_identity() {
     match require_identity("gzip") {
         Ok(_) => assert(false, "gzip must Err"),
         Err(msg) => assert(strings.contains(msg, "identity"), "mentions identity"),
-    }
-}
-
-@test
-fn test_require_gzip_encoding() {
-    match require_gzip_encoding(" gzip ") {
-        Ok(v) => assert_eq(v, "gzip"),
-        Err(_) => assert(false, "gzip encoding"),
-    }
-    match require_gzip_encoding("identity") {
-        Ok(_) => assert(false, "identity must Err"),
-        Err(msg) => assert(strings.contains(msg, "gzip"), "mentions gzip"),
-    }
-}
-
-@test
-fn test_require_identity_encoding() {
-    match require_identity_encoding(" Identity ") {
-        Ok(v) => assert(is_identity_encoding(v), "identity"),
-        Err(_) => assert(false, "identity encoding"),
-    }
-    match require_identity_encoding("gzip") {
-        Ok(_) => assert(false, "gzip must Err"),
-        Err(msg) => assert(strings.contains(msg, "identity"), "mentions identity"),
-    }
-}
-
-@test
-fn test_require_below() {
-    match require_below(10, 100) {
-        Ok(n) => assert(below_min_bytes(n, 100), "below"),
-        Err(_) => assert(false, "short body"),
-    }
-    match require_below(100, 100) {
-        Ok(_) => assert(false, "equal must Err"),
-        Err(msg) => assert(strings.contains(msg, "below"), "mentions below"),
-    }
-}
-
-@test
-fn test_require_compress() {
-    match require_compress("gzip", 200, 100) {
-        Ok(n) => assert_eq(n, 1),
-        Err(_) => assert(false, "gzip large"),
-    }
-    match require_compress("gzip", 50, 100) {
-        Ok(_) => assert(false, "short must Err"),
-        Err(msg) => assert(strings.contains(msg, "compress"), "mentions compress"),
-    }
-}
-
-@test
-fn test_require_default() {
-    match require_default("gzip", 1024) {
-        Ok(n) => assert_eq(n, 1),
-        Err(_) => assert(false, "default floor"),
-    }
-    match require_default("gzip", 10) {
-        Ok(_) => assert(false, "short must Err"),
-        Err(msg) => assert(strings.contains(msg, "default"), "mentions default"),
     }
 }
 

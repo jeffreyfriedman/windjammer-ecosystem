@@ -4,7 +4,6 @@ use crate::clamp_ms
 use crate::format_ms
 use crate::format_secs
 use crate::is_negative
-use crate::is_nonzero
 use crate::is_positive
 use crate::is_zero
 use crate::max_ms
@@ -15,13 +14,9 @@ use crate::parse_ms
 use crate::parse_ms_or
 use crate::parse_secs
 use crate::parse_secs_or
-use crate::require_negative
 use crate::require_positive
-use crate::require_zero
 use crate::require_at_least
 use crate::require_at_most
-use crate::require_nonzero
-use crate::require_outside
 use crate::secs_to_ms
 use crate::sub_ms
 use crate::within_ms
@@ -192,9 +187,6 @@ fn test_min_max_within_ms() {
 
 @test
 fn test_is_nonzero_outside_and_require_positive() {
-    assert(is_nonzero(1), "pos")
-    assert(is_nonzero(-1), "neg")
-    assert(!is_nonzero(0), "zero")
     assert(outside_ms(-1, 0, 100), "below")
     assert(outside_ms(101, 0, 100), "above")
     assert(!outside_ms(50, 0, 100), "inside")
@@ -238,35 +230,6 @@ fn test_bounds_and_require_nonneg() {
 }
 
 @test
-fn test_require_within() {
-    use crate::require_within
-    match require_within(50, 0, 100) {
-        Ok(n) => assert_eq(n, 50),
-        Err(_) => assert(false, "inside"),
-    }
-    match require_within(0, 0, 100) {
-        Ok(n) => assert_eq(n, 0),
-        Err(_) => assert(false, "lo bound"),
-    }
-    match require_within(101, 0, 100) {
-        Ok(_) => assert(false, "above must Err"),
-        Err(msg) => assert(strings.contains(msg, "range"), "mentions range"),
-    }
-}
-
-@test
-fn test_require_zero() {
-    match require_zero(0) {
-        Ok(n) => assert_eq(n, 0),
-        Err(_) => assert(false, "zero"),
-    }
-    match require_zero(5) {
-        Ok(_) => assert(false, "nonzero must Err"),
-        Err(msg) => assert(strings.contains(msg, "zero"), "mentions zero"),
-    }
-}
-
-@test
 fn test_require_at_least() {
     match require_at_least(10, 5) {
         Ok(n) => assert_eq(n, 10),
@@ -287,41 +250,5 @@ fn test_require_at_most() {
     match require_at_most(10, 5) {
         Ok(_) => assert(false, "above must Err"),
         Err(msg) => assert(strings.contains(msg, "at most"), "mentions at most"),
-    }
-}
-
-@test
-fn test_require_nonzero() {
-    match require_nonzero(5) {
-        Ok(n) => assert(is_nonzero(n), "nonzero"),
-        Err(_) => assert(false, "five"),
-    }
-    match require_nonzero(0) {
-        Ok(_) => assert(false, "zero must Err"),
-        Err(msg) => assert(strings.contains(msg, "nonzero"), "mentions nonzero"),
-    }
-}
-
-@test
-fn test_require_negative() {
-    match require_negative(-5) {
-        Ok(n) => assert_eq(n, -5),
-        Err(_) => assert(false, "negative"),
-    }
-    match require_negative(0) {
-        Ok(_) => assert(false, "zero must Err"),
-        Err(msg) => assert(strings.contains(msg, "negative"), "mentions negative"),
-    }
-}
-
-@test
-fn test_require_outside() {
-    match require_outside(9, 1, 5) {
-        Ok(n) => assert(outside_ms(n, 1, 5), "outside"),
-        Err(_) => assert(false, "nine"),
-    }
-    match require_outside(3, 1, 5) {
-        Ok(_) => assert(false, "inside must Err"),
-        Err(msg) => assert(strings.contains(msg, "outside"), "mentions outside"),
     }
 }

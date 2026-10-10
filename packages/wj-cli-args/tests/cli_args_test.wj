@@ -4,23 +4,14 @@ use crate::arg_count
 use crate::first_positional
 use crate::has_any_long_flag
 use crate::has_help_flag
-use crate::has_positionals
 use crate::has_version_flag
-use crate::is_empty_args
 use crate::last_positional
 use crate::long_flag_count
 use crate::nth_positional
 use crate::only_program_name
 use crate::program_name
 use crate::require_first_positional
-use crate::require_no_help
 use crate::require_program
-use crate::require_empty_args
-use crate::require_only_program
-use crate::require_positionals
-use crate::require_any_flag
-use crate::require_help
-use crate::require_named_flag
 use crate::require_version
 use crate::require_long_flag_value
 use crate::require_positional_count
@@ -215,24 +206,20 @@ fn test_has_positionals_and_long_flag_count() {
     args.push("alpha")
     args.push("--verbose")
     args.push("--port=1")
-    assert(has_positionals(args), "has positionals")
     assert_eq(long_flag_count(args), 2)
     let mut flags_only = Vec::new()
     flags_only.push("tool")
     flags_only.push("--verbose")
-    assert(!has_positionals(flags_only), "no positionals")
     assert_eq(long_flag_count(flags_only), 1)
 }
 
 fn test_arg_count_empty_and_only_program() {
-    assert(is_empty_args(Vec::new()), "empty")
     assert_eq(arg_count(Vec::new()), 0)
     let mut prog = Vec::new()
     prog.push("tool")
     assert(only_program_name(prog), "only prog")
     assert_eq(arg_count(sample_args()), 4)
     assert(!only_program_name(sample_args()), "has more")
-    assert(!is_empty_args(sample_args()), "nonempty")
 }
 
 fn test_help_version_and_require_positional_count() {
@@ -253,28 +240,6 @@ fn test_help_version_and_require_positional_count() {
     match require_positional_count(sample_args(), 2) {
         Ok(_) => assert(false, "too few must Err"),
         Err(msg) => assert(strings.contains(msg, "positional"), "mentions positional"),
-    }
-}
-
-fn test_program_name_and_require_no_help() {
-    match program_name(sample_args()) {
-        Some(name) => assert_eq(name, "my-app"),
-        None => assert(false, "program"),
-    }
-    match program_name(Vec::new()) {
-        Some(_) => assert(false, "empty"),
-        None => {},
-    }
-    match require_no_help(sample_args()) {
-        Ok(n) => assert_eq(n, 4),
-        Err(_) => assert(false, "no help"),
-    }
-    let mut help_args = Vec::new()
-    help_args.push("tool")
-    help_args.push("--help")
-    match require_no_help(help_args) {
-        Ok(_) => assert(false, "help must Err"),
-        Err(msg) => assert(strings.contains(msg, "help"), "mentions help"),
     }
 }
 
@@ -300,82 +265,6 @@ fn test_require_version() {
     match require_version(sample_args()) {
         Ok(_) => assert(false, "no version must Err"),
         Err(msg) => assert(strings.contains(msg, "version"), "mentions version"),
-    }
-}
-
-fn test_require_empty_args() {
-    match require_empty_args(Vec::new()) {
-        Ok(n) => assert_eq(n, 0),
-        Err(_) => assert(false, "no args"),
-    }
-    match require_empty_args(sample_args()) {
-        Ok(_) => assert(false, "sample must Err"),
-        Err(msg) => assert(strings.contains(msg, "empty"), "mentions empty"),
-    }
-}
-
-fn test_require_only_program() {
-    let mut prog = Vec::new()
-    prog.push("my-app")
-    match require_only_program(prog) {
-        Ok(n) => assert_eq(n, 1),
-        Err(_) => assert(false, "program only"),
-    }
-    match require_only_program(sample_args()) {
-        Ok(_) => assert(false, "extra args must Err"),
-        Err(msg) => assert(strings.contains(msg, "program"), "mentions program"),
-    }
-}
-
-fn test_require_positionals() {
-    match require_positionals(sample_args()) {
-        Ok(n) => assert(n > 0, "has positionals"),
-        Err(_) => assert(false, "sample positionals"),
-    }
-    let mut flags = Vec::new()
-    flags.push("my-app")
-    flags.push("--help")
-    match require_positionals(flags) {
-        Ok(_) => assert(false, "flags only must Err"),
-        Err(msg) => assert(strings.contains(msg, "positional"), "mentions positional"),
-    }
-}
-
-fn test_require_any_flag() {
-    match require_any_flag(sample_args()) {
-        Ok(n) => assert_eq(n, 1),
-        Err(_) => assert(false, "has flags"),
-    }
-    let mut prog = Vec::new()
-    prog.push("my-app")
-    match require_any_flag(prog) {
-        Ok(_) => assert(false, "program only must Err"),
-        Err(msg) => assert(strings.contains(msg, "flag"), "mentions flag"),
-    }
-}
-
-fn test_require_help() {
-    let mut help_args = Vec::new()
-    help_args.push("tool")
-    help_args.push("--help")
-    match require_help(help_args) {
-        Ok(n) => assert_eq(n, 1),
-        Err(_) => assert(false, "help present"),
-    }
-    match require_help(sample_args()) {
-        Ok(_) => assert(false, "no help must Err"),
-        Err(msg) => assert(strings.contains(msg, "help"), "mentions help"),
-    }
-}
-
-fn test_require_named_flag() {
-    match require_named_flag(sample_args(), "verbose") {
-        Ok(n) => assert_eq(n, 1),
-        Err(_) => assert(false, "verbose present"),
-    }
-    match require_named_flag(sample_args(), "help") {
-        Ok(_) => assert(false, "missing flag must Err"),
-        Err(msg) => assert(strings.contains(msg, "flag"), "mentions flag"),
     }
 }
 

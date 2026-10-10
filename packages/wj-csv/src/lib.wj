@@ -117,19 +117,6 @@ pub fn get_row(rows: Vec<Vec<string>>, index: int) -> Option<Vec<string>> {
     Some(rows[index])
 }
 
-/// True when the table has at least one row.
-pub fn has_rows(rows: Vec<Vec<string>>) -> bool {
-    !is_empty(rows)
-}
-
-/// `Ok(1)` when the table has at least one row, otherwise `Err`.
-pub fn require_rows(rows: Vec<Vec<string>>) -> Result<int, string> {
-    if has_rows(rows) {
-        return Ok(1)
-    }
-    Err("expected rows")
-}
-
 /// Row at `index`, or `Err` naming the missing index.
 pub fn require_row(rows: Vec<Vec<string>>, index: int) -> Result<Vec<string>, string> {
     match get_row(rows, index) {
@@ -169,15 +156,6 @@ pub fn is_rectangular(rows: Vec<Vec<string>>) -> bool {
         i = i + 1
     }
     true
-}
-
-/// Row count when every row has the same width, including an empty table.
-pub fn require_rectangular(rows: Vec<Vec<string>>) -> Result<int, string> {
-    if is_rectangular(rows) {
-        Ok(row_count(rows))
-    } else {
-        Err("expected rectangular csv")
-    }
 }
 
 /// Cell at `(row, col)`, or `Err` when it is out of bounds.

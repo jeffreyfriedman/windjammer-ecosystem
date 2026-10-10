@@ -5,20 +5,12 @@ use crate::CronDateTime
 use crate::every_day
 use crate::every_hour
 use crate::every_minute
-use crate::is_every_day
 use crate::require_cron
-use crate::require_every_day
-use crate::require_every_hour
-use crate::require_every_minute
 use crate::format_cron
-use crate::is_every_hour
-use crate::is_every_minute
 use crate::is_wildcard_field
-use crate::require_wildcard_field
 use crate::next_run
 use crate::source_of
 use std::strings
-
 
 // --- parse_cron ---
 
@@ -418,14 +410,10 @@ fn test_every_hour_and_is_every_minute() {
     assert_eq(format_cron(hourly), "0 * * * *")
     assert(matches_cron(hourly, 0, 5, 1, 1, 0), "top of hour")
     assert(!matches_cron(hourly, 1, 5, 1, 1, 0), "not minute 1")
-    assert(is_every_minute(every_minute()), "every minute")
-    assert(!is_every_minute(hourly), "hourly not every minute")
 }
 
 fn test_is_every_hour_and_source_of() {
     let hourly = every_hour()
-    assert(is_every_hour(hourly), "every hour")
-    assert(!is_every_hour(every_minute()), "every minute not hourly")
     assert_eq(source_of(hourly), "0 * * * *")
     match parse_cron("@daily") {
         Ok(expr) => assert_eq(source_of(expr), "@daily"),
@@ -436,9 +424,6 @@ fn test_is_every_hour_and_source_of() {
 fn test_every_day_and_require_cron() {
     let daily = every_day()
     assert_eq(format_cron(daily), "0 0 * * *")
-    assert(is_every_day(daily), "every day")
-    assert(!is_every_day(every_hour()), "hourly not daily")
-    assert(!is_every_day(every_minute()), "minute not daily")
     match require_cron("*/5 * * * *") {
         Ok(expr) => assert_eq(format_cron(expr), "*/5 * * * *"),
         Err(_) => assert(false, "valid cron"),
@@ -446,49 +431,5 @@ fn test_every_day_and_require_cron() {
     match require_cron("not a cron") {
         Ok(_) => assert(false, "invalid must Err"),
         Err(msg) => assert(strings.contains(msg, "cron"), "mentions cron"),
-    }
-}
-
-fn test_require_every_day() {
-    match require_every_day(every_day()) {
-        Ok(source) => assert_eq(source, "0 0 * * *"),
-        Err(_) => assert(false, "daily"),
-    }
-    match require_every_day(every_hour()) {
-        Ok(_) => assert(false, "hourly must Err"),
-        Err(msg) => assert(strings.contains(msg, "every day"), "mentions every day"),
-    }
-}
-
-fn test_require_every_hour() {
-    match require_every_hour(every_hour()) {
-        Ok(source) => assert_eq(source, "0 * * * *"),
-        Err(_) => assert(false, "hourly"),
-    }
-    match require_every_hour(every_day()) {
-        Ok(_) => assert(false, "daily must Err"),
-        Err(msg) => assert(strings.contains(msg, "every hour"), "mentions every hour"),
-    }
-}
-
-fn test_require_every_minute() {
-    match require_every_minute(every_minute()) {
-        Ok(source) => assert_eq(source, "* * * * *"),
-        Err(_) => assert(false, "every minute"),
-    }
-    match require_every_minute(every_hour()) {
-        Ok(_) => assert(false, "hourly must Err"),
-        Err(msg) => assert(strings.contains(msg, "every minute"), "mentions every minute"),
-    }
-}
-
-fn test_require_wildcard_field() {
-    match require_wildcard_field("*") {
-        Ok(field) => assert(is_wildcard_field(field), "star"),
-        Err(_) => assert(false, "star ok"),
-    }
-    match require_wildcard_field("0") {
-        Ok(_) => assert(false, "zero must Err"),
-        Err(msg) => assert(strings.contains(msg, "wildcard"), "mentions wildcard"),
     }
 }

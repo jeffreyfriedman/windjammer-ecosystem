@@ -9,20 +9,12 @@ use crate::format_set_cookie
 use crate::get_cookie
 use crate::get_cookie_or
 use crate::has_cookie
-use crate::has_cookies
 use crate::is_empty
 use crate::is_http_only
-use crate::is_lax_same_site
 use crate::is_none_same_site
 use crate::is_secure
-use crate::is_strict_same_site
-use crate::require_http_only
-use crate::require_strict
 use crate::require_empty
-use crate::require_lax
 use crate::require_none
-use crate::require_cookies
-use crate::require_secure
 use crate::same_site_of
 use crate::parse_cookie_header
 use crate::parse_set_cookie
@@ -178,7 +170,6 @@ fn test_cookie_accessors_and_lax() {
     assert_eq(cookie_name(session_cookie("sid", "xyz")), "sid")
     assert_eq(cookie_value(session_cookie("sid", "xyz")), "xyz")
     assert_eq(cookie_path(session_cookie("sid", "xyz")), "/")
-    assert(is_lax_same_site(session_cookie("sid", "xyz")), "lax")
 }
 
 @test
@@ -286,71 +277,6 @@ fn test_require_cookie() {
 }
 
 @test
-fn test_has_cookies_and_strict_same_site() {
-    match parse_cookie_header("sid=abc") {
-        Ok(map) => assert(has_cookies(map), "has cookies"),
-        Err(_) => assert(false, "parse"),
-    }
-    assert(!has_cookies(HashMap::new()), "empty")
-    let lax = session_cookie("sid", "abc")
-    assert(is_lax_same_site(lax), "lax default")
-    assert(!is_strict_same_site(lax), "not strict")
-    let strict = with_same_site(lax, "Strict")
-    assert(is_strict_same_site(strict), "strict")
-    assert(!is_lax_same_site(strict), "not lax")
-}
-
-@test
-fn test_same_site_of_none_and_require_secure() {
-    let none = with_same_site(session_cookie("sid", "abc"), "None")
-    assert_eq(same_site_of(none), "None")
-    assert(is_none_same_site(none), "none")
-    assert(!is_none_same_site(session_cookie("sid", "abc")), "lax")
-    match require_secure(session_cookie("sid", "abc")) {
-        Ok(c) => assert(is_secure(c), "secure"),
-        Err(_) => assert(false, "session is secure"),
-    }
-    match parse_set_cookie("token=abc") {
-        Ok(c) => {
-            match require_secure(c) {
-                Ok(_) => assert(false, "insecure must Err"),
-                Err(msg) => assert(strings.contains(msg, "secure"), "mentions secure"),
-            }
-        },
-        Err(_) => assert(false, "parse"),
-    }
-}
-
-@test
-fn test_require_http_only() {
-    match require_http_only(session_cookie("sid", "abc")) {
-        Ok(c) => assert(is_http_only(c), "http only"),
-        Err(_) => assert(false, "session is http only"),
-    }
-    match parse_set_cookie("token=abc") {
-        Ok(c) => {
-            match require_http_only(c) {
-                Ok(_) => assert(false, "plain cookie must Err"),
-                Err(msg) => assert(strings.contains(msg, "http"), "mentions http"),
-            }
-        },
-        Err(_) => assert(false, "parse plain"),
-    }
-}
-
-@test
-fn test_require_strict() {
-    match require_strict(with_same_site(session_cookie("sid", "abc"), "Strict")) {
-        Ok(site) => assert_eq(site, "Strict"),
-        Err(_) => assert(false, "strict"),
-    }
-    match require_strict(session_cookie("sid", "abc")) {
-        Ok(_) => assert(false, "lax must Err"),
-        Err(msg) => assert(strings.contains(msg, "strict"), "mentions strict"),
-    }
-}
-
-@test
 fn test_require_empty() {
     match parse_cookie_header("") {
         Ok(map) => {
@@ -373,18 +299,6 @@ fn test_require_empty() {
 }
 
 @test
-fn test_require_lax() {
-    match require_lax(session_cookie("sid", "abc")) {
-        Ok(c) => assert(is_lax_same_site(c), "lax"),
-        Err(_) => assert(false, "session is lax"),
-    }
-    match require_lax(with_same_site(session_cookie("sid", "abc"), "Strict")) {
-        Ok(_) => assert(false, "strict must Err"),
-        Err(msg) => assert(strings.contains(msg, "lax"), "mentions lax"),
-    }
-}
-
-@test
 fn test_require_none() {
     match require_none(with_same_site(session_cookie("sid", "abc"), "None")) {
         Ok(c) => assert(is_none_same_site(c), "none"),
@@ -393,27 +307,5 @@ fn test_require_none() {
     match require_none(session_cookie("sid", "abc")) {
         Ok(_) => assert(false, "lax must Err"),
         Err(msg) => assert(strings.contains(msg, "none"), "mentions none"),
-    }
-}
-
-@test
-fn test_require_cookies() {
-    match parse_cookie_header("sid=abc") {
-        Ok(map) => {
-            match require_cookies(map) {
-                Ok(n) => assert(n > 0, "has cookies"),
-                Err(_) => assert(false, "cookies ok"),
-            }
-        },
-        Err(_) => assert(false, "parse sid"),
-    }
-    match parse_cookie_header("") {
-        Ok(map) => {
-            match require_cookies(map) {
-                Ok(_) => assert(false, "empty must Err"),
-                Err(msg) => assert(strings.contains(msg, "cookies"), "mentions cookies"),
-            }
-        },
-        Err(_) => assert(false, "parse empty"),
     }
 }

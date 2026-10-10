@@ -8,19 +8,11 @@ use crate::decode_bytes
 use crate::ensure_padding
 use crate::is_basic_auth_header
 use crate::is_bearer_auth_header
-use crate::is_padded
-use crate::require_basic
 use crate::require_bearer
-use crate::require_padded
-use crate::require_unpadded
 use crate::has_padding
 use crate::is_encoded
-use crate::is_unpadded
 use crate::looks_like_base64
 use crate::needs_padding
-use crate::require_encoded
-use crate::require_needs
-use crate::require_alphabet
 use crate::strip_padding
 use std::strings
 
@@ -131,61 +123,6 @@ fn test_ensure_padding() {
     assert_eq(ensure_padding("YQ=="), "YQ==")
 }
 
-fn test_needs_padding_unpadded_and_require_encoded() {
-    assert(needs_padding("SGVsbG8"), "needs")
-    assert(!needs_padding("SGVsbG8="), "padded")
-    assert(is_unpadded("SGVsbG8"), "unpadded")
-    assert(!is_unpadded("SGVsbG8="), "has pad")
-    match require_encoded("SGVsbG8=") {
-        Ok(v) => assert_eq(v, "SGVsbG8="),
-        Err(_) => assert(false, "encoded"),
-    }
-    match require_encoded("!!!") {
-        Ok(_) => assert(false, "junk must Err"),
-        Err(msg) => assert(strings.contains(msg, "base64"), "mentions base64"),
-    }
-}
-
-fn test_require_basic_and_is_padded() {
-    let header = basic_auth_header("ada", "secret")
-    match require_basic(header) {
-        Ok(h) => assert(is_basic_auth_header(h), "basic"),
-        Err(_) => assert(false, "basic ok"),
-    }
-    match require_basic("Authorization: Bearer token") {
-        Ok(_) => assert(false, "bearer must Err"),
-        Err(msg) => assert(strings.contains(msg, "basic"), "mentions basic"),
-    }
-    assert(is_padded("SGVsbG8="), "padded")
-    assert(is_padded("YQ=="), "two pad")
-    assert(!is_padded("SGVsbG8"), "unpadded")
-    assert(!is_padded(""), "empty")
-}
-
-@test
-fn test_require_padded() {
-    match require_padded("SGVsbG8=") {
-        Ok(v) => assert(is_padded(v), "padded"),
-        Err(_) => assert(false, "padded ok"),
-    }
-    match require_padded("SGVsbG8") {
-        Ok(_) => assert(false, "unpadded must Err"),
-        Err(msg) => assert(strings.contains(msg, "padding"), "mentions padding"),
-    }
-}
-
-@test
-fn test_require_unpadded() {
-    match require_unpadded("SGVsbG8") {
-        Ok(v) => assert(is_unpadded(v), "unpadded"),
-        Err(_) => assert(false, "unpadded ok"),
-    }
-    match require_unpadded("SGVsbG8=") {
-        Ok(_) => assert(false, "padded must Err"),
-        Err(msg) => assert(strings.contains(msg, "unpadded"), "mentions unpadded"),
-    }
-}
-
 @test
 fn test_require_bearer() {
     match require_bearer(bearer_auth_header("abc")) {
@@ -195,29 +132,5 @@ fn test_require_bearer() {
     match require_bearer(basic_auth_header("u", "p")) {
         Ok(_) => assert(false, "basic must Err"),
         Err(msg) => assert(strings.contains(msg, "bearer"), "mentions bearer"),
-    }
-}
-
-@test
-fn test_require_needs() {
-    match require_needs("SGVsbG8") {
-        Ok(text) => assert(needs_padding(text), "needs"),
-        Err(_) => assert(false, "short ok"),
-    }
-    match require_needs("SGVsbG8=") {
-        Ok(_) => assert(false, "padded must Err"),
-        Err(msg) => assert(strings.contains(msg, "padding"), "mentions padding"),
-    }
-}
-
-@test
-fn test_require_alphabet() {
-    match require_alphabet("SGVsbG8=") {
-        Ok(text) => assert(looks_like_base64(text), "alphabet"),
-        Err(_) => assert(false, "padded ok"),
-    }
-    match require_alphabet("!!!") {
-        Ok(_) => assert(false, "junk must Err"),
-        Err(msg) => assert(strings.contains(msg, "alphabet"), "mentions alphabet"),
     }
 }

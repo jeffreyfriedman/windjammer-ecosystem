@@ -40,23 +40,6 @@ pub fn port_from_env() -> int {
     }
 }
 
-/// Signing secret when it is the built-in `dev-secret`.
-pub fn require_dev(cfg: WebhookConfig) -> Result<string, string> {
-    if is_dev_secret(cfg) {
-        Ok(secret_of(cfg))
-    } else {
-        Err("expected dev secret")
-    }
-}
-
-pub fn is_dev_secret(cfg: WebhookConfig) -> bool {
-    cfg.secret == "dev-secret"
-}
-
-pub fn has_allowed_origins(cfg: WebhookConfig) -> bool {
-    cfg.allowed_origins.len() > 0
-}
-
 pub fn max_event_len_of(cfg: WebhookConfig) -> int {
     cfg.max_event_len
 }
@@ -71,22 +54,9 @@ pub fn secret_of(cfg: WebhookConfig) -> string {
     cfg.secret
 }
 
-/// True when the secret is not the built-in `dev-secret`.
-pub fn is_production_secret(cfg: WebhookConfig) -> bool {
-    !is_dev_secret(cfg)
-}
-
 /// Number of CORS allowed origins.
 pub fn origin_count(cfg: WebhookConfig) -> int {
     cfg.allowed_origins.len() as int
-}
-
-/// Signing secret when it is not the built-in `dev-secret`.
-pub fn require_production(cfg: WebhookConfig) -> Result<string, string> {
-    if is_production_secret(cfg) {
-        return Ok(secret_of(cfg))
-    }
-    Err("expected production secret")
 }
 
 /// Configured secret when it is non-empty.

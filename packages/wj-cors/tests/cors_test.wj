@@ -11,15 +11,10 @@ use crate::format_cors_headers
 use crate::has_origins
 use crate::is_empty_allow_list
 use crate::is_origin_allowed
-use crate::is_preflight_method
 use crate::is_wildcard_origin
 use crate::preflight
 use crate::preflight_defaults
 use crate::require_origin
-use crate::require_preflight
-use crate::require_wildcard
-use crate::require_wildcard_origin
-use crate::require_empty_allow
 use std::strings
 
 @test
@@ -85,13 +80,6 @@ fn test_preflight_headers() {
         },
         None => assert(false, "expected preflight headers"),
     }
-}
-
-@test
-fn test_is_preflight_method() {
-    assert(is_preflight_method("OPTIONS"), "OPTIONS")
-    assert(is_preflight_method("options"), "case-insensitive")
-    assert(!is_preflight_method("GET"), "GET is not preflight")
 }
 
 @test
@@ -224,60 +212,5 @@ fn test_require_origins_and_allow_origin_of() {
     match preflight_defaults("https://app.example.com", again) {
         Some(headers) => assert_eq(allow_origin_of(headers), "https://app.example.com"),
         None => assert(false, "defaults"),
-    }
-}
-
-@test
-fn test_require_preflight() {
-    match require_preflight("options") {
-        Ok(v) => assert_eq(v, "options"),
-        Err(_) => assert(false, "options is preflight"),
-    }
-    match require_preflight("GET") {
-        Ok(_) => assert(false, "GET must Err"),
-        Err(msg) => assert(strings.contains(msg, "preflight"), "mentions preflight"),
-    }
-}
-
-@test
-fn test_require_wildcard() {
-    let mut star = Vec::new()
-    star.push("*")
-    match require_wildcard(star) {
-        Ok(n) => assert_eq(n, 1),
-        Err(_) => assert(false, "star list"),
-    }
-    let mut exact = Vec::new()
-    exact.push("https://app.example.com")
-    match require_wildcard(exact) {
-        Ok(_) => assert(false, "exact list must Err"),
-        Err(msg) => assert(strings.contains(msg, "wildcard"), "mentions wildcard"),
-    }
-}
-
-@test
-fn test_require_wildcard_origin() {
-    match require_wildcard_origin("*") {
-        Ok(origin) => assert(is_wildcard_origin(origin), "star"),
-        Err(_) => assert(false, "star ok"),
-    }
-    match require_wildcard_origin("https://app.example.com") {
-        Ok(_) => assert(false, "exact must Err"),
-        Err(msg) => assert(strings.contains(msg, "wildcard"), "mentions wildcard"),
-    }
-}
-
-@test
-fn test_require_empty_allow() {
-    let empty = Vec::new()
-    match require_empty_allow(empty) {
-        Ok(n) => assert_eq(n, 0),
-        Err(_) => assert(false, "empty list"),
-    }
-    let mut exact = Vec::new()
-    exact.push("https://app.example.com")
-    match require_empty_allow(exact) {
-        Ok(_) => assert(false, "origin must Err"),
-        Err(msg) => assert(strings.contains(msg, "empty"), "mentions empty"),
     }
 }

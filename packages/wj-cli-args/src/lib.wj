@@ -51,6 +51,14 @@ fn value_from_equals_token(token: string, name: string) -> Option<string> {
     Some(strings.join(value_parts, "="))
 }
 
+/// `Ok(1)` when `--name` is present, otherwise `Err`.
+pub fn require_named_flag(args: Vec<string>, name: string) -> Result<int, string> {
+    if has_long_flag(args, name) {
+        return Ok(1)
+    }
+    Err("expected flag")
+}
+
 /// True when `--name` or `--name=value` appears in argv (after the program name).
 pub fn has_long_flag(args: Vec<string>, name: string) -> bool {
     let rest = tail(args)

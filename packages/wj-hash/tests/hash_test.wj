@@ -9,6 +9,7 @@ use crate::require_min_cost
 use crate::require_nonempty
 use crate::looks_like_bcrypt
 use crate::require_bcrypt
+use crate::require_prefix
 use crate::require_empty_hash
 use crate::verify_ok
 use crate::verify_password
@@ -177,5 +178,17 @@ fn test_require_empty_hash() {
     match require_empty_hash("$2b$12$abcdefghijklmnopqrstuv") {
         Ok(_) => assert(false, "hash must Err"),
         Err(msg) => assert(strings.contains(msg, "empty"), "mentions empty"),
+    }
+}
+
+@test
+fn test_require_prefix() {
+    match require_prefix("$2b$12$abcdefghijklmnopqrstuv") {
+        Ok(h) => assert(is_bcrypt_prefix(h), "prefix"),
+        Err(_) => assert(false, "bcrypt prefix"),
+    }
+    match require_prefix("sha256:deadbeef") {
+        Ok(_) => assert(false, "digest must Err"),
+        Err(msg) => assert(strings.contains(msg, "prefix"), "mentions prefix"),
     }
 }

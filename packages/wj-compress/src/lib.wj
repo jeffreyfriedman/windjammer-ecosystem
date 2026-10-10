@@ -88,6 +88,14 @@ pub fn should_compress_default(accept_encoding: string, body_len: int) -> bool {
     should_compress(accept_encoding, body_len, default_min_bytes())
 }
 
+/// `Ok(1)` when gzip is worthwhile at the default size floor, otherwise `Err`.
+pub fn require_default(accept_encoding: string, body_len: int) -> Result<int, string> {
+    if should_compress_default(accept_encoding, body_len) {
+        return Ok(1)
+    }
+    Err("expected default")
+}
+
 /// True when a `Content-Encoding` value is gzip.
 pub fn is_gzip_encoding(content_encoding: string) -> bool {
     strings.to_lower(strings.trim(content_encoding)) == "gzip"
@@ -148,6 +156,14 @@ pub fn negotiate_or_identity(accept_encoding: string) -> string {
         Some(coding) => coding,
         None => content_encoding_identity(),
     }
+}
+
+/// `Ok(expected)` when negotiation yields that coding, otherwise `Err`.
+pub fn require_negotiated(accept_encoding: string, expected: string) -> Result<string, string> {
+    if negotiate_or_identity(accept_encoding) == expected {
+        return Ok(expected)
+    }
+    Err("expected coding")
 }
 
 /// True when `Accept-Encoding` allows identity (`identity`, `*`, ignoring `q=0`).

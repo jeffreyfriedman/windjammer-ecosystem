@@ -120,6 +120,14 @@ pub fn version_applied(applied: Vec<int>, version: int) -> bool {
     false
 }
 
+/// `Ok(version)` when that version is already applied, otherwise `Err`.
+pub fn require_applied(applied: Vec<int>, version: int) -> Result<int, string> {
+    if version_applied(applied, version) {
+        return Ok(version)
+    }
+    Err("expected applied")
+}
+
 fn split_version_name(stem: string) -> Result<(int, string), string> {
     let mut i = 0
     while i < strings.len(stem) {
@@ -185,6 +193,15 @@ pub fn latest_version(items: Vec<Migration>) -> int {
         return 0
     }
     sorted[sorted.len() - 1].version
+}
+
+/// `Ok(version)` for the highest migration, or `Err` when the set is empty.
+pub fn require_latest(items: Vec<Migration>) -> Result<int, string> {
+    let version = latest_version(items)
+    if version > 0 {
+        return Ok(version)
+    }
+    Err("expected latest")
 }
 
 /// Number of migrations in `all` not yet in `applied`.

@@ -233,6 +233,14 @@ pub fn has_fragment(u: Url) -> bool {
     strings.len(u.fragment) > 0
 }
 
+/// `Ok(u)` when the URL has a fragment, otherwise `Err`.
+pub fn require_fragment(u: Url) -> Result<Url, string> {
+    if has_fragment(u) {
+        return Ok(u)
+    }
+    Err("expected fragment")
+}
+
 /// True when the URL has a non-empty query string.
 pub fn has_query(u: Url) -> bool {
     strings.len(u.query) > 0

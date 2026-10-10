@@ -3,6 +3,7 @@ use crate::require_http
 use crate::require_root
 use crate::require_query
 use crate::require_port
+use crate::require_fragment
 use crate::format_url
 use crate::has_fragment
 use crate::has_port
@@ -383,5 +384,27 @@ fn test_require_port() {
             }
         },
         Err(_) => assert(false, "parse host"),
+    }
+}
+
+@test
+fn test_require_fragment() {
+    match parse("https://example.com/api#top") {
+        Ok(u) => {
+            match require_fragment(u) {
+                Ok(kept) => assert(has_fragment(kept), "fragment"),
+                Err(_) => assert(false, "fragment ok"),
+            }
+        },
+        Err(_) => assert(false, "parse fragment"),
+    }
+    match parse("https://example.com/api") {
+        Ok(u) => {
+            match require_fragment(u) {
+                Ok(_) => assert(false, "bare must Err"),
+                Err(msg) => assert(strings.contains(msg, "fragment"), "mentions fragment"),
+            }
+        },
+        Err(_) => assert(false, "parse bare"),
     }
 }

@@ -70,6 +70,14 @@ pub fn should_compress(accept_encoding: string, body_len: int, min_bytes: int) -
     accepts_gzip(accept_encoding)
 }
 
+/// `Ok(1)` when gzip is acceptable and the body meets `min_bytes`, otherwise `Err`.
+pub fn require_compress(accept_encoding: string, body_len: int, min_bytes: int) -> Result<int, string> {
+    if should_compress(accept_encoding, body_len, min_bytes) {
+        return Ok(1)
+    }
+    Err("expected compress")
+}
+
 /// Default minimum body size (bytes) before gzip is worthwhile.
 pub fn default_min_bytes() -> int {
     1024
@@ -124,6 +132,14 @@ pub fn meets_min_bytes(body_len: int, min_bytes: int) -> bool {
 /// True when `body_len` is strictly below `min_bytes`.
 pub fn below_min_bytes(body_len: int, min_bytes: int) -> bool {
     !meets_min_bytes(body_len, min_bytes)
+}
+
+/// `Ok(body_len)` when the body is strictly below `min_bytes`, otherwise `Err`.
+pub fn require_below(body_len: int, min_bytes: int) -> Result<int, string> {
+    if below_min_bytes(body_len, min_bytes) {
+        return Ok(body_len)
+    }
+    Err("expected below")
 }
 
 /// Negotiated coding, or `"identity"` when none match.

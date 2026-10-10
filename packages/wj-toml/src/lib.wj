@@ -59,6 +59,14 @@ pub fn has(text: string, key: string) -> bool {
     }
 }
 
+/// `Ok(key)` when `key` is present, otherwise `Err`.
+pub fn require_present(text: string, key: string) -> Result<string, string> {
+    if has(text, key) {
+        return Ok(key)
+    }
+    Err("expected present")
+}
+
 /// Number of keys after parse.
 pub fn key_count(text: string) -> int {
     let map = parse(text)
@@ -116,6 +124,14 @@ pub fn require_last_key(text: string) -> Result<string, string> {
 /// Number of values after parse (same as `key_count` for flat maps).
 pub fn value_count(text: string) -> int {
     key_count(text)
+}
+
+/// `Ok(n)` when the document has exactly `n` values, otherwise `Err`.
+pub fn require_values(text: string, n: int) -> Result<int, string> {
+    if value_count(text) == n {
+        return Ok(n)
+    }
+    Err("expected values")
 }
 
 /// True when parse yields exactly one key.

@@ -100,6 +100,14 @@ pub fn is_empty_body(result: HttpResult) -> bool {
     body_len(result) == 0
 }
 
+/// `Ok(1)` when the response body is empty, otherwise `Err`.
+pub fn require_empty_body(result: HttpResult) -> Result<int, string> {
+    if is_empty_body(result) {
+        return Ok(1)
+    }
+    Err("expected empty body")
+}
+
 /// True when `status` is in the 3xx range.
 pub fn status_is_redirect(status: u16) -> bool {
     status >= 300 && status < 400
@@ -183,6 +191,14 @@ pub fn require_ok(result: HttpResult) -> Result<string, string> {
 /// True for HTTP 4xx and 5xx statuses.
 pub fn is_error_status(status: u16) -> bool {
     status_is_client_error(status) || status_is_server_error(status)
+}
+
+/// `Ok(status)` when it is 4xx or 5xx, otherwise `Err`.
+pub fn require_error_status(status: u16) -> Result<u16, string> {
+    if is_error_status(status) {
+        return Ok(status)
+    }
+    Err("expected error code")
 }
 
 /// Status when it is 4xx or 5xx.

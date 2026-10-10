@@ -4,6 +4,8 @@ Weekly build health for seed apps and packages.
 
 | Week | Date | Apps / packages green | `extern fn` | Crates via interop | Compiler issues | Notes |
 |------|------|----------------------|-------------|--------------------|-----------------|-------|
+| 2 | 2026-10-10 | deepen `wj-http-client`/`wj-compress`/`wj-toml` | 0 | 0 | private CARGO_HOME | `require_error_status`, `require_compress`, `require_present`; tip **24+25+31** green |
+| 2 | 2026-10-10 | deepen `wj-http-client`/`wj-compress`/`wj-toml` | 0 | 0 | private CARGO_HOME | `require_empty_body`, `require_below`, `require_values`; tip **23+24+30** green |
 | 2 | 2026-10-10 | deepen `wj-http-client`/`wj-toml`/`wj-multipart` | 0 | 0 | private CARGO_HOME | `require_informational`, `require_last_key`, `require_files`; tip **22+29+22** green |
 | 2 | 2026-10-10 | deepen `wj-http-client`/`wj-toml`/`wj-multipart` | 0 | 0 | private CARGO_HOME | `require_ok_status`, `require_first_key`, `require_first_name`; tip **21+28+21** green |
 | 2 | 2026-10-10 | deepen `wj-http-client`/`wj-glob`/`wj-querystring` | 0 | 0 | private CARGO_HOME | `require_server_error`, `require_between`, `require_count`; tip **20+33+29** green |

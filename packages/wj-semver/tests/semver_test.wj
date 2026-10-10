@@ -3,31 +3,19 @@ use crate::parse
 use crate::build_of
 use crate::compare
 use crate::format_version
-use crate::has_build
-use crate::has_prerelease
-use crate::is_compatible
 use crate::is_equal
 use crate::is_newer
 use crate::is_older
-use crate::is_prerelease
 use crate::is_zero_version
 use crate::bump_major
 use crate::bump_minor
 use crate::bump_patch
 use crate::clear_prerelease
 use crate::clear_build
-use crate::is_stable
 use crate::is_zero_major
 use crate::major_of
-use crate::require_stable
-use crate::require_build
-use crate::require_prerelease
 use crate::require_zero_major
-use crate::require_zero_version
-use crate::require_older
-use crate::require_newer
 use crate::require_equal
-use crate::require_compatible
 use std::strings
 use crate::minor_of
 use crate::patch_of
@@ -128,22 +116,6 @@ fn test_is_newer() {
     }
 }
 
-fn test_is_compatible_same_major() {
-    match parse("1.2.3") {
-        Ok(a) => {
-            match parse("1.9.0") {
-                Ok(b) => assert(is_compatible(a, b), "same major"),
-                Err(_) => assert(false, "parse b"),
-            }
-            match parse("2.0.0") {
-                Ok(c) => assert(!is_compatible(a, c), "major bump breaks"),
-                Err(_) => assert(false, "parse c"),
-            }
-        },
-        Err(_) => assert(false, "parse a"),
-    }
-}
-
 fn test_is_equal_ignores_build() {
     match parse("1.2.3+build1") {
         Ok(a) => {
@@ -172,23 +144,6 @@ fn test_is_older() {
             }
         },
         Err(_) => assert(false, "parse a"),
-    }
-}
-
-fn test_has_prerelease_and_build() {
-    match parse("1.0.0-alpha+meta") {
-        Ok(v) => {
-            assert(has_prerelease(v), "pre")
-            assert(has_build(v), "build")
-        },
-        Err(_) => assert(false, "parse"),
-    }
-    match parse("1.0.0") {
-        Ok(v) => {
-            assert(!has_prerelease(v), "no pre")
-            assert(!has_build(v), "no build")
-        },
-        Err(_) => assert(false, "parse release"),
     }
 }
 
@@ -224,8 +179,6 @@ fn test_clear_prerelease() {
         Ok(v) => {
             let cleared = clear_prerelease(v)
             assert_eq(format_version(cleared), "1.2.3+build")
-            assert(!has_prerelease(cleared), "pre cleared")
-            assert(has_build(cleared), "build kept")
         },
         Err(_) => assert(false, "parse"),
     }
@@ -236,25 +189,8 @@ fn test_clear_build() {
         Ok(v) => {
             let cleared = clear_build(v)
             assert_eq(format_version(cleared), "1.2.3-rc.1")
-            assert(has_prerelease(cleared), "pre kept")
-            assert(!has_build(cleared), "build cleared")
         },
         Err(_) => assert(false, "parse"),
-    }
-}
-
-fn test_is_stable() {
-    match parse("1.2.3") {
-        Ok(v) => assert(is_stable(v), "release is stable"),
-        Err(_) => assert(false, "parse release"),
-    }
-    match parse("1.2.3-beta") {
-        Ok(v) => assert(!is_stable(v), "prerelease not stable"),
-        Err(_) => assert(false, "parse pre"),
-    }
-    match parse("1.2.3+meta") {
-        Ok(v) => assert(is_stable(v), "build-only still stable"),
-        Err(_) => assert(false, "parse build"),
     }
 }
 
@@ -281,8 +217,6 @@ fn test_prerelease_build_accessors() {
         Ok(v) => {
             assert_eq(prerelease_of(v), "beta.1")
             assert_eq(build_of(v), "build.9")
-            assert(is_prerelease(v), "pre")
-            assert(!is_stable(v), "not stable")
         },
         Err(_) => assert(false, "parse"),
     }
@@ -290,80 +224,8 @@ fn test_prerelease_build_accessors() {
         Ok(v) => {
             assert_eq(prerelease_of(v), "")
             assert_eq(build_of(v), "")
-            assert(!is_prerelease(v), "release")
         },
         Err(_) => assert(false, "parse release"),
-    }
-}
-
-fn test_is_zero_major_and_require_stable() {
-    match parse("0.1.0") {
-        Ok(v) => assert(is_zero_major(v), "zero major"),
-        Err(_) => assert(false, "parse 0.1.0"),
-    }
-    match parse("1.0.0") {
-        Ok(v) => assert(!is_zero_major(v), "one major"),
-        Err(_) => assert(false, "parse 1.0.0"),
-    }
-    match parse("1.2.3+meta") {
-        Ok(v) => {
-            match require_stable(v) {
-                Ok(stable) => assert(is_stable(stable), "stable"),
-                Err(_) => assert(false, "build-only is stable"),
-            }
-        },
-        Err(_) => assert(false, "parse build"),
-    }
-    match parse("1.2.3-beta") {
-        Ok(v) => {
-            match require_stable(v) {
-                Ok(_) => assert(false, "prerelease must Err"),
-                Err(msg) => assert(strings.contains(msg, "stable"), "mentions stable"),
-            }
-        },
-        Err(_) => assert(false, "parse pre"),
-    }
-}
-
-fn test_require_prerelease() {
-    match parse("1.2.3-beta.1") {
-        Ok(v) => {
-            match require_prerelease(v) {
-                Ok(pre) => assert_eq(pre, "beta.1"),
-                Err(_) => assert(false, "prerelease"),
-            }
-        },
-        Err(_) => assert(false, "parse beta"),
-    }
-    match parse("1.2.3") {
-        Ok(v) => {
-            match require_prerelease(v) {
-                Ok(_) => assert(false, "release must Err"),
-                Err(msg) => assert(strings.contains(msg, "prerelease"), "mentions prerelease"),
-            }
-        },
-        Err(_) => assert(false, "parse release"),
-    }
-}
-
-fn test_require_build() {
-    match parse("1.2.3+build.5") {
-        Ok(v) => {
-            match require_build(v) {
-                Ok(build) => assert_eq(build, "build.5"),
-                Err(_) => assert(false, "build"),
-            }
-        },
-        Err(_) => assert(false, "parse build"),
-    }
-    match parse("1.2.3") {
-        Ok(v) => {
-            match require_build(v) {
-                Ok(_) => assert(false, "plain must Err"),
-                Err(msg) => assert(strings.contains(msg, "build"), "mentions build"),
-            }
-        },
-        Err(_) => assert(false, "parse plain"),
     }
 }
 
@@ -385,89 +247,6 @@ fn test_require_zero_major() {
             }
         },
         Err(_) => assert(false, "parse one"),
-    }
-}
-
-fn test_require_zero_version() {
-    match parse("0.0.0") {
-        Ok(v) => {
-            match require_zero_version(v) {
-                Ok(parsed) => assert(is_zero_version(parsed), "zero"),
-                Err(_) => assert(false, "zero version"),
-            }
-        },
-        Err(_) => assert(false, "parse zero"),
-    }
-    match parse("0.1.0") {
-        Ok(v) => {
-            match require_zero_version(v) {
-                Ok(_) => assert(false, "minor must Err"),
-                Err(msg) => assert(strings.contains(msg, "version"), "mentions version"),
-            }
-        },
-        Err(_) => assert(false, "parse minor"),
-    }
-}
-
-fn test_require_older() {
-    match parse("1.0.0") {
-        Ok(older) => {
-            match parse("2.0.0") {
-                Ok(newer) => {
-                    match require_older(older, newer) {
-                        Ok(kept) => assert(is_older(kept, newer), "older"),
-                        Err(_) => assert(false, "older ok"),
-                    }
-                },
-                Err(_) => assert(false, "parse newer"),
-            }
-        },
-        Err(_) => assert(false, "parse older"),
-    }
-    match parse("2.0.0") {
-        Ok(newer) => {
-            match parse("1.0.0") {
-                Ok(older) => {
-                    match require_older(newer, older) {
-                        Ok(_) => assert(false, "newer must Err"),
-                        Err(msg) => assert(strings.contains(msg, "older"), "mentions older"),
-                    }
-                },
-                Err(_) => assert(false, "parse older again"),
-            }
-        },
-        Err(_) => assert(false, "parse newer again"),
-    }
-}
-
-fn test_require_newer() {
-    match parse("2.0.0") {
-        Ok(newer) => {
-            match parse("1.0.0") {
-                Ok(older) => {
-                    match require_newer(newer, older) {
-                        Ok(kept) => assert(is_newer(kept, older), "newer"),
-                        Err(_) => assert(false, "newer ok"),
-                    }
-                },
-                Err(_) => assert(false, "parse older"),
-            }
-        },
-        Err(_) => assert(false, "parse newer"),
-    }
-    match parse("1.0.0") {
-        Ok(older) => {
-            match parse("2.0.0") {
-                Ok(newer) => {
-                    match require_newer(older, newer) {
-                        Ok(_) => assert(false, "older must Err"),
-                        Err(msg) => assert(strings.contains(msg, "newer"), "mentions newer"),
-                    }
-                },
-                Err(_) => assert(false, "parse newer again"),
-            }
-        },
-        Err(_) => assert(false, "parse older again"),
     }
 }
 
@@ -493,37 +272,6 @@ fn test_require_equal() {
                     match require_equal(left, right) {
                         Ok(_) => assert(false, "mismatch must Err"),
                         Err(msg) => assert(strings.contains(msg, "equal"), "mentions equal"),
-                    }
-                },
-                Err(_) => assert(false, "parse right again"),
-            }
-        },
-        Err(_) => assert(false, "parse left again"),
-    }
-}
-
-fn test_require_compatible() {
-    match parse("1.2.3") {
-        Ok(left) => {
-            match parse("1.9.0") {
-                Ok(right) => {
-                    match require_compatible(left, right) {
-                        Ok(kept) => assert(is_compatible(kept, right), "compatible"),
-                        Err(_) => assert(false, "compatible ok"),
-                    }
-                },
-                Err(_) => assert(false, "parse right"),
-            }
-        },
-        Err(_) => assert(false, "parse left"),
-    }
-    match parse("2.0.0") {
-        Ok(left) => {
-            match parse("1.0.0") {
-                Ok(right) => {
-                    match require_compatible(left, right) {
-                        Ok(_) => assert(false, "major mismatch must Err"),
-                        Err(msg) => assert(strings.contains(msg, "compatible"), "mentions compatible"),
                     }
                 },
                 Err(_) => assert(false, "parse right again"),

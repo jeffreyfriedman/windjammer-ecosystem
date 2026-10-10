@@ -69,25 +69,9 @@ pub fn is_newer(a: SemVer, b: SemVer) -> bool {
     compare(a, b) > 0
 }
 
-/// `Ok(a)` when `a` is strictly newer than `b`, otherwise `Err`.
-pub fn require_newer(a: SemVer, b: SemVer) -> Result<SemVer, string> {
-    if is_newer(a, b) {
-        return Ok(a)
-    }
-    Err("expected newer")
-}
-
 /// True when `a` is strictly older than `b` (build metadata ignored).
 pub fn is_older(a: SemVer, b: SemVer) -> bool {
     compare(a, b) < 0
-}
-
-/// `Ok(a)` when `a` is strictly older than `b`, otherwise `Err`.
-pub fn require_older(a: SemVer, b: SemVer) -> Result<SemVer, string> {
-    if is_older(a, b) {
-        return Ok(a)
-    }
-    Err("expected older")
 }
 
 /// True when `a` and `b` compare equal (build metadata ignored).
@@ -101,37 +85,6 @@ pub fn require_equal(a: SemVer, b: SemVer) -> Result<SemVer, string> {
         return Ok(a)
     }
     Err("expected equal")
-}
-
-/// True when `a` and `b` share the same major version (caret-compatible).
-pub fn is_compatible(a: SemVer, b: SemVer) -> bool {
-    a.major == b.major
-}
-
-/// `Ok(a)` when `a` and `b` share a major version, otherwise `Err`.
-pub fn require_compatible(a: SemVer, b: SemVer) -> Result<SemVer, string> {
-    if is_compatible(a, b) {
-        return Ok(a)
-    }
-    Err("expected compatible")
-}
-
-/// True when `v` has a non-empty prerelease identifier.
-pub fn has_prerelease(v: SemVer) -> bool {
-    strings.len(v.pre) > 0
-}
-
-/// True when `v` has non-empty build metadata.
-pub fn has_build(v: SemVer) -> bool {
-    strings.len(v.build) > 0
-}
-
-/// Build metadata when present, otherwise `Err`.
-pub fn require_build(v: SemVer) -> Result<string, string> {
-    if has_build(v) {
-        return Ok(build_of(v))
-    }
-    Err("expected build")
 }
 
 /// Increment patch; clears prerelease and build metadata.
@@ -189,11 +142,6 @@ pub fn clear_build(v: SemVer) -> SemVer {
     }
 }
 
-/// True when `v` has no prerelease (build metadata allowed).
-pub fn is_stable(v: SemVer) -> bool {
-    !has_prerelease(v)
-}
-
 pub fn major_of(v: SemVer) -> int {
     v.major
 }
@@ -219,25 +167,9 @@ pub fn require_zero_major(v: SemVer) -> Result<SemVer, string> {
     Err("expected zero major")
 }
 
-/// `Ok(v)` when `v` has no prerelease, otherwise `Err`.
-pub fn require_stable(v: SemVer) -> Result<SemVer, string> {
-    if is_stable(v) {
-        return Ok(v)
-    }
-    Err("expected stable")
-}
-
 /// True when major, minor, and patch are all zero.
 pub fn is_zero_version(v: SemVer) -> bool {
     v.major == 0 && v.minor == 0 && v.patch == 0
-}
-
-/// `Ok(v)` when major, minor, and patch are all zero, otherwise `Err`.
-pub fn require_zero_version(v: SemVer) -> Result<SemVer, string> {
-    if is_zero_version(v) {
-        return Ok(v)
-    }
-    Err("expected zero version")
 }
 
 /// Prerelease identifier string (empty when absent).
@@ -248,19 +180,6 @@ pub fn prerelease_of(v: SemVer) -> string {
 /// Build metadata string (empty when absent).
 pub fn build_of(v: SemVer) -> string {
     v.build
-}
-
-/// True when `v` has a prerelease identifier.
-pub fn is_prerelease(v: SemVer) -> bool {
-    has_prerelease(v)
-}
-
-/// Prerelease text when present, otherwise `Err`.
-pub fn require_prerelease(v: SemVer) -> Result<string, string> {
-    if is_prerelease(v) {
-        return Ok(prerelease_of(v))
-    }
-    Err("expected prerelease")
 }
 
 fn split_build(text: string) -> Result<(string, string), string> {

@@ -96,52 +96,6 @@ pub fn require_param(params: HashMap<string, string>, name: string) -> Result<st
     }
 }
 
-pub fn is_empty_params(params: HashMap<string, string>) -> bool {
-    param_count(params) == 0
-}
-
-/// `Ok(0)` when the route captured no params, otherwise `Err`.
-pub fn require_empty_params(params: HashMap<string, string>) -> Result<int, string> {
-    if is_empty_params(params) {
-        return Ok(0)
-    }
-    Err("expected empty params")
-}
-
-/// True when `params` has at least one entry.
-pub fn has_params(params: HashMap<string, string>) -> bool {
-    !is_empty_params(params)
-}
-
-/// `Ok(1)` when the route captured a param, otherwise `Err`.
-pub fn require_params(params: HashMap<string, string>) -> Result<int, string> {
-    if has_params(params) {
-        return Ok(1)
-    }
-    Err("expected params")
-}
-
-/// True when `pattern` has no `:param` segments.
-pub fn is_static_pattern(pattern: string) -> bool {
-    !is_param_pattern(pattern)
-}
-
-/// `Ok(pattern)` when it has no `:param` segments, otherwise `Err`.
-pub fn require_static(pattern: string) -> Result<string, string> {
-    if is_static_pattern(pattern) {
-        return Ok(pattern)
-    }
-    Err("expected static pattern")
-}
-
-/// `Ok(pattern)` when it contains a `:param` segment, otherwise `Err`.
-pub fn require_param_pattern(pattern: string) -> Result<string, string> {
-    if is_param_pattern(pattern) {
-        return Ok(pattern)
-    }
-    Err("expected param pattern")
-}
-
 /// Match `pattern` against `path`, or return `fallback` when no match.
 pub fn match_or(pattern: string, path: string, fallback: HashMap<string, string>) -> HashMap<string, string> {
     match match_route(pattern, path) {
@@ -180,7 +134,6 @@ pub fn pattern_param_count(pattern: string) -> int {
     }
     n
 }
-
 
 fn normalize_path(path: string) -> string {
     if strings.len(path) == 0 {

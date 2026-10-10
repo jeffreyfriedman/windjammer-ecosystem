@@ -4,25 +4,16 @@ use crate::dirname
 use crate::ensure_leading_slash
 use crate::ensure_trailing_slash
 use crate::extname
-use crate::has_extension
 use crate::has_leading_slash
 use crate::has_trailing_slash
 use crate::is_absolute
 use crate::is_dot
 use crate::is_dot_dot
-use crate::is_empty_path
-use crate::is_relative
 use crate::is_root
 use crate::join_path
 use crate::normalize
-use crate::require_absolute
 use crate::require_hidden
 use crate::require_root
-use crate::require_dot
-use crate::require_empty_path
-use crate::require_dot_dot
-use crate::require_trailing
-use crate::require_leading
 use crate::require_stem
 use crate::stem
 use crate::without_extension
@@ -87,24 +78,10 @@ fn test_is_absolute() {
 }
 
 @test
-fn test_has_extension() {
-    assert(has_extension("foo.txt", ".txt"), "txt")
-    assert(!has_extension("foo.txt", ".md"), "wrong ext")
-    assert(!has_extension("Makefile", ".txt"), "no ext")
-}
-
-@test
 fn test_stem() {
     assert_eq(stem("/tmp/foo.txt"), "foo")
     assert_eq(stem("Makefile"), "Makefile")
     assert_eq(stem("archive.tar.gz"), "archive.tar")
-}
-
-@test
-fn test_is_relative() {
-    assert(is_relative("rel/path"), "relative")
-    assert(!is_relative("/usr/bin"), "absolute not relative")
-    assert(is_relative(""), "empty is relative")
 }
 
 @test
@@ -144,67 +121,12 @@ fn test_without_trailing_slash_and_is_root() {
 
 @test
 fn test_empty_trailing_and_dot_predicates() {
-    assert(is_empty_path(""), "empty")
-    assert(!is_empty_path("/"), "slash not empty")
     assert(has_trailing_slash("/api/"), "trailing")
     assert(!has_trailing_slash("/api"), "no trailing")
     assert(!has_trailing_slash(""), "empty no trailing")
     assert(is_dot("."), "dot")
     assert(!is_dot(".."), "parent not dot")
     assert(!is_dot("./x"), "path not dot")
-}
-
-@test
-fn test_dot_dot_leading_slash_and_require_absolute() {
-    assert(is_dot_dot(".."), "dotdot")
-    assert(!is_dot_dot("."), "dot not parent")
-    assert(!is_dot_dot("../x"), "path not parent")
-    assert(has_leading_slash("/api"), "leading")
-    assert(!has_leading_slash("api"), "relative")
-    match require_absolute("/tmp/x") {
-        Ok(p) => assert_eq(p, "/tmp/x"),
-        Err(_) => assert(false, "absolute"),
-    }
-    match require_absolute("rel") {
-        Ok(_) => assert(false, "rel must Err"),
-        Err(msg) => assert(strings.contains(msg, "absolute"), "mentions absolute"),
-    }
-}
-
-@test
-fn test_hidden_and_require_relative() {
-    use crate::is_hidden
-    use crate::require_relative
-    assert(is_hidden(".env"), "dotfile")
-    assert(is_hidden("dir/.git"), "nested dotfile")
-    assert(!is_hidden("."), "dot itself")
-    assert(!is_hidden(".."), "parent itself")
-    assert(!is_hidden("readme.md"), "plain")
-    match require_relative("rel/file") {
-        Ok(p) => assert_eq(p, "rel/file"),
-        Err(_) => assert(false, "relative"),
-    }
-    match require_relative("/abs") {
-        Ok(_) => assert(false, "abs must Err"),
-        Err(msg) => assert(strings.contains(msg, "relative"), "mentions relative"),
-    }
-}
-
-@test
-fn test_require_extension() {
-    use crate::require_extension
-    match require_extension("readme.md", ".md") {
-        Ok(path) => assert_eq(path, "readme.md"),
-        Err(_) => assert(false, "md"),
-    }
-    match require_extension("readme.md", ".txt") {
-        Ok(_) => assert(false, "wrong ext must Err"),
-        Err(msg) => assert(strings.contains(msg, "extension"), "mentions extension"),
-    }
-    match require_extension("Makefile", ".md") {
-        Ok(_) => assert(false, "no ext must Err"),
-        Err(msg) => assert(strings.contains(msg, "extension"), "mentions extension"),
-    }
 }
 
 @test
@@ -240,65 +162,5 @@ fn test_require_root() {
     match require_root("a") {
         Ok(_) => assert(false, "relative must Err"),
         Err(msg) => assert(strings.contains(msg, "root"), "mentions root"),
-    }
-}
-
-@test
-fn test_require_dot() {
-    match require_dot(".") {
-        Ok(path) => assert(is_dot(path), "dot"),
-        Err(_) => assert(false, "current dir"),
-    }
-    match require_dot("a") {
-        Ok(_) => assert(false, "name must Err"),
-        Err(msg) => assert(strings.contains(msg, "dot"), "mentions dot"),
-    }
-}
-
-@test
-fn test_require_empty_path() {
-    match require_empty_path("") {
-        Ok(path) => assert(is_empty_path(path), "empty"),
-        Err(_) => assert(false, "blank path"),
-    }
-    match require_empty_path("a") {
-        Ok(_) => assert(false, "name must Err"),
-        Err(msg) => assert(strings.contains(msg, "empty"), "mentions empty"),
-    }
-}
-
-@test
-fn test_require_dot_dot() {
-    match require_dot_dot("..") {
-        Ok(path) => assert(is_dot_dot(path), "parent"),
-        Err(_) => assert(false, "parent dir"),
-    }
-    match require_dot_dot(".") {
-        Ok(_) => assert(false, "dot must Err"),
-        Err(msg) => assert(strings.contains(msg, "parent"), "mentions parent"),
-    }
-}
-
-@test
-fn test_require_trailing() {
-    match require_trailing("tmp/") {
-        Ok(path) => assert(has_trailing_slash(path), "trailing"),
-        Err(_) => assert(false, "slash"),
-    }
-    match require_trailing("tmp") {
-        Ok(_) => assert(false, "bare must Err"),
-        Err(msg) => assert(strings.contains(msg, "trailing"), "mentions trailing"),
-    }
-}
-
-@test
-fn test_require_leading() {
-    match require_leading("/tmp") {
-        Ok(path) => assert(has_leading_slash(path), "leading"),
-        Err(_) => assert(false, "absolute"),
-    }
-    match require_leading("tmp") {
-        Ok(_) => assert(false, "relative must Err"),
-        Err(msg) => assert(strings.contains(msg, "leading"), "mentions leading"),
     }
 }

@@ -136,33 +136,12 @@ pub fn require_match(pattern: string, text: string) -> Result<string, string> {
     }
 }
 
-/// True when `pattern` does not compile.
-pub fn is_invalid_pattern(pattern: string) -> bool {
-    !is_valid_pattern(pattern)
-}
-
-/// `Ok(pattern)` when `pattern` does not compile, otherwise `Err`.
-pub fn require_invalid(pattern: string) -> Result<string, string> {
-    if is_invalid_pattern(pattern) {
-        return Ok(pattern)
-    }
-    Err("expected invalid")
-}
-
 /// True when `pattern` has exactly `n` non-overlapping matches in `text`.
 pub fn exactly_n_matches(pattern: string, text: string, n: int) -> Result<bool, string> {
     match match_count(pattern, text) {
         Ok(count) => Ok(count == n),
         Err(e) => Err(e),
     }
-}
-
-/// Ok(pattern) when it compiles; otherwise Err.
-pub fn require_valid_pattern(pattern: string) -> Result<string, string> {
-    if is_valid_pattern(pattern) {
-        return Ok(pattern)
-    }
-    Err("invalid pattern")
 }
 
 /// Match count when `pattern` has exactly `n` matches.

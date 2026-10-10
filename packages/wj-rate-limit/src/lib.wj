@@ -207,19 +207,6 @@ pub fn slots_remaining(lim: FixedWindow, bucket: WindowBucket) -> int {
     lim.limit - used
 }
 
-/// True when `result.remaining` is zero (at or over the window limit).
-pub fn is_at_limit(result: RateLimitResult) -> bool {
-    result.remaining == 0
-}
-
-/// `Ok(result)` when no slots remain, otherwise `Err`.
-pub fn require_at_limit(result: RateLimitResult) -> Result<RateLimitResult, string> {
-    if is_at_limit(result) {
-        return Ok(result)
-    }
-    Err("expected at limit")
-}
-
 /// Configured request limit for `lim`.
 pub fn limit_of(lim: FixedWindow) -> int {
     lim.limit
@@ -235,14 +222,6 @@ pub fn is_fresh_bucket(bucket: WindowBucket) -> bool {
     bucket.count == 0 && bucket.window_start_ms == 0
 }
 
-/// `Ok(bucket)` when it has never recorded a request, otherwise `Err`.
-pub fn require_fresh(bucket: WindowBucket) -> Result<WindowBucket, string> {
-    if is_fresh_bucket(bucket) {
-        return Ok(bucket)
-    }
-    Err("expected fresh bucket")
-}
-
 pub fn retry_after_ms_of(result: RateLimitResult) -> int {
     result.retry_after_ms
 }
@@ -256,46 +235,9 @@ pub fn window_exhausted(result: RateLimitResult) -> bool {
     is_denied(result)
 }
 
-/// True when `retry_after_ms` is zero (typically an allowed response).
-pub fn is_zero_retry(result: RateLimitResult) -> bool {
-    result.retry_after_ms == 0
-}
-
-/// `Ok(result)` when retry-after is zero, otherwise `Err`.
-pub fn require_zero_retry(result: RateLimitResult) -> Result<RateLimitResult, string> {
-    if is_zero_retry(result) {
-        return Ok(result)
-    }
-    Err("expected zero retry")
-}
-
-/// `Ok(result)` when the check allowed the request, otherwise `Err`.
-pub fn require_allowed(result: RateLimitResult) -> Result<RateLimitResult, string> {
-    if is_allowed(result) {
-        return Ok(result)
-    }
-    Err("expected allowed")
-}
-
-/// Retry-after milliseconds when the check denied the request.
-pub fn require_denied(result: RateLimitResult) -> Result<int, string> {
-    if is_denied(result) {
-        return Ok(retry_after_ms_of(result))
-    }
-    Err("expected denied")
-}
-
 /// True when both the limit and the window length are positive.
 pub fn is_positive_window(lim: FixedWindow) -> bool {
     limit_of(lim) > 0 && window_ms_of(lim) > 0
-}
-
-/// Window length when the limiter is positive, otherwise `Err`.
-pub fn require_positive_window(lim: FixedWindow) -> Result<int, string> {
-    if is_positive_window(lim) {
-        return Ok(window_ms_of(lim))
-    }
-    Err("expected positive window")
 }
 
 fn window_start_for(now_ms: int, window_ms: int) -> int {

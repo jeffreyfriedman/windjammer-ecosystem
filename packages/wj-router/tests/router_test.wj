@@ -1,8 +1,5 @@
 use crate::has_param
-use crate::has_params
-use crate::is_empty_params
 use crate::is_param_pattern
-use crate::is_static_pattern
 use crate::match_or
 use crate::match_route
 use crate::matches_route
@@ -12,10 +9,6 @@ use crate::param_or
 use crate::first_param_name
 use crate::pattern_param_count
 use crate::require_match
-use crate::require_param_pattern
-use crate::require_static
-use crate::require_empty_params
-use crate::require_params
 use crate::require_param
 use std::collections::HashMap
 use std::collections::HashMap
@@ -178,35 +171,6 @@ fn test_param_names_and_require_param() {
 }
 
 @test
-fn test_empty_params_and_pattern_param_count() {
-    match match_route("/health", "/health") {
-        Some(params) => assert(is_empty_params(params), "empty"),
-        None => assert(false, "health"),
-    }
-    match match_route("/users/:id", "/users/1") {
-        Some(params) => assert(!is_empty_params(params), "has params"),
-        None => assert(false, "users"),
-    }
-    assert_eq(pattern_param_count("/health"), 0)
-    assert_eq(pattern_param_count("/users/:id"), 1)
-    assert_eq(pattern_param_count("/orgs/:org/repos/:repo"), 2)
-}
-
-@test
-fn test_has_params_static_and_match_or() {
-    match match_route("/users/:id", "/users/1") {
-        Some(params) => assert(has_params(params), "has params"),
-        None => assert(false, "users"),
-    }
-    assert(is_static_pattern("/health"), "static")
-    assert(!is_static_pattern("/users/:id"), "param pattern")
-    let hit = match_or("/users/:id", "/users/42", HashMap::new())
-    assert_eq(param_or(hit, "id", ""), "42")
-    let miss = match_or("/users/:id", "/nope", HashMap::new())
-    assert(is_empty_params(miss), "fallback empty")
-}
-
-@test
 fn test_first_param_name_and_require_match() {
     match first_param_name("/users/:id/posts/:pid") {
         Some(name) => assert_eq(name, "id"),
@@ -223,73 +187,5 @@ fn test_first_param_name_and_require_match() {
     match require_match("/users/:id", "/nope") {
         Ok(_) => assert(false, "miss must Err"),
         Err(msg) => assert(strings.contains(msg, "match"), "mentions match"),
-    }
-}
-
-@test
-fn test_require_static() {
-    match require_static("/health") {
-        Ok(pattern) => assert_eq(pattern, "/health"),
-        Err(_) => assert(false, "static"),
-    }
-    match require_static("/users/:id") {
-        Ok(_) => assert(false, "param pattern must Err"),
-        Err(msg) => assert(strings.contains(msg, "static"), "mentions static"),
-    }
-}
-
-@test
-fn test_require_param_pattern() {
-    match require_param_pattern("/users/:id") {
-        Ok(pattern) => assert_eq(pattern, "/users/:id"),
-        Err(_) => assert(false, "param pattern"),
-    }
-    match require_param_pattern("/health") {
-        Ok(_) => assert(false, "static must Err"),
-        Err(msg) => assert(strings.contains(msg, "param"), "mentions param"),
-    }
-}
-
-@test
-fn test_require_empty_params() {
-    match match_route("/health", "/health") {
-        Some(params) => {
-            match require_empty_params(params) {
-                Ok(n) => assert_eq(n, 0),
-                Err(_) => assert(false, "static has no params"),
-            }
-        },
-        None => assert(false, "health"),
-    }
-    match match_route("/users/:id", "/users/1") {
-        Some(params) => {
-            match require_empty_params(params) {
-                Ok(_) => assert(false, "param route must Err"),
-                Err(msg) => assert(strings.contains(msg, "empty"), "mentions empty"),
-            }
-        },
-        None => assert(false, "users"),
-    }
-}
-
-@test
-fn test_require_params() {
-    match match_route("/users/:id", "/users/1") {
-        Some(params) => {
-            match require_params(params) {
-                Ok(n) => assert(n > 0, "captured"),
-                Err(_) => assert(false, "params ok"),
-            }
-        },
-        None => assert(false, "users"),
-    }
-    match match_route("/health", "/health") {
-        Some(params) => {
-            match require_params(params) {
-                Ok(_) => assert(false, "static must Err"),
-                Err(msg) => assert(strings.contains(msg, "params"), "mentions params"),
-            }
-        },
-        None => assert(false, "health"),
     }
 }

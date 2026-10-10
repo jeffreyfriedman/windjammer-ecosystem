@@ -80,19 +80,6 @@ pub fn default_backoff() -> Backoff {
     }
 }
 
-/// True when `attempt` is at or past `max_attempts` (no retries left).
-pub fn is_exhausted(attempt: int, max_attempts: int) -> bool {
-    !should_retry(attempt, max_attempts)
-}
-
-/// Attempt index when no retries remain, otherwise `Err`.
-pub fn require_exhausted(attempt: int, max_attempts: int) -> Result<int, string> {
-    if is_exhausted(attempt, max_attempts) {
-        return Ok(attempt)
-    }
-    Err("expected exhausted")
-}
-
 /// `Ok(n)` when the summed retry delay equals `n`, otherwise `Err`.
 pub fn require_total(backoff: Backoff, max_attempts: int, n: int) -> Result<int, string> {
     if total_delay_ms(backoff, max_attempts) == n {
@@ -214,14 +201,6 @@ pub fn is_default_backoff(backoff: Backoff) -> bool {
     backoff.initial_ms == 100 && backoff.multiplier == 2 && backoff.max_ms == 30000
 }
 
-/// `Ok(backoff)` when it matches the defaults, otherwise `Err`.
-pub fn require_default_backoff(backoff: Backoff) -> Result<Backoff, string> {
-    if is_default_backoff(backoff) {
-        return Ok(backoff)
-    }
-    Err("expected default backoff")
-}
-
 /// True when `attempt` is the first try (0-based).
 pub fn is_first_attempt(attempt: int) -> bool {
     attempt == 0
@@ -246,11 +225,6 @@ pub fn require_next(attempt: int, expected: int) -> Result<int, string> {
         return Ok(expected)
     }
     Err("expected next")
-}
-
-/// True when another try remains after `attempt` within `max_attempts`.
-pub fn has_retries_left(attempt: int, max_attempts: int) -> bool {
-    attempts_remaining(attempt, max_attempts) > 0
 }
 
 /// Remaining tries when another attempt is allowed.

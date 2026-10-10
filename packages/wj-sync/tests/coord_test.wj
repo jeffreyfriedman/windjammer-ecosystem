@@ -9,8 +9,6 @@ use crate::latch_new
 use crate::once_call
 use crate::once_new
 use crate::require_idle
-use crate::require_closed
-use crate::require_open
 use crate::shared_int
 use crate::shared_int_add
 use crate::shared_int_get
@@ -45,36 +43,4 @@ fn test_barrier_one_party() {
     let b2 = barrier_wait(b)
     let b3 = barrier_wait(b2)
     assert_eq(barrier_waiting(b3), 0)
-}
-
-@test
-fn test_require_open_and_require_idle() {
-    match require_open(latch_countdown(latch_countdown(latch_new(2)))) {
-        Ok(n) => assert_eq(n, 0),
-        Err(_) => assert(false, "open latch"),
-    }
-    match require_open(latch_new(1)) {
-        Ok(_) => assert(false, "closed must Err"),
-        Err(msg) => assert(strings.contains(msg, "open"), "mentions open"),
-    }
-    match require_idle(barrier_new(2)) {
-        Ok(n) => assert_eq(n, 2),
-        Err(_) => assert(false, "fresh barrier is idle"),
-    }
-    match require_idle(barrier_wait(barrier_new(2))) {
-        Ok(_) => assert(false, "waiting must Err"),
-        Err(msg) => assert(strings.contains(msg, "idle"), "mentions idle"),
-    }
-}
-
-@test
-fn test_require_closed() {
-    match require_closed(latch_new(1)) {
-        Ok(n) => assert_eq(n, 1),
-        Err(_) => assert(false, "closed latch"),
-    }
-    match require_closed(latch_countdown(latch_new(1))) {
-        Ok(_) => assert(false, "open must Err"),
-        Err(msg) => assert(strings.contains(msg, "closed"), "mentions closed"),
-    }
 }

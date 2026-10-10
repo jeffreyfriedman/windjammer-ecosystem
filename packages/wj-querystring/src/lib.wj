@@ -188,11 +188,6 @@ pub fn require(query: string, key: string) -> Result<string, string> {
     }
 }
 
-/// True when the query string has at least one key/value pair.
-pub fn has_pairs(query: string) -> bool {
-    !is_empty(query)
-}
-
 /// First unique key in parse order, if any.
 pub fn first_key(query: string) -> Option<string> {
     let ks = keys(query)
@@ -258,12 +253,4 @@ pub fn require_singleton(query: string) -> Result<string, string> {
         Some(k) => Ok(k),
         None => Err("expected singleton query"),
     }
-}
-
-/// Pair count when the query has at least one pair, otherwise `Err`.
-pub fn require_pairs(query: string) -> Result<int, string> {
-    if !has_pairs(query) {
-        return Err("expected pairs")
-    }
-    Ok(pair_count(query))
 }

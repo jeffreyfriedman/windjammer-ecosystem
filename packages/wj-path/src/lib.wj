@@ -120,11 +120,6 @@ pub fn is_absolute(path: string) -> bool {
     strings.starts_with(path, "/")
 }
 
-/// True when `path`'s extension equals `ext` (include the leading `.`).
-pub fn has_extension(path: string, ext: string) -> bool {
-    extname(path) == ext
-}
-
 /// Basename without the final extension (keeps compound stems like `archive.tar`).
 pub fn stem(path: string) -> string {
     let base = basename(path)
@@ -142,11 +137,6 @@ pub fn require_stem(path: string) -> Result<string, string> {
         return Err("expected stem")
     }
     Ok(name)
-}
-
-/// True when `path` is not absolute.
-pub fn is_relative(path: string) -> bool {
-    !is_absolute(path)
 }
 
 /// Replace the final extension of `path` with `ext` (include the leading `.`).
@@ -225,28 +215,8 @@ pub fn require_root(path: string) -> Result<string, string> {
     Err("expected root")
 }
 
-pub fn is_empty_path(path: string) -> bool {
-    strings.len(path) == 0
-}
-
-/// `Ok(path)` when `path` is empty, otherwise `Err`.
-pub fn require_empty_path(path: string) -> Result<string, string> {
-    if is_empty_path(path) {
-        return Ok(path)
-    }
-    Err("expected empty path")
-}
-
 pub fn has_trailing_slash(path: string) -> bool {
     strings.len(path) > 0 && strings.ends_with(path, "/")
-}
-
-/// `Ok(path)` when `path` ends with `/`, otherwise `Err`.
-pub fn require_trailing(path: string) -> Result<string, string> {
-    if has_trailing_slash(path) {
-        return Ok(path)
-    }
-    Err("expected trailing slash")
 }
 
 /// True when `path` is exactly `.` (current directory).
@@ -254,38 +224,14 @@ pub fn is_dot(path: string) -> bool {
     path == "."
 }
 
-/// `Ok(path)` when `path` is exactly `.`, otherwise `Err`.
-pub fn require_dot(path: string) -> Result<string, string> {
-    if is_dot(path) {
-        return Ok(path)
-    }
-    Err("expected dot")
-}
-
 /// True when `path` is exactly `..` (parent directory).
 pub fn is_dot_dot(path: string) -> bool {
     path == ".."
 }
 
-/// `Ok(path)` when `path` is exactly `..`, otherwise `Err`.
-pub fn require_dot_dot(path: string) -> Result<string, string> {
-    if is_dot_dot(path) {
-        return Ok(path)
-    }
-    Err("expected parent")
-}
-
 /// True when `path` starts with `/`.
 pub fn has_leading_slash(path: string) -> bool {
     strings.starts_with(path, "/")
-}
-
-/// `Ok(path)` when `path` starts with `/`, otherwise `Err`.
-pub fn require_leading(path: string) -> Result<string, string> {
-    if has_leading_slash(path) {
-        return Ok(path)
-    }
-    Err("expected leading slash")
 }
 
 /// True when the final segment is a dotfile (not `.` or `..`).
@@ -303,31 +249,6 @@ pub fn require_hidden(path: string) -> Result<string, string> {
         return Ok(path)
     }
     Err("expected hidden")
-}
-
-/// Ok(path) when `path` is relative; otherwise Err.
-pub fn require_relative(path: string) -> Result<string, string> {
-    if is_relative(path) {
-        return Ok(path)
-    }
-    Err("expected relative path")
-}
-
-/// Ok(path) when its extension equals `ext` (include the leading `.`).
-pub fn require_extension(path: string, ext: string) -> Result<string, string> {
-    if has_extension(path, ext) {
-        Ok(path)
-    } else {
-        Err("expected extension ${ext}")
-    }
-}
-
-/// Accept `path` only when absolute; else return an error.
-pub fn require_absolute(path: string) -> Result<string, string> {
-    if is_absolute(path) {
-        return Ok(path)
-    }
-    Err("expected absolute path")
 }
 
 fn strip_trailing_slashes(path: string) -> string {

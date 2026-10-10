@@ -164,6 +164,14 @@ pub fn is_blank(map: HashMap<string, string>, key: string) -> bool {
     }
 }
 
+/// `Ok(key)` when `key` is missing or blank, otherwise `Err`.
+pub fn require_blank(map: HashMap<string, string>, key: string) -> Result<string, string> {
+    if is_blank(map, key) {
+        return Ok(key)
+    }
+    Err("expected blank")
+}
+
 /// Entry count when `map` is nonempty, otherwise `Err`.
 pub fn require_entries(map: HashMap<string, string>) -> Result<int, string> {
     if !has_entries(map) {

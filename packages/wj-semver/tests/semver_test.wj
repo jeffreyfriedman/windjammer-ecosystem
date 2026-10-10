@@ -26,6 +26,7 @@ use crate::require_zero_major
 use crate::require_zero_version
 use crate::require_older
 use crate::require_newer
+use crate::require_equal
 use std::strings
 use crate::minor_of
 use crate::patch_of
@@ -466,5 +467,36 @@ fn test_require_newer() {
             }
         },
         Err(_) => assert(false, "parse older again"),
+    }
+}
+
+fn test_require_equal() {
+    match parse("1.2.3") {
+        Ok(left) => {
+            match parse("1.2.3") {
+                Ok(right) => {
+                    match require_equal(left, right) {
+                        Ok(kept) => assert(is_equal(kept, right), "equal"),
+                        Err(_) => assert(false, "equal ok"),
+                    }
+                },
+                Err(_) => assert(false, "parse right"),
+            }
+        },
+        Err(_) => assert(false, "parse left"),
+    }
+    match parse("1.2.3") {
+        Ok(left) => {
+            match parse("1.2.4") {
+                Ok(right) => {
+                    match require_equal(left, right) {
+                        Ok(_) => assert(false, "mismatch must Err"),
+                        Err(msg) => assert(strings.contains(msg, "equal"), "mentions equal"),
+                    }
+                },
+                Err(_) => assert(false, "parse right again"),
+            }
+        },
+        Err(_) => assert(false, "parse left again"),
     }
 }

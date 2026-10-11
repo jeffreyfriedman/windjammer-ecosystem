@@ -8,10 +8,28 @@ on:
 
 env:
   CARGO_TERM_COLOR: always
-  # Pin windjammer so ecosystem builds are reproducible. Bump deliberately.
-  WINDJAMMER_REF: main
+  # Pinned to WJ_PIN.md (full SHA; must exist on the remote). Bump both together, deliberately.
+  WINDJAMMER_REF: 923b4c679a747ec93fe64ccefc1467cd8960c63f
 
 jobs:
+  pin-check:
+    name: WJ_PIN.md matches WINDJAMMER_REF
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: |
+          pin=$(grep -E '^WJ_COMMIT=' WJ_PIN.md | head -1 | cut -d= -f2)
+          [ "$pin" = "$WINDJAMMER_REF" ] || { echo "::error::WJ_PIN.md ($pin) != WINDJAMMER_REF ($WINDJAMMER_REF)"; exit 1; }
+
+  orphan-tests:
+    name: Orphan test check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: scripts/check-orphan-tests.sh
+      - name: Every package defines at least one test (grep fallback)
+        run: scripts/assert-package-tests.sh
+
   ban-list:
     name: Ban local ffi / hand .rs
     runs-on: ubuntu-latest
@@ -56,6 +74,12 @@ jobs:
           unset CARGO_TARGET_DIR
           cargo build --release -p windjammer --bin wj
           ./target/release/wj --version
+
+      - name: Every package defines at least one test (wj test --list when supported)
+        env:
+          WJ: ${{ github.workspace }}/windjammer/target/release/wj
+        working-directory: windjammer-ecosystem
+        run: scripts/assert-package-tests.sh
 
       - name: Build / test each app and package
         env:

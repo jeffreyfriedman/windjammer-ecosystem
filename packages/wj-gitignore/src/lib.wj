@@ -1,3 +1,4 @@
+use std::strings
 use wj_glob::is_match
 
 /// One parsed `.gitignore` line.
@@ -30,17 +31,17 @@ fn parse_rule(line: string) -> Rule {
     let mut negated = false
     if body.starts_with("!") {
         negated = true
-        body = body[1..]
+        body = strings.substring(body, 1, body.len())
     }
     let mut dir_only = false
     if body.ends_with("/") {
         dir_only = true
-        body = body[0..body.len() - 1]
+        body = strings.substring(body, 0, body.len() - 1)
     }
     let mut anchored = false
     if body.starts_with("/") {
         anchored = true
-        body = body[1..]
+        body = strings.substring(body, 1, body.len())
     }
     if body.contains("/") {
         anchored = true

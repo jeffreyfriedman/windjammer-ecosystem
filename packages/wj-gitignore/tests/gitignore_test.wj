@@ -1,3 +1,4 @@
+use crate::Rule
 use crate::parse
 use crate::is_ignored
 use crate::filter_unignored

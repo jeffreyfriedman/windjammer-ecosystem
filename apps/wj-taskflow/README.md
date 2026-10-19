@@ -51,7 +51,7 @@ for p in wj-router wj-jwt wj-hash wj-rate-limit wj-validate wj-migrate wj-querys
 cd apps/wj-taskflow
 $WJ test
 $WJ build --release src
-TASKFLOW_JWT_SECRET=change-me-to-a-long-random-string PORT=8080 build/target/release/wj-taskflow
+cd build && TASKFLOW_JWT_SECRET=change-me-to-a-long-random-string PORT=8080 cargo run --release
 ```
 
 `TASKFLOW_RATE_LIMIT` sets requests per minute per `X-Client-Key` (default 100). The server keeps data in memory, so it

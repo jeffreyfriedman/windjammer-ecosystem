@@ -49,3 +49,6 @@ tmp_*
 # Mutation testing
 **/mutants.out*/
 .cargo-home/
+
+# Claude plugin runtime state
+.claude/

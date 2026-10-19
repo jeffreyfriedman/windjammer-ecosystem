@@ -251,3 +251,46 @@ fn test_rate_limit_returns_429_with_retry_after() {
     assert_eq(a.handle("GET", "/health", "", "k2", 1004, "").status, 200)
     assert_eq(a.handle("GET", "/health", "", "k1", 61001, "").status, 200)
 }
+
+// Acceptance: a small team works through a project from sign-up to clean-up.
+@test
+fn test_acceptance_team_workflow() {
+    let mut a = app()
+    let ann = "Bearer ${signed_in(a, "ann")}"
+    let bob = "Bearer ${signed_in(a, "bob")}"
+    let cat = "Bearer ${signed_in(a, "cat")}"
+
+    // ann starts a project and brings bob (member) and cat (viewer) in
+    assert_eq(call(a, "POST", "/api/v1/projects", ann, "{\"name\":\"Launch\",\"description\":\"v1\"}").status, 201)
+    assert_eq(call(a, "POST", "/api/v1/projects/1/members", ann, "{\"user_id\":2,\"role\":\"member\"}").status, 200)
+    assert_eq(call(a, "POST", "/api/v1/projects/1/members", ann, "{\"user_id\":3,\"role\":\"viewer\"}").status, 200)
+
+    // everyone sees the project, outsiders do not
+    assert_str_contains(call(a, "GET", "/api/v1/projects", bob, "").body, "Launch")
+    assert_str_contains(call(a, "GET", "/api/v1/projects", cat, "").body, "Launch")
+
+    // bob files and works tasks, ann assigns one to him
+    assert_eq(call(a, "POST", "/api/v1/projects/1/tasks", bob, "{\"title\":\"Write release notes\",\"priority\":\"low\"}").status, 201)
+    assert_eq(call(a, "POST", "/api/v1/projects/1/tasks", bob, "{\"title\":\"Fix login crash\",\"priority\":\"critical\"}").status, 201)
+    assert_eq(call(a, "POST", "/api/v1/tasks/2/assign", ann, "{\"user_id\":2}").status, 200)
+    assert_eq(call(a, "PATCH", "/api/v1/tasks/2", bob, "{\"status\":\"in_progress\"}").status, 200)
+
+    // cat can read and filter but not change anything
+    let urgent = call(a, "GET", "/api/v1/projects/1/tasks?priority=critical&status=in_progress&assigned_to=2", cat, "")
+    assert_eq(urgent.status, 200)
+    assert_str_contains(urgent.body, "Fix login crash")
+    assert(!urgent.body.contains("release notes"), "filters combine with AND")
+    assert_eq(call(a, "PATCH", "/api/v1/tasks/2", cat, "{\"status\":\"done\"}").status, 403)
+
+    // finishing work, then ann removes one task and the whole project
+    assert_eq(call(a, "PATCH", "/api/v1/tasks/2", bob, "{\"status\":\"done\"}").status, 200)
+    let done = call(a, "GET", "/api/v1/projects/1/tasks?status=done", ann, "")
+    assert_str_contains(done.body, "Fix login crash")
+    assert_eq(call(a, "DELETE", "/api/v1/tasks/1", bob, "").status, 204)
+    assert_eq(call(a, "DELETE", "/api/v1/projects/1", ann, "").status, 204)
+
+    // nothing of the project survives, for anyone
+    assert_eq(call(a, "GET", "/api/v1/projects/1", bob, "").status, 404)
+    assert_eq(call(a, "GET", "/api/v1/tasks/2", bob, "").status, 404)
+    assert(!call(a, "GET", "/api/v1/projects", cat, "").body.contains("Launch"), "membership removed with the project")
+}

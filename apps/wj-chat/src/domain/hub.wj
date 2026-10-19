@@ -187,11 +187,22 @@ impl Hub {
         out
     }
 
+    // Members of `room` in connection-id order, so deliveries are reproducible.
     fn members(self, room: string) -> Vec<Conn> {
+        let mut ids = Vec::new()
+        for (id, _c) in self.conns.clone() {
+            ids.push(id)
+        }
+        ids.sort()
         let mut out = Vec::new()
-        for (_id, c) in self.conns {
-            if c.rooms.contains(room) {
-                out.push(c.clone())
+        for id in ids {
+            match self.conns.get(id) {
+                Some(c) => {
+                    if c.rooms.contains(room) {
+                        out.push(c.clone())
+                    }
+                },
+                None => {},
             }
         }
         out

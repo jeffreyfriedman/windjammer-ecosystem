@@ -25,7 +25,10 @@ fn files_for(root: string, cmd: Command) -> Result<Vec<string>, string> {
             Err(_) => "",
         }
     }
-    Ok(select_files(root, all, ignore_text, cmd.respect_ignore, cmd.include_hidden))
+    let mut selected = select_files(root, all, ignore_text, cmd.respect_ignore, cmd.include_hidden)
+    // read_dir order is unspecified; sorted paths make the output reproducible.
+    selected.sort()
+    Ok(selected)
 }
 
 /// Run the command; returns the text to print and the number of selected lines (or replacements).

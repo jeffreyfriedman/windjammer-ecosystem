@@ -5,12 +5,13 @@ commit below. CI never uses a floating branch.
 
 ```
 WJ_REPO=https://github.com/jeffreyfriedman/windjammer.git
-WJ_COMMIT=923b4c679a747ec93fe64ccefc1467cd8960c63f
+WJ_COMMIT=034e0b4e0a28c7d0ae860a955f399552671f625b
 ```
 
-Status: CANDIDATE. This commit has not been verified to pass `wj build` + `wj test` across all apps and
-packages here. It must exist on `WJ_REPO` before CI can fetch it: push it to the compiler remote first,
-or the checkout step fails.
+Status: CANDIDATE. Sweep at this commit (compiled `wj build --release src` + `wj test`, per package and app):
+all but five packages and nine apps are green; the rest fail on compiler issues tracked in the compiler repo
+(`docs/known-issues/`). Bump to VERIFIED only when the whole loop is green. The commit must exist on `WJ_REPO`
+before CI can fetch it.
 
 ## Pin policy
 

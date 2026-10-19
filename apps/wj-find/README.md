@@ -2,6 +2,8 @@
 
 Week-one path find: walk a tree and filter with shell globs (`wj-fs-walk` + `wj-glob`).
 
+`find_unignored` additionally honours `.gitignore` text (`wj-gitignore`).
+
 See `docs/BETA_SUCCESS_PATH.md`.
 
 ## Layout
@@ -23,6 +25,7 @@ export WJ=/path/to/wj
 
 cd packages/wj-fs-walk && $WJ build --release src && cd -
 cd packages/wj-glob && $WJ build --release src && cd -
+cd packages/wj-gitignore && $WJ build --release src && cd -
 
 cd apps/wj-find
 $WJ test

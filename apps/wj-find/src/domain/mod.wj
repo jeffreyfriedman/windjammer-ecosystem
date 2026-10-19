@@ -2,6 +2,7 @@ pub mod find
 
 pub use find::find_matching
 pub use find::find_under
+pub use find::find_unignored
 pub use find::first_hit
 pub use find::format_hits
 pub use find::hit_count

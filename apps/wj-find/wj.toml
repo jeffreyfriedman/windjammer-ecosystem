@@ -6,6 +6,7 @@ edition = "2025"
 [dependencies]
 wj_fs_walk = { path = "../../packages/wj-fs-walk/build" }
 wj_glob = { path = "../../packages/wj-glob/build" }
+wj_gitignore = { path = "../../packages/wj-gitignore/build" }
 
 [dev-dependencies]
 

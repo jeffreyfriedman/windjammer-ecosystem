@@ -1,6 +1,7 @@
 // TDD: walk + glob = week-one find (fd-style).
 
 use crate::domain::find_matching
+use crate::domain::find_unignored
 use crate::domain::first_hit
 use crate::domain::format_hits
 use crate::domain::hit_count
@@ -152,4 +153,23 @@ fn test_require_last() {
         Ok(_) => assert(false, "empty must Err"),
         Err(msg) => assert(strings.contains(msg, "last"), "mentions last"),
     }
+}
+
+fn test_find_unignored_skips_gitignored_paths() {
+    let mut paths = Vec::new()
+    paths.push("src/main.wj")
+    paths.push("target/gen/out.wj")
+    paths.push("scratch.wj")
+    let hits = find_unignored("**/*.wj", paths, "target/\n/scratch.wj\n")
+    assert_eq(hits.len(), 1)
+    assert_eq(hits[0], "src/main.wj")
+}
+
+fn test_find_unignored_with_empty_ignore_matches_find_matching() {
+    let mut paths = Vec::new()
+    paths.push("a.wj")
+    paths.push("b.md")
+    let hits = find_unignored("*.wj", paths, "")
+    assert_eq(hits.len(), 1)
+    assert_eq(hits[0], "a.wj")
 }

@@ -14,3 +14,11 @@ wj_cli_args = { path = "../../packages/wj-cli-args/build" }
 [profile.release]
 opt-level = 3
 lto = true
+
+[capabilities]
+# tests write scratch files under the system temp directory
+fs.read = ["./**", "/tmp/**"]
+fs.write = ["./**", "/tmp/**"]
+
+[capabilities.dependencies.wj_fs_walk]
+fs.read = ["./**", "/tmp/**"]

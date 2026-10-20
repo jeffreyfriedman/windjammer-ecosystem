@@ -11,3 +11,6 @@ wj_template = { path = "../../packages/wj-template/build" }
 [profile.release]
 opt-level = 3
 lto = true
+
+[capabilities]
+env.read = ["SITEGEN_SRC", "SITEGEN_OUT", "SITEGEN_TITLE", "SITEGEN_BASE_URL"]

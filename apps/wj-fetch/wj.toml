@@ -13,3 +13,7 @@ wj_retry = { path = "../../packages/wj-retry/build" }
 [profile.release]
 opt-level = 3
 lto = true
+
+[capabilities]
+# a request to a reserved host name that cannot resolve (the failure path of the fetch loop)
+net.connect = ["example.invalid.test"]

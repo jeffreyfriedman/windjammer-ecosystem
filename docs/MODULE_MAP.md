@@ -28,6 +28,7 @@
 | wj-headers | Security header presets | std |
 | wj-http-client | HTTP result helpers and status checks | std |
 | wj-inflect | Case conversion, slugs | std |
+| wj-json-doc | Order-preserving JSON, Python-compatible output | std |
 | wj-json-util | JSON pretty-print and helpers | std |
 | wj-jwt | JWT HS256 | std |
 | wj-log | Tagged log helpers | std |
@@ -35,6 +36,7 @@
 | wj-mime | MIME lookup | std |
 | wj-multipart | multipart/form-data parse | std |
 | wj-path | Path join and parts | std |
+| wj-proc | Process capture, CPU timing, git helpers | std |
 | wj-querystring | Query string parse and build | std |
 | wj-rate-limit | Fixed-window limiter | std |
 | wj-regex | Regex wrapper | std |
@@ -42,7 +44,9 @@
 | wj-router | Route matching | std |
 | wj-semver | Version parse and compare | std |
 | wj-sha | SHA-256 hex | std |
+| wj-stats | Mean, median, standard deviation | std |
 | wj-sync | Channels, shared state, pools | std |
+| wj-table | Markdown and plain tables, fixed-point numbers | std |
 | wj-template | Placeholder rendering | std |
 | wj-timefmt | RFC 3339 time | std |
 | wj-toml | TOML subset parser | std |

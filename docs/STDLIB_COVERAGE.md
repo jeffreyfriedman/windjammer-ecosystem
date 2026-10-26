@@ -9,8 +9,8 @@ Windjammer `std::*` modules used on production paths in seed apps and packages.
 | `std::strings` | | yes | | | yes | | yes | yes | yes | | yes | yes | yes | yes | yes | yes | | | | | yes | yes | yes | parse / paths / yaml / mime / templates |
 | `std::env` / CLI | | | | | yes | yes | yes | yes | yes | | | | | | | | | | | | | argv / bind / secrets |
 | `std::http` | | | | | | yes | yes | | yes | yes | | | | | | | | | | | | client + server / webhooks |
-| `std::json` | | | | | | yes | yes | | yes | | yes | | | | | | | | | | | yes | bodies / config / yaml / events / util |
-| `std::process` | | | | | | yes | | yes | | | | | | | | | | | | | | exit codes |
+| `std::json` | | | | | | yes | yes | | yes | | yes | | | | | | | | | | | yes | bodies / config / yaml / events / util; `wj-json-doc` keeps member order (std::json sorts keys) |
+| `std::process` | | | | | | yes | | yes | | | | | | | | | | | | | | exit codes; `wj-proc` wraps `run_with_output` (status, stdout, stderr) and `/usr/bin/time` for CPU timing |
 | `std::log` | | | | yes | | | planned | | planned | | | | | | | | | | | | | tagged helpers |
 | `std::time` | | | | | | | | planned | | | | | | planned | | | | | | | | timestamps / uuid v1 |
 | `std::random` | | | | | | | | | | | | | | planned | | | | | | | | uuid entropy |

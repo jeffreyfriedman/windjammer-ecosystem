@@ -9,10 +9,9 @@ use crate::sorted
 // Expected values come from Python's statistics module.
 
 fn test_mean_min_max() {
-    let xs = [3.0, 1.0, 2.0, 10.0]
-    assert_eq(mean(xs), 4.0)
-    assert_eq(min(xs), 1.0)
-    assert_eq(max(xs), 10.0)
+    assert_eq(mean([3.0, 1.0, 2.0, 10.0]), 4.0)
+    assert_eq(min([3.0, 1.0, 2.0, 10.0]), 1.0)
+    assert_eq(max([3.0, 1.0, 2.0, 10.0]), 10.0)
 }
 
 fn test_median_odd_even() {
@@ -23,8 +22,8 @@ fn test_median_odd_even() {
 
 fn test_empty_samples_are_zero() {
     let none: Vec<f64> = Vec::new()
-    assert_eq(mean(none), 0.0)
-    assert_eq(median(none), 0.0)
+    assert_eq(mean(none.clone()), 0.0)
+    assert_eq(median(none.clone()), 0.0)
     assert_eq(pstdev(none), 0.0)
 }
 

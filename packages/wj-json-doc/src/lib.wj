@@ -1,6 +1,7 @@
 use std::strings
 
 /// A JSON value whose objects keep their members in document order.
+@derive(Clone)
 pub enum Json {
     Null,
     Bool(bool),
@@ -11,6 +12,7 @@ pub enum Json {
     Obj(Vec<Member>),
 }
 
+@derive(Clone)
 pub struct Member {
     pub key: string,
     pub value: Json,
@@ -178,7 +180,7 @@ pub fn is_null(doc: Json) -> bool {
 
 struct Parser {
     chars: Vec<char>,
-    pos: int,
+    pos: usize,
 }
 
 impl Parser {
@@ -355,7 +357,10 @@ impl Parser {
                 if code >= 55296 && code < 56320 && self.pos + 1 < self.chars.len() && self.chars[self.pos] == '\\' && self.chars[self.pos + 1] == 'u' {
                     self.pos = self.pos + 2
                     let low = self.hex4()?
-                    code = 65536 + (code - 55296) * 1024 + (low - 56320)
+                    let hi_part: i64 = (code as i64) - 55296
+                    let lo_part: i64 = (low as i64) - 56320
+                    let combined: i64 = 65536 + hi_part * 1024 + lo_part
+                    code = combined as u32
                 }
                 match char::from_u32(code) {
                     Some(ch) => { out = out + ch.to_string() },
@@ -419,7 +424,7 @@ impl Parser {
             let mut next = Vec::new()
             for m in members {
                 if m.key == key {
-                    next.push(Member { key: key, value: v })
+                    next.push(Member { key: key.clone(), value: v.clone() })
                     replaced = true
                 } else {
                     next.push(m)
@@ -490,8 +495,8 @@ pub fn float_repr(x: f64) -> string {
     let parts = strings.split(shown, ".")
     let int_part = parts[0]
     let frac_part = if parts.len() > 1 { parts[1] } else { "" }
-    let mut digits = int_part + frac_part
     let mut point: int = int_part.len() as int
+    let mut digits = int_part + frac_part
     // strip leading zeros (moves the point), then trailing zeros
     while digits.len() > 1 && digits.starts_with("0") {
         digits = digits.substring(1, digits.len())
@@ -515,12 +520,13 @@ pub fn float_repr(x: f64) -> string {
     }
     let ndig: int = digits.len() as int
     if point <= 0 {
-        return sign + "0." + strings.repeat("0", (0 - point) as usize) + digits
+        return sign + "0." + repeat_text("0", 0 - point) + digits
     }
     if point >= ndig {
-        return sign + digits + strings.repeat("0", (point - ndig) as usize) + ".0"
+        return sign + digits + repeat_text("0", point - ndig) + ".0"
     }
-    sign + digits.substring(0, point as usize) + "." + digits.substring(point as usize, digits.len())
+    let cut: usize = point as usize
+    sign + digits.substring(0, cut) + "." + digits.substring(cut, digits.len())
 }
 
 /// JSON string literal. `ascii_only` escapes every non-ASCII character as `\uXXXX`, as Python's default does.
@@ -612,11 +618,13 @@ fn write_value(doc: Json, indent: int, level: int, sort_keys: bool, ascii_only: 
 
 fn join_container(open: string, close: string, parts: Vec<string>, indent: int, level: int, is_obj: bool) -> string {
     if indent <= 0 {
-        return open + parts.join(", ") + close
+        let head = open.to_string()
+        return head + parts.join(", ") + close
     }
-    let inner = strings.repeat(" ", ((level + 1) * indent) as usize)
-    let outer = strings.repeat(" ", (level * indent) as usize)
-    open + "\n" + inner + parts.join(",\n" + inner) + "\n" + outer + close
+    let inner = repeat_text(" ", (level + 1) * indent)
+    let outer = repeat_text(" ", level * indent)
+    let head = open.to_string()
+    head + "\n" + inner + parts.join(",\n" + inner) + "\n" + outer + close
 }
 
 /// Python's `json.dumps(doc, indent=indent, sort_keys=sort_keys)`. `indent == 0` is the single-line form
@@ -636,4 +644,14 @@ pub fn chr(n: u32) -> string {
         Some(c) => c.to_string(),
         None => "?",
     }
+}
+
+fn repeat_text(piece: string, n: int) -> string {
+    let mut out = ""
+    let mut i = 0
+    while i < n {
+        out = out + piece
+        i = i + 1
+    }
+    out
 }

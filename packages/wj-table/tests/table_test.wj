@@ -1,3 +1,4 @@
+use crate::Table
 use crate::new
 use crate::right_align
 use crate::add_row

@@ -60,6 +60,10 @@ pub fn timed(program: string, args: Vec<string>) -> Result<Timed, string> {
             kept.push(line)
         }
     }
+    // split_lines may or may not yield a final empty element (the interpreter and the compiled runtime differ)
+    while kept.len() > 0 && kept[kept.len() - 1].len() == 0 {
+        kept.pop()
+    }
     let err_text = if kept.len() == 0 { "" } else { kept.join("\n") + "\n" }
     Ok(Timed { output: Output { status: out.status, stdout: out.stdout, stderr: err_text }, user: user, sys: sys })
 }
@@ -76,7 +80,7 @@ pub fn load_avg() -> f64 {
 pub fn load_avgs() -> Vec<f64> {
     match sh("uptime") {
         Ok(o) => parse_loads(o.stdout),
-        Err(_) => [0.0, 0.0, 0.0],
+        Err(_) => zero_loads(),
     }
 }
 
@@ -88,7 +92,7 @@ pub fn parse_loads(text: string) -> Vec<f64> {
             let rest = text.substring(i, text.len())
             match rest.find(":") {
                 Some(c) => {
-                    let tail = strings.replace(strings.trim(rest.substring(c + 1, rest.len())), ",", " ")
+                    let tail = strings.replace(strings.trim(rest.substring(c + (1 as usize), rest.len())), ",", " ")
                     for tok in strings.split_whitespace(tail) {
                         out.push(tok.parse::<f64>() ?? 0.0)
                     }
@@ -114,7 +118,7 @@ pub fn parse_load(text: string) -> f64 {
             let colon = rest.find(":")
             match colon {
                 Some(c) => {
-                    let tail = strings.trim(rest.substring(c + 1, rest.len()))
+                    let tail = strings.trim(rest.substring(c + (1 as usize), rest.len()))
                     let cleaned = strings.replace(tail, ",", " ")
                     let parts = strings.split_whitespace(cleaned)
                     if parts.len() == 0 {
@@ -174,4 +178,12 @@ pub fn git_changed(dir: string) -> Result<Vec<string>, string> {
     }
     files.sort()
     Ok(files)
+}
+
+fn zero_loads() -> Vec<f64> {
+    let mut out = Vec::new()
+    out.push(0.0)
+    out.push(0.0)
+    out.push(0.0)
+    out
 }

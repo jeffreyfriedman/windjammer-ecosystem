@@ -35,20 +35,20 @@ pub fn add_row(t: Table, row: Vec<string>) -> Table {
 
 /// `text` padded with spaces on the left to `width` characters.
 pub fn pad_left(text: string, width: int) -> string {
-    let n = strings.char_count(text) as int
+    let n = char_len(text) as int
     if n >= width {
         return text
     }
-    strings.repeat(" ", (width - n) as usize) + text
+    repeat_text(" ", width - n) + text
 }
 
 /// `text` padded with spaces on the right to `width` characters.
 pub fn pad_right(text: string, width: int) -> string {
-    let n = strings.char_count(text) as int
+    let n = char_len(text) as int
     if n >= width {
         return text
     }
-    text + strings.repeat(" ", (width - n) as usize)
+    text + repeat_text(" ", width - n)
 }
 
 /// Fixed-point text with `decimals` digits (0 to 8), like Python's `f"{x:.3f}"`.
@@ -109,12 +109,12 @@ pub fn markdown(t: Table) -> string {
 fn widths(t: Table) -> Vec<int> {
     let mut w = Vec::new()
     for h in t.headers {
-        w.push(strings.char_count(h) as int)
+        w.push(char_len(h) as int)
     }
     for row in t.rows {
         let mut i = 0
         while i < row.len() && i < w.len() {
-            let n = strings.char_count(row[i]) as int
+            let n = char_len(row[i]) as int
             if n > w[i] {
                 w[i] = n
             }
@@ -144,4 +144,19 @@ pub fn plain(t: Table, gap: string) -> string {
         lines.push(strings.trim_end(plain_line(row, w, t.right, gap)))
     }
     lines.join("\n")
+}
+
+fn char_len(text: string) -> usize {
+    text.chars().count()
+}
+
+/// `piece` repeated `n` times (empty for `n <= 0`).
+pub fn repeat_text(piece: string, n: int) -> string {
+    let mut out = ""
+    let mut i = 0
+    while i < n {
+        out = out + piece
+        i = i + 1
+    }
+    out
 }

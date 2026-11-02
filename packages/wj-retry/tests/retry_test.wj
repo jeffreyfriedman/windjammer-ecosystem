@@ -1,3 +1,4 @@
+use std::time
 use crate::Backoff
 use crate::attempts_remaining
 use crate::attempts_used
@@ -291,4 +292,11 @@ fn test_require_max() {
         Ok(_) => assert(false, "wrong max must Err"),
         Err(msg) => assert(strings.contains(msg, "max"), "mentions max"),
     }
+}
+
+fn test_pause_ms_waits_at_least_the_requested_time() {
+    let before = time.utc_now().timestamp_millis()
+    pause_ms(30)
+    let after = time.utc_now().timestamp_millis()
+    assert(after - before >= 30, "pause_ms(30) must wait 30ms")
 }

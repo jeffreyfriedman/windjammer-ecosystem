@@ -189,9 +189,13 @@ fn test_history_replays_recent_room_messages_in_order() {
     assert_eq(mine.len(), 1)
     assert_str_contains(mine[0], "\"kind\":\"history\"")
     assert(!mine[0].contains("one"), "limit keeps only the latest two")
-    let two_at = mine[0].find("two") ?? 0
-    let three_at = mine[0].find("three") ?? 0
-    assert(two_at < three_at, "oldest first")
+    match mine[0].find("two") {
+        Some(two_at) => match mine[0].find("three") {
+            Some(three_at) => assert(two_at < three_at, "oldest first"),
+            None => assert(false, "three is present"),
+        },
+        None => assert(false, "two is present"),
+    }
 }
 
 @test

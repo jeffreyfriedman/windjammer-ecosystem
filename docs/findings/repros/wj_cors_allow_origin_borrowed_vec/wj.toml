@@ -1,9 +1,0 @@
-[package]
-name = "repro"
-version = "0.1.0"
-edition = "2025"
-
-[dependencies]
-wj_cors = { path = "../../../../packages/wj-cors/build" }
-
-[lib]

@@ -13,11 +13,18 @@ fn test_schema_files_are_ordered_and_parse() {
     }
 }
 
+fn pending_count(applied: Vec<int>) -> int {
+    match pending_versions(applied) {
+        Ok(list) => list.len(),
+        Err(_) => -1,
+    }
+}
+
 @test
 fn test_pending_versions_skips_applied() {
     let none_applied: Vec<int> = Vec::new()
-    assert_eq((pending_versions(none_applied) ?? Vec::new()).len(), 1)
+    assert_eq(pending_count(none_applied), 1)
     let mut applied: Vec<int> = Vec::new()
     applied.push(1)
-    assert_eq((pending_versions(applied) ?? Vec::new()).len(), 0)
+    assert_eq(pending_count(applied), 0)
 }

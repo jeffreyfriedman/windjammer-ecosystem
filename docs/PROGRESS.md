@@ -15,12 +15,12 @@ Replaces the old weekly log. Levels:
 | wj-base64 | Wrapper + Basic-auth header helpers | 18 | 14 / 14 |
 | wj-cli-args | Subset (flags, positionals) | 27 | 24 / 24 |
 | wj-compress | Wrapper (Accept-Encoding negotiation, gzip) | 22 | 21 / 21 |
-| wj-config | Subset (layered config) | 23 | 17 / 19 |
-| wj-cookie | Subset (Cookie / Set-Cookie) | 23 | 17 / 20 |
+| wj-config | Subset (layered config) | 23 | 19 / 19 |
+| wj-cookie | Subset (Cookie / Set-Cookie) | 23 | 20 / 20 |
 | wj-cors | Subset | 17 | 17 / 17 |
 | wj-cron | Subset (cron expressions) | 11 | 34 / 34 |
 | wj-csv | Subset | 17 | 16 / 16 |
-| wj-dotenv | Subset | 18 | 16 / 18 |
+| wj-dotenv | Subset | 18 | 18 / 18 |
 | wj-duration | Subset | 25 | 25 / 25 |
 | wj-event | In-process event bus | 24 | 22 / 22 |
 | wj-fs-walk | Wrapper | 22 | 18 / 18 |
@@ -39,14 +39,14 @@ Replaces the old weekly log. Levels:
 | wj-querystring | Wrapper + helpers | 27 | 29 / 29 |
 | wj-rate-limit | Fixed-window limiter | 20 | 17 / 17 |
 | wj-regex | Wrapper | 19 | 16 / 16 |
-| wj-retry | Backoff policy | 30 | 26 / 26 |
+| wj-retry | Backoff policy | 30 | 27 / 27 |
 | wj-router | Path matching | 12 | 13 / 13 |
 | wj-semver | Subset | 20 | 17 / 17 |
 | wj-sha | Wrapper (SHA-256 hex) | 15 | 11 / 11 |
 | wj-sync | Channels, shared state, pool (generic) | 57 | 50 / 50 |
 | wj-template | Subset (`{{var}}`) | 18 | 23 / 23 |
 | wj-timefmt | Subset (RFC 3339) | 25 | 27 / 27 |
-| wj-toml | Subset (flat keys, sections) | 22 | 26 / 30 |
+| wj-toml | Subset (flat keys, sections) | 22 | 30 / 30 |
 | wj-url | Subset | 19 | 22 / 22 |
 | wj-uuid | v1/v4/v5/v7 | 23 | 24 / 24 |
 | wj-validate | Field validators | 21 | 36 / 36 |
@@ -57,13 +57,12 @@ Replaces the old weekly log. Levels:
 | wj-stats | Descriptive statistics | 8 | 5 / 5 |
 | wj-table | Terminal and markdown tables | 10 | 4 / 4 |
 
-`wj-config`, `wj-cookie`, `wj-dotenv` and `wj-toml` show passing counts interpreted; 2, 3, 2 and 4 of their tests fail there (engine finding 2).
 
 Apps are demonstration apps; measured tests (interpreted / compiled):
 
 | App | tests (interpreted / compiled) |
 |---|---|
-| wj-auth-api | 48 / red |
+| wj-auth-api | 48 / 48 |
 | wj-chat | 20 / 20 |
 | wj-fetch | 37 / 37 |
 | wj-find | 12 / 12 |
@@ -72,11 +71,11 @@ Apps are demonstration apps; measured tests (interpreted / compiled):
 | wj-grep | 38 / red |
 | wj-hello | 8 / 8 |
 | wj-migrate-cli | 27 / 27 |
-| wj-notes-api | 62 / red |
+| wj-notes-api | 62 / 62 |
 | wj-pipeline | 11 / 11 |
 | wj-proxy | 27 / 27 |
 | wj-scheduler | 43 / 43 |
 | wj-sitegen | 26 / 26 |
 | wj-taskflow | 30 / 30 |
 | wj-todo-cli | 65 / 65 |
-| wj-webhook | 23 / red |
+| wj-webhook | 23 / 23 |

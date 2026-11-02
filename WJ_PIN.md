@@ -5,7 +5,7 @@ commit below. CI never uses a floating branch.
 
 ```
 WJ_REPO=https://github.com/jeffreyfriedman/windjammer.git
-WJ_COMMIT=034e0b4e0a28c7d0ae860a955f399552671f625b
+WJ_COMMIT=22d3fe8b2a00bdfbd7a06ff125e29f2f91bf02b9
 ```
 
 Status: CANDIDATE. Sweep at this commit (compiled `wj build --release src` + `wj test`, per package and app):

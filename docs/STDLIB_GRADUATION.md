@@ -53,26 +53,25 @@ Updated 2026-11-02: tip-health table re-measured; `std::crypto` gains HMAC-SHA25
 | `wj-url` | Query_* sugar over tip-green `std::url` |
 | Apps (`wj-todo-cli`, `wj-proxy`, `wj-pipeline`, …) | Never std |
 
-## Tip health (2026-11-02, `wj` 0.50.0 at `next/v0.50.0` 4b18e8c2e)
+## Tip health (2026-11-02, `wj` 0.50.0 at 22d3fe8b2a00, the pinned head)
 
 Every package and app under `packages/*` and `apps/*`, tests run interpreted (`wj test --interpret`) and
 compiled (`wj test`) by `scripts/health_sweep.wj`; the table is rendered by `scripts/health_table.wj`. Counts
-are tests passed. 61 targets: 53 are green in both modes today (4 packages red interpreted, 4 apps red compiled). Compiled results use the compiler with the one-line
-`wj build src` fix described in [findings](findings/README.md) (finding 1); without it every dependency build fails.
-Each red cell is a compiler finding with a generic repro in `docs/findings/repros/`; no package carries a shim for it.
-`wj-webhook` and its HMAC signing need the `std::crypto` HMAC addition (branch `wt/std-hmac` in the compiler repo).
+are tests passed. 61 targets: 60 are green in both modes; `wj-grep` is red compiled. The red cell is a compiler
+finding with a generic repro in `docs/findings/repros/` ([findings](findings/README.md)); no package carries a shim
+for it. Derived `gen/` output is no longer tracked.
 
 | Package | Interpreted | Compiled | Notes |
 |---|---|---|---|
 | `packages/wj-base64` | pass (14) | pass (14) |  |
 | `packages/wj-cli-args` | pass (24) | pass (24) |  |
 | `packages/wj-compress` | pass (21) | pass (21) |  |
-| `packages/wj-config` | **FAIL** (17 pass) | pass (19) | Interpreted: `Some(v) => Some(v), None => None` yields `()` on a miss (finding 2) |
-| `packages/wj-cookie` | **FAIL** (17 pass) | pass (20) | Interpreted: same engine finding (finding 2) |
+| `packages/wj-config` | pass (19) | pass (19) |  |
+| `packages/wj-cookie` | pass (20) | pass (20) |  |
 | `packages/wj-cors` | pass (17) | pass (17) |  |
 | `packages/wj-cron` | pass (34) | pass (34) |  |
 | `packages/wj-csv` | pass (16) | pass (16) |  |
-| `packages/wj-dotenv` | **FAIL** (16 pass) | pass (18) | Interpreted: same engine finding (finding 2) |
+| `packages/wj-dotenv` | pass (18) | pass (18) |  |
 | `packages/wj-duration` | pass (25) | pass (25) |  |
 | `packages/wj-event` | pass (22) | pass (22) |  |
 | `packages/wj-fs-walk` | pass (18) | pass (18) |  |
@@ -94,37 +93,37 @@ Each red cell is a compiler finding with a generic repro in `docs/findings/repro
 | `packages/wj-querystring` | pass (29) | pass (29) |  |
 | `packages/wj-rate-limit` | pass (17) | pass (17) |  |
 | `packages/wj-regex` | pass (16) | pass (16) |  |
-| `packages/wj-retry` | pass (26) | pass (26) | Spin-wait `pause_ms` kept (finding 4) |
+| `packages/wj-retry` | pass (27) | pass (27) |  |
 | `packages/wj-router` | pass (13) | pass (13) |  |
 | `packages/wj-semver` | pass (17) | pass (17) |  |
 | `packages/wj-sha` | pass (11) | pass (11) |  |
 | `packages/wj-stats` | pass (5) | pass (5) |  |
-| `packages/wj-sync` | pass (50) | pass (50) |  |
+| `packages/wj-sync` | pass (50) | pass (50) | `wj check` at the package root reports unresolved `pub mod` imports; `wj check src` and the tests pass (item 3) |
 | `packages/wj-table` | pass (4) | pass (4) |  |
 | `packages/wj-template` | pass (23) | pass (23) |  |
 | `packages/wj-timefmt` | pass (27) | pass (27) |  |
-| `packages/wj-toml` | **FAIL** (26 pass) | pass (30) | Interpreted: same engine finding (finding 2) |
+| `packages/wj-toml` | pass (30) | pass (30) |  |
 | `packages/wj-url` | pass (22) | pass (22) |  |
 | `packages/wj-uuid` | pass (24) | pass (24) |  |
 | `packages/wj-validate` | pass (36) | pass (36) |  |
 | `packages/wj-yaml` | pass (26) | pass (26) |  |
-| `apps/wj-auth-api` | pass (48) | **FAIL** (build) | Compiled: cross-crate `&Vec` call (finding 3) |
+| `apps/wj-auth-api` | pass (48) | pass (48) |  |
 | `apps/wj-chat` | pass (20) | pass (20) |  |
-| `apps/wj-fetch` | pass (37) | pass (37) | `--timeout` not applied (finding 5) |
+| `apps/wj-fetch` | pass (37) | pass (37) | `--timeout` accepted but not applied (item 1) |
 | `apps/wj-find` | pass (12) | pass (12) |  |
 | `apps/wj-first-hour` | pass (4) | pass (4) |  |
 | `apps/wj-form-parse` | pass (12) | pass (12) |  |
-| `apps/wj-grep` | pass (38) | **FAIL** (build) | Compiled: `usize` pushed into `Vec<int>` (finding 6) and a loop move (finding 8) |
+| `apps/wj-grep` | pass (38) | **FAIL** (build) | Compiled: `usize` index pushed into `Vec<int>` (findings, item 2) |
 | `apps/wj-hello` | pass (8) | pass (8) |  |
 | `apps/wj-migrate-cli` | pass (27) | pass (27) |  |
-| `apps/wj-notes-api` | pass (62) | **FAIL** (build) | Compiled: cross-crate `&Vec` call (finding 3) |
+| `apps/wj-notes-api` | pass (62) | pass (62) |  |
 | `apps/wj-pipeline` | pass (11) | pass (11) |  |
 | `apps/wj-proxy` | pass (27) | pass (27) |  |
 | `apps/wj-scheduler` | pass (43) | pass (43) |  |
 | `apps/wj-sitegen` | pass (26) | pass (26) |  |
 | `apps/wj-taskflow` | pass (30) | pass (30) |  |
 | `apps/wj-todo-cli` | pass (65) | pass (65) |  |
-| `apps/wj-webhook` | pass (23) | **FAIL** (build) | Compiled: cross-crate `&Vec` call (finding 3); HMAC calls resolve (needs `wt/std-hmac`) |
+| `apps/wj-webhook` | pass (23) | pass (23) |  |
 
 ## Migration path (once gates go green)
 

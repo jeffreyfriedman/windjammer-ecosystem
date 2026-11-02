@@ -1,7 +1,0 @@
-use crate::cors_allow
-
-fn test_cors_allow() {
-    let mut list = Vec::new()
-    list.push("http://a")
-    assert(cors_allow("http://a", list).is_some(), "allowed")
-}

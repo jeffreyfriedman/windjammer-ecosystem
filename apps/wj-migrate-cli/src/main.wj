@@ -5,6 +5,7 @@ use crate::adapters::run_status
 use crate::domain::config_from_env
 use crate::domain::format_apply_result
 use crate::domain::format_list_result
+use crate::domain::format_status_result
 use crate::adapters::run_validate
 use crate::domain::format_validate_result
 use crate::domain::parse_command

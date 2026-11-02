@@ -1,6 +1,0 @@
-use std::async_runtime::sleep_ms_blocking
-
-fn main() {
-    sleep_ms_blocking(10)
-    println("slept")
-}

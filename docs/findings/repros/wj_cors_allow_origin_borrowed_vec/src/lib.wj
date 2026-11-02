@@ -1,5 +1,0 @@
-use wj_cors::allow_origin
-
-pub fn cors_allow(origin: string, allowed: Vec<string>) -> Option<string> {
-    allow_origin(origin, allowed)
-}

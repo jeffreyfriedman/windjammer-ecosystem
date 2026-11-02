@@ -1,1 +1,2 @@
 # path (or dir/ prefix) | reason
+docs/findings/repros/ | compiler-finding repros: deliberately failing against the pinned wj until the compiler fix lands

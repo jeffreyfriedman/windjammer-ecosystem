@@ -71,7 +71,7 @@ fn test_parse_replace_and_write() {
     match parse_args(argv(["--replace=new", "--write", "old", "src"])) {
         Ok(cmd) => {
             assert(cmd.replace.is_some(), "replace present")
-            assert_eq(cmd.replace.unwrap(), "new")
+            assert_eq(cmd.replace ?? "", "new")
             assert(cmd.write, "write")
         },
         Err(e) => assert(false, "parse failed: ${e}"),

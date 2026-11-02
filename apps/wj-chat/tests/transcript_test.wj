@@ -10,7 +10,7 @@ fn script(lines: Vec<string>) -> string {
 }
 
 fn auth(conn: int, user: string) -> string {
-    "${conn} {\"kind\":\"auth\",\"token\":\"${issue_token(config(), user, 3600).unwrap()}\"}"
+    "${conn} {\"kind\":\"auth\",\"token\":\"${issue_token(config(), user, 3600) ?? ""}\"}"
 }
 
 fn config() -> ChatConfig {

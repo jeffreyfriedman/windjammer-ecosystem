@@ -15,8 +15,8 @@ fn sample() -> Vec<string> {
 fn test_select_hides_dotfiles_and_dot_directories_by_default() {
     let kept = select_files("proj", sample(), "", true, false)
     assert_eq(kept.len(), 4)
-    assert(!kept.contains(&"proj/.git/config".to_string()), ".git is hidden")
-    assert(!kept.contains(&"proj/.env".to_string()), ".env is hidden")
+    assert(!kept.contains(&"proj/.git/config"), ".git is hidden")
+    assert(!kept.contains(&"proj/.env"), ".env is hidden")
 }
 
 @test

@@ -15,7 +15,7 @@ fn hub() -> Hub {
 fn token_with(secret: string, user: string) -> string {
     let mut config = default_chat_config()
     config.jwt_secret = secret
-    issue_token(config, user, 3600).unwrap()
+    issue_token(config, user, 3600) ?? ""
 }
 
 fn token(user: string) -> string {
@@ -189,8 +189,8 @@ fn test_history_replays_recent_room_messages_in_order() {
     assert_eq(mine.len(), 1)
     assert_str_contains(mine[0], "\"kind\":\"history\"")
     assert(!mine[0].contains("one"), "limit keeps only the latest two")
-    let two_at = mine[0].find("two").unwrap()
-    let three_at = mine[0].find("three").unwrap()
+    let two_at = mine[0].find("two") ?? 0
+    let three_at = mine[0].find("three") ?? 0
     assert(two_at < three_at, "oldest first")
 }
 

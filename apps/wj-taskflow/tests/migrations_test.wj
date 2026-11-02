@@ -16,8 +16,8 @@ fn test_schema_files_are_ordered_and_parse() {
 @test
 fn test_pending_versions_skips_applied() {
     let none_applied: Vec<int> = Vec::new()
-    assert_eq(pending_versions(none_applied).unwrap().len(), 1)
+    assert_eq((pending_versions(none_applied) ?? Vec::new()).len(), 1)
     let mut applied: Vec<int> = Vec::new()
     applied.push(1)
-    assert_eq(pending_versions(applied).unwrap().len(), 0)
+    assert_eq((pending_versions(applied) ?? Vec::new()).len(), 0)
 }

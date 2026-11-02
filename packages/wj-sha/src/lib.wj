@@ -18,7 +18,6 @@ pub fn etag(text: string) -> string {
 }
 
 /// True when `text` looks like a lowercase SHA-256 hex digest (64 hex chars).
-/// Uses `chars` until P3.679 greens indexed `while i < 64` + substring.
 pub fn looks_like_sha256_hex(text: string) -> bool {
     if strings.len(text) != 64 {
         return false

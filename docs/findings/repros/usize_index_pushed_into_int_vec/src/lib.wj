@@ -1,0 +1,12 @@
+/// 1-based numbers of the lines equal to `needle`.
+pub fn matching_lines(lines: Vec<string>, needle: string) -> Vec<int> {
+    let mut out = Vec::new()
+    let mut i = 0
+    while i < lines.len() {
+        if lines[i] == needle {
+            out.push(i + 1)
+        }
+        i = i + 1
+    }
+    out
+}

@@ -1,5 +1,5 @@
 // Pending work — `parallel` / `task` vocabulary (not spawn/async/go).
-// Generics-first Pending<T>. No type aliases until P3.333 greens.
+// Generics-first Pending<T>.
 
 use std::sync::mpsc
 

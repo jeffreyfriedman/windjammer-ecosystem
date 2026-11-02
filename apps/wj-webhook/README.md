@@ -19,7 +19,7 @@ No Cargo crates, no `extern fn`, no `ffi/`. Domain logic is pure Windjammer; HTT
 Auth (either):
 
 - Header `X-Webhook-Token: <secret>` matching `WEBHOOK_SECRET`
-- Header `X-Webhook-Signature: <hex>` where hex is `sha256("${secret}.${body}")` (demo until std HMAC)
+- Header `X-Webhook-Signature: <hex>` where hex is `HMAC-SHA256(secret, body)` (`std::crypto.hmac_sha256`; compared in constant time)
 
 ## Usage
 

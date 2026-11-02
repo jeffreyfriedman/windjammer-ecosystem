@@ -1,8 +1,7 @@
 use std::encoding
 
 /// Parse `a=1&b=2` (optional leading `?`) into ordered key/value pairs.
-/// Thin-wraps `std::encoding.form_parse` (P3.463 wiring). Leading-`?` strip is
-/// P3.535 — do not reimplement `strip_question` (that is P3.526).
+/// Thin-wraps `std::encoding.form_parse`, which also strips the leading `?`.
 pub fn parse(text: string) -> Vec<(string, string)> {
     encoding.form_parse(text)
 }

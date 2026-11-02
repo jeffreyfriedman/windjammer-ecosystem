@@ -36,18 +36,9 @@ pub fn escape(text: string) -> string {
 }
 
 /// Number of non-overlapping matches of `pattern` in `text`.
-///
-/// Counts with a loop until tip coerces `Ok(hits.len())` into `Result<int, _>`
-/// (P3.681 — bare `.len()` as `int` return is GREEN via glob; `Ok(.len())` RED).
 pub fn match_count(pattern: string, text: string) -> Result<int, string> {
     match find_all(pattern, text) {
-        Ok(hits) => {
-            let mut n = 0
-            for _hit in hits {
-                n = n + 1
-            }
-            Ok(n)
-        },
+        Ok(hits) => Ok(hits.len()),
         Err(e) => Err(e),
     }
 }

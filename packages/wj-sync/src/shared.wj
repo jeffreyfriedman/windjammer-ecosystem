@@ -1,5 +1,5 @@
 // Shared mutable state — Windjammer `Shared`, not Arc/Mutex in the public API.
-// Generics-first: Shared<T> / SharedMap<K,V>; int aliases after structs (P3.333b).
+// Generics-first: Shared<T> / SharedMap<K,V>; int aliases after the structs.
 
 use std::collections::HashMap
 use std::sync::atomic::{AtomicI64, Ordering}

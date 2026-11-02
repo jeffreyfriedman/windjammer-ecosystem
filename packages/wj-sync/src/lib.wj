@@ -1,6 +1,6 @@
 // wj-sync — idiomatic Windjammer concurrency (Go-style sync + CSP channels).
 // Public surface: Channel, Shared, Pending, Pool — never Arc/Mutex/async/spawn.
-// Generics-first (2026-09-16 design). Type aliases deferred until P3.333 greens.
+// Generics-first (2026-09-16 design); int instantiations are type aliases (`SharedInt`, `IntReceiver`, ...).
 
 pub mod channel
 pub mod shared

@@ -33,19 +33,7 @@ pub fn require_origin(origin: string, allowed: Vec<string>) -> Result<string, st
 
 /// `Access-Control-Allow-Origin` value: echoed origin, `*`, or `None` if rejected.
 pub fn allow_origin(origin: string, allowed: Vec<string>) -> Option<string> {
-    // Inline until `bug_same_module_vec_helper_reuse_clone_instead_of_borrow_test` is green
-    // on the pinned `wj` (0.50.0 still emits `allowed.clone()` for `&Vec` callee).
-    let mut i = 0
-    let mut matched = false
-    while i < allowed.len() {
-        let entry = allowed[i]
-        if entry == "*" || entry == origin {
-            matched = true
-            break
-        }
-        i = i + 1
-    }
-    if !matched {
+    if !is_origin_allowed(origin, allowed) {
         return None
     }
     let mut j = 0

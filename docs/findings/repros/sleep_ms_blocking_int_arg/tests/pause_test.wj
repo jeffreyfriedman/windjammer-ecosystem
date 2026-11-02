@@ -1,0 +1,5 @@
+use crate::pause_ms
+
+fn test_pause() {
+    pause_ms(1)
+}

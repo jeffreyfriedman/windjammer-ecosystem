@@ -1,5 +1,6 @@
 use std::env
 use std::strings
+use wj_path::join_path
 
 pub struct TodoConfig {
     pub file_name: string,
@@ -33,15 +34,9 @@ pub fn config_from_env() -> TodoConfig {
     config
 }
 
-/// Join cwd + relative file name. Local helper until cross-crate owned-formal move is green in app multipass.
+/// Join cwd + relative file name (absolute names win).
 pub fn resolve_file_path(cwd: string, file_name: string) -> string {
-    if strings.starts_with(file_name, "/") {
-        return file_name
-    }
-    if strings.ends_with(cwd, "/") {
-        return "${cwd}${file_name}"
-    }
-    "${cwd}/${file_name}"
+    join_path(cwd, file_name)
 }
 
 fn parse_positive_int(text: string) -> Option<int> {

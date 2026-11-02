@@ -5,6 +5,7 @@ edition = "2025"
 
 [dependencies]
 wj_cron = { path = "../../packages/wj-cron/build" }
+wj_cli_args = { path = "../../packages/wj-cli-args/build" }
 
 [dev-dependencies]
 

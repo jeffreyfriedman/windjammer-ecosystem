@@ -1,39 +1,46 @@
-# Compiler workarounds (input for the next cleanup phase)
+# Compiler workarounds
 
-Each entry is code shaped around a compiler limitation. None were rewritten in this pass
-(no builds were run, so none can be verified). When the named compiler fix lands, replace
-with the idiomatic form and delete the comment. AGENTS.md rule: fix the compiler, not the app.
+Burn-down of code that was shaped around a compiler limitation. Each entry was retried in its
+idiomatic form against the current tip `wj` (see [findings](findings/README.md) for the compiler version
+and the sweep method) and kept only when the idiomatic form still fails.
 
-| Location | Current shape | Idiomatic target |
-|---|---|---|
-| apps/wj-fetch/src/adapters/http_get.wj:7 | Timeout accepted at CLI but not applied (`std::net::Request` import codegen, P3.219) | Build a request with `timeout_secs` and call it |
-| apps/wj-notes-api/src/domain/api.wj:19 | Import alias `qs_get` to avoid ownership metadata clash with `wj_url` (P3.283) | `use wj_querystring::get` under its natural name |
-| apps/wj-scheduler/src/domain/commands.wj:43 | Inline `--at` flag scan loop (P3.224) | Call the shared flag helper from `wj-cli-args` |
-| apps/wj-todo-cli/src/domain/config.wj:36 | Local `resolve_file_path` (cross-crate owned-formal move) | Use `wj-path` join |
-| apps/wj-webhook/src/domain/webhook.wj:54 | SHA-256 of `secret.body` as demo signing | Real HMAC once `std` has it |
-| packages/wj-base64/tests/base64_test.wj:61 | Typed `0u8` literals | Plain int literals into `Vec<u8>` |
-| packages/wj-cookie/src/lib.wj:49 | Bound `Some(v) => { let _keep = v; true }` arm (P3.676) | `map.get(name).is_some()` or `Some(_) => true` |
-| packages/wj-cors/src/lib.wj:36 | Inline loop instead of helper taking `&Vec` (emits spurious clone) | Call the existing helper |
-| packages/wj-dotenv/src/lib.wj:55 | Full `match` with bound arm (P3.676) | `Some(_)` wildcard / `matches!` |
-| packages/wj-querystring/src/lib.wj:4 | Notes tied to P3.463/526/535 wiring | Reword doc once stable |
-| packages/wj-regex/src/lib.wj:41 | `.len()` return shape (P3.681) | `Ok(x.len())` directly |
-| packages/wj-retry/src/lib.wj:263 | Spin-wait `pause_ms` on `time.utc_now()` | `std::async_runtime::sleep_ms_blocking` |
-| packages/wj-sha/src/lib.wj:21 | `chars` loop (P3.679) | Indexed `while i < 64` with substring |
-| packages/wj-sync/src/lib.wj:3, pending.wj:2, shared.wj:2 | No type aliases (P3.333/333b) | Type aliases for common instantiations |
-| packages/wj-toml/src/lib.wj:285 | `"${raw}"` to force an owned copy (P3.251) | Pass `raw` directly |
-| packages/wj-uuid/src/lib.wj:59 | Namespace literal instead of module `const` | `const NS_DNS` passed to `v5` |
+## Burned down
 
-That is 16 locations (18 sites counting wj-sync's three).
+13 of the original 16 entries now use the idiomatic form, with interpreted and compiled tests green for the
+package or app that owns the code.
+
+| Entry | Idiomatic form now in place |
+|---|---|
+| `wj-scheduler` `--at` flag scan | `wj_cli_args::long_flag_value(rest, "at")` |
+| `wj-todo-cli` `resolve_file_path` | delegates to `wj_path::join_path` |
+| `wj-webhook` demo SHA-256 signing | HMAC-SHA256 via `std::crypto.hmac_sha256`, `verify_hmac_sha256` and `constant_time_eq` (needs the compiler change on `wt/std-hmac`; see below) |
+| `wj-base64` typed `0u8` literals in tests | plain integer literals into `Vec<u8>` |
+| `wj-cookie` bound `Some(v)` arm | `Some(_) => true` |
+| `wj-cors` inline origin loop | `allow_origin` calls `is_origin_allowed` |
+| `wj-dotenv` bound `Some(v)` arm | `map.get(key).is_some()` |
+| `wj-querystring` P3.x wiring notes | doc reworded: `parse` thin-wraps `std::encoding.form_parse`, which strips the `?` |
+| `wj-regex` loop counting matches | `Ok(hits.len())` |
+| `wj-sha` `chars` loop | the `for ch in strings.chars(text)` loop is the idiomatic form and passes; note removed |
+| `wj-sync` "no type aliases" | `SharedInt`, `IntReceiver`, ... are `pub type` aliases already; stale comments removed |
+| `wj-toml` `"${raw}"` owned copy | `normalize_value(raw)` |
+| `wj-uuid` namespace literal | `v5(NAMESPACE_DNS, name)` using the existing `pub const` |
+
+`wj-cookie`, `wj-dotenv` and `wj-toml` still have interpreted failures in their `get`-style tests; those are
+the engine finding below, present before and after these edits (same failing tests).
+
+## Kept, with a minimal repro
+
+| Location | Current shape | Idiomatic target | Why it stays | Repro |
+|---|---|---|---|---|
+| `apps/wj-fetch/src/adapters/http_get.wj` | `--timeout` accepted but not applied | build a request with a timeout | `std::http.get` returns a `Result`; there is no request builder, so `.timeout_secs(n)` has nothing to attach to (interpreter: `a Result has no method timeout_secs`; compiled: build fails) | [`http_request_timeout.wj`](findings/repros/http_request_timeout.wj) |
+| `apps/wj-notes-api/src/domain/api.wj` | `use wj_querystring::get as qs_get` | `use wj_querystring::get` | interpreted tests pass with the natural name; the compiled build of this app is red for an unrelated reason (the `wj_cors` finding), so the change cannot be verified compiled | [`wj_cors_allow_origin_borrowed_vec`](findings/repros/wj_cors_allow_origin_borrowed_vec) |
+| `packages/wj-retry/src/lib.wj` | spin-wait `pause_ms` on `time.utc_now()` | `std::async::sleep_ms_blocking` | interpreter accepts it; compiled build fails: runtime takes `u64`, the wrapper passes Windjammer `int` (`i64`) | [`sleep_ms_blocking_int_arg`](findings/repros/sleep_ms_blocking_int_arg) |
+
+(The old entry text named `std::async_runtime`; the module is `std::async`.)
 
 ## Dependencies on transpiled output
 
-Every cross-package dependency in the following manifests points at `.../build` (generated
-output, not tracked in git), for example `wj_cors = { path = "../../packages/wj-cors/build" }`:
-
-apps/wj-auth-api, wj-fetch, wj-find, wj-form-parse, wj-migrate-cli, wj-notes-api,
-wj-pipeline, wj-proxy, wj-scheduler, wj-sitegen, wj-todo-cli, wj-webhook; and
-packages/wj-sync/benches/wj_baseline (`path = "../../build"`).
-
-Left unchanged: `resolver.rs` in the compiler is a stub and does not show whether `wj`
-accepts a source-dir path dependency. Target: `path = "../../packages/wj-cors"`, so a
-clean checkout builds without first building every package. Needs a compiler check.
+Every cross-package dependency still points at `.../build`. Trying the source-directory form
+(`wj_glob = { path = "../wj-glob" }`) with the current compiler builds the dependency but then cargo
+reports `no matching package named wj_glob`, so the `/build` form stays until the compiler resolves
+source-directory path dependencies. This is recorded in [findings](findings/README.md).

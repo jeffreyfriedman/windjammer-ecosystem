@@ -46,12 +46,8 @@ pub fn get_cookie(map: HashMap<string, string>, name: string) -> Option<string> 
 
 /// True when `name` is present in the parsed Cookie header map.
 pub fn has_cookie(map: HashMap<string, string>, name: string) -> bool {
-    // Bound arm until P3.676 greens (`Some(_)` → matches! + DEFER DROP).
     match map.get(name) {
-        Some(v) => {
-            let _keep = v
-            true
-        },
+        Some(_) => true,
         None => false,
     }
 }

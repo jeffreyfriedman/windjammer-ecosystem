@@ -281,9 +281,7 @@ fn expand_entries(key: string, raw: string) -> Vec<(string, string)> {
         return expand_inline_table(key, raw)
     }
     let mut out = Vec::new()
-    // "${raw}" until tip auto-own at this site is reliable on pinned wj 0.50.0
-    // (gate: bug_demoted_str_after_starts_with_must_auto_own_test / P3.251).
-    out.push((key, normalize_value("${raw}")))
+    out.push((key, normalize_value(raw)))
     out
 }
 

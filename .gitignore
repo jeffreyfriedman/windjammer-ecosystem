@@ -55,3 +55,6 @@ tmp_*
 
 # Generated output (never source)
 gen/
+
+# Generated build metadata (kept in the wj cache now, never beside sources)
+*.wj.meta

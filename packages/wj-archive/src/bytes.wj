@@ -1,0 +1,99 @@
+use std::encoding
+use std::strings
+
+pub fn utf8(text: string) -> Vec<u8> {
+    match encoding.base64_decode(encoding.base64_encode_string(text)) {
+        Ok(b) => b,
+        Err(_) => Vec::new(),
+    }
+}
+
+pub fn text(data: Vec<u8>) -> Result<string, string> {
+    match encoding.base64_decode_string(encoding.base64_encode(data)) {
+        Ok(t) => Ok(t),
+        Err(_) => Err("name is not valid UTF-8"),
+    }
+}
+
+pub fn hex(data: Vec<u8>) -> string {
+    encoding.hex_encode(data)
+}
+
+pub fn from_hex(t: string) -> Vec<u8> {
+    match encoding.hex_decode(strings.replace(t, " ", "")) {
+        Ok(b) => b,
+        Err(_) => Vec::new(),
+    }
+}
+
+pub fn slice(data: Vec<u8>, from: int, to: int) -> Vec<u8> {
+    let mut out: Vec<u8> = Vec::new()
+    let mut i = from
+    while i < to {
+        out.push(data[i as usize])
+        i = i + 1
+    }
+    out
+}
+
+pub fn append(out: Vec<u8>, more: Vec<u8>) -> Vec<u8> {
+    let mut r = out
+    for b in more {
+        r.push(b)
+    }
+    r
+}
+
+pub fn put_u16(out: Vec<u8>, v: int) -> Vec<u8> {
+    let mut r = out
+    r.push((v % 256) as u8)
+    r.push(((v / 256) % 256) as u8)
+    r
+}
+
+pub fn put_u32(out: Vec<u8>, v: int) -> Vec<u8> {
+    let mut r = out
+    r.push((v % 256) as u8)
+    r.push(((v / 256) % 256) as u8)
+    r.push(((v / 65536) % 256) as u8)
+    r.push(((v / 16777216) % 256) as u8)
+    r
+}
+
+pub fn get_u16(data: Vec<u8>, at: int) -> int {
+    data[at as usize] as int + data[(at + 1) as usize] as int * 256
+}
+
+pub fn get_u32(data: Vec<u8>, at: int) -> int {
+    get_u16(data, at) + get_u16(data, at + 2) * 65536
+}
+
+fn crc_table() -> Vec<int> {
+    let mut table: Vec<int> = Vec::new()
+    let mut n = 0
+    while n < 256 {
+        let mut c = n
+        let mut k = 0
+        while k < 8 {
+            if c % 2 == 1 {
+                c = 3988292384 ^ (c / 2)
+            } else {
+                c = c / 2
+            }
+            k = k + 1
+        }
+        table.push(c)
+        n = n + 1
+    }
+    table
+}
+
+/// CRC-32 (IEEE 802.3), as used by zip and gzip.
+pub fn crc32(data: Vec<u8>) -> int {
+    let table = crc_table()
+    let mut c = 4294967295
+    for b in data {
+        c = table[((c ^ (b as int)) % 256) as usize] ^ (c / 256)
+    }
+    c ^ 4294967295
+}

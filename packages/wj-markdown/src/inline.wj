@@ -1,0 +1,507 @@
+use std::strings
+use crate::escape
+
+struct Node {
+    kind: int,
+    text: string,
+    ch: char,
+    count: int,
+    orig: int,
+    can_open: bool,
+    can_close: bool,
+}
+
+fn text_node(text: string) -> Node {
+    Node { kind: 0, text: text, ch: ' ', count: 0, orig: 0, can_open: false, can_close: false }
+}
+
+fn repeat(ch: char, n: int) -> string {
+    let mut out = ""
+    let mut i = 0
+    while i < n {
+        out = out + "${ch}"
+        i = i + 1
+    }
+    out
+}
+
+fn slice(cs: Vec<char>, from: int, to: int) -> string {
+    let mut out = ""
+    let mut i = from
+    while i < to {
+        out = out + "${cs[i as usize]}"
+        i = i + 1
+    }
+    out
+}
+
+/// Remove `<...>` tags: the plain text of rendered inline HTML (image alt text).
+fn strip_tags(html: string) -> string {
+    let mut out = ""
+    let mut inside = false
+    for ch in strings.chars(html) {
+        if ch == '<' {
+            inside = true
+        } else if ch == '>' && inside {
+            inside = false
+        } else if !inside {
+            out = out + "${ch}"
+        }
+    }
+    out
+}
+
+fn is_entity(cs: Vec<char>, i: int) -> int {
+    // `&name;` or `&#123;` or `&#x1F;`: length of the entity, 0 when the `&` is plain text.
+    let n = cs.len() as int
+    let mut j = i + 1
+    if j < n && cs[j as usize] == '#' {
+        j = j + 1
+    }
+    let start = j
+    while j < n && j - start < 31 {
+        let c = cs[j as usize]
+        if (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9') {
+            j = j + 1
+        } else {
+            break
+        }
+    }
+    if j > start && j < n && cs[j as usize] == ';' {
+        return j - i + 1
+    }
+    0
+}
+
+/// Index of the `]` that closes the `[` at `open`, skipping code spans, escapes and nested brackets; -1 if none.
+fn find_close_bracket(cs: Vec<char>, open: int) -> int {
+    let n = cs.len() as int
+    let mut depth = 0
+    let mut i = open
+    while i < n {
+        let c = cs[i as usize]
+        if c == '\\' {
+            i = i + 2
+            continue
+        }
+        if c == '`' {
+            let mut run = 0
+            while i + run < n && cs[(i + run) as usize] == '`' {
+                run = run + 1
+            }
+            let mut j = i + run
+            let mut found = -1
+            while j < n {
+                if cs[j as usize] == '`' {
+                    let mut r2 = 0
+                    while j + r2 < n && cs[(j + r2) as usize] == '`' {
+                        r2 = r2 + 1
+                    }
+                    if r2 == run {
+                        found = j + r2
+                        break
+                    }
+                    j = j + r2
+                } else {
+                    j = j + 1
+                }
+            }
+            if found >= 0 {
+                i = found
+            } else {
+                i = i + run
+            }
+            continue
+        }
+        if c == '[' {
+            depth = depth + 1
+        } else if c == ']' {
+            depth = depth - 1
+            if depth == 0 {
+                return i
+            }
+        }
+        i = i + 1
+    }
+    -1
+}
+
+fn unescape(text: string) -> string {
+    let cs: Vec<char> = escape::chars_of(text)
+    let mut out = ""
+    let mut i = 0
+    while i < cs.len() {
+        if cs[i] == '\\' && i + 1 < cs.len() && escape::is_ascii_punct(cs[i + 1]) {
+            out = out + "${cs[i + 1]}"
+            i = i + 2
+        } else {
+            out = out + "${cs[i]}"
+            i = i + 1
+        }
+    }
+    out
+}
+
+struct Target {
+    dest: string,
+    title: string,
+    has_title: bool,
+    end: int,
+}
+
+/// Parse `(dest "title")` starting at the `(` at `at`. `end` is the index after the `)`; -1 when malformed.
+fn parse_target(cs: Vec<char>, at: int) -> Target {
+    let bad = Target { dest: "", title: "", has_title: false, end: -1 }
+    let n = cs.len() as int
+    let mut i = at + 1
+    while i < n && escape::is_space(cs[i as usize]) {
+        i = i + 1
+    }
+    let mut dest = ""
+    if i < n && cs[i as usize] == '<' {
+        i = i + 1
+        let start = i
+        while i < n && cs[i as usize] != '>' && cs[i as usize] != '\n' && cs[i as usize] != '<' {
+            i = i + 1
+        }
+        if i >= n || cs[i as usize] != '>' {
+            return bad
+        }
+        dest = slice(cs, start, i)
+        i = i + 1
+    } else {
+        let start = i
+        let mut depth = 0
+        while i < n {
+            let c = cs[i as usize]
+            if c == '\\' && i + 1 < n && escape::is_ascii_punct(cs[(i + 1) as usize]) {
+                i = i + 2
+                continue
+            }
+            if escape::is_space(c) {
+                break
+            }
+            if c == '(' {
+                depth = depth + 1
+            } else if c == ')' {
+                if depth == 0 {
+                    break
+                }
+                depth = depth - 1
+            }
+            i = i + 1
+        }
+        if depth != 0 {
+            return bad
+        }
+        dest = slice(cs, start, i)
+    }
+    let mut j = i
+    while j < n && escape::is_space(cs[j as usize]) {
+        j = j + 1
+    }
+    let mut title = ""
+    let mut has_title = false
+    if j > i && j < n && (cs[j as usize] == '"' || cs[j as usize] == '\'' || cs[j as usize] == '(') {
+        let open = cs[j as usize]
+        let close = if open == '(' { ')' } else { open }
+        let tstart = j + 1
+        let mut k = tstart
+        while k < n && cs[k as usize] != close {
+            if cs[k as usize] == '\\' {
+                k = k + 1
+            }
+            k = k + 1
+        }
+        if k >= n {
+            return bad
+        }
+        title = slice(cs, tstart, k)
+        has_title = true
+        j = k + 1
+        while j < n && escape::is_space(cs[j as usize]) {
+            j = j + 1
+        }
+    }
+    if j >= n || cs[j as usize] != ')' {
+        return bad
+    }
+    Target { dest: unescape(dest), title: unescape(title), has_title: has_title, end: j + 1 }
+}
+
+fn is_scheme_char(c: char) -> bool {
+    (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9') || c == '+' || c == '.' || c == '-'
+}
+
+/// `<scheme:rest>` or `<user@host>` at `at`: returns the index after `>` or -1.
+fn autolink_end(cs: Vec<char>, at: int) -> int {
+    let n = cs.len() as int
+    let mut j = at + 1
+    let mut colon = -1
+    let mut at_sign = -1
+    while j < n && cs[j as usize] != '>' {
+        let c = cs[j as usize]
+        if c == '<' || escape::is_space(c) {
+            return -1
+        }
+        if c == ':' && colon < 0 {
+            colon = j
+        }
+        if c == '@' && at_sign < 0 {
+            at_sign = j
+        }
+        j = j + 1
+    }
+    if j >= n {
+        return -1
+    }
+    if colon >= at + 3 && colon - at - 1 <= 32 && ((cs[(at + 1) as usize] >= 'a' && cs[(at + 1) as usize] <= 'z') || (cs[(at + 1) as usize] >= 'A' && cs[(at + 1) as usize] <= 'Z')) {
+        let mut k = at + 1
+        while k < colon {
+            if !is_scheme_char(cs[k as usize]) {
+                return -1
+            }
+            k = k + 1
+        }
+        return j + 1
+    }
+    if at_sign > at + 1 && at_sign < j - 1 && colon < 0 {
+        return j + 1
+    }
+    -1
+}
+
+fn autolink_href(cs: Vec<char>, a: int, b: int, is_mail: bool) -> string {
+    if is_mail {
+        return "mailto:" + slice(cs, a, b)
+    }
+    slice(cs, a, b)
+}
+
+fn run_length(cs: Vec<char>, i: int, ch: char) -> int {
+    let n = cs.len() as int
+    let mut r = 0
+    while i + r < n && cs[(i + r) as usize] == ch {
+        r = r + 1
+    }
+    r
+}
+
+fn process_emphasis(nodes: Vec<Node>) -> Vec<Node> {
+    let mut ns = nodes
+    let mut ci = 0
+    while ci < ns.len() as int {
+        let c = ci as usize
+        if ns[c].kind == 1 && ns[c].can_close && ns[c].count > 0 {
+            let mut oi = ci - 1
+            let mut found = -1
+            while oi >= 0 {
+                let o = oi as usize
+                if ns[o].kind == 1 && ns[o].ch == ns[c].ch && ns[o].can_open && ns[o].count > 0 {
+                    let odd = (ns[o].can_close || ns[c].can_open) && (ns[o].orig + ns[c].orig) % 3 == 0 && !(ns[o].orig % 3 == 0 && ns[c].orig % 3 == 0)
+                    if !odd {
+                        found = oi
+                        break
+                    }
+                }
+                oi = oi - 1
+            }
+            if found >= 0 {
+                let o = found as usize
+                let use_n = if ns[o].count >= 2 && ns[c].count >= 2 { 2 } else { 1 }
+                ns[o].count = ns[o].count - use_n
+                ns[c].count = ns[c].count - use_n
+                let mut k = found + 1
+                while k < ci {
+                    let kk = k as usize
+                    if ns[kk].kind == 1 {
+                        ns[kk].text = repeat(ns[kk].ch, ns[kk].count)
+                        ns[kk].kind = 0
+                        ns[kk].count = 0
+                    }
+                    k = k + 1
+                }
+                let open_tag = if use_n == 2 { "<strong>" } else { "<em>" }
+                let close_tag = if use_n == 2 { "</strong>" } else { "</em>" }
+                ns.insert(o + 1, text_node(open_tag))
+                ns.insert(c + 1, text_node(close_tag))
+                // The closer moved to ci + 2; look at it again if it still has delimiters.
+                ci = ci + 2
+                if ns[ci as usize].count > 0 {
+                    continue
+                }
+                ci = ci + 1
+                continue
+            }
+            ns[c].can_close = false
+            if !ns[c].can_open {
+                // nothing can pair with it any more
+            }
+        }
+        ci = ci + 1
+    }
+    ns
+}
+
+fn render_nodes(nodes: Vec<Node>) -> string {
+    let mut out = ""
+    for nd in nodes {
+        if nd.kind == 0 {
+            out = out + nd.text
+        } else {
+            out = out + repeat(nd.ch, nd.count)
+        }
+    }
+    out
+}
+
+fn trim_trailing_spaces(text: string) -> string {
+    let mut end = strings.len(text)
+    while end > 0 && escape::sub(text, end - 1, end) == " " {
+        end = end - 1
+    }
+    escape::sub(text, 0, end)
+}
+
+/// Render the inline Markdown of one block's text as HTML. Raw HTML in the input is escaped.
+pub fn render(text: string) -> string {
+    let cs: Vec<char> = escape::chars_of(text)
+    let n = cs.len() as int
+    let mut nodes: Vec<Node> = Vec::new()
+    let mut buf = ""
+    let mut i = 0
+    while i < n {
+        let c = cs[i as usize]
+        if c == '\\' {
+            if i + 1 < n && cs[(i + 1) as usize] == '\n' {
+                nodes.push(text_node(buf + "<br />\n"))
+                buf = ""
+                i = i + 2
+                while i < n && cs[i as usize] == ' ' {
+                    i = i + 1
+                }
+            } else if i + 1 < n && escape::is_ascii_punct(cs[(i + 1) as usize]) {
+                buf = buf + escape::html("${cs[(i + 1) as usize]}")
+                i = i + 2
+            } else {
+                buf = buf + "\\"
+                i = i + 1
+            }
+            continue
+        }
+        if c == '`' {
+            let run = run_length(cs, i, '`')
+            let mut j = i + run
+            let mut close = -1
+            while j < n {
+                if cs[j as usize] == '`' {
+                    let r2 = run_length(cs, j, '`')
+                    if r2 == run {
+                        close = j
+                        break
+                    }
+                    j = j + r2
+                } else {
+                    j = j + 1
+                }
+            }
+            if close >= 0 {
+                let mut code = strings.replace(slice(cs, i + run, close), "\n", " ")
+                let len = strings.len(code)
+                if len >= 2 && strings.starts_with(code, " ") && strings.ends_with(code, " ") && strings.len(strings.trim(code)) > 0 {
+                    code = escape::sub(code, 1, len - 1)
+                }
+                nodes.push(text_node(buf + "<code>" + escape::html(code) + "</code>"))
+                buf = ""
+                i = close + run
+            } else {
+                buf = buf + repeat('`', run)
+                i = i + run
+            }
+            continue
+        }
+        if c == '*' || c == '_' {
+            let run = run_length(cs, i, c)
+            let before = if i > 0 { cs[(i - 1) as usize] } else { ' ' }
+            let after = if i + run < n { cs[(i + run) as usize] } else { ' ' }
+            let left = !escape::is_space(after) && (!escape::is_ascii_punct(after) || escape::is_space(before) || escape::is_ascii_punct(before))
+            let right = !escape::is_space(before) && (!escape::is_ascii_punct(before) || escape::is_space(after) || escape::is_ascii_punct(after))
+            let can_open = if c == '*' { left } else { left && (!right || escape::is_ascii_punct(before)) }
+            let can_close = if c == '*' { right } else { right && (!left || escape::is_ascii_punct(after)) }
+            nodes.push(text_node(buf))
+            buf = ""
+            nodes.push(Node { kind: 1, text: "", ch: c, count: run, orig: run, can_open: can_open, can_close: can_close })
+            i = i + run
+            continue
+        }
+        if c == '[' || (c == '!' && i + 1 < n && cs[(i + 1) as usize] == '[') {
+            let is_image = c == '!'
+            let open = if is_image { i + 1 } else { i }
+            let close = find_close_bracket(cs, open)
+            if close >= 0 && close + 1 < n && cs[(close + 1) as usize] == '(' {
+                let target = parse_target(cs, close + 1)
+                if target.end >= 0 && escape::is_safe_url(target.dest.clone()) {
+                    let inner = render(slice(cs, open + 1, close))
+                    let title_attr = if target.has_title { " title=\"" + escape::html(target.title) + "\"" } else { "" }
+                    let html = if is_image {
+                        "<img src=\"" + escape::url(target.dest) + "\" alt=\"" + strip_tags(inner) + "\"" + title_attr + " />"
+                    } else {
+                        "<a href=\"" + escape::url(target.dest) + "\"" + title_attr + ">" + inner + "</a>"
+                    }
+                    nodes.push(text_node(buf + html))
+                    buf = ""
+                    i = target.end
+                    continue
+                }
+            }
+            buf = buf + (if is_image { "!" } else { "" }) + "["
+            i = open + 1
+            continue
+        }
+        if c == '<' {
+            let end = autolink_end(cs, i)
+            if end >= 0 {
+                let a = i + 1
+                let b = end - 1
+                let is_mail = !strings.contains(slice(cs, a, b), ":")
+                let safe = escape::is_safe_url(autolink_href(cs, a, b, is_mail))
+                if safe {
+                    nodes.push(text_node(buf + "<a href=\"" + escape::url(autolink_href(cs, a, b, is_mail)) + "\">" + escape::html(slice(cs, a, b)) + "</a>"))
+                } else {
+                    nodes.push(text_node(buf + escape::html("<" + slice(cs, a, b) + ">")))
+                }
+                buf = ""
+                i = end
+            } else {
+                buf = buf + "&lt;"
+                i = i + 1
+            }
+            continue
+        }
+        if c == '&' {
+            let len = is_entity(cs, i)
+            if len > 0 {
+                buf = buf + slice(cs, i, i + len)
+                i = i + len
+            } else {
+                buf = buf + "&amp;"
+                i = i + 1
+            }
+            continue
+        }
+        if c == '\n' {
+            let hard = strings.ends_with(buf, "  ")
+            buf = trim_trailing_spaces(buf)
+            buf = buf + (if hard { "<br />\n" } else { "\n" })
+            i = i + 1
+            while i < n && cs[i as usize] == ' ' {
+                i = i + 1
+            }
+            continue
+        }
+        buf = buf + escape::html("${c}")
+        i = i + 1
+    }
+    nodes.push(text_node(buf))
+    render_nodes(process_emphasis(nodes))
+}

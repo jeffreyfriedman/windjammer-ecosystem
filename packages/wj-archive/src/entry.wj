@@ -1,0 +1,40 @@
+use std::strings
+
+/// One file or directory in an archive.
+pub struct Entry {
+    pub name: string,
+    pub data: Vec<u8>,
+    /// Unix permission bits, e.g. 420 (octal 644).
+    pub mode: int,
+    /// Seconds since 1970-01-01 UTC.
+    pub mtime: int,
+    pub is_dir: bool,
+}
+
+pub fn file(name: string, data: Vec<u8>) -> Entry {
+    Entry { name: name, data: data, mode: 420, mtime: 0, is_dir: false }
+}
+
+pub fn dir(name: string) -> Entry {
+    Entry { name: name, data: Vec::new(), mode: 493, mtime: 0, is_dir: true }
+}
+
+/// True for a relative path that stays inside the extraction root: no leading `/`, no `..` segment,
+/// no backslash or drive prefix, no NUL.
+pub fn is_safe_path(name: string) -> bool {
+    if strings.len(name) == 0 || strings.starts_with(name, "/") || strings.contains(name, "\\") || strings.contains(name, "\0") {
+        return false
+    }
+    if strings.len(name) >= 2 && strings.substring(name, 1, 2) == ":" {
+        return false
+    }
+    for part in strings.split(name, "/") {
+        if part == ".." {
+            return false
+        }
+    }
+    true
+}
+
+/// Default cap on the total uncompressed size a reader will produce (256 MiB).
+pub const DEFAULT_MAX_TOTAL: int = 268435456

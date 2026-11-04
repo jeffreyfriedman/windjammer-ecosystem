@@ -1,0 +1,79 @@
+use crate::frame::Frame
+use crate::frame::OP_BINARY
+use crate::frame::OP_CLOSE
+use crate::frame::OP_CONTINUATION
+use crate::frame::OP_PING
+use crate::frame::OP_PONG
+use crate::frame::OP_TEXT
+use crate::frame::utf8_string
+
+/// What the application sees after fragments are reassembled.
+pub enum Message {
+    Text(string),
+    Binary(Vec<u8>),
+    /// Reply with a pong carrying the same bytes.
+    Ping(Vec<u8>),
+    Pong(Vec<u8>),
+    /// Status code and reason; reply with a close frame and stop.
+    Close(int, string),
+}
+
+/// Joins fragmented data frames back into whole messages and checks the rules between frames.
+pub struct Assembler {
+    opcode: int,
+    parts: Vec<u8>,
+    open: bool,
+    max_message: int,
+}
+
+pub fn new_assembler(max_message: int) -> Assembler {
+    Assembler { opcode: 0, parts: Vec::new(), open: false, max_message: max_message }
+}
+
+impl Assembler {
+    /// Feed one frame. `Ok(None)` means the message is still incomplete.
+    pub fn push(self, frame: Frame) -> Result<Option<Message>, string> {
+        if frame.opcode == OP_PING {
+            return Ok(Some(Message::Ping(frame.payload)))
+        }
+        if frame.opcode == OP_PONG {
+            return Ok(Some(Message::Pong(frame.payload)))
+        }
+        if frame.opcode == OP_CLOSE {
+            let (code, reason) = crate::frame::parse_close(frame.payload)?
+            return Ok(Some(Message::Close(code, reason)))
+        }
+        if frame.opcode == OP_CONTINUATION {
+            if !self.open {
+                return Err("continuation frame without a message to continue")
+            }
+        } else {
+            if self.open {
+                return Err("new data frame while a fragmented message is open")
+            }
+            self.opcode = frame.opcode
+            self.parts = Vec::new()
+            self.open = true
+        }
+        if (self.parts.len() + frame.payload.len()) as int > self.max_message {
+            return Err("message exceeds the limit of ${self.max_message} bytes")
+        }
+        for b in frame.payload {
+            self.parts.push(b)
+        }
+        if !frame.fin {
+            return Ok(None)
+        }
+        self.open = false
+        let data = self.parts
+        self.parts = Vec::new()
+        if self.opcode == OP_TEXT {
+            let text = utf8_string(data)?
+            return Ok(Some(Message::Text(text)))
+        }
+        if self.opcode == OP_BINARY {
+            return Ok(Some(Message::Binary(data)))
+        }
+        Err("invalid data opcode")
+    }
+}

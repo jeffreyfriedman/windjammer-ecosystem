@@ -1,0 +1,104 @@
+use std::strings
+
+/// `text` as a vector of characters (indexable in both the interpreter and compiled code).
+pub fn chars_of(text: string) -> Vec<char> {
+    let mut out: Vec<char> = Vec::new()
+    for ch in strings.chars(text) {
+        out.push(ch)
+    }
+    out
+}
+
+/// `text[from..to]` in characters, taking `int` bounds.
+pub fn sub(text: string, from: int, to: int) -> string {
+    strings.substring(text, from as usize, to as usize)
+}
+
+/// HTML-escape text: `&`, `<`, `>` and `"`.
+pub fn html(text: string) -> string {
+    let mut out = ""
+    for ch in strings.chars(text) {
+        if ch == '&' {
+            out = out + "&amp;"
+        } else if ch == '<' {
+            out = out + "&lt;"
+        } else if ch == '>' {
+            out = out + "&gt;"
+        } else if ch == '"' {
+            out = out + "&quot;"
+        } else {
+            out = out + "${ch}"
+        }
+    }
+    out
+}
+
+pub fn is_ascii_punct(ch: char) -> bool {
+    (ch >= '!' && ch <= '/') || (ch >= ':' && ch <= '@') || (ch >= '[' && ch <= '`') || (ch >= '{' && ch <= '~')
+}
+
+pub fn is_space(ch: char) -> bool {
+    ch == ' ' || ch == '\t' || ch == '\n' || ch == '\r'
+}
+
+fn hex_digit(n: int) -> string {
+    sub("0123456789ABCDEF", n, n + 1)
+}
+
+fn pct(byte: int) -> string {
+    "%" + hex_digit(byte / 16) + hex_digit(byte % 16)
+}
+
+fn is_hex(ch: char) -> bool {
+    (ch >= '0' && ch <= '9') || (ch >= 'a' && ch <= 'f') || (ch >= 'A' && ch <= 'F')
+}
+
+/// UTF-8 bytes of a code point, percent-encoded.
+fn utf8_pct(code: int) -> string {
+    if code < 128 {
+        return pct(code)
+    }
+    if code < 2048 {
+        return pct(192 + code / 64) + pct(128 + code % 64)
+    }
+    if code < 65536 {
+        return pct(224 + code / 4096) + pct(128 + (code / 64) % 64) + pct(128 + code % 64)
+    }
+    pct(240 + code / 262144) + pct(128 + (code / 4096) % 64) + pct(128 + (code / 64) % 64) + pct(128 + code % 64)
+}
+
+/// Percent-encode a link destination the way CommonMark renderers do: URL characters and valid `%XX` stay,
+/// everything else becomes UTF-8 percent escapes; `&` is HTML-escaped for the attribute.
+pub fn url(text: string) -> string {
+    let cs: Vec<char> = chars_of(text)
+    let mut out = ""
+    let mut i = 0
+    while i < cs.len() {
+        let ch = cs[i]
+        let keep = (ch >= 'a' && ch <= 'z') || (ch >= 'A' && ch <= 'Z') || (ch >= '0' && ch <= '9')
+            || strings.contains(";/?:@=+$,-_.!~*'()#", "${ch}")
+        if ch == '&' {
+            out = out + "&amp;"
+        } else if ch == '%' && i + 2 < cs.len() + 0 && is_hex(cs[i + 1]) && is_hex(cs[i + 2]) {
+            out = out + "%"
+        } else if keep {
+            out = out + "${ch}"
+        } else {
+            out = out + utf8_pct(ch as int)
+        }
+        i = i + 1
+    }
+    out
+}
+
+/// Only web, mail and relative destinations become links; `javascript:`, `data:` and the like do not.
+pub fn is_safe_url(dest: string) -> bool {
+    let lower = strings.to_lower(strings.trim(dest))
+    if strings.starts_with(lower, "javascript:") || strings.starts_with(lower, "vbscript:") || strings.starts_with(lower, "file:") {
+        return false
+    }
+    if strings.starts_with(lower, "data:") {
+        return strings.starts_with(lower, "data:image/gif;") || strings.starts_with(lower, "data:image/png;") || strings.starts_with(lower, "data:image/jpeg;") || strings.starts_with(lower, "data:image/webp;")
+    }
+    true
+}

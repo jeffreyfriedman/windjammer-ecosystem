@@ -1,0 +1,226 @@
+use std::strings
+use crate::bytes
+use crate::entry
+use crate::entry::Entry
+use crate::inflate
+
+/// Days since 1970-01-01 for a civil date (Howard Hinnant's algorithm).
+fn days_from_civil(y: int, m: int, d: int) -> int {
+    let yy = if m <= 2 { y - 1 } else { y }
+    let era = (if yy >= 0 { yy } else { yy - 399 }) / 400
+    let yoe = yy - era * 400
+    let mp = (m + 9) % 12
+    let doy = (153 * mp + 2) / 5 + d - 1
+    let doe = yoe * 365 + yoe / 4 - yoe / 100 + doy
+    era * 146097 + doe - 719468
+}
+
+fn civil_from_days(z0: int) -> (int, int, int) {
+    let z = z0 + 719468
+    let era = (if z >= 0 { z } else { z - 146096 }) / 146097
+    let doe = z - era * 146097
+    let yoe = (doe - doe / 1460 + doe / 36524 - doe / 146096) / 365
+    let y = yoe + era * 400
+    let doy = doe - (365 * yoe + yoe / 4 - yoe / 100)
+    let mp = (5 * doy + 2) / 153
+    let d = doy - (153 * mp + 2) / 5 + 1
+    let m = if mp < 10 { mp + 3 } else { mp - 9 }
+    (if m <= 2 { y + 1 } else { y }, m, d)
+}
+
+/// (dos_time, dos_date) for a Unix time; times before 1980 become 1980-01-01 00:00:00.
+fn to_dos(mtime: int) -> (int, int) {
+    if mtime < 315532800 {
+        return (0, 33)
+    }
+    let days = mtime / 86400
+    let secs = mtime % 86400
+    let (y, m, d) = civil_from_days(days)
+    ((secs / 3600) * 2048 + ((secs % 3600) / 60) * 32 + (secs % 60) / 2, (y - 1980) * 512 + m * 32 + d)
+}
+
+fn from_dos(time: int, date: int) -> int {
+    let y = 1980 + date / 512
+    let m = (date / 32) % 16
+    let d = date % 32
+    if m < 1 || m > 12 || d < 1 {
+        return 0
+    }
+    days_from_civil(y, m, d) * 86400 + (time / 2048) * 3600 + ((time / 32) % 64) * 60 + (time % 32) * 2
+}
+
+fn is_ascii(text: string) -> bool {
+    for ch in strings.chars(text) {
+        if ch as int >= 128 {
+            return false
+        }
+    }
+    true
+}
+
+/// A zip archive with every entry stored (method 0) and CRC-32 checked on read.
+pub fn write(entries: Vec<Entry>) -> Result<Vec<u8>, string> {
+    let mut out: Vec<u8> = Vec::new()
+    let mut central: Vec<u8> = Vec::new()
+    let mut count = 0
+    for e in entries {
+        if !entry::is_safe_path(e.name) {
+            return Err("unsafe entry name '${e.name}'")
+        }
+        let name = if e.is_dir && !strings.ends_with(e.name, "/") { e.name + "/" } else { e.name }
+        let raw_name = bytes::utf8(name)
+        let data = if e.is_dir { Vec::new() } else { e.data }
+        if data.len() as int >= 4294967295 || out.len() as int >= 4294967295 {
+            return Err("zip64 is not supported")
+        }
+        let crc = bytes::crc32(data)
+        let flags = if is_ascii(name) { 0 } else { 2048 }
+        let (dtime, ddate) = to_dos(e.mtime)
+        let offset = out.len() as int
+        out = bytes::put_u32(out, 67324752)
+        out = bytes::put_u16(out, 20)
+        out = bytes::put_u16(out, flags)
+        out = bytes::put_u16(out, 0)
+        out = bytes::put_u16(out, dtime)
+        out = bytes::put_u16(out, ddate)
+        out = bytes::put_u32(out, crc)
+        out = bytes::put_u32(out, data.len() as int)
+        out = bytes::put_u32(out, data.len() as int)
+        out = bytes::put_u16(out, raw_name.len() as int)
+        out = bytes::put_u16(out, 0)
+        out = bytes::append(out, raw_name)
+        out = bytes::append(out, data)
+        central = bytes::put_u32(central, 33639248)
+        central = bytes::put_u16(central, 788)
+        central = bytes::put_u16(central, 20)
+        central = bytes::put_u16(central, flags)
+        central = bytes::put_u16(central, 0)
+        central = bytes::put_u16(central, dtime)
+        central = bytes::put_u16(central, ddate)
+        central = bytes::put_u32(central, crc)
+        central = bytes::put_u32(central, data.len() as int)
+        central = bytes::put_u32(central, data.len() as int)
+        central = bytes::put_u16(central, raw_name.len() as int)
+        central = bytes::put_u16(central, 0)
+        central = bytes::put_u16(central, 0)
+        central = bytes::put_u16(central, 0)
+        central = bytes::put_u16(central, 0)
+        let attr = if e.is_dir { (16384 + e.mode) * 65536 + 16 } else { (32768 + e.mode) * 65536 }
+        central = bytes::put_u32(central, attr)
+        central = bytes::put_u32(central, offset)
+        central = bytes::append(central, raw_name)
+        count = count + 1
+    }
+    let cd_offset = out.len() as int
+    let cd_size = central.len() as int
+    out = bytes::append(out, central)
+    out = bytes::put_u32(out, 101010256)
+    out = bytes::put_u16(out, 0)
+    out = bytes::put_u16(out, 0)
+    out = bytes::put_u16(out, count)
+    out = bytes::put_u16(out, count)
+    out = bytes::put_u32(out, cd_size)
+    out = bytes::put_u32(out, cd_offset)
+    out = bytes::put_u16(out, 0)
+    if count > 65534 {
+        return Err("too many entries (zip64 is not supported)")
+    }
+    Ok(out)
+}
+
+fn find_eocd(data: Vec<u8>) -> Result<int, string> {
+    let n = data.len() as int
+    if n < 22 {
+        return Err("too short to be a zip archive")
+    }
+    let mut at = n - 22
+    let floor = if n - 22 - 65535 > 0 { n - 22 - 65535 } else { 0 }
+    while at >= floor {
+        if bytes::get_u32(data, at) == 101010256 {
+            return Ok(at)
+        }
+        at = at - 1
+    }
+    Err("end of central directory not found")
+}
+
+/// Read a zip archive: stored and deflated entries, UTF-8 or ASCII names. Encrypted entries, zip64, other
+/// compression methods, unsafe names, CRC or size mismatches and totals over `max_total` bytes are errors.
+pub fn read_limited(data: Vec<u8>, max_total: int) -> Result<Vec<Entry>, string> {
+    let eocd = find_eocd(data)?
+    let count = bytes::get_u16(data, eocd + 10)
+    let cd_offset = bytes::get_u32(data, eocd + 16)
+    if cd_offset == 4294967295 || count == 65535 {
+        return Err("zip64 is not supported")
+    }
+    let n = data.len() as int
+    let mut entries: Vec<Entry> = Vec::new()
+    let mut at = cd_offset
+    let mut total = 0
+    let mut i = 0
+    while i < count {
+        if at + 46 > n || bytes::get_u32(data, at) != 33639248 {
+            return Err("corrupt central directory")
+        }
+        let flags = bytes::get_u16(data, at + 8)
+        let method = bytes::get_u16(data, at + 10)
+        let dtime = bytes::get_u16(data, at + 12)
+        let ddate = bytes::get_u16(data, at + 14)
+        let crc = bytes::get_u32(data, at + 16)
+        let csize = bytes::get_u32(data, at + 20)
+        let usize = bytes::get_u32(data, at + 24)
+        let nlen = bytes::get_u16(data, at + 28)
+        let elen = bytes::get_u16(data, at + 30)
+        let clen = bytes::get_u16(data, at + 32)
+        let attr = bytes::get_u32(data, at + 38)
+        let local = bytes::get_u32(data, at + 42)
+        if at + 46 + nlen > n {
+            return Err("corrupt central directory")
+        }
+        let name = bytes::text(bytes::slice(data, at + 46, at + 46 + nlen))?
+        if flags % 2 == 1 {
+            return Err("encrypted entries are not supported")
+        }
+        if method != 0 && method != 8 {
+            return Err("unsupported compression method ${method}")
+        }
+        if csize == 4294967295 || usize == 4294967295 || local == 4294967295 {
+            return Err("zip64 is not supported")
+        }
+        let is_dir = strings.ends_with(name, "/")
+        let clean = if is_dir { strings.substring(name, 0, strings.len(name) - 1) } else { name }
+        if !entry::is_safe_path(clean) {
+            return Err("unsafe entry name '${name}'")
+        }
+        total = total + usize
+        if total > max_total {
+            return Err("archive contents exceed the limit of ${max_total} bytes")
+        }
+        if local + 30 > n || bytes::get_u32(data, local) != 67324752 {
+            return Err("corrupt local header for '${name}'")
+        }
+        let lnlen = bytes::get_u16(data, local + 26)
+        let lelen = bytes::get_u16(data, local + 28)
+        let start = local + 30 + lnlen + lelen
+        if start + csize > n {
+            return Err("entry '${name}' runs past the end of the archive")
+        }
+        let raw = bytes::slice(data, start, start + csize)
+        let body = if method == 0 { raw } else { inflate::inflate(raw, usize)? }
+        if body.len() as int != usize {
+            return Err("size mismatch for '${name}'")
+        }
+        if bytes::crc32(body) != crc {
+            return Err("CRC-32 mismatch for '${name}'")
+        }
+        let unix_mode = (attr / 65536) % 4096
+        entries.push(Entry { name: clean, data: if is_dir { Vec::new() } else { body }, mode: if unix_mode == 0 { if is_dir { 493 } else { 420 } } else { unix_mode }, mtime: from_dos(dtime, ddate), is_dir: is_dir })
+        at = at + 46 + nlen + elen + clen
+        i = i + 1
+    }
+    Ok(entries)
+}
+
+pub fn read(data: Vec<u8>) -> Result<Vec<Entry>, string> {
+    read_limited(data, entry::DEFAULT_MAX_TOTAL)
+}

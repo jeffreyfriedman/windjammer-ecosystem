@@ -1,0 +1,7 @@
+use crate::total
+use crate::label
+
+fn test_total() {
+    assert_eq(total(), 6)
+    assert_eq(label("a"), "first")
+}

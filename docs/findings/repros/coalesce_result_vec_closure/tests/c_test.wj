@@ -1,6 +1,0 @@
-use crate::count
-
-fn test_count() {
-    assert_eq(count(true), 1)
-    assert_eq(count(false), 0)
-}

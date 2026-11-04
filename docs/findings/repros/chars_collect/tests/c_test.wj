@@ -1,0 +1,5 @@
+use crate::count_a
+
+fn test_count() {
+    assert_eq(count_a("banana"), 3)
+}

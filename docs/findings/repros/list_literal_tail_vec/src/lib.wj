@@ -1,0 +1,4 @@
+/// A list literal as the tail expression of a function returning Vec<float>.
+pub fn bounds() -> Vec<float> {
+    [0.5, 1.0, 2.5]
+}

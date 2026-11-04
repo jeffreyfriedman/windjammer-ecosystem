@@ -1,0 +1,4 @@
+/// `??` on a Result compiles to unwrap_or_else(|| ..) which expects a closure of one argument.
+pub fn size_of(text: string) -> int {
+    text.parse::<int>() ?? -1
+}

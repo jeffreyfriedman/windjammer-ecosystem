@@ -1,8 +1,0 @@
-use crate::matching_lines
-
-fn test_matching_lines() {
-    let lines = ["a", "b", "a"]
-    let hits = matching_lines(lines, "a")
-    assert_eq(hits.len(), 2)
-    assert_eq(hits[1], 3)
-}

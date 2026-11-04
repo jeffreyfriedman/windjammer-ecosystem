@@ -1,0 +1,9 @@
+[package]
+name = "app-b"
+version = "0.1.0"
+edition = "2025"
+
+[dependencies]
+lib_a = { path = "../lib/build" }
+
+[lib]

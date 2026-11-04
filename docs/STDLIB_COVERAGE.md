@@ -32,4 +32,8 @@ Measured status for every package and app (interpreted and compiled test counts)
 [STDLIB_GRADUATION.md](STDLIB_GRADUATION.md); `std::sync`, `std::time` and `std::collections` are also used
 widely (`wj-sync`, `wj-timefmt`, `wj-retry`, `wj-cron`, most apps) and are not given columns here.
 
+Newer packages and the std modules they use: `wj-decimal` (`std::strings`), `wj-metrics` (`std::json` typed `@json` structs,
+`std::strings`), `wj-markdown` (`std::strings`), `wj-ws` (`std::encoding`, `std::crypto` SHA-1, `std::strings`),
+`wj-archive` (`std::encoding`, `std::strings`; DEFLATE and CRC-32 are written in Windjammer). None needs a capability.
+
 Mark a cell **yes** when production `.wj` (not only tests) uses that module. Prefer one clear owner app or package per concern.

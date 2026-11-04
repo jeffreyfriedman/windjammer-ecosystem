@@ -1,0 +1,9 @@
+use lib_a::is_match
+
+pub struct Rule {
+    pub pattern: string,
+}
+
+pub fn rule_matches(rule: Rule, path: string) -> bool {
+    is_match(rule.pattern, path)
+}

@@ -1,0 +1,5 @@
+use crate::check
+
+fn test_check() {
+    assert(check(), "huge")
+}

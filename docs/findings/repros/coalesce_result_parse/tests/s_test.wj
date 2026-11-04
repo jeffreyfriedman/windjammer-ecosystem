@@ -1,0 +1,6 @@
+use crate::size_of
+
+fn test_size() {
+    assert_eq(size_of("12"), 12)
+    assert_eq(size_of("x"), -1)
+}

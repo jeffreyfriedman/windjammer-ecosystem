@@ -1,0 +1,299 @@
+use std::strings
+use crate::bytes
+use crate::entry
+use crate::entry::Entry
+
+fn zeros(n: int) -> Vec<u8> {
+    let mut out: Vec<u8> = Vec::new()
+    let mut i = 0
+    while i < n {
+        out.push(0)
+        i = i + 1
+    }
+    out
+}
+
+fn octal(value: int, digits: int) -> Vec<u8> {
+    let mut text = ""
+    let mut v = value
+    if v == 0 {
+        text = "0"
+    }
+    while v > 0 {
+        text = "${v % 8}" + text
+        v = v / 8
+    }
+    while strings.len(text) < digits {
+        text = "0" + text
+    }
+    bytes::utf8(text)
+}
+
+/// Write `value` as zero-padded octal into `field` bytes of `block` at `at`, leaving the last byte NUL.
+fn put_octal(block: Vec<u8>, at: int, field: int, value: int) -> Vec<u8> {
+    let mut b = block
+    let digits = octal(value, field - 1)
+    let mut i = 0
+    while i < digits.len() {
+        b[(at + i) as usize] = digits[i]
+        i = i + 1
+    }
+    b
+}
+
+fn put_text(block: Vec<u8>, at: int, text: Vec<u8>) -> Vec<u8> {
+    let mut b = block
+    let mut i = 0
+    while i < text.len() {
+        b[(at + i) as usize] = text[i]
+        i = i + 1
+    }
+    b
+}
+
+/// Split a long path at a `/` into ustar `prefix` (<= 155) and `name` (<= 100).
+fn split_name(name: string) -> Result<(string, string), string> {
+    let raw = bytes::utf8(name)
+    if raw.len() <= 100 {
+        return Ok(("", name))
+    }
+    let parts = strings.split(name, "/")
+    let mut best = -1
+    let mut i = 1
+    while i < parts.len() {
+        let prefix = strings.join(slice_strings(parts, 0, i), "/")
+        let rest = strings.join(slice_strings(parts, i, parts.len() as int), "/")
+        if bytes::utf8(prefix).len() <= 155 && bytes::utf8(rest).len() <= 100 && strings.len(rest) > 0 {
+            best = i as int
+            break
+        }
+        i = i + 1
+    }
+    if best < 0 {
+        return Err("path too long for ustar: '${name}'")
+    }
+    Ok((strings.join(slice_strings(parts, 0, best), "/"), strings.join(slice_strings(parts, best, parts.len() as int), "/")))
+}
+
+fn slice_strings(parts: Vec<string>, from: int, to: int) -> Vec<string> {
+    let mut out: Vec<string> = Vec::new()
+    let mut i = from
+    while i < to {
+        out.push(parts[i as usize])
+        i = i + 1
+    }
+    out
+}
+
+fn header(e: Entry) -> Result<Vec<u8>, string> {
+    let full = if e.is_dir && !strings.ends_with(e.name, "/") { e.name + "/" } else { e.name }
+    let (prefix, name) = split_name(full)?
+    let size = if e.is_dir { 0 } else { e.data.len() as int }
+    if size > 8589934591 {
+        return Err("entry larger than 8 GiB")
+    }
+    let mut b = zeros(512)
+    b = put_text(b, 0, bytes::utf8(name))
+    b = put_octal(b, 100, 8, e.mode)
+    b = put_octal(b, 108, 8, 0)
+    b = put_octal(b, 116, 8, 0)
+    b = put_octal(b, 124, 12, size)
+    b = put_octal(b, 136, 12, e.mtime)
+    let mut k = 148
+    while k < 156 {
+        b[k as usize] = 32
+        k = k + 1
+    }
+    b[156] = if e.is_dir { 53 } else { 48 }
+    b = put_text(b, 257, bytes::utf8("ustar"))
+    b[263] = 48
+    b[264] = 48
+    b = put_text(b, 345, bytes::utf8(prefix))
+    let mut sum = 0
+    for x in b {
+        sum = sum + x as int
+    }
+    let chk = octal(sum, 6)
+    b = put_text(b, 148, chk)
+    b[154] = 0
+    b[155] = 32
+    Ok(b)
+}
+
+/// A ustar archive: a 512-byte header per entry, data padded to 512, then two zero blocks.
+pub fn write(entries: Vec<Entry>) -> Result<Vec<u8>, string> {
+    let mut out: Vec<u8> = Vec::new()
+    for e in entries {
+        if !entry::is_safe_path(e.name) {
+            return Err("unsafe entry name '${e.name}'")
+        }
+        out = bytes::append(out, header(e)?)
+        if !e.is_dir {
+            out = bytes::append(out, e.data)
+            let pad = (512 - (e.data.len() as int) % 512) % 512
+            out = bytes::append(out, zeros(pad))
+        }
+    }
+    Ok(bytes::append(out, zeros(1024)))
+}
+
+fn all_zero(block: Vec<u8>) -> bool {
+    for b in block {
+        if b != 0 {
+            return false
+        }
+    }
+    true
+}
+
+fn field_text(block: Vec<u8>, at: int, len: int) -> Result<string, string> {
+    let mut end = at
+    while end < at + len && block[end as usize] != 0 {
+        end = end + 1
+    }
+    bytes::text(bytes::slice(block, at, end))
+}
+
+fn parse_octal(block: Vec<u8>, at: int, len: int) -> Result<int, string> {
+    if block[at as usize] >= 128 {
+        // GNU base-256 for values that do not fit the octal field.
+        let mut v = (block[at as usize] as int) % 128
+        let mut i = 1
+        while i < len {
+            v = v * 256 + block[(at + i) as usize] as int
+            i = i + 1
+        }
+        return Ok(v)
+    }
+    let mut v = 0
+    let mut seen = false
+    let mut i = 0
+    while i < len {
+        let c = block[(at + i) as usize] as int
+        if c >= 48 && c <= 55 {
+            v = v * 8 + (c - 48)
+            seen = true
+        } else if c == 0 || c == 32 {
+            if seen {
+                break
+            }
+        } else {
+            return Err("invalid octal field")
+        }
+        i = i + 1
+    }
+    Ok(v)
+}
+
+/// PAX extended header records `"<len> key=value\n"`: returns (path, size) overrides ("" and -1 when absent).
+fn parse_pax(data: Vec<u8>) -> Result<(string, int), string> {
+    let text = bytes::text(data)?
+    let mut path = ""
+    let mut size = -1
+    for line in strings.split_lines(text) {
+        let sp = strings.split(line, " ")
+        if sp.len() < 2 {
+            continue
+        }
+        let rest = strings.join(slice_strings(sp, 1, sp.len() as int), " ")
+        let kv = strings.split(rest, "=")
+        if kv.len() >= 2 {
+            let value = strings.join(slice_strings(kv, 1, kv.len() as int), "=")
+            if kv[0] == "path" {
+                path = value
+            } else if kv[0] == "size" {
+                size = value.parse::<int>().unwrap_or(-1)
+            }
+        }
+    }
+    Ok((path, size))
+}
+
+/// Read a tar archive (ustar, GNU long names and PAX `path`/`size`). Regular files and directories only;
+/// other entry types, bad checksums, unsafe names and totals over `max_total` bytes are errors.
+pub fn read_limited(data: Vec<u8>, max_total: int) -> Result<Vec<Entry>, string> {
+    let mut entries: Vec<Entry> = Vec::new()
+    let mut at = 0
+    let n = data.len() as int
+    let mut total = 0
+    let mut long_name = ""
+    let mut pax_path = ""
+    let mut pax_size = -1
+    while at + 512 <= n {
+        let block = bytes::slice(data, at, at + 512)
+        if all_zero(block) {
+            break
+        }
+        let stored = parse_octal(block, 148, 8)?
+        let mut sum = 0
+        let mut i = 0
+        while i < 512 {
+            sum = sum + (if i >= 148 && i < 156 { 32 } else { block[i as usize] as int })
+            i = i + 1
+        }
+        if sum != stored {
+            return Err("bad header checksum at byte ${at}")
+        }
+        let kind = block[156] as int
+        let mut size = parse_octal(block, 124, 12)?
+        if pax_size >= 0 {
+            size = pax_size
+        }
+        if total + size > max_total {
+            return Err("archive contents exceed the limit of ${max_total} bytes")
+        }
+        if at + 512 + size > n {
+            return Err("archive ends inside an entry")
+        }
+        let body = bytes::slice(data, at + 512, at + 512 + size)
+        let advance = 512 + ((size + 511) / 512) * 512
+        if kind == 120 {
+            let p = parse_pax(body)?
+            pax_path = p.0
+            pax_size = p.1
+            at = at + advance
+            continue
+        }
+        if kind == 103 {
+            at = at + advance
+            continue
+        }
+        if kind == 76 {
+            long_name = field_text(body, 0, body.len() as int)?
+            at = at + advance
+            continue
+        }
+        if kind != 48 && kind != 0 && kind != 53 {
+            return Err("unsupported entry type '${kind}'")
+        }
+        let prefix = field_text(block, 345, 155)?
+        let short = field_text(block, 0, 100)?
+        let mut name = if strings.len(prefix) > 0 { prefix + "/" + short } else { short }
+        if strings.len(long_name) > 0 {
+            name = long_name
+        }
+        if strings.len(pax_path) > 0 {
+            name = pax_path
+        }
+        long_name = ""
+        pax_path = ""
+        pax_size = -1
+        let is_dir = kind == 53
+        if is_dir && strings.ends_with(name, "/") {
+            name = strings.substring(name, 0, strings.len(name) - 1)
+        }
+        if !entry::is_safe_path(name) {
+            return Err("unsafe entry name '${name}'")
+        }
+        let mode = parse_octal(block, 100, 8)?
+        let mtime = parse_octal(block, 136, 12)?
+        total = total + size
+        entries.push(Entry { name: name, data: if is_dir { Vec::new() } else { body }, mode: mode, mtime: mtime, is_dir: is_dir })
+        at = at + advance
+    }
+    Ok(entries)
+}
+
+pub fn read(data: Vec<u8>) -> Result<Vec<Entry>, string> {
+    read_limited(data, entry::DEFAULT_MAX_TOTAL)
+}

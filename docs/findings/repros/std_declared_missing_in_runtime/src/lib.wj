@@ -1,0 +1,6 @@
+use std::encoding
+
+/// `hex_encode_string` is declared in std/encoding.wj and works interpreted; the compiled runtime has no such function.
+pub fn hex_of(text: string) -> string {
+    encoding.hex_encode_string(text)
+}

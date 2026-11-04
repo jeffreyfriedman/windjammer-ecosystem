@@ -1,0 +1,19 @@
+pub fn parse_len(text: string) -> int {
+    text.len()
+}
+
+/// Items of a list literal of strings are &str when compiled, but String when interpreted.
+pub fn total() -> int {
+    let mut n = 0
+    for text in ["a", "bb", "ccc"] {
+        n = n + parse_len(text.clone())
+    }
+    n
+}
+
+pub fn label(text: string) -> string {
+    match text.clone().as_str() {
+        "a" => "first",
+        _ => "other",
+    }
+}

@@ -51,6 +51,11 @@ Replaces the old weekly log. Levels:
 | wj-uuid | v1/v4/v5/v7 | 23 | 24 / 24 |
 | wj-validate | Field validators | 21 | 36 / 36 |
 | wj-yaml | Wrapper (YAML to JSON) | 17 | 26 / 26 |
+| wj-archive | Tar and zip read/write, DEFLATE (Windjammer-native) | 21 | 17 / 17 |
+| wj-decimal | Fixed-point decimals, rounding modes | 20 | 13 / 13 |
+| wj-markdown | CommonMark subset to HTML, escaping on | 11 | 7 / 7 |
+| wj-metrics | Counters, gauges, histograms, Prometheus text | 16 | 11 / 11 |
+| wj-ws | WebSocket frames, messages, handshake | 22 | 16 / 16 |
 | wj-gitignore | Subset (.gitignore matching) | 3 | 12 / 12 |
 | wj-json-doc | Order-preserving JSON documents | 24 | 12 / 12 |
 | wj-proc | Wrapper (process, git, CPU timing) | 12 | 8 / 8 |
@@ -65,7 +70,7 @@ Apps are demonstration apps; measured tests (interpreted / compiled):
 | wj-auth-api | 48 / 48 |
 | wj-chat | 20 / 20 |
 | wj-fetch | 37 / 37 |
-| wj-find | 12 / 12 |
+| wj-find | 12 / red |
 | wj-first-hour | 4 / 4 |
 | wj-form-parse | 12 / 12 |
 | wj-grep | 38 / red |

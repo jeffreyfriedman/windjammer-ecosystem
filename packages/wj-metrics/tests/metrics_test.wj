@@ -1,0 +1,162 @@
+use crate::Kind
+use crate::Registry
+use crate::escape_help
+use crate::escape_label_value
+use crate::format_value
+use crate::new_registry
+use crate::parse_snapshot
+use crate::snapshot_json
+
+fn labels2(a: string, av: string, b: string, bv: string) -> Vec<(string, string)> {
+    let mut l: Vec<(string, string)> = Vec::new()
+    l.push((a, av))
+    l.push((b, bv))
+    l
+}
+
+fn none() -> Vec<(string, string)> {
+    Vec::new()
+}
+
+fn ok(r: Result<(), string>) {
+    match r {
+        Ok(_) => {},
+        Err(e) => assert(false, "unexpected error: ${e}"),
+    }
+}
+
+fn is_err(r: Result<(), string>) -> bool {
+    match r {
+        Ok(_) => false,
+        Err(_) => true,
+    }
+}
+
+@test
+fn test_counter_matches_prometheus_documentation_example() {
+    // From the Prometheus text exposition format documentation (labels print sorted by name).
+    let mut r = new_registry()
+    ok(r.register("http_requests_total", "The total number of HTTP requests.", Kind::Counter, Vec::new()))
+    ok(r.counter_add("http_requests_total", labels2("method", "post", "code", "200"), 1027.0))
+    ok(r.counter_add("http_requests_total", labels2("method", "post", "code", "400"), 3.0))
+    let want = "# HELP http_requests_total The total number of HTTP requests.\n# TYPE http_requests_total counter\nhttp_requests_total{code=\"200\",method=\"post\"} 1027\nhttp_requests_total{code=\"400\",method=\"post\"} 3\n"
+    assert_eq(r.render(), want)
+}
+
+@test
+fn test_label_order_does_not_split_series() {
+    let mut r = new_registry()
+    ok(r.counter_inc("hits", labels2("a", "1", "b", "2")))
+    ok(r.counter_inc("hits", labels2("b", "2", "a", "1")))
+    assert_eq(r.value_of("hits", labels2("a", "1", "b", "2")) ?? -1.0, 2.0)
+    assert_eq(r.render(), "# TYPE hits counter\nhits{a=\"1\",b=\"2\"} 2\n")
+}
+
+@test
+fn test_gauge_set_and_add() {
+    let mut r = new_registry()
+    ok(r.gauge_set("temp", none(), 21.5))
+    ok(r.gauge_add("temp", none(), -1.25))
+    assert_eq(r.render(), "# TYPE temp gauge\ntemp 20.25\n")
+}
+
+@test
+fn test_histogram_matches_python_bucket_counts() {
+    // Buckets, sum and count for these observations were computed with Python:
+    //   [sum(1 for o in obs if o <= b) for b in bounds], sum(obs), len(obs)
+    let mut r = new_registry()
+    ok(r.register("req_seconds", "Request time.", Kind::Histogram, Vec::new()))
+    for v in [0.003, 0.007, 0.02, 0.04, 0.09, 0.2, 0.3, 0.7, 1.5, 3.0, 7.5, 12.0, 0.05, 0.5] {
+        ok(r.histogram_observe("req_seconds", none(), v))
+    }
+    let want = "# HELP req_seconds Request time.\n# TYPE req_seconds histogram\nreq_seconds_bucket{le=\"0.005\"} 1\nreq_seconds_bucket{le=\"0.01\"} 2\nreq_seconds_bucket{le=\"0.025\"} 3\nreq_seconds_bucket{le=\"0.05\"} 5\nreq_seconds_bucket{le=\"0.1\"} 6\nreq_seconds_bucket{le=\"0.25\"} 7\nreq_seconds_bucket{le=\"0.5\"} 9\nreq_seconds_bucket{le=\"1\"} 10\nreq_seconds_bucket{le=\"2.5\"} 11\nreq_seconds_bucket{le=\"5\"} 12\nreq_seconds_bucket{le=\"10\"} 13\nreq_seconds_bucket{le=\"+Inf\"} 14\nreq_seconds_sum 25.91\nreq_seconds_count 14\n"
+    assert_eq(r.render(), want)
+}
+
+@test
+fn test_histogram_with_labels_and_custom_buckets() {
+    let mut r = new_registry()
+    ok(r.register("size", "", Kind::Histogram, [10.0, 100.0]))
+    ok(r.histogram_observe("size", labels2("route", "/a", "m", "GET"), 5.0))
+    ok(r.histogram_observe("size", labels2("route", "/a", "m", "GET"), 500.0))
+    let want = "# TYPE size histogram\nsize_bucket{m=\"GET\",route=\"/a\",le=\"10\"} 1\nsize_bucket{m=\"GET\",route=\"/a\",le=\"100\"} 1\nsize_bucket{m=\"GET\",route=\"/a\",le=\"+Inf\"} 2\nsize_sum{m=\"GET\",route=\"/a\"} 505\nsize_count{m=\"GET\",route=\"/a\"} 2\n"
+    assert_eq(r.render(), want)
+}
+
+@test
+fn test_values_on_a_bucket_bound_land_in_that_bucket() {
+    let mut r = new_registry()
+    ok(r.register("x", "", Kind::Histogram, [1.0, 2.0]))
+    ok(r.histogram_observe("x", none(), 1.0))
+    assert_str_contains(r.render(), "x_bucket{le=\"1\"} 1")
+}
+
+@test
+fn test_escaping() {
+    assert_eq(escape_label_value("a\"b\\c\nd"), "a\\\"b\\\\c\\nd")
+    assert_eq(escape_help("line1\nline2\\"), "line1\\nline2\\\\")
+    let mut r = new_registry()
+    let mut l: Vec<(string, string)> = Vec::new()
+    l.push(("path", "C:\\dir\n\"x\""))
+    ok(r.counter_inc("esc", l))
+    assert_eq(r.render(), "# TYPE esc counter\nesc{path=\"C:\\\\dir\\n\\\"x\\\"\"} 1\n")
+}
+
+@test
+fn test_value_formatting() {
+    assert_eq(format_value(3.0), "3")
+    assert_eq(format_value(-2.0), "-2")
+    assert_eq(format_value(0.5), "0.5")
+    let inf = 1.0 / 0.0
+    assert_eq(format_value(inf), "+Inf")
+    let neg_inf = 0.0 - inf
+    assert_eq(format_value(neg_inf), "-Inf")
+    let nan = 0.0 / 0.0
+    assert_eq(format_value(nan), "NaN")
+}
+
+@test
+fn test_misuse_is_an_error() {
+    let mut r = new_registry()
+    assert(is_err(r.counter_inc("bad name", none())), "space in name")
+    assert(is_err(r.counter_inc("1abc", none())), "digit first")
+    assert(is_err(r.counter_add("c", none(), -1.0)), "negative counter")
+    ok(r.counter_inc("c", none()))
+    assert(is_err(r.gauge_set("c", none(), 1.0)), "kind clash")
+    assert(is_err(r.counter_inc("d", labels2("bad-label", "x", "ok", "y"))), "label name")
+    assert(is_err(r.counter_inc("d", labels2("__reserved", "x", "ok", "y"))), "reserved label")
+    assert(is_err(r.register("c", "again", Kind::Counter, Vec::new())), "duplicate")
+    assert(is_err(r.register("h", "", Kind::Histogram, [2.0, 1.0])), "unsorted buckets")
+}
+
+@test
+fn test_empty_registry_renders_nothing() {
+    let r = new_registry()
+    assert_eq(r.render(), "")
+}
+
+@test
+fn test_snapshot_round_trips_through_typed_json() {
+    let mut r = new_registry()
+    ok(r.counter_add("jobs", labels2("q", "a", "z", "b"), 4.0))
+    ok(r.gauge_set("depth", none(), 7.5))
+    let text = match snapshot_json(r.snapshot()) {
+        Ok(t) => t,
+        Err(e) => e,
+    }
+    assert_str_contains(text, "\"samples\"")
+    assert_str_contains(text, "\"name\":\"jobs\"")
+    let back = match parse_snapshot(text) {
+        Ok(s) => s,
+        Err(e) => {
+            assert(false, "parse: ${e}")
+            r.snapshot()
+        },
+    }
+    assert_eq(back.samples.len(), 2)
+    assert_eq(back.samples[0].name, "jobs")
+    assert_eq(back.samples[0].kind, "counter")
+    assert_eq(back.samples[0].value, 4.0)
+    assert_eq(back.samples[1].value, 7.5)
+    assert(parse_snapshot("{\"samples\": 3}").is_err(), "wrong shape is rejected")
+}

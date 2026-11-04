@@ -1,0 +1,565 @@
+use std::strings
+use crate::escape
+use crate::inline
+
+struct Block {
+    kind: string,
+    html: string,
+    text: string,
+}
+
+fn make(kind: string, html: string, text: string) -> Block {
+    Block { kind: kind, html: html, text: text }
+}
+
+struct Marker {
+    ok: bool,
+    ordered: bool,
+    start: int,
+    delim: char,
+    offset: int,
+    empty: bool,
+}
+
+fn no_marker() -> Marker {
+    Marker { ok: false, ordered: false, start: 0, delim: ' ', offset: 0, empty: false }
+}
+
+fn indent_of(line: string) -> int {
+    let mut n = 0
+    for ch in strings.chars(line) {
+        if ch == ' ' {
+            n = n + 1
+        } else {
+            break
+        }
+    }
+    n
+}
+
+fn is_blank(line: string) -> bool {
+    strings.len(strings.trim(line)) == 0
+}
+
+fn drop_indent(line: string, n: int) -> string {
+    let have = indent_of(line.clone())
+    let cut = if have < n { have } else { n }
+    escape::sub(line, cut, strings.len(line))
+}
+
+/// ATX heading level (1..6) and its text, or level 0.
+fn atx(line: string) -> (int, string) {
+    let ind = indent_of(line.clone())
+    if ind > 3 {
+        return (0, "")
+    }
+    let t = escape::sub(line, ind, strings.len(line))
+    let mut level: int = 0
+    for ch in strings.chars(t) {
+        if ch == '#' {
+            level = level + 1
+        } else {
+            break
+        }
+    }
+    if level == 0 || level > 6 {
+        return (0, "")
+    }
+    let rest = escape::sub(t, level, strings.len(t))
+    if strings.len(rest) > 0 && !strings.starts_with(rest, " ") && !strings.starts_with(rest, "\t") {
+        return (0, "")
+    }
+    let mut body = strings.trim(rest)
+    // Closing sequence: trailing #s preceded by a space (or the whole body).
+    let mut end = strings.len(body)
+    while end > 0 && escape::sub(body, end - 1, end) == "#" {
+        end = end - 1
+    }
+    if end < strings.len(body) {
+        if end == 0 {
+            body = ""
+        } else if escape::sub(body, end - 1, end) == " " {
+            body = strings.trim(escape::sub(body, 0, end))
+        }
+    }
+    (level, body)
+}
+
+fn is_thematic(line: string) -> bool {
+    if indent_of(line.clone()) > 3 {
+        return false
+    }
+    let t = strings.trim(line)
+    let mut mark = ' '
+    let mut count = 0
+    for ch in strings.chars(t) {
+        if ch == ' ' || ch == '\t' {
+            continue
+        }
+        if ch != '*' && ch != '-' && ch != '_' {
+            return false
+        }
+        if mark == ' ' {
+            mark = ch
+        } else if ch != mark {
+            return false
+        }
+        count = count + 1
+    }
+    count >= 3
+}
+
+struct Fence {
+    ok: bool,
+    ch: char,
+    len: int,
+    info: string,
+    indent: int,
+}
+
+fn fence_open(line: string) -> Fence {
+    let none = Fence { ok: false, ch: ' ', len: 0, info: "", indent: 0 }
+    let ind = indent_of(line.clone())
+    if ind > 3 {
+        return none
+    }
+    let t = escape::sub(line, ind, strings.len(line))
+    let first = if strings.len(t) > 0 { escape::sub(t, 0, 1) } else { "" }
+    if first != "`" && first != "~" {
+        return none
+    }
+    let ch = if first == "`" { '`' } else { '~' }
+    let mut n = 0
+    for c in strings.chars(t) {
+        if c == ch {
+            n = n + 1
+        } else {
+            break
+        }
+    }
+    if n < 3 {
+        return none
+    }
+    let info = strings.trim(escape::sub(t, n, strings.len(t)))
+    if ch == '`' && strings.contains(info, "`") {
+        return none
+    }
+    Fence { ok: true, ch: ch, len: n, info: info, indent: ind }
+}
+
+fn is_fence_close(line: string, f: Fence) -> bool {
+    if indent_of(line.clone()) > 3 {
+        return false
+    }
+    let t = strings.trim(line)
+    if strings.len(t) < f.len {
+        return false
+    }
+    for c in strings.chars(t) {
+        if c != f.ch {
+            return false
+        }
+    }
+    true
+}
+
+fn is_digit(ch: char) -> bool {
+    ch >= '0' && ch <= '9'
+}
+
+fn marker_of(line: string) -> Marker {
+    let ind = indent_of(line.clone())
+    if ind > 3 {
+        return no_marker()
+    }
+    let t = escape::sub(line, ind, strings.len(line))
+    let cs: Vec<char> = escape::chars_of(t)
+    if cs.len() == 0 {
+        return no_marker()
+    }
+    let mut ordered = false
+    let mut start = 0
+    let mut delim = ' '
+    let mut width = 0
+    if cs[0] == '-' || cs[0] == '*' || cs[0] == '+' {
+        delim = cs[0]
+        width = 1
+    } else if is_digit(cs[0]) {
+        let mut i = 0
+        while i < cs.len() && is_digit(cs[i]) && i < 9 {
+            start = start * 10 + (cs[i] as int - '0' as int)
+            i = i + 1
+        }
+        if i < cs.len() && (cs[i] == '.' || cs[i] == ')') {
+            ordered = true
+            delim = cs[i]
+            width = (i + 1) as int
+        } else {
+            return no_marker()
+        }
+    } else {
+        return no_marker()
+    }
+    if (width as usize) < cs.len() && cs[width as usize] != ' ' && cs[width as usize] != '\t' {
+        return no_marker()
+    }
+    let after = escape::sub(t, width, strings.len(t))
+    if is_blank(after.clone()) {
+        return Marker { ok: true, ordered: ordered, start: start, delim: delim, offset: ind + width + 1, empty: true }
+    }
+    let spaces = indent_of(after.clone())
+    let gap = if spaces >= 5 { 1 } else { spaces }
+    Marker { ok: true, ordered: ordered, start: start, delim: delim, offset: ind + width + gap, empty: false }
+}
+
+fn is_quote(line: string) -> bool {
+    indent_of(line.clone()) <= 3 && strings.starts_with(strings.trim(line), ">")
+}
+
+fn strip_quote(line: string) -> string {
+    let ind = indent_of(line.clone())
+    let t = escape::sub(line, ind, strings.len(line))
+    let rest = escape::sub(t, 1, strings.len(t))
+    if strings.starts_with(rest, " ") {
+        return escape::sub(rest, 1, strings.len(rest))
+    }
+    rest
+}
+
+fn setext_level(line: string) -> int {
+    if indent_of(line.clone()) > 3 {
+        return 0
+    }
+    let t = strings.trim(line)
+    if strings.len(t) == 0 {
+        return 0
+    }
+    let mut all_eq = true
+    let mut all_dash = true
+    for ch in strings.chars(t) {
+        if ch != '=' {
+            all_eq = false
+        }
+        if ch != '-' {
+            all_dash = false
+        }
+    }
+    if all_eq {
+        return 1
+    }
+    if all_dash {
+        return 2
+    }
+    0
+}
+
+/// True when `line` starts a block that can interrupt a paragraph.
+fn interrupts_paragraph(line: string) -> bool {
+    if is_blank(line.clone()) {
+        return true
+    }
+    if atx(line.clone()).0 > 0 || is_thematic(line.clone()) || is_quote(line.clone()) || fence_open(line.clone()).ok {
+        return true
+    }
+    let m = marker_of(line.clone())
+    if m.ok && !m.empty && (!m.ordered || m.start == 1) {
+        return true
+    }
+    false
+}
+
+fn code_block(lines: Vec<string>, class: string) -> string {
+    let mut body = ""
+    for l in lines {
+        body = body + escape::html(l) + "\n"
+    }
+    let attr = if strings.len(class) > 0 { " class=\"language-" + escape::html(class) + "\"" } else { "" }
+    "<pre><code" + attr + ">" + body + "</code></pre>\n"
+}
+
+fn first_word(text: string) -> string {
+    let parts = strings.split_whitespace(text)
+    if parts.len() == 0 {
+        return ""
+    }
+    parts[0]
+}
+
+fn join_trimmed_start(lines: Vec<string>) -> string {
+    let mut parts: Vec<string> = Vec::new()
+    for l in lines {
+        parts.push(strings.trim_start(l))
+    }
+    strings.trim_end(parts.join("\n"))
+}
+
+fn parse_list(lines: Vec<string>, at: int, tight_out: bool) -> (Block, int) {
+    let n = lines.len() as int
+    let first = marker_of(lines[at as usize])
+    let mut items: Vec<Vec<string>> = Vec::new()
+    let mut loose = false
+    let mut i = at
+    while i < n {
+        let m = marker_of(lines[i as usize])
+        if !m.ok || m.ordered != first.ordered || m.delim != first.delim {
+            break
+        }
+        let mut content: Vec<string> = Vec::new()
+        let head = lines[i as usize]
+        content.push(escape::sub(head, if m.empty { strings.len(head) } else { m.offset }, strings.len(head)))
+        i = i + 1
+        let mut in_fence = fence_open(content[0])
+        while i < n {
+            let line = lines[i as usize]
+            if is_blank(line.clone()) {
+                // Does the item continue after the blank run?
+                let mut j = i
+                while j < n && is_blank(lines[j as usize]) {
+                    j = j + 1
+                }
+                if j < n && indent_of(lines[j as usize]) >= m.offset && !(content.len() == 1 && is_blank(content[0])) {
+                    let mut k = i
+                    while k < j {
+                        content.push("")
+                        k = k + 1
+                    }
+                    i = j
+                    continue
+                }
+                break
+            }
+            if indent_of(line.clone()) >= m.offset {
+                content.push(drop_indent(line.clone(), m.offset))
+                i = i + 1
+                continue
+            }
+            // A less-indented line: lazy paragraph continuation, or the end of the item.
+            let last = content[content.len() - 1]
+            if !is_blank(last.clone()) && !interrupts_paragraph(line.clone()) && !marker_of(line.clone()).ok && !in_fence.ok {
+                content.push(line)
+                i = i + 1
+                continue
+            }
+            break
+        }
+        items.push(content)
+        // Blank lines between items make the list loose.
+        let mut j = i
+        while j < n && is_blank(lines[j as usize]) {
+            j = j + 1
+        }
+        if j < n && j > i {
+            let nm = marker_of(lines[j as usize])
+            if nm.ok && nm.ordered == first.ordered && nm.delim == first.delim {
+                loose = true
+                i = j
+            }
+        }
+    }
+    // A blank line inside an item between two of its blocks also makes the list loose.
+    let mut ii = 0
+    while ii < items.len() {
+        let item = items[ii]
+        ii = ii + 1
+        let mut seen_text = false
+        let mut pending_blank = false
+        let mut fenced = false
+        for l in item {
+            if fence_open(l.clone()).ok {
+                fenced = !fenced
+            }
+            if is_blank(l.clone()) {
+                if seen_text {
+                    pending_blank = true
+                }
+            } else {
+                if pending_blank && !fenced && indent_of(l.clone()) == 0 {
+                    loose = true
+                }
+                seen_text = true
+                pending_blank = false
+            }
+        }
+    }
+    let tag = if first.ordered { "ol" } else { "ul" }
+    let start_attr = if first.ordered && first.start != 1 { " start=\"${first.start}\"" } else { "" }
+    let mut html = "<" + tag + start_attr + ">\n"
+    let mut ij = 0
+    while ij < items.len() {
+        let item = items[ij]
+        ij = ij + 1
+        let blocks = parse_blocks(item)
+        if blocks.len() == 0 {
+            html = html + "<li></li>\n"
+            continue
+        }
+        if loose {
+            let mut inner = ""
+            for b in blocks {
+                inner = inner + html_of(b)
+            }
+            html = html + "<li>\n" + inner + "</li>\n"
+        } else {
+            let mut inner = ""
+            let mut idx = 0
+            let mut prev_para = false
+            if blocks[0].kind != "p" {
+                inner = "\n"
+            }
+            for b in blocks {
+                if b.kind == "p" {
+                    if idx > 0 {
+                        inner = inner + (if prev_para { "\n" } else { "" })
+                    }
+                    inner = inner + inline::render(b.text)
+                    prev_para = true
+                } else {
+                    inner = inner + (if prev_para { "\n" } else { "" }) + html_of(b)
+                    prev_para = false
+                }
+                idx = idx + 1
+            }
+            html = html + "<li>" + inner + "</li>\n"
+        }
+    }
+    html = html + "</" + tag + ">\n"
+    (make("list", html, ""), i)
+}
+
+/// Parse a sequence of lines into blocks.
+fn parse_blocks(lines: Vec<string>) -> Vec<Block> {
+    let n = lines.len() as int
+    let mut out: Vec<Block> = Vec::new()
+    let mut i = 0
+    while i < n {
+        let line = lines[i as usize]
+        if is_blank(line.clone()) {
+            i = i + 1
+            continue
+        }
+        let f = fence_open(line.clone())
+        if f.ok {
+            let mut body: Vec<string> = Vec::new()
+            i = i + 1
+            while i < n && !is_fence_close(lines[i as usize], f) {
+                body.push(drop_indent(lines[i as usize], f.indent))
+                i = i + 1
+            }
+            if i < n {
+                i = i + 1
+            }
+            out.push(make("code", code_block(body, first_word(f.info)), ""))
+            continue
+        }
+        if indent_of(line.clone()) >= 4 {
+            let mut body: Vec<string> = Vec::new()
+            while i < n {
+                let l = lines[i as usize]
+                if is_blank(l.clone()) {
+                    let mut j = i
+                    while j < n && is_blank(lines[j as usize]) {
+                        j = j + 1
+                    }
+                    if j < n && indent_of(lines[j as usize]) >= 4 {
+                        let mut k = i
+                        while k < j {
+                            body.push(drop_indent(lines[k as usize], 4))
+                            k = k + 1
+                        }
+                        i = j
+                        continue
+                    }
+                    break
+                }
+                if indent_of(l.clone()) < 4 {
+                    break
+                }
+                body.push(drop_indent(l.clone(), 4))
+                i = i + 1
+            }
+            out.push(make("code", code_block(body, ""), ""))
+            continue
+        }
+        let h = atx(line.clone())
+        if h.0 > 0 {
+            out.push(make("h", "<h${h.0}>" + inline::render(h.1) + "</h${h.0}>\n", ""))
+            i = i + 1
+            continue
+        }
+        if is_thematic(line.clone()) {
+            out.push(make("hr", "<hr />\n", ""))
+            i = i + 1
+            continue
+        }
+        if is_quote(line.clone()) {
+            let mut inner: Vec<string> = Vec::new()
+            while i < n {
+                let l = lines[i as usize]
+                if is_quote(l.clone()) {
+                    inner.push(strip_quote(l.clone()))
+                    i = i + 1
+                } else if !is_blank(l.clone()) && inner.len() > 0 && !is_blank(inner[inner.len() - 1]) && !interrupts_paragraph(l.clone()) && !fence_open(inner[inner.len() - 1]).ok {
+                    inner.push(l)
+                    i = i + 1
+                } else {
+                    break
+                }
+            }
+            let mut body = ""
+            for b in parse_blocks(inner) {
+                body = body + html_of(b)
+            }
+            out.push(make("quote", "<blockquote>\n" + body + "</blockquote>\n", ""))
+            continue
+        }
+        let m = marker_of(line.clone())
+        if m.ok {
+            let r = parse_list(lines, i, false)
+            out.push(r.0)
+            i = r.1
+            continue
+        }
+        // Paragraph, possibly a setext heading.
+        let mut para: Vec<string> = Vec::new()
+        let mut heading = 0
+        while i < n {
+            let l = lines[i as usize]
+            if para.len() > 0 {
+                let lvl = setext_level(l.clone())
+                if lvl > 0 {
+                    heading = lvl
+                    i = i + 1
+                    break
+                }
+                if interrupts_paragraph(l.clone()) {
+                    break
+                }
+            }
+            para.push(l)
+            i = i + 1
+        }
+        let text = join_trimmed_start(para)
+        if heading > 0 {
+            out.push(make("h", "<h${heading}>" + inline::render(text) + "</h${heading}>\n", ""))
+        } else {
+            out.push(make("p", "", text))
+        }
+    }
+    out
+}
+
+fn html_of(b: Block) -> string {
+    if b.kind == "p" {
+        return "<p>" + inline::render(b.text) + "</p>\n"
+    }
+    b.html
+}
+
+pub fn render(markdown: string) -> string {
+    let normalized = strings.replace(strings.replace(markdown, "\r\n", "\n"), "\t", "    ")
+    let mut html = ""
+    for b in parse_blocks(strings.split_lines(normalized)) {
+        html = html + html_of(b)
+    }
+    html
+}

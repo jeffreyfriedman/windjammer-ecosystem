@@ -1,0 +1,7 @@
+pub fn is_huge(x: float) -> bool {
+    x > 1.0e300
+}
+
+pub fn check() -> bool {
+    is_huge(1.0e300 * 10.0)
+}

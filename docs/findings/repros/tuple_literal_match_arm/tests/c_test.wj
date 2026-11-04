@@ -1,0 +1,6 @@
+use crate::code
+
+fn test_code() {
+    assert_eq(code(true), 7)
+    assert_eq(code(false), 0)
+}

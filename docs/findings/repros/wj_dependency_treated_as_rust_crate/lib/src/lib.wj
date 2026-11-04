@@ -1,0 +1,17 @@
+use std::path
+
+pub fn is_match(pattern: string, candidate: string) -> bool {
+    path.glob_match(pattern, candidate)
+}
+
+pub fn filter(pattern: string, paths: Vec<string>) -> Vec<string> {
+    let mut out = Vec::new()
+    let mut i = 0
+    while i < paths.len() {
+        if is_match("${pattern}", "${paths[i]}") {
+            out.push("${paths[i]}")
+        }
+        i = i + 1
+    }
+    out
+}

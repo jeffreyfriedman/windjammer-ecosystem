@@ -11,6 +11,7 @@
 
 | Package | Responsibility | Depends on |
 |---|---|---|
+| wj-archive | Tar and zip read/write, DEFLATE, CRC-32 | std |
 | wj-base64 | Base64 and Basic-auth header helpers | std |
 | wj-cli-args | argv flags and positionals | std |
 | wj-compress | Accept-Encoding negotiation, gzip | std |
@@ -19,6 +20,7 @@
 | wj-cors | CORS decisions and headers | std |
 | wj-cron | Cron expression parse and match | std |
 | wj-csv | CSV parse and write | std |
+| wj-decimal | Fixed-point decimals, rounding modes, allocation | std |
 | wj-dotenv | `.env` parsing | std |
 | wj-duration | Duration parse and format | std |
 | wj-event | In-process event bus | std |
@@ -32,6 +34,8 @@
 | wj-json-util | JSON pretty-print and helpers | std |
 | wj-jwt | JWT HS256 | std |
 | wj-log | Tagged log helpers | std |
+| wj-markdown | CommonMark subset to HTML, escaping on by default | std |
+| wj-metrics | Counters, gauges, histograms, Prometheus text | std |
 | wj-migrate | SQL migration planning and status | std |
 | wj-mime | MIME lookup | std |
 | wj-multipart | multipart/form-data parse | std |
@@ -53,6 +57,7 @@
 | wj-url | URL parse and join | std |
 | wj-uuid | UUID generation and validation | std |
 | wj-validate | Field validators | std |
+| wj-ws | WebSocket frames, messages and handshake | std |
 | wj-yaml | YAML to JSON | std |
 
 Rule of thumb: a package that needs another package lists it in its own `wj.toml`; apps list

@@ -1,0 +1,6 @@
+use crate::heading
+
+fn test_heading() {
+    let h = heading("## hi")
+    assert_eq(h.0, 2)
+}

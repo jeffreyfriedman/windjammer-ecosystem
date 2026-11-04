@@ -1,0 +1,7 @@
+use std::strings
+
+fn main() {
+    // `strings.index_of` does not exist in std::strings, yet `wj check` reports no error.
+    let at = strings.index_of("a:b", ":") ?? -1
+    println("${at}")
+}

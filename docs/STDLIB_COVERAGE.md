@@ -34,6 +34,9 @@ widely (`wj-sync`, `wj-timefmt`, `wj-retry`, `wj-cron`, most apps) and are not g
 
 Newer packages and the std modules they use: `wj-decimal` (`std::strings`), `wj-metrics` (`std::json` typed `@json` structs,
 `std::strings`), `wj-markdown` (`std::strings`), `wj-ws` (`std::encoding`, `std::crypto` SHA-1, `std::strings`),
-`wj-archive` (`std::encoding`, `std::strings`; DEFLATE and CRC-32 are written in Windjammer). None needs a capability.
+`wj-archive` (`std::encoding`, `std::strings`; DEFLATE and CRC-32 are written in Windjammer), `wj-oauth` (`std::crypto`
+HMAC and constant-time compare, `std::encoding`, `std::json` with typed `@json` structs), `wj-smtp` (`std::encoding`,
+`std::strings`), `wj-cache` (`std::collections`, `std::encoding`), `wj-cli-ui` (`std::env`, `std::fs` for `/dev/stdin`,
+`std::strings`). Only `wj-cli-ui` declares capabilities (`env.read` for `NO_COLOR` and `TERM`, `fs.read` for `/dev/stdin`).
 
 Mark a cell **yes** when production `.wj` (not only tests) uses that module. Prefer one clear owner app or package per concern.

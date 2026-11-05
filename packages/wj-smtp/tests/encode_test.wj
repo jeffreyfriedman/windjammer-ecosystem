@@ -1,0 +1,201 @@
+// Expected values come from Python (an encoded word where Python picks the q form is checked by decoding it back with email.header).
+// Expected values come from Python's standard library: quopri, base64, email.header, email.utils.
+use crate::address::Address
+use crate::address::address
+use crate::address::format_address
+use crate::address::is_valid_email
+use crate::address::parse_address
+use crate::encode::base64_lines
+use crate::encode::encoded_words
+use crate::encode::quoted_printable
+use crate::encode::utf8
+use crate::message::format_date
+use crate::smtp::Reply
+use crate::smtp::auth_mechanisms
+use crate::smtp::auth_plain
+use crate::smtp::dot_stuff
+use crate::smtp::extensions
+use crate::smtp::max_size
+use crate::smtp::parse_reply
+
+fn shown(r: Result<string, string>) -> string {
+    match r {
+        Ok(t) => t,
+        Err(e) => "error: ${e}",
+    }
+}
+
+@test
+fn test_quoted_printable_matches_python_quopri() {
+    assert_eq(quoted_printable("plain ascii line"), "plain ascii line")
+    assert_eq(quoted_printable("a=b"), "a=3Db")
+    assert_eq(quoted_printable("trailing space "), "trailing space=20")
+    assert_eq(quoted_printable("tab\t"), "tab=09")
+    assert_eq(quoted_printable("café crème"), "caf=C3=A9 cr=C3=A8me")
+    assert_eq(quoted_printable("line one\nline two\n\nafter blank"), "line one\r\nline two\r\n\r\nafter blank")
+    assert_eq(quoted_printable("xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"), "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx")
+    assert_eq(quoted_printable("xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"), "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx=\r\nxx")
+    assert_eq(quoted_printable("xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx="), "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx=\r\n=3D")
+    assert_eq(quoted_printable("yyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyézzzzzzzzzz"), "yyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy=\r\n=C3=A9zzzzzzzzzz")
+    assert_eq(quoted_printable("zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz"), "zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz=\r\nzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz=\r\nzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz")
+    assert_eq(quoted_printable("naïve ✓ done wwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwww"), "na=C3=AFve =E2=9C=93 done wwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwww=\r\nwwwwwwwwwwwwwwwwwwwww")
+    assert_eq(quoted_printable("a=a=a=a=a=a=a=a=a=a=a=a=a=a=a=a=a=a=a=a=a=a=a=a=a=a=a=a=a=a=a=a=a=a=a=a=a=a=a=a="), "a=3Da=3Da=3Da=3Da=3Da=3Da=3Da=3Da=3Da=3Da=3Da=3Da=3Da=3Da=3Da=3Da=3Da=3Da=\r\n=3Da=3Da=3Da=3Da=3Da=3Da=3Da=3Da=3Da=3Da=3Da=3Da=3Da=3Da=3Da=3Da=3Da=3Da=3D=\r\na=3Da=3Da=3D")
+    assert_eq(quoted_printable("short\nqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq\nend"), "short\r\nqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq=\r\nqqqqqqqqqqqqqqq\r\nend")
+    assert_eq(quoted_printable("éééééééééééééééééééééééééééééééééééééééé"), "=C3=A9=C3=A9=C3=A9=C3=A9=C3=A9=C3=A9=C3=A9=C3=A9=C3=A9=C3=A9=C3=A9=C3=A9=C3=\r\n=A9=C3=A9=C3=A9=C3=A9=C3=A9=C3=A9=C3=A9=C3=A9=C3=A9=C3=A9=C3=A9=C3=A9=C3=A9=\r\n=C3=A9=C3=A9=C3=A9=C3=A9=C3=A9=C3=A9=C3=A9=C3=A9=C3=A9=C3=A9=C3=A9=C3=A9=C3=\r\n=A9=C3=A9=C3=A9")
+    assert_eq(quoted_printable("ends with eq ="), "ends with eq =3D")
+    assert_eq(quoted_printable("sp  aces  inside"), "sp  aces  inside")
+}
+
+@test
+fn test_base64_lines_match_python() {
+    let d0 = utf8_free(0)
+    assert_eq(base64_lines(d0), "")
+    let d1 = utf8_free(1)
+    assert_eq(base64_lines(d1), "Aw==")
+    let d3 = utf8_free(3)
+    assert_eq(base64_lines(d3), "AwoR")
+    let d57 = utf8_free(57)
+    assert_eq(base64_lines(d57), "AwoRGB8mLTQ7QklQV15lbHN6gYiPlp2kq7K5wMfO1dzj6vH4/wYNFBsiKTA3PkVMU1phaG92fYSL")
+    let d58 = utf8_free(58)
+    assert_eq(base64_lines(d58), "AwoRGB8mLTQ7QklQV15lbHN6gYiPlp2kq7K5wMfO1dzj6vH4/wYNFBsiKTA3PkVMU1phaG92fYSL\r\nkg==")
+    let d100 = utf8_free(100)
+    assert_eq(base64_lines(d100), "AwoRGB8mLTQ7QklQV15lbHN6gYiPlp2kq7K5wMfO1dzj6vH4/wYNFBsiKTA3PkVMU1phaG92fYSL\r\nkpmgp661vMPK0djf5u30+wIJEBceJSwzOkFIT1ZdZGtyeYCHjpWco6qxuA==")
+    let d200 = utf8_free(200)
+    assert_eq(base64_lines(d200), "AwoRGB8mLTQ7QklQV15lbHN6gYiPlp2kq7K5wMfO1dzj6vH4/wYNFBsiKTA3PkVMU1phaG92fYSL\r\nkpmgp661vMPK0djf5u30+wIJEBceJSwzOkFIT1ZdZGtyeYCHjpWco6qxuL/GzdTb4unw9/4FDBMa\r\nISgvNj1ES1JZYGdudXyDipGYn6attLvCydDX3uXs8/oBCA8WHSQrMjlAR05VXGNqcXh/ho2Um6Kp\r\nsLe+xczT2uHo7/b9BAsSGSAnLjU8Q0pRWF9mbXQ=")
+}
+
+fn utf8_free(n: int) -> Vec<u8> {
+    let mut out: Vec<u8> = Vec::new()
+    let mut i = 0
+    while i < n {
+        out.push(((i * 7 + 3) % 256) as u8)
+        i = i + 1
+    }
+    out
+}
+
+@test
+fn test_encoded_words_match_python_header() {
+    assert_eq(encoded_words("Hello"), "Hello")
+    assert_eq(encoded_words("café"), "=?utf-8?b?Y2Fmw6k=?=")
+    assert_eq(encoded_words("日本語の件名"), "=?utf-8?b?5pel5pys6Kqe44Gu5Lu25ZCN?=")
+    assert_eq(encoded_words("Re: Überüberraschung"), "=?utf-8?b?UmU6IMOcYmVyw7xiZXJyYXNjaHVuZw==?=")
+    assert_eq(encoded_words("emoji 😀 ok"), "=?utf-8?b?ZW1vamkg8J+YgCBvaw==?=")
+    assert_eq(encoded_words("日本語日本語日本語日本語日本語日本語日本語日本語日本語日本語日本語日本語日本語日本語日本語日本語日本語日本語日本語日本語日本語日本語日本語日本語日本語日本語日本語日本語日本語日本語"), "=?utf-8?b?5pel5pys6Kqe5pel5pys6Kqe5pel5pys6Kqe5pel5pys6Kqe5pel5pys6Kqe?=\r\n =?utf-8?b?5pel5pys6Kqe5pel5pys6Kqe5pel5pys6Kqe5pel5pys6Kqe5pel5pys6Kqe?=\r\n =?utf-8?b?5pel5pys6Kqe5pel5pys6Kqe5pel5pys6Kqe5pel5pys6Kqe5pel5pys6Kqe?=\r\n =?utf-8?b?5pel5pys6Kqe5pel5pys6Kqe5pel5pys6Kqe5pel5pys6Kqe5pel5pys6Kqe?=\r\n =?utf-8?b?5pel5pys6Kqe5pel5pys6Kqe5pel5pys6Kqe5pel5pys6Kqe5pel5pys6Kqe?=\r\n =?utf-8?b?5pel5pys6Kqe5pel5pys6Kqe5pel5pys6Kqe5pel5pys6Kqe5pel5pys6Kqe?=")
+}
+
+@test
+fn test_dates_match_python_email_utils() {
+    assert_eq(format_date(0, 0), "Thu, 01 Jan 1970 00:00:00 +0000")
+    assert_eq(format_date(1709647629, 0), "Tue, 05 Mar 2024 14:07:09 +0000")
+    assert_eq(format_date(1709647629, -300), "Tue, 05 Mar 2024 09:07:09 -0500")
+    assert_eq(format_date(1709647629, 330), "Tue, 05 Mar 2024 19:37:09 +0530")
+    assert_eq(format_date(951782400, 0), "Tue, 29 Feb 2000 00:00:00 +0000")
+    assert_eq(format_date(4102444799, 60), "Fri, 01 Jan 2100 00:59:59 +0100")
+    assert_eq(format_date(1700000000, -720), "Tue, 14 Nov 2023 10:13:20 -1200")
+    assert_eq(format_date(86399, 0), "Thu, 01 Jan 1970 23:59:59 +0000")
+}
+
+@test
+fn test_addresses_match_python_formataddr() {
+    assert_eq(shown(format_address(address("", "a@example.com"))), "a@example.com")
+    assert_eq(shown(format_address(address("Ada Lovelace", "ada@example.com"))), "Ada Lovelace <ada@example.com>")
+    assert_eq(shown(format_address(address("Doe, John", "jd@example.com"))), "\"Doe, John\" <jd@example.com>")
+    assert_eq(shown(format_address(address("Say \"hi\"", "s@example.com"))), "\"Say \\\"hi\\\"\" <s@example.com>")
+    assert_eq(shown(format_address(address("José Álvarez", "jose@example.com"))), "=?utf-8?b?Sm9zw6kgw4FsdmFyZXo=?= <jose@example.com>")
+    assert_eq(shown(format_address(address("O'Brien", "ob@example.com"))), "O'Brien <ob@example.com>")
+}
+
+@test
+fn test_parse_address_matches_python_parseaddr() {
+    let p4275 = parse_address("Ada Lovelace <ada@example.com>")
+    assert_eq(name_of(p4275), "Ada Lovelace")
+    assert_eq(email_of(p4275), "ada@example.com")
+    let p7115 = parse_address("\"Doe, John\" <jd@example.com>")
+    assert_eq(name_of(p7115), "Doe, John")
+    assert_eq(email_of(p7115), "jd@example.com")
+    let p1526 = parse_address("plain@example.com")
+    assert_eq(name_of(p1526), "")
+    assert_eq(email_of(p1526), "plain@example.com")
+    let p8840 = parse_address("  \"Q \\\"x\\\"\" <q@example.com>  ")
+    assert_eq(name_of(p8840), "Q \"x\"")
+    assert_eq(email_of(p8840), "q@example.com")
+    let p7849 = parse_address("<only@example.com>")
+    assert_eq(name_of(p7849), "")
+    assert_eq(email_of(p7849), "only@example.com")
+}
+
+fn name_of(r: Result<Address, string>) -> string {
+    match r {
+        Ok(a) => a.name,
+        Err(e) => "error: ${e}",
+    }
+}
+
+fn email_of(r: Result<Address, string>) -> string {
+    match r {
+        Ok(a) => a.email,
+        Err(e) => "error: ${e}",
+    }
+}
+
+@test
+fn test_invalid_addresses_and_header_injection() {
+    let bads: Vec<string> = ["", "plain", "a@", "@b.com", "a b@c.com", "a@b..com", "a@-b.com", "a@b.com\r\nBcc: x@y.z", ".a@b.com", "a..b@c.com"]
+    for bad in bads {
+        assert(!is_valid_email(bad), "invalid: ${bad}")
+    }
+    let goods: Vec<string> = ["a@b.co", "first.last+tag@sub.example.org", "x_y@a-b.com", "1@2.io"]
+    for good in goods {
+        assert(is_valid_email(good), "valid: ${good}")
+    }
+    assert(shown(format_address(address("Evil\r\nBcc: a@b.co", "a@b.co"))).starts_with("error"), "name injection")
+    assert(parse_address("x <a@b.co>\r\nBcc: y@z.co").is_err(), "parse injection")
+}
+
+@test
+fn test_dot_stuffing() {
+    assert_eq(dot_stuff("a\r\n.b\r\n..c\r\n."), "a\r\n..b\r\n...c\r\n..")
+    assert_eq(dot_stuff("no dots"), "no dots")
+    assert_eq(dot_stuff(".\n.\n"), "..\r\n..\r\n")
+}
+
+@test
+fn test_auth_plain_is_base64_of_nul_separated_credentials() {
+    // base64("\0user\0pass") from Python: base64.b64encode(b"\x00user\x00pass")
+    assert_eq(auth_plain("user", "pass"), "AHVzZXIAcGFzcw==")
+    assert_eq(auth_plain("josé", "päss"), "AGpvc8OpAHDDpHNz")
+}
+
+fn reply_summary(text: string) -> string {
+    match parse_reply(text) {
+        Ok(r) => "${r.code}|${r.lines.len()}|${r.complete}|${r.lines.join("/")}",
+        Err(e) => "error: ${e}",
+    }
+}
+
+@test
+fn test_replies_from_rfc_5321() {
+    assert_eq(reply_summary("250 OK\r\n"), "250|1|true|OK")
+    assert_eq(reply_summary("250-mail.example.com greets you\r\n250-SIZE 35882577\r\n250-AUTH PLAIN LOGIN\r\n250 8BITMIME\r\n"), "250|4|true|mail.example.com greets you/SIZE 35882577/AUTH PLAIN LOGIN/8BITMIME")
+    assert_eq(reply_summary("250-first\r\n250-second\r\n"), "250|2|false|first/second")
+    assert_eq(reply_summary("354 Start mail input; end with <CRLF>.<CRLF>\r\n"), "354|1|true|Start mail input; end with <CRLF>.<CRLF>")
+    assert_eq(reply_summary("550 5.1.1 User unknown\r\n"), "550|1|true|5.1.1 User unknown")
+    assert(reply_summary("25\r\n").starts_with("error"), "short")
+    assert(reply_summary("abc OK\r\n").starts_with("error"), "no code")
+    assert(reply_summary("250-a\r\n251 b\r\n").starts_with("error"), "code changes")
+    assert(reply_summary("250xOK\r\n").starts_with("error"), "bad separator")
+    assert(reply_summary("").starts_with("error"), "empty")
+}
+
+@test
+fn test_extensions_auth_and_size() {
+    let r = match parse_reply("250-mail.example.com\r\n250-SIZE 35882577\r\n250-auth PLAIN LOGIN\r\n250-STARTTLS\r\n250 8BITMIME\r\n") {
+        Ok(v) => v,
+        Err(_) => Reply { code: 0, lines: Vec::new(), complete: false },
+    }
+    let exts = extensions(r)
+    assert_eq(exts.join(","), "SIZE 35882577,AUTH PLAIN LOGIN,STARTTLS,8BITMIME")
+    assert_eq(max_size(exts), 35882577)
+    assert_eq(auth_mechanisms(exts).join(","), "PLAIN,LOGIN")
+}

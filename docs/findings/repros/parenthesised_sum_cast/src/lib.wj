@@ -1,0 +1,7 @@
+/// `(after + len + 1) as usize` inside an index loses its parentheses: the cast lands on `len` alone (E0308 / E0277).
+pub fn byte_after(buf: Vec<u8>, after: int, len: int) -> int {
+    if buf[(after + len) as usize] == 13 && buf[(after + len + 1) as usize] == 10 {
+        return 1
+    }
+    0
+}

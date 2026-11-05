@@ -1,0 +1,17 @@
+[package]
+name = "wj-oauth"
+version = "0.1.0"
+edition = "2025"
+
+[lib]
+
+[dependencies]
+
+[dev-dependencies]
+
+[profile.release]
+opt-level = 3
+lto = true
+
+# Pure computation: requests are built as text and responses parsed; the caller performs the HTTP calls and supplies the clock and random bytes.
+[capabilities]

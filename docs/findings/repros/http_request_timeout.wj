@@ -1,8 +1,0 @@
-use std::http
-
-fn main() {
-    match http.get("http://127.0.0.1:9").timeout_secs(1).send() {
-        Ok(r) => println("${r.status_code()}"),
-        Err(e) => println("err ${e}"),
-    }
-}

@@ -1,0 +1,61 @@
+use crate::style::Theme
+use crate::style::green
+use crate::style::dim
+
+fn clamp(v: int, lo: int, hi: int) -> int {
+    if v < lo {
+        return lo
+    }
+    if v > hi {
+        return hi
+    }
+    v
+}
+
+fn repeat(unit: string, n: int) -> string {
+    let mut out = ""
+    let mut i = 0
+    while i < n {
+        out = out + unit
+        i = i + 1
+    }
+    out
+}
+
+/// `[#####-----]  50%`: `width` is the bar's inner width. Out-of-range input is clamped.
+pub fn progress_bar(done: int, total: int, width: int) -> string {
+    let t = if total <= 0 { 1 } else { total }
+    let d = clamp(done, 0, t)
+    let filled = (d * width) / t
+    let pct = (d * 100) / t
+    let label = if pct < 10 { "  ${pct}%" } else if pct < 100 { " ${pct}%" } else { "${pct}%" }
+    "[" + repeat("#", filled) + repeat("-", width - filled) + "] " + label
+}
+
+/// The same bar with a coloured fill when the theme allows it.
+pub fn styled_bar(theme: Theme, done: int, total: int, width: int) -> string {
+    let t = if total <= 0 { 1 } else { total }
+    let d = clamp(done, 0, t)
+    let filled = (d * width) / t
+    let pct = (d * 100) / t
+    "[" + green(theme, repeat("#", filled)) + dim(theme, repeat("-", width - filled)) + "] ${pct}%"
+}
+
+/// Braille spinner frame for tick `i`.
+pub fn spinner_frame(i: int) -> string {
+    let frames = ["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"]
+    frames[(i % 10) as usize]
+}
+
+/// `\r` plus the line, to redraw a progress line in place.
+pub fn redraw(line: string) -> string {
+    "\r" + line
+}
+
+/// Estimated seconds remaining from elapsed milliseconds and progress; `None` before any progress.
+pub fn eta_seconds(done: int, total: int, elapsed_ms: int) -> Option<int> {
+    if done <= 0 || total <= done {
+        return None
+    }
+    Some((elapsed_ms * (total - done)) / (done * 1000))
+}

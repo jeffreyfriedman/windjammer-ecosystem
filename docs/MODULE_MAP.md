@@ -13,7 +13,9 @@
 |---|---|---|
 | wj-archive | Tar and zip read/write, DEFLATE, CRC-32 | std |
 | wj-base64 | Base64 and Basic-auth header helpers | std |
+| wj-cache | LRU + TTL cache, Redis protocol codec | std |
 | wj-cli-args | argv flags and positionals | std |
+| wj-cli-ui | Colour, text width, progress, prompts | std |
 | wj-compress | Accept-Encoding negotiation, gzip | std |
 | wj-config | Layered config lookup | std |
 | wj-cookie | Cookie / Set-Cookie parse and format | std |
@@ -39,6 +41,7 @@
 | wj-migrate | SQL migration planning and status | std |
 | wj-mime | MIME lookup | std |
 | wj-multipart | multipart/form-data parse | std |
+| wj-oauth | OAuth 2.0 / OIDC: PKCE, requests, ID token validation | std |
 | wj-path | Path join and parts | std |
 | wj-proc | Process capture, CPU timing, git helpers | std |
 | wj-querystring | Query string parse and build | std |
@@ -48,6 +51,7 @@
 | wj-router | Route matching | std |
 | wj-semver | Version parse and compare | std |
 | wj-sha | SHA-256 hex | std |
+| wj-smtp | MIME messages and SMTP planning | std |
 | wj-stats | Mean, median, standard deviation | std |
 | wj-sync | Channels, shared state, pools | std |
 | wj-table | Markdown and plain tables, fixed-point numbers | std |

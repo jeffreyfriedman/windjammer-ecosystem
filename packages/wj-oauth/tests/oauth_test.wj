@@ -1,0 +1,272 @@
+// Expected values come from Python: hashlib and base64 for PKCE, urllib.parse.quote for encoding, PyJWT for tokens.
+// The PKCE pair is the one in RFC 7636 appendix B.
+use crate::b64::decode
+use crate::b64::decode_text
+use crate::b64::encode_text
+use crate::jwt::Claims
+use crate::jwt::Expect
+use crate::jwt::validate_claims
+use crate::jwt::validate_id_token_hs256
+use crate::jwt::verify_hs256
+use crate::pkce::challenge_s256
+use crate::pkce::is_valid_verifier
+use crate::pkce::verifier_from_random
+use crate::pkce::verify_s256
+use crate::request::AuthRequest
+use crate::request::accept_callback
+use crate::request::authorization_url
+use crate::request::basic_auth_header
+use crate::request::bearer_header
+use crate::request::form_encode
+use crate::request::parse_callback
+use crate::request::token_request_authorization_code
+use crate::request::token_request_client_credentials
+use crate::request::token_request_refresh
+use crate::token::expires_at
+use crate::token::is_expired
+use crate::token::parse_discovery
+use crate::token::parse_token_response
+
+fn shown(r: Result<string, string>) -> string {
+    match r {
+        Ok(t) => t,
+        Err(e) => "error: ${e}",
+    }
+}
+
+fn no_extra() -> Vec<(string, string)> {
+    Vec::new()
+}
+
+@test
+fn test_pkce_matches_rfc_7636_and_hashlib() {
+    assert_eq(challenge_s256("dBjftJeZ4CVP-mB92K27uhbUJU1p1r_wW1gFWFOEjXk"), "E9Melhoa2OwvFrEMTJguCHaoeK1t8URWbuGJSstw-cM")
+    assert_eq(challenge_s256("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"), "ZtNPunH49FD35FWYhT5Tv8I7vRKQJ8uxMaL0_9eHjNA")
+    assert_eq(challenge_s256("~._-~._-~._-~._-~._-~._-~._-~._-~._-~._-~._-~._-"), "rGA1fm2VJ5efaB84foKXDftlslOBCT-p7k5rM19HJZo")
+    assert_eq(challenge_s256("xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"), "JNobgdCxbfZCju5zxp_LKpPHa8bfcG8MZnD-a_6ABGQ")
+    assert_eq(challenge_s256("Z9Z9Z9Z9Z9Z9Z9Z9Z9Z9Z9Z9Z9Z9Z9Z9Z9Z9Z9Z9Z9Z9Z9Z9Z9Z9Z9Z9Z9Z9"), "y0vKz64yIvciv4R8jQz1y4icNHt3Puj6MRVjwWDi_n8")
+    assert(verify_s256("dBjftJeZ4CVP-mB92K27uhbUJU1p1r_wW1gFWFOEjXk", "E9Melhoa2OwvFrEMTJguCHaoeK1t8URWbuGJSstw-cM"), "server side check")
+    assert(!verify_s256("dBjftJeZ4CVP-mB92K27uhbUJU1p1r_wW1gFWFOEjXk", "E9Melhoa2OwvFrEMTJguCHaoeK1t8URWbuGJSstw-cX"), "wrong challenge")
+}
+
+@test
+fn test_verifier_rules() {
+    assert(is_valid_verifier("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"), "43 is the minimum")
+    assert(!is_valid_verifier("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"), "42 is too short")
+    assert(is_valid_verifier("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"), "128 is the maximum")
+    assert(!is_valid_verifier("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"), "129 is too long")
+    assert(!is_valid_verifier("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa+"), "plus is not unreserved")
+    assert(!is_valid_verifier("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa "), "space is not unreserved")
+    let random = from_range(32)
+    assert_eq(shown(verifier_from_random(random)), "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8")
+    assert(verifier_from_random(from_range(31)).is_err(), "too few bytes")
+    assert(verifier_from_random(from_range(97)).is_err(), "too many bytes")
+}
+
+fn from_range(n: int) -> Vec<u8> {
+    let mut out: Vec<u8> = Vec::new()
+    let mut i = 0
+    while i < n {
+        out.push(i as u8)
+        i = i + 1
+    }
+    out
+}
+
+@test
+fn test_base64url_round_trips() {
+    assert_eq(encode_text("subjects?>>"), "c3ViamVjdHM_Pj4")
+    assert_eq(decode_text("aMOpbGxvIOKckw").unwrap_or("bad"), "héllo ✓")
+    assert(decode("a").is_err(), "length 1 mod 4")
+    assert(decode("ab$d").is_err(), "bad character")
+    assert_eq(decode("YQ").unwrap_or(Vec::new()).len(), 1)
+    assert_eq(decode("YQ==").unwrap_or(Vec::new()).len(), 1)
+}
+
+@test
+fn test_authorization_url_matches_python_quote() {
+    let scopes: Vec<string> = ["openid", "profile", "email"]
+    let mut extra: Vec<(string, string)> = Vec::new()
+    extra.push(("prompt", "consent"))
+    extra.push(("login_hint", "jos\u{e9}@example.com"))
+    let req = AuthRequest {
+        authorization_endpoint: "https://id.example.com/authorize",
+        client_id: "my client/1",
+        redirect_uri: "https://app.example.com/cb?x=1&y=2",
+        scopes: scopes,
+        state: "st4te-xyz-123",
+        code_verifier: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        nonce: "n0nce~._-",
+        extra: extra,
+    }
+    assert_eq(shown(authorization_url(req)), "https://id.example.com/authorize?response_type=code&client_id=my%20client%2F1&redirect_uri=https%3A%2F%2Fapp.example.com%2Fcb%3Fx%3D1%26y%3D2&scope=openid%20profile%20email&state=st4te-xyz-123&code_challenge=ZtNPunH49FD35FWYhT5Tv8I7vRKQJ8uxMaL0_9eHjNA&code_challenge_method=S256&nonce=n0nce~._-&prompt=consent&login_hint=jos%C3%A9%40example.com")
+}
+
+@test
+fn test_authorization_url_validation() {
+    let ok = AuthRequest { authorization_endpoint: "https://id.example.com/authorize?tenant=t1", client_id: "c", redirect_uri: "https://a/cb", scopes: Vec::new(), state: "12345678", code_verifier: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", nonce: "", extra: no_extra() }
+    let url = shown(authorization_url(ok))
+    assert(url.starts_with("https://id.example.com/authorize?tenant=t1&response_type=code&client_id=c"), url)
+    assert(!url.contains("scope="), "no scope when none requested")
+    assert(!url.contains("nonce="), "no nonce when empty")
+    let weak_state = AuthRequest { authorization_endpoint: "https://id/a", client_id: "c", redirect_uri: "https://a/cb", scopes: Vec::new(), state: "short", code_verifier: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", nonce: "", extra: no_extra() }
+    assert(authorization_url(weak_state).is_err(), "short state")
+    let weak_verifier = AuthRequest { authorization_endpoint: "https://id/a", client_id: "c", redirect_uri: "https://a/cb", scopes: Vec::new(), state: "12345678", code_verifier: "tooshort", nonce: "", extra: no_extra() }
+    assert(authorization_url(weak_verifier).is_err(), "short verifier")
+    let missing = AuthRequest { authorization_endpoint: "", client_id: "c", redirect_uri: "https://a/cb", scopes: Vec::new(), state: "12345678", code_verifier: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", nonce: "", extra: no_extra() }
+    assert(authorization_url(missing).is_err(), "no endpoint")
+}
+
+@test
+fn test_callback_parsing_matches_python_parse_qs() {
+    let cb9860 = parse_callback("https://app.example.com/cb?code=abc%20123&state=st4te&session_state=zz")
+    assert_eq(cb9860.code, "abc 123")
+    assert_eq(cb9860.state, "st4te")
+    assert_eq(cb9860.error, "")
+    assert_eq(cb9860.error_description, "")
+    let cb2303 = parse_callback("https://app.example.com/cb?error=access_denied&error_description=User%20said%20no&state=s")
+    assert_eq(cb2303.code, "")
+    assert_eq(cb2303.state, "s")
+    assert_eq(cb2303.error, "access_denied")
+    assert_eq(cb2303.error_description, "User said no")
+    let cb9137 = parse_callback("code=xyz&state=1234")
+    assert_eq(cb9137.code, "xyz")
+    assert_eq(cb9137.state, "1234")
+    assert_eq(cb9137.error, "")
+    assert_eq(cb9137.error_description, "")
+    let cb6647 = parse_callback("https://app.example.com/cb?code=a%2Bb%3D%3D&state=s#fragment=ignored")
+    assert_eq(cb6647.code, "a+b==")
+    assert_eq(cb6647.state, "s")
+    assert_eq(cb6647.error, "")
+    assert_eq(cb6647.error_description, "")
+    let cb2704 = parse_callback("https://app.example.com/cb")
+    assert_eq(cb2704.code, "")
+    assert_eq(cb2704.state, "")
+    assert_eq(cb2704.error, "")
+    assert_eq(cb2704.error_description, "")
+    let cb6941 = parse_callback("https://app.example.com/cb?code=a+b&state=s")
+    assert_eq(cb6941.code, "a b")
+    assert_eq(cb6941.state, "s")
+    assert_eq(cb6941.error, "")
+    assert_eq(cb6941.error_description, "")
+}
+
+@test
+fn test_accept_callback_checks_state_error_and_code() {
+    assert_eq(shown(accept_callback(parse_callback("https://a/cb?code=C&state=S1"), "S1")), "C")
+    assert_eq(shown(accept_callback(parse_callback("https://a/cb?code=C&state=S2"), "S1")), "error: state mismatch")
+    assert_eq(shown(accept_callback(parse_callback("https://a/cb?code=C"), "S1")), "error: state mismatch")
+    assert_eq(shown(accept_callback(parse_callback("https://a/cb?code=C&state=S1"), "")), "error: state mismatch")
+    assert_eq(shown(accept_callback(parse_callback("https://a/cb?state=S1"), "S1")), "error: no authorization code in the callback")
+    assert_eq(shown(accept_callback(parse_callback("https://a/cb?error=access_denied&error_description=No&state=S1"), "S1")), "error: authorization failed: access_denied: No")
+    assert_eq(shown(accept_callback(parse_callback("https://a/cb?error=server_error"), "S1")), "error: authorization failed: server_error")
+}
+
+@test
+fn test_token_requests_match_python_urlencode() {
+    let ab: Vec<string> = ["a", "b"]
+    let rw: Vec<string> = ["read", "write"]
+    let mut pairs: Vec<(string, string)> = Vec::new()
+    pairs.push(("a b", "c&d"))
+    pairs.push(("e", "ü"))
+    assert_eq(token_request_authorization_code("cid", "s3cr&t", "a b/c", "https://app/cb", "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"), "grant_type=authorization_code&code=a%20b%2Fc&redirect_uri=https%3A%2F%2Fapp%2Fcb&client_id=cid&code_verifier=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa&client_secret=s3cr%26t")
+    assert_eq(token_request_authorization_code("cid", "", "a b/c", "https://app/cb", "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"), "grant_type=authorization_code&code=a%20b%2Fc&redirect_uri=https%3A%2F%2Fapp%2Fcb&client_id=cid&code_verifier=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa")
+    assert_eq(token_request_refresh("cid", "sec", "r/t==", ab), "grant_type=refresh_token&refresh_token=r%2Ft%3D%3D&client_id=cid&client_secret=sec&scope=a%20b")
+    assert_eq(token_request_refresh("cid", "", "r/t==", Vec::new()), "grant_type=refresh_token&refresh_token=r%2Ft%3D%3D&client_id=cid")
+    assert_eq(token_request_client_credentials("cid", "sec", rw), "grant_type=client_credentials&client_id=cid&client_secret=sec&scope=read%20write")
+    assert_eq(form_encode(pairs), "a%20b=c%26d&e=%C3%BC")
+    assert_eq(basic_auth_header("my id", "p@ss w:rd"), "Basic bXklMjBpZDpwJTQwc3MlMjB3JTNBcmQ=")
+    assert_eq(bearer_header("tok"), "Bearer tok")
+}
+
+@test
+fn test_token_responses() {
+    let ok = parse_token_response("{\"access_token\":\"AT\",\"token_type\":\"Bearer\",\"expires_in\":3600,\"refresh_token\":\"RT\",\"id_token\":\"IT\",\"scope\":\"openid\",\"extra\":{\"x\":1}}")
+    match ok {
+        Ok(t) => {
+            assert_eq(expires_at(t, 1000), 4600)
+            assert_eq(t.access_token, "AT")
+            assert_eq(t.refresh_token.unwrap_or(""), "RT")
+            assert_eq(t.id_token.unwrap_or(""), "IT")
+        },
+        Err(e) => assert(false, e),
+    }
+    match parse_token_response("{\"access_token\":\"AT\",\"token_type\":\"bearer\"}") {
+        Ok(t) => {
+            assert_eq(expires_at(t, 1000), 0)
+            assert_eq(t.expires_in.unwrap_or(-1), -1)
+        },
+        Err(e) => assert(false, e),
+    }
+    assert_eq(shown(parse_token_response("{\"error\":\"invalid_grant\",\"error_description\":\"Code expired\"}").map(|t| t.access_token)), "error: invalid_grant: Code expired")
+    assert_eq(shown(parse_token_response("{\"error\":\"invalid_client\"}").map(|t| t.access_token)), "error: invalid_client")
+    assert(parse_token_response("not json").is_err(), "garbage")
+    assert(parse_token_response("{\"access_token\":\"\",\"token_type\":\"Bearer\"}").is_err(), "empty token")
+    assert(parse_token_response("{\"access_token\":\"A\",\"token_type\":\"mac\"}").is_err(), "unsupported type")
+    assert(is_expired(1000, 990, 10), "within skew")
+    assert(!is_expired(1000, 989, 10), "before skew")
+    assert(!is_expired(0, 5000000, 10), "no lifetime never expires")
+}
+
+@test
+fn test_discovery_document() {
+    let body = "{\"issuer\":\"https://id.example.com\",\"authorization_endpoint\":\"https://id.example.com/auth\",\"token_endpoint\":\"https://id.example.com/token\",\"jwks_uri\":\"https://id.example.com/keys\",\"scopes_supported\":[\"openid\"]}"
+    match parse_discovery(body, "https://id.example.com") {
+        Ok(d) => {
+            assert_eq(d.token_endpoint, "https://id.example.com/token")
+            assert_eq(d.jwks_uri.unwrap_or(""), "https://id.example.com/keys")
+            assert_eq(d.userinfo_endpoint.unwrap_or("none"), "none")
+        },
+        Err(e) => assert(false, e),
+    }
+    assert(parse_discovery(body, "https://evil.example.com").is_err(), "issuer mismatch")
+    assert(parse_discovery("{\"issuer\":\"x\"}", "x").is_err(), "missing endpoints")
+}
+
+fn expect(now: int) -> Expect {
+    Expect { issuer: "https://id.example.com", audience: "my-client", nonce: "n-1", now: now, leeway: 5 }
+}
+
+fn claims_summary(r: Result<Claims, string>) -> string {
+    match r {
+        Ok(c) => "${c.subject}|${c.issuer}|${c.expires_at}|${c.nonce}|${c.email}",
+        Err(e) => "error: ${e}",
+    }
+}
+
+@test
+fn test_id_token_validation_matches_pyjwt() {
+    assert_eq(claims_summary(validate_id_token_hs256("eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJodHRwczovL2lkLmV4YW1wbGUuY29tIiwic3ViIjoidXNlci00MiIsImF1ZCI6Im15LWNsaWVudCIsImV4cCI6MTcwMDAwMDMwMCwiaWF0IjoxNjk5OTk5OTkwLCJub25jZSI6Im4tMSIsImVtYWlsIjoiYWRhQGV4YW1wbGUuY29tIn0.dRFaFuND-ZkximXhzOCLD_5PqYqwLO2hdvfrUuddAFw", "s3cret-key", expect(1700000000))), "user-42|https://id.example.com|1700000300|n-1|ada@example.com")  // valid
+    assert_eq(claims_summary(validate_id_token_hs256("eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJodHRwczovL2lkLmV4YW1wbGUuY29tIiwic3ViIjoidXNlci00MiIsImF1ZCI6Im15LWNsaWVudCIsImV4cCI6MTcwMDAwMDMwMCwiaWF0IjoxNjk5OTk5OTkwLCJub25jZSI6Im4tMSIsImVtYWlsIjoiYWRhQGV4YW1wbGUuY29tIn0.Ct3E1gpH7UXYP_-tvrU4kp-KnMUWaKcFPNtJTaizS-8", "s3cret-key", expect(1700000000))), "error: signature does not match")  // wrong secret
+    assert_eq(claims_summary(validate_id_token_hs256("eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJodHRwczovL2lkLmV4YW1wbGUuY29tIiwic3ViIjoidXNlci00MiIsImF1ZCI6Im15LWNsaWVudCIsImV4cCI6MTY5OTk5OTkwMCwiaWF0IjoxNjk5OTk5OTkwLCJub25jZSI6Im4tMSIsImVtYWlsIjoiYWRhQGV4YW1wbGUuY29tIn0.ZzUPcMBhOEYBA5EroAz1Ku7GzLRzUv5xQG80oEJHCQA", "s3cret-key", expect(1700000000))), "error: token expired")  // expired
+    assert_eq(claims_summary(validate_id_token_hs256("eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJodHRwczovL2lkLmV4YW1wbGUuY29tIiwic3ViIjoidXNlci00MiIsImF1ZCI6Im15LWNsaWVudCIsImV4cCI6MTY5OTk5OTk5NywiaWF0IjoxNjk5OTk5OTkwLCJub25jZSI6Im4tMSIsImVtYWlsIjoiYWRhQGV4YW1wbGUuY29tIn0.oy8woPZMn05cl8nqnBP7kfWdRwgKYi6NnhZ6q2V9hek", "s3cret-key", expect(1700000000))), "user-42|https://id.example.com|1699999997|n-1|ada@example.com")  // expired within leeway
+    assert_eq(claims_summary(validate_id_token_hs256("eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJodHRwczovL2lkLmV4YW1wbGUuY29tIiwic3ViIjoidXNlci00MiIsImF1ZCI6Im15LWNsaWVudCIsImV4cCI6MTcwMDAwMDMwMCwiaWF0IjoxNjk5OTk5OTkwLCJub25jZSI6Im4tMSIsImVtYWlsIjoiYWRhQGV4YW1wbGUuY29tIiwibmJmIjoxNzAwMDAwMTAwfQ.7uxFvPsceponrnV_4AKLDUod7wYDEnRi8tbZmQoMr5w", "s3cret-key", expect(1700000000))), "error: token not valid yet")  // not yet valid
+    assert_eq(claims_summary(validate_id_token_hs256("eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJodHRwczovL2lkLmV4YW1wbGUuY29tIiwic3ViIjoidXNlci00MiIsImF1ZCI6WyJvdGhlciIsIm15LWNsaWVudCJdLCJleHAiOjE3MDAwMDAzMDAsImlhdCI6MTY5OTk5OTk5MCwibm9uY2UiOiJuLTEiLCJlbWFpbCI6ImFkYUBleGFtcGxlLmNvbSJ9.3tXNenl4rtyW2857-enCLwiD-WO95aI9aHp5Jqr6slA", "s3cret-key", expect(1700000000))), "user-42|https://id.example.com|1700000300|n-1|ada@example.com")  // audience list
+    assert_eq(claims_summary(validate_id_token_hs256("eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJodHRwczovL2lkLmV4YW1wbGUuY29tIiwic3ViIjoidXNlci00MiIsImF1ZCI6WyJvdGhlciJdLCJleHAiOjE3MDAwMDAzMDAsImlhdCI6MTY5OTk5OTk5MCwibm9uY2UiOiJuLTEiLCJlbWFpbCI6ImFkYUBleGFtcGxlLmNvbSJ9.7GIh3H9Yvo9T11OcnqxgHJmMUY72BmGe_tEgaXmptCA", "s3cret-key", expect(1700000000))), "error: audience does not include my-client")  // audience mismatch
+    assert_eq(claims_summary(validate_id_token_hs256("eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJodHRwczovL2V2aWwuZXhhbXBsZS5jb20iLCJzdWIiOiJ1c2VyLTQyIiwiYXVkIjoibXktY2xpZW50IiwiZXhwIjoxNzAwMDAwMzAwLCJpYXQiOjE2OTk5OTk5OTAsIm5vbmNlIjoibi0xIiwiZW1haWwiOiJhZGFAZXhhbXBsZS5jb20ifQ.m2fE9jm9T3eHH-hlIwgietjaywcyTocsPgWU6krycUU", "s3cret-key", expect(1700000000))), "error: issuer mismatch: expected https://id.example.com, got https://evil.example.com")  // issuer mismatch
+    assert_eq(claims_summary(validate_id_token_hs256("eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJodHRwczovL2lkLmV4YW1wbGUuY29tIiwic3ViIjoidXNlci00MiIsImF1ZCI6Im15LWNsaWVudCIsImV4cCI6MTcwMDAwMDMwMCwiaWF0IjoxNjk5OTk5OTkwLCJub25jZSI6Im90aGVyIiwiZW1haWwiOiJhZGFAZXhhbXBsZS5jb20ifQ.iMMkHkfHlzWWhDn7bP4pcpPNceVnKcR10ZDuiIsigG0", "s3cret-key", expect(1700000000))), "error: nonce mismatch")  // nonce mismatch
+    assert_eq(claims_summary(validate_id_token_hs256("eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJodHRwczovL2lkLmV4YW1wbGUuY29tIiwic3ViIjoidXNlci00MiIsImF1ZCI6Im15LWNsaWVudCIsImV4cCI6MTcwMDAwMDMwMCwiaWF0IjoxNzAwMDAxMDAwLCJub25jZSI6Im4tMSIsImVtYWlsIjoiYWRhQGV4YW1wbGUuY29tIn0.pKqp5rHC2zCGKp-X2PWpfFVHE_PH8KDJQNB869mQx7Y", "s3cret-key", expect(1700000000))), "error: token issued in the future")  // issued in the future
+    assert_eq(claims_summary(validate_id_token_hs256("eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJodHRwczovL2lkLmV4YW1wbGUuY29tIiwic3ViIjoidXNlci00MiIsImF1ZCI6Im15LWNsaWVudCIsImlhdCI6MTY5OTk5OTk5MCwibm9uY2UiOiJuLTEiLCJlbWFpbCI6ImFkYUBleGFtcGxlLmNvbSJ9.m-3RzFDhO1KlmOtr6u6jPUwsiQW-76JI58HQo_yujcU", "s3cret-key", expect(1700000000))), "error: exp claim is required")  // missing exp
+    assert_eq(claims_summary(validate_id_token_hs256("eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJodHRwczovL2lkLmV4YW1wbGUuY29tIiwiYXVkIjoibXktY2xpZW50IiwiZXhwIjoxNzAwMDAwMzAwLCJpYXQiOjE2OTk5OTk5OTAsIm5vbmNlIjoibi0xIiwiZW1haWwiOiJhZGFAZXhhbXBsZS5jb20ifQ.ZEG3vAvH87zav-MEp5Q89OLiSvV3ZyYaot02dHCYT1I", "s3cret-key", expect(1700000000))), "error: sub claim is required")  // missing sub
+    assert_eq(claims_summary(validate_id_token_hs256("eyJhbGciOiJub25lIiwidHlwIjoiSldUIn0.eyJpc3MiOiJodHRwczovL2lkLmV4YW1wbGUuY29tIiwic3ViIjoidXNlci00MiIsImF1ZCI6Im15LWNsaWVudCIsImV4cCI6MTcwMDAwMDMwMCwiaWF0IjoxNjk5OTk5OTkwLCJub25jZSI6Im4tMSIsImVtYWlsIjoiYWRhQGV4YW1wbGUuY29tIn0.", "s3cret-key", expect(1700000000))), "error: unsigned tokens are not accepted")  // alg none
+    assert_eq(claims_summary(validate_id_token_hs256("eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJodHRwczovL2lkLmV4YW1wbGUuY29tIiwic3ViIjoidXNlci00MiIsImF1ZCI6Im15LWNsaWVudCIsImV4cCI6MTcwMDAwMDMwMCwiaWF0IjoxNjk5OTk5OTkwLCJub25jZSI6Im4tMSIsImVtYWlsIjoiYWRhQGV4YW1wbGUuY29tIn0.eA", "s3cret-key", expect(1700000000))), "error: RS256 needs RSA or ECDSA support, which std does not have yet")  // RS256 header
+    assert_eq(claims_summary(validate_id_token_hs256("eyJhbGciOiJIUzUxMiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJodHRwczovL2lkLmV4YW1wbGUuY29tIiwic3ViIjoidXNlci00MiIsImF1ZCI6Im15LWNsaWVudCIsImV4cCI6MTcwMDAwMDMwMCwiaWF0IjoxNjk5OTk5OTkwLCJub25jZSI6Im4tMSIsImVtYWlsIjoiYWRhQGV4YW1wbGUuY29tIn0.eA", "s3cret-key", expect(1700000000))), "error: unsupported algorithm HS512")  // HS512 header
+    assert_eq(claims_summary(validate_id_token_hs256("eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJodHRwczovL2lkLmV4YW1wbGUuY29tIiwic3ViIjoiYWRtaW4iLCJhdWQiOiJteS1jbGllbnQiLCJleHAiOjE3MDAwMDAzMDAsImlhdCI6MTY5OTk5OTk5MCwibm9uY2UiOiJuLTEiLCJlbWFpbCI6ImFkYUBleGFtcGxlLmNvbSJ9.dRFaFuND-ZkximXhzOCLD_5PqYqwLO2hdvfrUuddAFw", "s3cret-key", expect(1700000000))), "error: signature does not match")  // tampered payload
+    assert_eq(claims_summary(validate_id_token_hs256("a.b", "s3cret-key", expect(1700000000))), "error: a JWT has three dot-separated parts")  // two parts
+    assert(claims_summary(validate_id_token_hs256("!!!.@@@.###", "s3cret-key", expect(1700000000))).starts_with("error"), "not base64")
+}
+
+@test
+fn test_signature_check_alone_and_unicode_claims() {
+    let t = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJodHRwczovL2lkLmV4YW1wbGUuY29tIiwic3ViIjoidXNlci00MiIsImF1ZCI6Im15LWNsaWVudCIsImV4cCI6MTcwMDAwMDMwMCwiaWF0IjoxNjk5OTk5OTkwLCJub25jZSI6Im4tMSIsImVtYWlsIjoiYWRhQGV4YW1wbGUuY29tIiwibmFtZSI6Ikpvc1x1MDBlOSJ9.GuA-8_PkHhINmQIsnjXFY4h468FNXl4S_-zEnapJGsQ"
+    assert(verify_hs256(t, "s3cret-key").is_ok(), "valid signature")
+    assert(verify_hs256(t, "x").is_err(), "wrong secret")
+    match verify_hs256(t, "s3cret-key") {
+        Ok(p) => assert_str_contains(p.payload_json, "\"sub\":\"user-42\""),
+        Err(e) => assert(false, e),
+    }
+    let loose = Expect { issuer: "", audience: "", nonce: "", now: 1700000000, leeway: 0 }
+    assert(validate_claims("{\"sub\":\"x\",\"exp\":1700000001}", loose).is_ok(), "empty expectations skip those checks")
+    assert(validate_claims("[1,2]", loose).is_err(), "payload must be an object")
+    assert(validate_claims("nope", loose).is_err(), "payload must be JSON")
+}

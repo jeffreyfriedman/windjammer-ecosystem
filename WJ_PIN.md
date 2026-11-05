@@ -5,13 +5,12 @@ commit below. CI never uses a floating branch.
 
 ```
 WJ_REPO=https://github.com/jeffreyfriedman/windjammer.git
-WJ_COMMIT=b77ea8a6365cbc60cddc9eb1d641e02ddd9c0860
+WJ_COMMIT=6ed79d644d3f4d03114b61f36540a8165782502d
 ```
 
-Status: CANDIDATE. Sweep at this commit (interpreted `wj test --interpret` and compiled `wj test`, per package and app,
-2026-11-04): 64 of 66 targets are green in both modes. `wj-find` and `wj-grep` are red compiled on one compiler issue
-(`docs/findings/README.md`, item 5; they passed at the previous pin). Bump to VERIFIED only when the whole loop is green.
-The commit must exist on `WJ_REPO` before CI can fetch it.
+Status: VERIFIED for the ecosystem loop. Sweep at this commit (interpreted `wj test --interpret` and compiled `wj test`, per
+package and app, 2026-11-05): 70 of 70 targets are green in both modes (`docs/STDLIB_GRADUATION.md`). The commit must exist on
+`WJ_REPO` before CI can fetch it.
 
 ## Pin policy
 

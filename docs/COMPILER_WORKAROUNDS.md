@@ -6,7 +6,7 @@ and the sweep method) and kept only when the idiomatic form still fails.
 
 ## Burned down
 
-15 of the original 16 entries now use the idiomatic form, with interpreted and compiled tests green for the
+All 16 of the original entries now use the idiomatic form, with interpreted and compiled tests green for the
 package or app that owns the code.
 
 | Entry | Idiomatic form now in place |
@@ -23,15 +23,17 @@ package or app that owns the code.
 | `wj-sha` `chars` loop | the `for ch in strings.chars(text)` loop is the idiomatic form and passes; note removed |
 | `wj-sync` "no type aliases" | `SharedInt`, `IntReceiver`, ... are `pub type` aliases already; stale comments removed |
 | `wj-toml` `"${raw}"` owned copy | `normalize_value(raw)` |
+| `wj-fetch` `--timeout` | `http.request("GET", url).timeout_secs(n).send()` |
 | `wj-uuid` namespace literal | `v5(NAMESPACE_DNS, name)` using the existing `pub const` |
 | `wj-notes-api` `qs_get` alias | `use wj_querystring::get` under its natural name |
 | `wj-retry` spin-wait `pause_ms` | `std::async::sleep_ms_blocking` (the old entry named `std::async_runtime`); a test asserts the wait |
 
-## Kept, with a minimal repro
+## Kept
 
-| Location | Current shape | Idiomatic target | Why it stays | Repro |
-|---|---|---|---|---|
-| `apps/wj-fetch/src/adapters/http_get.wj` | `--timeout` accepted but not applied | build a request with a timeout | `std::http.get` returns a `Result`; there is no request builder, so `.timeout_secs(n)` has nothing to attach to | [`http_request_timeout.wj`](findings/repros/http_request_timeout.wj) |
+None. The last entry, `wj-fetch --timeout`, now builds its request with `http.request("GET", url).timeout_secs(n).send()`.
+
+Newer packages carry small forms chosen to avoid compiler gaps that are recorded as findings
+([findings](findings/README.md)); those are findings, not workaround entries.
 
 ## Dependencies on transpiled output
 

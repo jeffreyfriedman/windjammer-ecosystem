@@ -1,5 +1,0 @@
-use crate::bounds
-
-fn test_bounds() {
-    assert_eq(bounds().len(), 3)
-}

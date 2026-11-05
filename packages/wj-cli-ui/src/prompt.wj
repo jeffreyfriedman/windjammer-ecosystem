@@ -1,0 +1,132 @@
+use std::fs
+use std::strings
+
+/// Answers to prompts, consumed one per question. Build it from piped stdin or from a list in tests.
+pub struct Answers {
+    lines: Vec<string>,
+    next: int,
+}
+
+pub fn answers_from(lines: Vec<string>) -> Answers {
+    Answers { lines: lines, next: 0 }
+}
+
+/// Split text into answers (one per line).
+pub fn answers_from_text(text: string) -> Answers {
+    answers_from(strings.split_lines(text))
+}
+
+/// All of standard input, one answer per line (interactive line-by-line reading needs std::io).
+pub fn answers_from_stdin() -> Answers {
+    answers_from_text(fs.read_to_string("/dev/stdin").unwrap_or(""))
+}
+
+impl Answers {
+    /// The next answer, or "" when the input is exhausted.
+    pub fn take(self) -> string {
+        if self.next >= self.lines.len() as int {
+            return ""
+        }
+        let line = self.lines[self.next as usize]
+        self.next = self.next + 1
+        strings.trim(line)
+    }
+
+    pub fn remaining(self) -> int {
+        self.lines.len() as int - self.next
+    }
+}
+
+/// `y`, `yes`, `n`, `no` (any case); empty means `default`; anything else is `None`.
+pub fn parse_confirm(answer: string, default: bool) -> Option<bool> {
+    let a = strings.to_lower(strings.trim(answer))
+    if strings.len(a) == 0 {
+        return Some(default)
+    }
+    if a == "y" || a == "yes" || a == "true" {
+        return Some(true)
+    }
+    if a == "n" || a == "no" || a == "false" {
+        return Some(false)
+    }
+    None
+}
+
+/// A 1-based number or an exact (case-insensitive) option name; the 0-based index, or `None`.
+pub fn parse_choice(answer: string, options: Vec<string>) -> Option<int> {
+    let a = strings.trim(answer)
+    if strings.len(a) == 0 {
+        return None
+    }
+    let n = a.parse::<int>().unwrap_or(0)
+    if n >= 1 && n <= options.len() as int {
+        return Some(n - 1)
+    }
+    let lower = strings.to_lower(a)
+    let mut i = 0
+    while i < options.len() {
+        if strings.to_lower(options[i]) == lower {
+            return Some(i as int)
+        }
+        i = i + 1
+    }
+    None
+}
+
+/// The hint shown after a yes/no question.
+pub fn confirm_hint(default: bool) -> string {
+    if default { "[Y/n]" } else { "[y/N]" }
+}
+
+/// Ask until a valid answer or `attempts` tries; the default when the input runs out.
+pub fn confirm(answers: Answers, question: string, default: bool, attempts: int) -> bool {
+    let mut tries = 0
+    while tries < attempts {
+        println("${question} ${confirm_hint(default)}")
+        if answers.remaining() == 0 {
+            return default
+        }
+        match parse_confirm(answers.take(), default) {
+            Some(v) => return v,
+            None => println("Please answer y or n."),
+        }
+        tries = tries + 1
+    }
+    default
+}
+
+/// A free-text answer; `default` when the line is empty.
+pub fn ask(answers: Answers, question: string, default: string) -> string {
+    if strings.len(default) > 0 {
+        println("${question} [${default}]")
+    } else {
+        println(question)
+    }
+    let a = answers.take()
+    if strings.len(a) == 0 {
+        return default
+    }
+    a
+}
+
+/// Pick one of `options`; the 0-based index, or -1 when no valid answer arrives in `attempts` tries.
+pub fn select(answers: Answers, question: string, options: Vec<string>, attempts: int) -> int {
+    let mut tries = 0
+    while tries < attempts {
+        println(question)
+        let mut i = 0
+        while i < options.len() {
+            println("  ${i + 1}) ${options[i]}")
+            i = i + 1
+        }
+        if answers.remaining() == 0 {
+            return -1
+        }
+        match parse_choice(answers.take(), options) {
+            Some(idx) => return idx,
+            None => println("Enter a number from 1 to ${options.len()} or an option name."),
+        }
+        tries = tries + 1
+    }
+    -1
+}

@@ -2,7 +2,7 @@
 
 Strong stdlib is the adoption lever. Ecosystem packages should **dogfood gaps** and **stay thin wrappers** once `std::*` is wired — not permanently duplicate platform primitives.
 
-Updated 2026-11-04: tip-health table re-measured; `std::crypto` gains HMAC-SHA256 and constant-time compare (compiler branch `wt/std-hmac`).
+Updated 2026-11-05: tip-health table re-measured; `std::crypto` gains HMAC-SHA256 and constant-time compare (compiler branch `wt/std-hmac`).
 
 ## Principle
 
@@ -53,26 +53,27 @@ Updated 2026-11-04: tip-health table re-measured; `std::crypto` gains HMAC-SHA25
 | `wj-url` | Query_* sugar over tip-green `std::url` |
 | Apps (`wj-todo-cli`, `wj-proxy`, `wj-pipeline`, …) | Never std |
 
-## Tip health (2026-11-04, `wj` 0.50.0 at b77ea8a63, the pinned head)
+## Tip health (2026-11-05, `wj` 0.50.0 at 6ed79d644, the pinned head)
 
 Every package and app under `packages/*` and `apps/*`, tests run interpreted (`wj test --interpret`) and
 compiled (`wj test`) by `scripts/health_sweep.wj`; the table is rendered by `scripts/health_table.wj`. Counts
-are tests passed. 66 targets (49 packages, 17 apps): 64 are green in both modes; `wj-find` and `wj-grep` are red
-compiled because of one compiler finding ([findings](findings/README.md), item 5; both passed at `22d3fe8b2a00`).
-Each red cell has a generic repro in `docs/findings/repros/`; no package carries a shim for it.
+are tests passed. 70 targets (53 packages, 17 apps): all 70 are green in both modes. The open compiler findings
+are in [findings](findings/README.md); none of them leaves a red cell.
 
 | Package | Interpreted | Compiled | Notes |
 |---|---|---|---|
-| `packages/wj-archive` | pass (17) | pass (17) | New: tar and zip, checked against Python `tarfile`, `zipfile`, `zlib` |
+| `packages/wj-archive` | pass (17) | pass (17) | tar and zip, checked against Python `tarfile`, `zipfile`, `zlib` |
 | `packages/wj-base64` | pass (14) | pass (14) |  |
+| `packages/wj-cache` | pass (14) | pass (14) | New: LRU + TTL, Redis protocol codec |
 | `packages/wj-cli-args` | pass (24) | pass (24) |  |
+| `packages/wj-cli-ui` | pass (12) | pass (12) | New: colour, widths, progress, prompts |
 | `packages/wj-compress` | pass (21) | pass (21) |  |
 | `packages/wj-config` | pass (19) | pass (19) |  |
 | `packages/wj-cookie` | pass (20) | pass (20) |  |
 | `packages/wj-cors` | pass (17) | pass (17) |  |
 | `packages/wj-cron` | pass (34) | pass (34) |  |
 | `packages/wj-csv` | pass (16) | pass (16) |  |
-| `packages/wj-decimal` | pass (13) | pass (13) | New: fixed-point money, checked against Python `decimal` |
+| `packages/wj-decimal` | pass (13) | pass (13) | Fixed-point money, checked against Python `decimal` |
 | `packages/wj-dotenv` | pass (18) | pass (18) |  |
 | `packages/wj-duration` | pass (25) | pass (25) |  |
 | `packages/wj-event` | pass (22) | pass (22) |  |
@@ -87,11 +88,12 @@ Each red cell has a generic repro in `docs/findings/repros/`; no package carries
 | `packages/wj-json-util` | pass (23) | pass (23) |  |
 | `packages/wj-jwt` | pass (12) | pass (12) |  |
 | `packages/wj-log` | pass (17) | pass (17) |  |
-| `packages/wj-markdown` | pass (7) | pass (7) | New: CommonMark subset, checked against markdown-it-py |
-| `packages/wj-metrics` | pass (11) | pass (11) | New: Prometheus text format, typed `@json` snapshot |
+| `packages/wj-markdown` | pass (7) | pass (7) | CommonMark subset, checked against markdown-it-py; no clone workarounds |
+| `packages/wj-metrics` | pass (11) | pass (11) | Prometheus text format, typed `@json` snapshot |
 | `packages/wj-migrate` | pass (25) | pass (25) |  |
 | `packages/wj-mime` | pass (24) | pass (24) |  |
 | `packages/wj-multipart` | pass (21) | pass (21) |  |
+| `packages/wj-oauth` | pass (12) | pass (12) | New: PKCE, OIDC requests, ID token validation |
 | `packages/wj-path` | pass (20) | pass (20) |  |
 | `packages/wj-proc` | pass (8) | pass (8) |  |
 | `packages/wj-querystring` | pass (29) | pass (29) |  |
@@ -101,8 +103,9 @@ Each red cell has a generic repro in `docs/findings/repros/`; no package carries
 | `packages/wj-router` | pass (13) | pass (13) |  |
 | `packages/wj-semver` | pass (17) | pass (17) |  |
 | `packages/wj-sha` | pass (11) | pass (11) |  |
+| `packages/wj-smtp` | pass (17) | pass (17) | New: MIME messages, SMTP planning |
 | `packages/wj-stats` | pass (5) | pass (5) |  |
-| `packages/wj-sync` | pass (50) | pass (50) | `wj check` at the package root reports unresolved `pub mod` imports; `wj check src` and the tests pass (finding 2) |
+| `packages/wj-sync` | pass (50) | pass (50) |  |
 | `packages/wj-table` | pass (4) | pass (4) |  |
 | `packages/wj-template` | pass (23) | pass (23) |  |
 | `packages/wj-timefmt` | pass (27) | pass (27) |  |
@@ -110,15 +113,15 @@ Each red cell has a generic repro in `docs/findings/repros/`; no package carries
 | `packages/wj-url` | pass (22) | pass (22) |  |
 | `packages/wj-uuid` | pass (24) | pass (24) |  |
 | `packages/wj-validate` | pass (36) | pass (36) |  |
-| `packages/wj-ws` | pass (16) | pass (16) | New: RFC 6455 frames and handshake, checked against `websockets` |
+| `packages/wj-ws` | pass (16) | pass (16) | RFC 6455 frames and handshake, checked against `websockets` |
 | `packages/wj-yaml` | pass (26) | pass (26) |  |
 | `apps/wj-auth-api` | pass (48) | pass (48) |  |
 | `apps/wj-chat` | pass (20) | pass (20) |  |
-| `apps/wj-fetch` | pass (37) | pass (37) | `--timeout` accepted but not applied (finding 1) |
-| `apps/wj-find` | pass (12) | **FAIL** (build) | Compiled: dependency `wj-gitignore` -> `wj-glob` stops with WJ0050 (finding 5) |
+| `apps/wj-fetch` | pass (37) | pass (37) | `--timeout` applied through `http.request` |
+| `apps/wj-find` | pass (12) | pass (12) | Passes compiled again (dependency fix) |
 | `apps/wj-first-hour` | pass (4) | pass (4) |  |
 | `apps/wj-form-parse` | pass (12) | pass (12) |  |
-| `apps/wj-grep` | pass (38) | **FAIL** (build) | Compiled: same dependency finding (5) |
+| `apps/wj-grep` | pass (38) | pass (38) | Passes compiled again (dependency fix) |
 | `apps/wj-hello` | pass (8) | pass (8) |  |
 | `apps/wj-migrate-cli` | pass (27) | pass (27) |  |
 | `apps/wj-notes-api` | pass (62) | pass (62) |  |

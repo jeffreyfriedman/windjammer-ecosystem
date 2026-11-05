@@ -1,0 +1,157 @@
+use std::encoding
+use std::strings
+use crate::address::Address
+use crate::address::is_valid_email
+use crate::encode
+
+/// One step of an SMTP exchange: the text to send and the reply codes that mean success.
+pub struct Step {
+    pub send: string,
+    pub expect: Vec<int>,
+    pub what: string,
+}
+
+/// A server reply: all lines of one response and its code.
+pub struct Reply {
+    pub code: int,
+    pub lines: Vec<string>,
+    pub complete: bool,
+}
+
+/// Reply text so far -> code, text lines, and whether the final line (`250 ` rather than `250-`) arrived.
+pub fn parse_reply(text: string) -> Result<Reply, string> {
+    let mut lines: Vec<string> = Vec::new()
+    let mut code = 0
+    let mut complete = false
+    for raw in strings.split_lines(text) {
+        if strings.len(raw) == 0 {
+            continue
+        }
+        if strings.len(raw) < 3 {
+            return Err("short reply line '${raw}'")
+        }
+        let c = strings.substring(raw, 0, 3).parse::<int>().unwrap_or(-1)
+        if c < 200 || c > 599 {
+            return Err("bad reply code in '${raw}'")
+        }
+        if code != 0 && c != code {
+            return Err("reply code changed within one response")
+        }
+        code = c
+        let sep = if strings.len(raw) > 3 { strings.substring(raw, 3, 4) } else { " " }
+        lines.push(if strings.len(raw) > 4 { strings.substring(raw, 4, strings.len(raw)) } else { "" })
+        if sep == " " {
+            complete = true
+        } else if sep != "-" {
+            return Err("bad separator in '${raw}'")
+        }
+    }
+    if code == 0 {
+        return Err("empty reply")
+    }
+    Ok(Reply { code: code, lines: lines, complete: complete })
+}
+
+/// Extensions announced in an EHLO reply (everything after the greeting line), upper-cased.
+pub fn extensions(r: Reply) -> Vec<string> {
+    let mut out: Vec<string> = Vec::new()
+    let mut first = true
+    for l in r.lines {
+        if first {
+            first = false
+        } else {
+            out.push(strings.to_upper(strings.trim(l)))
+        }
+    }
+    out
+}
+
+/// Mechanisms from the `AUTH` extension line, such as `PLAIN` and `LOGIN`.
+pub fn auth_mechanisms(exts: Vec<string>) -> Vec<string> {
+    let mut out: Vec<string> = Vec::new()
+    for e in exts {
+        if strings.starts_with(e, "AUTH ") || strings.starts_with(e, "AUTH=") {
+            let rest = strings.replace(strings.substring(e, 5, strings.len(e)), "=", " ")
+            for m in strings.split_whitespace(rest) {
+                out.push(m)
+            }
+        }
+    }
+    out
+}
+
+/// Largest message the server accepts (`SIZE n`), or 0 when not announced.
+pub fn max_size(exts: Vec<string>) -> int {
+    for e in exts {
+        if strings.starts_with(e, "SIZE ") {
+            return strings.substring(e, 5, strings.len(e)).parse::<int>().unwrap_or(0)
+        }
+    }
+    0
+}
+
+/// `AUTH PLAIN` initial response: base64 of `\0user\0password`.
+pub fn auth_plain(user: string, password: string) -> string {
+    encoding.base64_encode(encode::utf8("\u{0}${user}\u{0}${password}"))
+}
+
+pub fn b64(text: string) -> string {
+    encoding.base64_encode(encode::utf8(text))
+}
+
+/// Double a leading dot on every line so the body cannot end the DATA phase (RFC 5321 section 4.5.2).
+pub fn dot_stuff(body: string) -> string {
+    let normalized = strings.replace(body, "\r\n", "\n")
+    let mut out: Vec<string> = Vec::new()
+    for line in strings.split(normalized, "\n") {
+        out.push(if strings.starts_with(line, ".") { "." + line } else { line })
+    }
+    out.join("\r\n")
+}
+
+fn path(email: string) -> Result<string, string> {
+    if encode::has_line_break(email) || !is_valid_email(email) {
+        return Err("invalid address '${email}'")
+    }
+    Ok("<${email}>")
+}
+
+/// The commands to deliver `message` (already built, CRLF line ends) from `sender` to `recipients`.
+/// `credentials` is `(user, password)` or empty for none. Each `Step` says what to send and which codes pass.
+pub fn plan(client_host: string, sender: Address, recipients: Vec<Address>, message: string, user: string, password: string) -> Result<Vec<Step>, string> {
+    if recipients.len() == 0 {
+        return Err("no recipients")
+    }
+    if encode::has_line_break(client_host) || strings.len(client_host) == 0 {
+        return Err("invalid client host name")
+    }
+    let mut steps: Vec<Step> = Vec::new()
+    steps.push(Step { send: "", expect: [220], what: "greeting" })
+    steps.push(Step { send: "EHLO ${client_host}\r\n", expect: [250], what: "EHLO" })
+    if strings.len(user) > 0 {
+        steps.push(Step { send: "AUTH PLAIN ${auth_plain(user, password)}\r\n", expect: [235], what: "AUTH" })
+    }
+    steps.push(Step { send: "MAIL FROM:${path(sender.email)?}\r\n", expect: [250], what: "MAIL FROM" })
+    for r in recipients {
+        steps.push(Step { send: "RCPT TO:${path(r.email)?}\r\n", expect: [250, 251], what: "RCPT TO" })
+    }
+    steps.push(Step { send: "DATA\r\n", expect: [354], what: "DATA" })
+    let stuffed = dot_stuff(message)
+    let body = if strings.ends_with(stuffed, "\r\n") { stuffed } else { stuffed + "\r\n" }
+    steps.push(Step { send: body + ".\r\n", expect: [250], what: "message body" })
+    steps.push(Step { send: "QUIT\r\n", expect: [221], what: "QUIT" })
+    Ok(steps)
+}
+
+/// True when `reply` is one of the step's success codes and the response is complete.
+pub fn step_succeeded(step: Step, reply: Reply) -> bool {
+    if !reply.complete {
+        return false
+    }
+    for c in step.expect {
+        if c == reply.code {
+            return true
+        }
+    }
+    false
+}

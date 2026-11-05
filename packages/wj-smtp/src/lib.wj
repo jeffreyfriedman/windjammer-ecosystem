@@ -1,0 +1,7 @@
+//! Email messages and SMTP, without the socket: build RFC 5322 / MIME messages (encoded words, quoted-printable,
+//! base64 attachments, multipart) and plan the SMTP exchange as data. `std::net` has no raw TCP yet, so the
+//! caller sends each planned command and feeds the replies back.
+pub mod encode
+pub mod address
+pub mod message
+pub mod smtp

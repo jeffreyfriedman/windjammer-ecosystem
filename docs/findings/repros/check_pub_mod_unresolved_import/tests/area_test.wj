@@ -1,5 +1,0 @@
-use crate::area
-
-fn test_area() {
-    assert_eq(area(2, 3), 6)
-}

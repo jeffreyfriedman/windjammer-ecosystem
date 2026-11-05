@@ -1,0 +1,6 @@
+//! Terminal output helpers: ANSI colour that respects NO_COLOR, display width, progress bars, byte and
+//! duration formatting, and prompts that read their answers from a queue (piped stdin or a test list).
+pub mod style
+pub mod text
+pub mod progress
+pub mod prompt

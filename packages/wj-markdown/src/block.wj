@@ -42,14 +42,14 @@ fn is_blank(line: string) -> bool {
 }
 
 fn drop_indent(line: string, n: int) -> string {
-    let have = indent_of(line.clone())
+    let have = indent_of(line)
     let cut = if have < n { have } else { n }
     escape::sub(line, cut, strings.len(line))
 }
 
 /// ATX heading level (1..6) and its text, or level 0.
 fn atx(line: string) -> (int, string) {
-    let ind = indent_of(line.clone())
+    let ind = indent_of(line)
     if ind > 3 {
         return (0, "")
     }
@@ -86,7 +86,7 @@ fn atx(line: string) -> (int, string) {
 }
 
 fn is_thematic(line: string) -> bool {
-    if indent_of(line.clone()) > 3 {
+    if indent_of(line) > 3 {
         return false
     }
     let t = strings.trim(line)
@@ -119,7 +119,7 @@ struct Fence {
 
 fn fence_open(line: string) -> Fence {
     let none = Fence { ok: false, ch: ' ', len: 0, info: "", indent: 0 }
-    let ind = indent_of(line.clone())
+    let ind = indent_of(line)
     if ind > 3 {
         return none
     }
@@ -148,7 +148,7 @@ fn fence_open(line: string) -> Fence {
 }
 
 fn is_fence_close(line: string, f: Fence) -> bool {
-    if indent_of(line.clone()) > 3 {
+    if indent_of(line) > 3 {
         return false
     }
     let t = strings.trim(line)
@@ -168,7 +168,7 @@ fn is_digit(ch: char) -> bool {
 }
 
 fn marker_of(line: string) -> Marker {
-    let ind = indent_of(line.clone())
+    let ind = indent_of(line)
     if ind > 3 {
         return no_marker()
     }
@@ -204,20 +204,20 @@ fn marker_of(line: string) -> Marker {
         return no_marker()
     }
     let after = escape::sub(t, width, strings.len(t))
-    if is_blank(after.clone()) {
+    if is_blank(after) {
         return Marker { ok: true, ordered: ordered, start: start, delim: delim, offset: ind + width + 1, empty: true }
     }
-    let spaces = indent_of(after.clone())
+    let spaces = indent_of(after)
     let gap = if spaces >= 5 { 1 } else { spaces }
     Marker { ok: true, ordered: ordered, start: start, delim: delim, offset: ind + width + gap, empty: false }
 }
 
 fn is_quote(line: string) -> bool {
-    indent_of(line.clone()) <= 3 && strings.starts_with(strings.trim(line), ">")
+    indent_of(line) <= 3 && strings.starts_with(strings.trim(line), ">")
 }
 
 fn strip_quote(line: string) -> string {
-    let ind = indent_of(line.clone())
+    let ind = indent_of(line)
     let t = escape::sub(line, ind, strings.len(line))
     let rest = escape::sub(t, 1, strings.len(t))
     if strings.starts_with(rest, " ") {
@@ -227,7 +227,7 @@ fn strip_quote(line: string) -> string {
 }
 
 fn setext_level(line: string) -> int {
-    if indent_of(line.clone()) > 3 {
+    if indent_of(line) > 3 {
         return 0
     }
     let t = strings.trim(line)
@@ -255,13 +255,13 @@ fn setext_level(line: string) -> int {
 
 /// True when `line` starts a block that can interrupt a paragraph.
 fn interrupts_paragraph(line: string) -> bool {
-    if is_blank(line.clone()) {
+    if is_blank(line) {
         return true
     }
-    if atx(line.clone()).0 > 0 || is_thematic(line.clone()) || is_quote(line.clone()) || fence_open(line.clone()).ok {
+    if atx(line).0 > 0 || is_thematic(line) || is_quote(line) || fence_open(line).ok {
         return true
     }
-    let m = marker_of(line.clone())
+    let m = marker_of(line)
     if m.ok && !m.empty && (!m.ordered || m.start == 1) {
         return true
     }
@@ -311,7 +311,7 @@ fn parse_list(lines: Vec<string>, at: int, tight_out: bool) -> (Block, int) {
         let mut in_fence = fence_open(content[0])
         while i < n {
             let line = lines[i as usize]
-            if is_blank(line.clone()) {
+            if is_blank(line) {
                 // Does the item continue after the blank run?
                 let mut j = i
                 while j < n && is_blank(lines[j as usize]) {
@@ -328,14 +328,14 @@ fn parse_list(lines: Vec<string>, at: int, tight_out: bool) -> (Block, int) {
                 }
                 break
             }
-            if indent_of(line.clone()) >= m.offset {
-                content.push(drop_indent(line.clone(), m.offset))
+            if indent_of(line) >= m.offset {
+                content.push(drop_indent(line, m.offset))
                 i = i + 1
                 continue
             }
             // A less-indented line: lazy paragraph continuation, or the end of the item.
             let last = content[content.len() - 1]
-            if !is_blank(last.clone()) && !interrupts_paragraph(line.clone()) && !marker_of(line.clone()).ok && !in_fence.ok {
+            if !is_blank(last) && !interrupts_paragraph(line) && !marker_of(line).ok && !in_fence.ok {
                 content.push(line)
                 i = i + 1
                 continue
@@ -365,15 +365,15 @@ fn parse_list(lines: Vec<string>, at: int, tight_out: bool) -> (Block, int) {
         let mut pending_blank = false
         let mut fenced = false
         for l in item {
-            if fence_open(l.clone()).ok {
+            if fence_open(l).ok {
                 fenced = !fenced
             }
-            if is_blank(l.clone()) {
+            if is_blank(l) {
                 if seen_text {
                     pending_blank = true
                 }
             } else {
-                if pending_blank && !fenced && indent_of(l.clone()) == 0 {
+                if pending_blank && !fenced && indent_of(l) == 0 {
                     loose = true
                 }
                 seen_text = true
@@ -433,11 +433,11 @@ fn parse_blocks(lines: Vec<string>) -> Vec<Block> {
     let mut i = 0
     while i < n {
         let line = lines[i as usize]
-        if is_blank(line.clone()) {
+        if is_blank(line) {
             i = i + 1
             continue
         }
-        let f = fence_open(line.clone())
+        let f = fence_open(line)
         if f.ok {
             let mut body: Vec<string> = Vec::new()
             i = i + 1
@@ -451,11 +451,11 @@ fn parse_blocks(lines: Vec<string>) -> Vec<Block> {
             out.push(make("code", code_block(body, first_word(f.info)), ""))
             continue
         }
-        if indent_of(line.clone()) >= 4 {
+        if indent_of(line) >= 4 {
             let mut body: Vec<string> = Vec::new()
             while i < n {
                 let l = lines[i as usize]
-                if is_blank(l.clone()) {
+                if is_blank(l) {
                     let mut j = i
                     while j < n && is_blank(lines[j as usize]) {
                         j = j + 1
@@ -471,34 +471,34 @@ fn parse_blocks(lines: Vec<string>) -> Vec<Block> {
                     }
                     break
                 }
-                if indent_of(l.clone()) < 4 {
+                if indent_of(l) < 4 {
                     break
                 }
-                body.push(drop_indent(l.clone(), 4))
+                body.push(drop_indent(l, 4))
                 i = i + 1
             }
             out.push(make("code", code_block(body, ""), ""))
             continue
         }
-        let h = atx(line.clone())
+        let h = atx(line)
         if h.0 > 0 {
             out.push(make("h", "<h${h.0}>" + inline::render(h.1) + "</h${h.0}>\n", ""))
             i = i + 1
             continue
         }
-        if is_thematic(line.clone()) {
+        if is_thematic(line) {
             out.push(make("hr", "<hr />\n", ""))
             i = i + 1
             continue
         }
-        if is_quote(line.clone()) {
+        if is_quote(line) {
             let mut inner: Vec<string> = Vec::new()
             while i < n {
                 let l = lines[i as usize]
-                if is_quote(l.clone()) {
-                    inner.push(strip_quote(l.clone()))
+                if is_quote(l) {
+                    inner.push(strip_quote(l))
                     i = i + 1
-                } else if !is_blank(l.clone()) && inner.len() > 0 && !is_blank(inner[inner.len() - 1]) && !interrupts_paragraph(l.clone()) && !fence_open(inner[inner.len() - 1]).ok {
+                } else if !is_blank(l) && inner.len() > 0 && !is_blank(inner[inner.len() - 1]) && !interrupts_paragraph(l) && !fence_open(inner[inner.len() - 1]).ok {
                     inner.push(l)
                     i = i + 1
                 } else {
@@ -512,7 +512,7 @@ fn parse_blocks(lines: Vec<string>) -> Vec<Block> {
             out.push(make("quote", "<blockquote>\n" + body + "</blockquote>\n", ""))
             continue
         }
-        let m = marker_of(line.clone())
+        let m = marker_of(line)
         if m.ok {
             let r = parse_list(lines, i, false)
             out.push(r.0)
@@ -525,13 +525,13 @@ fn parse_blocks(lines: Vec<string>) -> Vec<Block> {
         while i < n {
             let l = lines[i as usize]
             if para.len() > 0 {
-                let lvl = setext_level(l.clone())
+                let lvl = setext_level(l)
                 if lvl > 0 {
                     heading = lvl
                     i = i + 1
                     break
                 }
-                if interrupts_paragraph(l.clone()) {
+                if interrupts_paragraph(l) {
                     break
                 }
             }

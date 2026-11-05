@@ -1,0 +1,9 @@
+//! OAuth 2.0 and OpenID Connect client helpers: PKCE, authorization URLs, callback parsing, token requests and
+//! responses, ID token (JWT) validation. Pure functions: the caller performs the HTTP calls and passes the clock
+//! and random bytes in, so every flow is testable. Signatures: HS256 (HMAC from `std::crypto`); RS256 and ES256 need
+//! RSA / ECDSA in std and are refused with a clear error rather than skipped.
+pub mod b64
+pub mod pkce
+pub mod request
+pub mod token
+pub mod jwt

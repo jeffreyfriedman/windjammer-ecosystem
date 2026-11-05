@@ -1,5 +1,0 @@
-use crate::hex_of
-
-fn test_hex() {
-    assert_eq(hex_of("hi"), "6869")
-}

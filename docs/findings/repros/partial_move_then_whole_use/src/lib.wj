@@ -1,0 +1,16 @@
+pub struct Token {
+    pub access: string,
+    pub refresh: Option<string>,
+    pub lifetime: int,
+}
+
+fn deadline(t: Token, now: int) -> int {
+    now + t.lifetime
+}
+
+/// A field is consumed (`unwrap_or`), then the whole struct is passed on (E0382 "borrow of partially moved value").
+pub fn describe(t: Token) -> string {
+    let refresh = t.refresh.unwrap_or("none")
+    let at = deadline(t, 100)
+    "${refresh}:${at}"
+}

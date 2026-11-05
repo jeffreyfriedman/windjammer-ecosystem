@@ -1,0 +1,28 @@
+use std::collections::HashMap
+
+/// `k` is borrowed while iterating a HashMap field; assigning it to a `string` local needs a copy (E0308).
+pub struct Table {
+    entries: HashMap<string, int>,
+}
+
+pub fn new_table() -> Table {
+    Table { entries: HashMap::new() }
+}
+
+impl Table {
+    pub fn put(self, key: string, n: int) {
+        self.entries.insert(key, n)
+    }
+
+    pub fn smallest(self) -> string {
+        let mut best = ""
+        let mut best_n = -1
+        for (k, n) in self.entries {
+            if best_n < 0 || n < best_n {
+                best = k
+                best_n = n
+            }
+        }
+        best
+    }
+}

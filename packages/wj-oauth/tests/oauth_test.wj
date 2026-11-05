@@ -86,7 +86,9 @@ fn test_base64url_round_trips() {
 @test
 fn test_authorization_url_matches_python_quote() {
     let scopes: Vec<string> = ["openid", "profile", "email"]
-    let extra: Vec<(string, string)> = [("prompt", "consent"), ("login_hint", "jos\u{e9}@example.com")]
+    let mut extra: Vec<(string, string)> = Vec::new()
+    extra.push(("prompt", "consent"))
+    extra.push(("login_hint", "jos\u{e9}@example.com"))
     let req = AuthRequest {
         authorization_endpoint: "https://id.example.com/authorize",
         client_id: "my client/1",
@@ -164,7 +166,9 @@ fn test_accept_callback_checks_state_error_and_code() {
 fn test_token_requests_match_python_urlencode() {
     let ab: Vec<string> = ["a", "b"]
     let rw: Vec<string> = ["read", "write"]
-    let pairs: Vec<(string, string)> = [("a b", "c&d"), ("e", "ü")]
+    let mut pairs: Vec<(string, string)> = Vec::new()
+    pairs.push(("a b", "c&d"))
+    pairs.push(("e", "ü"))
     assert_eq(token_request_authorization_code("cid", "s3cr&t", "a b/c", "https://app/cb", "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"), "grant_type=authorization_code&code=a%20b%2Fc&redirect_uri=https%3A%2F%2Fapp%2Fcb&client_id=cid&code_verifier=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa&client_secret=s3cr%26t")
     assert_eq(token_request_authorization_code("cid", "", "a b/c", "https://app/cb", "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"), "grant_type=authorization_code&code=a%20b%2Fc&redirect_uri=https%3A%2F%2Fapp%2Fcb&client_id=cid&code_verifier=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa")
     assert_eq(token_request_refresh("cid", "sec", "r/t==", ab), "grant_type=refresh_token&refresh_token=r%2Ft%3D%3D&client_id=cid&client_secret=sec&scope=a%20b")

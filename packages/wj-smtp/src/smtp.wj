@@ -24,6 +24,9 @@ pub fn parse_reply(text: string) -> Result<Reply, string> {
     let mut code = 0
     let mut complete = false
     for raw in strings.split_lines(text) {
+        if strings.len(raw) == 0 {
+            continue
+        }
         if strings.len(raw) < 3 {
             return Err("short reply line '${raw}'")
         }

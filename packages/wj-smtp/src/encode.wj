@@ -1,0 +1,123 @@
+use std::encoding
+use std::strings
+
+pub fn utf8(text: string) -> Vec<u8> {
+    match encoding.base64_decode(encoding.base64_encode_string(text)) {
+        Ok(b) => b,
+        Err(_) => Vec::new(),
+    }
+}
+
+fn is_ascii(text: string) -> bool {
+    for ch in strings.chars(text) {
+        if ch as int >= 128 || (ch as int) < 32 && ch != '\t' {
+            return false
+        }
+    }
+    true
+}
+
+/// Base64 broken into lines of at most 76 characters joined by CRLF (MIME body encoding).
+pub fn base64_lines(bytes: Vec<u8>) -> string {
+    let flat = encoding.base64_encode(bytes)
+    let mut lines: Vec<string> = Vec::new()
+    let n = strings.len(flat)
+    let mut i = 0
+    while i < n {
+        let end = if i + 76 < n { i + 76 } else { n }
+        lines.push(strings.substring(flat, i, end))
+        i = i + 76
+    }
+    lines.join("\r\n")
+}
+
+fn hex_upper(n: int) -> string {
+    strings.substring("0123456789ABCDEF", n, n + 1)
+}
+
+fn qp_byte(b: int) -> string {
+    "=" + hex_upper(b / 16) + hex_upper(b % 16)
+}
+
+/// Quoted-printable (RFC 2045) with CRLF line ends: lines of at most 76 characters, soft breaks `=`,
+/// non-ASCII and `=` escaped, trailing space or tab escaped.
+pub fn quoted_printable(text: string) -> string {
+    let normalized = strings.replace(text, "\r\n", "\n")
+    let mut out_lines: Vec<string> = Vec::new()
+    for raw in strings.split(normalized, "\n") {
+        let bytes = utf8(raw)
+        let mut pieces: Vec<string> = Vec::new()
+        let mut i = 0
+        while i < bytes.len() {
+            let b = bytes[i] as int
+            let last = i == bytes.len() - 1
+            if b == 61 || b >= 127 || (b < 32 && b != 9) || ((b == 32 || b == 9) && last) {
+                pieces.push(qp_byte(b))
+            } else {
+                pieces.push(ascii_char(b))
+            }
+            i = i + 1
+        }
+        // Fold so no line exceeds 76 characters including the trailing soft-break `=`.
+        let mut line = ""
+        let mut idx = 0
+        while idx < pieces.len() {
+            let piece = pieces[idx]
+            let remaining_len = remaining_width(pieces, idx)
+            let limit = if remaining_len <= 76 - strings.len(line) { 76 } else { 75 }
+            if strings.len(line) + strings.len(piece) > limit {
+                out_lines.push(line + "=")
+                line = ""
+            }
+            line = line + piece
+            idx = idx + 1
+        }
+        out_lines.push(line)
+    }
+    out_lines.join("\r\n")
+}
+
+fn remaining_width(pieces: Vec<string>, from: int) -> int {
+    let mut w = 0
+    let mut i = from
+    while i < pieces.len() {
+        w = w + strings.len(pieces[i])
+        i = i + 1
+    }
+    w
+}
+
+fn ascii_char(b: int) -> string {
+    let table = " !\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~"
+    strings.substring(table, b - 32, b - 31)
+}
+
+/// RFC 2047 encoded words for header text: ASCII passes through; anything else becomes `=?utf-8?b?...?=`
+/// words of at most 75 characters, folded with CRLF + space, never splitting a character.
+pub fn encoded_words(text: string) -> string {
+    if is_ascii(text) {
+        return text
+    }
+    let mut words: Vec<string> = Vec::new()
+    let mut chunk: Vec<u8> = Vec::new()
+    for ch in strings.chars(text) {
+        let cb = utf8("${ch}")
+        // 45 raw bytes make 60 base64 characters; with the 12 character wrapper that is 72 (limit 75).
+        if chunk.len() + cb.len() > 45 {
+            words.push("=?utf-8?b?" + encoding.base64_encode(chunk) + "?=")
+            chunk = Vec::new()
+        }
+        for b in cb {
+            chunk.push(b)
+        }
+    }
+    if chunk.len() > 0 {
+        words.push("=?utf-8?b?" + encoding.base64_encode(chunk) + "?=")
+    }
+    words.join("\r\n ")
+}
+
+/// True when the text contains a CR or LF (header injection).
+pub fn has_line_break(text: string) -> bool {
+    strings.contains(text, "\r") || strings.contains(text, "\n")
+}

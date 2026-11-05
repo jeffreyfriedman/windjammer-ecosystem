@@ -2,11 +2,14 @@ use std::http
 
 use crate::domain::FetchRequest
 
-/// GET `req.url` via `std::http` (adapter boundary).
-/// When `timeout_secs > 0`, timeout is accepted at the CLI layer but not yet applied
-/// until `std::net::Request` import codegen is fixed (see P3.219 repro).
+/// GET `req.url` via `std::http`, with a timeout when `timeout_secs > 0` (adapter boundary).
 pub fn fetch_url(req: FetchRequest) -> Result<(u16, string), string> {
-    match http.get(req.url) {
+    let sent = if req.timeout_secs > 0 {
+        http.request("GET", req.url).timeout_secs(req.timeout_secs).send()
+    } else {
+        http.get(req.url)
+    }
+    match sent {
         Ok(response) => {
             let status = response.status_code()
             match response.text() {

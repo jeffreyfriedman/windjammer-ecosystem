@@ -2,16 +2,13 @@ use std::strings
 
 /// `text` as a vector of characters (indexable in both the interpreter and compiled code).
 pub fn chars_of(text: string) -> Vec<char> {
-    let mut out: Vec<char> = Vec::new()
-    for ch in strings.chars(text) {
-        out.push(ch)
-    }
-    out
+    let cs: Vec<char> = strings.chars(text).collect()
+    cs
 }
 
 /// `text[from..to]` in characters, taking `int` bounds.
 pub fn sub(text: string, from: int, to: int) -> string {
-    strings.substring(text, from as usize, to as usize)
+    strings.substring(text, from, to)
 }
 
 /// HTML-escape text: `&`, `<`, `>` and `"`.

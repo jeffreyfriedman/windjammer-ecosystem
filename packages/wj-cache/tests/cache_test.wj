@@ -1,0 +1,106 @@
+use crate::lru::new_cache
+
+fn got(r: Option<string>) -> string {
+    match r {
+        Some(v) => v,
+        None => "-",
+    }
+}
+
+@test
+fn test_least_recently_used_entry_is_evicted() {
+    let mut c = new_cache(3, 0)
+    c.put("a", "1", 0)
+    c.put("b", "2", 0)
+    c.put("c", "3", 0)
+    assert_eq(got(c.get("a", 0)), "1")
+    c.put("d", "4", 0)
+    assert_eq(got(c.peek("b", 0)), "-")
+    assert_eq(c.keys_lru().join(","), "c,a,d")
+    assert_eq(c.len(), 3)
+    assert_eq(c.stats().evictions, 1)
+}
+
+@test
+fn test_replacing_a_key_does_not_evict() {
+    let mut c = new_cache(2, 0)
+    c.put("a", "1", 0)
+    c.put("b", "2", 0)
+    c.put("a", "9", 0)
+    assert_eq(c.len(), 2)
+    assert_eq(got(c.get("a", 0)), "9")
+    assert_eq(got(c.get("b", 0)), "2")
+    assert_eq(c.stats().evictions, 0)
+}
+
+@test
+fn test_entries_expire_at_their_deadline() {
+    let mut c = new_cache(4, 100)
+    c.put("a", "1", 1000)
+    assert_eq(got(c.get("a", 1099)), "1")
+    assert_eq(got(c.get("a", 1100)), "-")
+    assert_eq(c.len(), 0)
+    assert_eq(c.stats().expirations, 1)
+    c.put_ttl("forever", "x", 0, 1000)
+    assert_eq(got(c.get("forever", 9999999)), "x")
+    c.put_ttl("short", "y", 5, 1000)
+    assert(c.contains("short", 1004), "alive")
+    assert(!c.contains("short", 1005), "dead")
+}
+
+@test
+fn test_expired_entries_are_dropped_before_live_ones_are_evicted() {
+    let mut c = new_cache(2, 0)
+    c.put_ttl("old", "1", 10, 0)
+    c.put("live", "2", 0)
+    c.put("new", "3", 50)
+    assert_eq(got(c.peek("live", 50)), "2")
+    assert_eq(got(c.peek("new", 50)), "3")
+    assert_eq(c.stats().evictions, 0)
+    assert_eq(c.stats().expirations, 1)
+}
+
+@test
+fn test_peek_does_not_change_recency_or_counters() {
+    let mut c = new_cache(2, 0)
+    c.put("a", "1", 0)
+    c.put("b", "2", 0)
+    assert_eq(got(c.peek("a", 0)), "1")
+    c.put("c", "3", 0)
+    assert_eq(got(c.peek("a", 0)), "-")
+    assert_eq(c.stats().hits, 0)
+    assert_eq(c.stats().misses, 0)
+}
+
+@test
+fn test_delete_clear_and_purge() {
+    let mut c = new_cache(5, 10)
+    c.put("a", "1", 0)
+    c.put("b", "2", 5)
+    assert(c.delete("a"), "existing")
+    assert(!c.delete("a"), "already gone")
+    assert_eq(c.purge_expired(14), 0)
+    assert_eq(c.purge_expired(15), 1)
+    c.put("x", "1", 0)
+    c.clear()
+    assert_eq(c.len(), 0)
+}
+
+@test
+fn test_incr_counts_and_rejects_text() {
+    let mut c = new_cache(5, 0)
+    assert_eq(c.incr("n", 1, 0).unwrap_or(-1), 1)
+    assert_eq(c.incr("n", 4, 0).unwrap_or(-1), 5)
+    assert_eq(c.incr("n", -2, 0).unwrap_or(-1), 3)
+    c.put("s", "abc", 0)
+    assert(c.incr("s", 1, 0).is_err(), "not an integer")
+}
+
+@test
+fn test_capacity_is_at_least_one() {
+    let mut c = new_cache(0, 0)
+    c.put("a", "1", 0)
+    c.put("b", "2", 0)
+    assert_eq(c.len(), 1)
+    assert_eq(got(c.peek("b", 0)), "2")
+}

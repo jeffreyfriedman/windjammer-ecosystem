@@ -440,7 +440,7 @@ pub fn render(text: string) -> string {
             let close = find_close_bracket(cs, open)
             if close >= 0 && close + 1 < n && cs[(close + 1) as usize] == '(' {
                 let target = parse_target(cs, close + 1)
-                if target.end >= 0 && escape::is_safe_url(target.dest.clone()) {
+                if target.end >= 0 && escape::is_safe_url(target.dest) {
                     let inner = render(slice(cs, open + 1, close))
                     let title_attr = if target.has_title { " title=\"" + escape::html(target.title) + "\"" } else { "" }
                     let html = if is_image {

@@ -1,0 +1,44 @@
+use std::crypto
+use std::encoding
+use std::strings
+use crate::b64
+
+/// `code_challenge` for method `S256`: base64url(SHA-256(verifier)) (RFC 7636 section 4.2).
+pub fn challenge_s256(verifier: string) -> string {
+    let digest_hex = crypto.sha256_hex(verifier)
+    match encoding.hex_decode(digest_hex) {
+        Ok(bytes) => b64::encode(bytes),
+        Err(_) => "",
+    }
+}
+
+/// A verifier from random bytes (32 bytes give 43 characters); the caller supplies the randomness.
+pub fn verifier_from_random(random: Vec<u8>) -> Result<string, string> {
+    if random.len() < 32 {
+        return Err("need at least 32 random bytes")
+    }
+    if random.len() > 96 {
+        return Err("at most 96 random bytes")
+    }
+    Ok(b64::encode(random))
+}
+
+/// 43 to 128 characters from the unreserved set (RFC 7636 section 4.1).
+pub fn is_valid_verifier(verifier: string) -> bool {
+    let n = strings.len(verifier)
+    if n < 43 || n > 128 {
+        return false
+    }
+    for ch in strings.chars(verifier) {
+        let ok = (ch >= 'a' && ch <= 'z') || (ch >= 'A' && ch <= 'Z') || (ch >= '0' && ch <= '9') || ch == '-' || ch == '.' || ch == '_' || ch == '~'
+        if !ok {
+            return false
+        }
+    }
+    true
+}
+
+/// True when `verifier` matches `challenge` (server side check), compared in constant time.
+pub fn verify_s256(verifier: string, challenge: string) -> bool {
+    is_valid_verifier(verifier) && crypto.constant_time_eq(challenge_s256(verifier), challenge)
+}

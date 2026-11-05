@@ -1,0 +1,87 @@
+use std::json
+use std::strings
+
+/// A successful token response (RFC 6749 section 5.1); unknown members are ignored.
+@json(allow_unknown)
+pub struct TokenResponse {
+    pub access_token: string,
+    pub token_type: string,
+    pub expires_in: Option<int>,
+    pub refresh_token: Option<string>,
+    pub id_token: Option<string>,
+    pub scope: Option<string>,
+}
+
+@json(allow_unknown)
+pub struct ErrorResponse {
+    pub error: string,
+    pub error_description: Option<string>,
+    pub error_uri: Option<string>,
+}
+
+/// The OpenID Connect discovery document members a client needs.
+@json(allow_unknown)
+pub struct Discovery {
+    pub issuer: string,
+    pub authorization_endpoint: string,
+    pub token_endpoint: string,
+    pub jwks_uri: Option<string>,
+    pub userinfo_endpoint: Option<string>,
+    pub end_session_endpoint: Option<string>,
+}
+
+/// Parse a token endpoint reply: tokens, or the server's error as `Err("invalid_grant: description")`.
+pub fn parse_token_response(body: string) -> Result<TokenResponse, string> {
+    let attempt: Result<TokenResponse, string> = json.parse_string(body)
+    match attempt {
+        Ok(t) => {
+            if strings.len(t.access_token) == 0 {
+                return Err("token response has an empty access_token")
+            }
+            if strings.to_lower(t.token_type) != "bearer" && strings.to_lower(t.token_type) != "dpop" {
+                return Err("unsupported token_type '${t.token_type}'")
+            }
+            Ok(t)
+        },
+        Err(parse_err) => {
+            let failure: Result<ErrorResponse, string> = json.parse_string(body)
+            match failure {
+                Ok(e) => {
+                    let why = match e.error_description {
+                        Some(d) => ": ${d}",
+                        None => "",
+                    }
+                    Err("${e.error}${why}")
+                },
+                Err(_) => Err("not a token response: ${parse_err}"),
+            }
+        },
+    }
+}
+
+/// When the access token expires (epoch seconds), given when it was received; 0 when the server sent no lifetime.
+pub fn expires_at(t: TokenResponse, received_at: int) -> int {
+    match t.expires_in {
+        Some(n) => received_at + n,
+        None => 0,
+    }
+}
+
+/// True when the token has expired or will within `skew` seconds.
+pub fn is_expired(expires_at_secs: int, now: int, skew: int) -> bool {
+    expires_at_secs > 0 && now + skew >= expires_at_secs
+}
+
+/// Parse a discovery document and check that its `issuer` is the one you asked for (RFC 8414 section 3.3).
+pub fn parse_discovery(body: string, expected_issuer: string) -> Result<Discovery, string> {
+    let doc: Result<Discovery, string> = json.parse_string(body)
+    match doc {
+        Ok(d) => {
+            if d.issuer != expected_issuer {
+                return Err("issuer mismatch: expected ${expected_issuer}, got ${d.issuer}")
+            }
+            Ok(d)
+        },
+        Err(e) => Err("not a discovery document: ${e}"),
+    }
+}

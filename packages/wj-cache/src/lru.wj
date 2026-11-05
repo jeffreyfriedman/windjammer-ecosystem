@@ -1,0 +1,183 @@
+use std::collections::HashMap
+
+struct Entry {
+    value: string,
+    /// 0 means the entry never expires.
+    expires_at: int,
+    last_used: int,
+}
+
+/// Counters since the cache was created.
+pub struct Stats {
+    pub hits: int,
+    pub misses: int,
+    pub evictions: int,
+    pub expirations: int,
+    pub size: int,
+}
+
+/// Least-recently-used cache of string values. `capacity` entries at most; `default_ttl_ms` of 0 means no expiry.
+pub struct Cache {
+    capacity: int,
+    default_ttl_ms: int,
+    entries: HashMap<string, Entry>,
+    tick: int,
+    hits: int,
+    misses: int,
+    evictions: int,
+    expirations: int,
+}
+
+pub fn new_cache(capacity: int, default_ttl_ms: int) -> Cache {
+    Cache {
+        capacity: if capacity < 1 { 1 } else { capacity },
+        default_ttl_ms: default_ttl_ms,
+        entries: HashMap::new(),
+        tick: 0,
+        hits: 0,
+        misses: 0,
+        evictions: 0,
+        expirations: 0,
+    }
+}
+
+fn expired(e: Entry, now: int) -> bool {
+    e.expires_at > 0 && now >= e.expires_at
+}
+
+impl Cache {
+    /// Insert or replace; the entry becomes the most recently used and gets the default TTL.
+    pub fn put(self, key: string, value: string, now: int) {
+        self.put_ttl(key, value, self.default_ttl_ms, now)
+    }
+
+    /// Insert with an explicit TTL in milliseconds (0 = never expires).
+    pub fn put_ttl(self, key: string, value: string, ttl_ms: int, now: int) {
+        if !self.entries.contains_key(key) && self.entries.len() as int >= self.capacity {
+            self.purge_expired(now)
+            if self.entries.len() as int >= self.capacity {
+                self.evict_oldest()
+            }
+        }
+        self.tick = self.tick + 1
+        let expires = if ttl_ms > 0 { now + ttl_ms } else { 0 }
+        self.entries.insert(key, Entry { value: value, expires_at: expires, last_used: self.tick })
+    }
+
+    fn evict_oldest(self) {
+        let mut oldest = ""
+        let mut oldest_tick = -1
+        for (k, e) in self.entries {
+            if oldest_tick < 0 || e.last_used < oldest_tick {
+                oldest = k
+                oldest_tick = e.last_used
+            }
+        }
+        if oldest_tick >= 0 {
+            self.entries.remove(oldest)
+            self.evictions = self.evictions + 1
+        }
+    }
+
+    /// The value if present and not expired; a hit makes the entry most recently used.
+    pub fn get(self, key: string, now: int) -> Option<string> {
+        match self.entries.get(key) {
+            Some(e) => {
+                if expired(e, now) {
+                    self.entries.remove(key)
+                    self.expirations = self.expirations + 1
+                    self.misses = self.misses + 1
+                    return None
+                }
+                self.tick = self.tick + 1
+                self.hits = self.hits + 1
+                let value = e.value
+                self.entries.insert(key, Entry { value: e.value, expires_at: e.expires_at, last_used: self.tick })
+                Some(value)
+            },
+            None => {
+                self.misses = self.misses + 1
+                None
+            },
+        }
+    }
+
+    /// Like `get` without touching recency or the counters.
+    pub fn peek(self, key: string, now: int) -> Option<string> {
+        match self.entries.get(key) {
+            Some(e) => {
+                if expired(e, now) {
+                    return None
+                }
+                Some(e.value)
+            },
+            None => None,
+        }
+    }
+
+    pub fn contains(self, key: string, now: int) -> bool {
+        self.peek(key, now).is_some()
+    }
+
+    /// Remove an entry; true when it existed.
+    pub fn delete(self, key: string) -> bool {
+        let had = self.entries.contains_key(key)
+        self.entries.remove(key)
+        had
+    }
+
+    /// Drop every expired entry; the number dropped.
+    pub fn purge_expired(self, now: int) -> int {
+        let mut dead: Vec<string> = Vec::new()
+        for (k, e) in self.entries {
+            if expired(e, now) {
+                dead.push(k)
+            }
+        }
+        for k in dead {
+            self.entries.remove(k)
+            self.expirations = self.expirations + 1
+        }
+        dead.len() as int
+    }
+
+    /// Add `by` to an integer value (missing keys start at 0); keeps the entry's TTL when it exists.
+    pub fn incr(self, key: string, by: int, now: int) -> Result<int, string> {
+        let current = match self.peek(key, now) {
+            Some(text) => match text.parse::<int>() {
+                Ok(n) => n,
+                Err(_) => return Err("value is not an integer"),
+            },
+            None => 0,
+        }
+        let next = current + by
+        self.put(key, "${next}", now)
+        Ok(next)
+    }
+
+    pub fn len(self) -> int {
+        self.entries.len() as int
+    }
+
+    pub fn clear(self) {
+        self.entries = HashMap::new()
+    }
+
+    /// Keys from least to most recently used.
+    pub fn keys_lru(self) -> Vec<string> {
+        let mut pairs: Vec<(int, string)> = Vec::new()
+        for (k, e) in self.entries {
+            pairs.push((e.last_used, k))
+        }
+        pairs.sort()
+        let mut out: Vec<string> = Vec::new()
+        for p in pairs {
+            out.push(p.1)
+        }
+        out
+    }
+
+    pub fn stats(self) -> Stats {
+        Stats { hits: self.hits, misses: self.misses, evictions: self.evictions, expirations: self.expirations, size: self.entries.len() as int }
+    }
+}

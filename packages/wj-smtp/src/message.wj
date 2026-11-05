@@ -1,0 +1,170 @@
+use std::crypto
+use std::encoding
+use std::strings
+use crate::address::Address
+use crate::address::format_address
+use crate::encode
+
+pub struct Attachment {
+    pub filename: string,
+    pub content_type: string,
+    pub data: Vec<u8>,
+}
+
+pub struct Message {
+    pub from: Address,
+    pub to: Vec<Address>,
+    pub cc: Vec<Address>,
+    pub bcc: Vec<Address>,
+    pub subject: string,
+    /// Seconds since the epoch and the zone offset in minutes, for the `Date` header.
+    pub date_secs: int,
+    pub date_offset_minutes: int,
+    /// `local@domain` without angle brackets; the caller makes it unique.
+    pub message_id: string,
+    pub text: string,
+    pub html: string,
+    pub attachments: Vec<Attachment>,
+    pub extra_headers: Vec<(string, string)>,
+}
+
+/// A plain-text message; set the other fields with struct update or by assigning.
+pub fn new_message(from: Address, to: Vec<Address>, subject: string, text: string) -> Message {
+    Message {
+        from: from,
+        to: to,
+        cc: Vec::new(),
+        bcc: Vec::new(),
+        subject: subject,
+        date_secs: 0,
+        date_offset_minutes: 0,
+        message_id: "",
+        text: text,
+        html: "",
+        attachments: Vec::new(),
+        extra_headers: Vec::new(),
+    }
+}
+
+fn civil_from_days(z0: int) -> (int, int, int) {
+    let z = z0 + 719468
+    let era = (if z >= 0 { z } else { z - 146096 }) / 146097
+    let doe = z - era * 146097
+    let yoe = (doe - doe / 1460 + doe / 36524 - doe / 146096) / 365
+    let y = yoe + era * 400
+    let doy = doe - (365 * yoe + yoe / 4 - yoe / 100)
+    let mp = (5 * doy + 2) / 153
+    let d = doy - (153 * mp + 2) / 5 + 1
+    let m = if mp < 10 { mp + 3 } else { mp - 9 }
+    (if m <= 2 { y + 1 } else { y }, m, d)
+}
+
+fn two(n: int) -> string {
+    if n < 10 { "0${n}" } else { "${n}" }
+}
+
+/// RFC 5322 date: `Tue, 05 Mar 2024 14:07:09 +0000`.
+pub fn format_date(epoch_secs: int, offset_minutes: int) -> string {
+    let local = epoch_secs + offset_minutes * 60
+    let days = if local >= 0 { local / 86400 } else { (local - 86399) / 86400 }
+    let secs = local - days * 86400
+    let (y, m, d) = civil_from_days(days)
+    let weekday = ((days % 7) + 11) % 7
+    let days_names = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]
+    let months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
+    let sign = if offset_minutes < 0 { "-" } else { "+" }
+    let off = if offset_minutes < 0 { 0 - offset_minutes } else { offset_minutes }
+    "${days_names[weekday as usize]}, ${two(d)} ${months[(m - 1) as usize]} ${y} ${two(secs / 3600)}:${two((secs % 3600) / 60)}:${two(secs % 60)} ${sign}${two(off / 60)}${two(off % 60)}"
+}
+
+fn header_ok(name: string, value: string) -> Result<(), string> {
+    if encode::has_line_break(value) || encode::has_line_break(name) || strings.contains(name, ":") || strings.len(name) == 0 {
+        return Err("invalid header '${name}'")
+    }
+    Ok(())
+}
+
+fn address_list(list: Vec<Address>) -> Result<string, string> {
+    let mut parts: Vec<string> = Vec::new()
+    for a in list {
+        parts.push(format_address(a)?)
+    }
+    Ok(parts.join(", "))
+}
+
+fn hex_prefix(text: string, n: int) -> string {
+    let digest = crypto.sha256(text)
+    strings.substring(digest, 0, n)
+}
+
+fn is_ascii_text(text: string) -> bool {
+    for ch in strings.chars(text) {
+        if ch as int >= 128 {
+            return false
+        }
+    }
+    true
+}
+
+fn text_part(content_type: string, body: string) -> string {
+    if is_ascii_text(body) && !strings.contains(body, "=") {
+        return "Content-Type: ${content_type}; charset=\"utf-8\"\r\nContent-Transfer-Encoding: 7bit\r\n\r\n" + strings.replace(body, "\n", "\r\n").replace("\r\r\n", "\r\n")
+    }
+    "Content-Type: ${content_type}; charset=\"utf-8\"\r\nContent-Transfer-Encoding: quoted-printable\r\n\r\n" + encode::quoted_printable(body)
+}
+
+fn attachment_part(a: Attachment) -> Result<string, string> {
+    header_ok("Content-Type", a.content_type)?
+    header_ok("filename", a.filename)?
+    let name = a.filename
+    let disp = if is_ascii_text(name) { "filename=\"${name}\"" } else { "filename*=utf-8''${encoding.url_encode_component(name)}" }
+    Ok("Content-Type: ${a.content_type}\r\nContent-Transfer-Encoding: base64\r\nContent-Disposition: attachment; ${disp}\r\n\r\n" + encode::base64_lines(a.data))
+}
+
+/// The full RFC 5322 message with CRLF line ends. Addresses and header values are validated (no line breaks);
+/// `Bcc` is not written (blind recipients belong in the envelope only).
+pub fn build(m: Message) -> Result<string, string> {
+    if m.to.len() == 0 && m.cc.len() == 0 && m.bcc.len() == 0 {
+        return Err("no recipients")
+    }
+    if strings.len(m.message_id) == 0 {
+        return Err("message_id is required")
+    }
+    header_ok("Subject", m.subject)?
+    header_ok("Message-ID", m.message_id)?
+    let mut head = "Date: ${format_date(m.date_secs, m.date_offset_minutes)}\r\n"
+    head = head + "From: ${format_address(m.from)?}\r\n"
+    if m.to.len() > 0 {
+        head = head + "To: ${address_list(m.to)?}\r\n"
+    }
+    if m.cc.len() > 0 {
+        head = head + "Cc: ${address_list(m.cc)?}\r\n"
+    }
+    head = head + "Subject: ${encode::encoded_words(m.subject)}\r\n"
+    head = head + "Message-ID: <${m.message_id}>\r\nMIME-Version: 1.0\r\n"
+    for h in m.extra_headers {
+        header_ok(h.0, h.1)?
+        head = head + "${h.0}: ${h.1}\r\n"
+    }
+    let has_html = strings.len(m.html) > 0
+    let has_attach = m.attachments.len() > 0
+    let seed = hex_prefix(m.message_id, 24)
+    let alt_boundary = "=_alt_${seed}"
+    let mix_boundary = "=_mix_${seed}"
+    let body_part = if has_html {
+        "Content-Type: multipart/alternative; boundary=\"${alt_boundary}\"\r\n\r\n--${alt_boundary}\r\n" + text_part("text/plain", m.text) + "\r\n--${alt_boundary}\r\n" + text_part("text/html", m.html) + "\r\n--${alt_boundary}--"
+    } else {
+        text_part("text/plain", m.text)
+    }
+    if !has_attach {
+        if has_html {
+            return Ok(head + body_part + "\r\n")
+        }
+        return Ok(head + body_part)
+    }
+    let mut out = head + "Content-Type: multipart/mixed; boundary=\"${mix_boundary}\"\r\n\r\n--${mix_boundary}\r\n" + body_part + "\r\n"
+    for a in m.attachments {
+        out = out + "--${mix_boundary}\r\n" + attachment_part(a)? + "\r\n"
+    }
+    Ok(out + "--${mix_boundary}--\r\n")
+}

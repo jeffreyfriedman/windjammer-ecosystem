@@ -60,12 +60,13 @@ pub fn quoted_printable(text: string) -> string {
         }
         // Fold so no line exceeds 76 characters including the trailing soft-break `=`.
         let mut line = ""
-        let mut idx = 0
-        while idx < pieces.len() {
-            let piece = pieces[idx]
+        let mut idx: int = 0
+        while idx < pieces.len() as int {
+            let piece = pieces[idx as usize]
             let remaining_len = remaining_width(pieces, idx)
-            let limit = if remaining_len <= 76 - strings.len(line) { 76 } else { 75 }
-            if strings.len(line) + strings.len(piece) > limit {
+            let used = width(line)
+            let limit = if remaining_len <= 76 - used { 76 } else { 75 }
+            if used + width(piece) > limit {
                 out_lines.push(line + "=")
                 line = ""
             }
@@ -77,11 +78,15 @@ pub fn quoted_printable(text: string) -> string {
     out_lines.join("\r\n")
 }
 
+fn width(text: string) -> int {
+    strings.len(text) as int
+}
+
 fn remaining_width(pieces: Vec<string>, from: int) -> int {
     let mut w = 0
     let mut i = from
-    while i < pieces.len() {
-        w = w + strings.len(pieces[i])
+    while i < pieces.len() as int {
+        w = w + width(pieces[i as usize])
         i = i + 1
     }
     w

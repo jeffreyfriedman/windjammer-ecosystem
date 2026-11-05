@@ -18,7 +18,7 @@ use crate::smtp::extensions
 use crate::smtp::max_size
 use crate::smtp::parse_reply
 
-fn shown(r: Result<String, string>) -> string {
+fn shown(r: Result<string, string>) -> string {
     match r {
         Ok(t) => t,
         Err(e) => "error: ${e}",

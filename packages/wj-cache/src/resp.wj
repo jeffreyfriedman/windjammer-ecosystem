@@ -35,10 +35,12 @@ fn empty(kind: string) -> Reply {
 
 /// A command as the Redis wire format: an array of bulk strings, lengths counted in bytes.
 pub fn encode_command(args: Vec<string>) -> Vec<u8> {
-    let mut out: Vec<u8> = utf8("*${args.len()}\r\n")
+    let header = "*${args.len()}\r\n"
+    let mut out: Vec<u8> = utf8(header)
     for a in args {
         let body = utf8(a)
-        for b in utf8("$" + "${body.len()}" + "\r\n") {
+        let prefix = "$" + "${body.len()}" + "\r\n"
+        for b in utf8(prefix) {
             out.push(b)
         }
         for b in body {
@@ -143,7 +145,9 @@ fn parse_at(buf: Vec<u8>, at: int, depth: int) -> Result<Option<Parsed>, string>
         if (buf.len() as int) < after + len + 2 {
             return Ok(None)
         }
-        if buf[(after + len) as usize] != 13 || buf[(after + len + 1) as usize] != 10 {
+        let term = after + len
+        let term2 = term + 1
+        if buf[term as usize] != 13 || buf[term2 as usize] != 10 {
             return Err("bulk string not terminated by CRLF")
         }
         let text = utf8_text(slice(buf, after, after + len))?

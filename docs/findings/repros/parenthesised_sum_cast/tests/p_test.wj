@@ -1,0 +1,9 @@
+use crate::byte_after
+
+fn test_after() {
+    let mut b: Vec<u8> = Vec::new()
+    b.push(97)
+    b.push(13)
+    b.push(10)
+    assert_eq(byte_after(b, 0, 1), 1)
+}

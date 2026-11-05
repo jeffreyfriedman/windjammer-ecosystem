@@ -65,16 +65,9 @@ impl Cache {
     }
 
     fn evict_oldest(self) {
-        let mut oldest = ""
-        let mut oldest_tick = -1
-        for (k, e) in self.entries {
-            if oldest_tick < 0 || e.last_used < oldest_tick {
-                oldest = k
-                oldest_tick = e.last_used
-            }
-        }
-        if oldest_tick >= 0 {
-            self.entries.remove(oldest)
+        let order = self.keys_lru()
+        if order.len() > 0 {
+            self.entries.remove(order[0])
             self.evictions = self.evictions + 1
         }
     }
@@ -131,7 +124,7 @@ impl Cache {
         let mut dead: Vec<string> = Vec::new()
         for (k, e) in self.entries {
             if expired(e, now) {
-                dead.push(k)
+                dead.push("${k}")
             }
         }
         for k in dead {
@@ -167,7 +160,7 @@ impl Cache {
     pub fn keys_lru(self) -> Vec<string> {
         let mut pairs: Vec<(int, string)> = Vec::new()
         for (k, e) in self.entries {
-            pairs.push((e.last_used, k))
+            pairs.push((e.last_used, "${k}"))
         }
         pairs.sort()
         let mut out: Vec<string> = Vec::new()

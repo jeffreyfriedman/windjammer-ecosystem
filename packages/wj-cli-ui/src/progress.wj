@@ -2,6 +2,16 @@ use crate::style::Theme
 use crate::style::green
 use crate::style::dim
 
+fn clamp(v: int, lo: int, hi: int) -> int {
+    if v < lo {
+        return lo
+    }
+    if v > hi {
+        return hi
+    }
+    v
+}
+
 fn repeat(unit: string, n: int) -> string {
     let mut out = ""
     let mut i = 0
@@ -15,7 +25,7 @@ fn repeat(unit: string, n: int) -> string {
 /// `[#####-----]  50%`: `width` is the bar's inner width. Out-of-range input is clamped.
 pub fn progress_bar(done: int, total: int, width: int) -> string {
     let t = if total <= 0 { 1 } else { total }
-    let d = if done < 0 { 0 } else if done > t { t } else { done }
+    let d = clamp(done, 0, t)
     let filled = (d * width) / t
     let pct = (d * 100) / t
     let label = if pct < 10 { "  ${pct}%" } else if pct < 100 { " ${pct}%" } else { "${pct}%" }
@@ -25,7 +35,7 @@ pub fn progress_bar(done: int, total: int, width: int) -> string {
 /// The same bar with a coloured fill when the theme allows it.
 pub fn styled_bar(theme: Theme, done: int, total: int, width: int) -> string {
     let t = if total <= 0 { 1 } else { total }
-    let d = if done < 0 { 0 } else if done > t { t } else { done }
+    let d = clamp(done, 0, t)
     let filled = (d * width) / t
     let pct = (d * 100) / t
     "[" + green(theme, repeat("#", filled)) + dim(theme, repeat("-", width - filled)) + "] ${pct}%"

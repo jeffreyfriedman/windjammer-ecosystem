@@ -1,0 +1,17 @@
+pub struct Request {
+    pub scopes: Vec<string>,
+    pub extra: Vec<(string, string)>,
+}
+
+pub fn scope_count(r: Request) -> int {
+    r.scopes.len() as int
+}
+
+pub fn pair_count(pairs: Vec<(string, string)>) -> int {
+    pairs.len() as int
+}
+
+pub fn demo() -> int {
+    let r = Request { scopes: ["openid", "email"], extra: [("prompt", "consent")] }
+    scope_count(r) + pair_count([("a", "b")])
+}

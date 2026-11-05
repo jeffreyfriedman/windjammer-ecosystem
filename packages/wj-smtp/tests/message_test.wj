@@ -64,7 +64,9 @@ fn test_build_refuses_bad_input() {
     assert(built(build(nobody)).starts_with("error"), "no recipients")
     let mut header = new_message(a, [b], "s", "t")
     header.message_id = "1@x.co"
-    header.extra_headers = [("X-Test", "ok\r\nBcc: evil@example.com")]
+    let mut hs: Vec<(string, string)> = Vec::new()
+    hs.push(("X-Test", "ok\r\nBcc: evil@example.com"))
+    header.extra_headers = hs
     assert(built(build(header)).starts_with("error"), "extra header injection")
     let mut bad_to = new_message(a, [address("", "not an address")], "s", "t")
     bad_to.message_id = "1@x.co"
@@ -92,7 +94,12 @@ fn test_smtp_plan_follows_rfc_5321() {
         Ok(s) => s,
         Err(_) => Vec::new(),
     }
-    let sent: Vec<string> = steps.map(|s| s.send).collect()
+    let mut sent: Vec<string> = Vec::new()
+    let mut k = 0
+    while k < steps.len() {
+        sent.push("${steps[k].send}")
+        k = k + 1
+    }
     assert_eq(steps.len(), 9)
     assert_eq(sent[0], "")
     assert_eq(sent[1], "EHLO client.example.com\r\n")

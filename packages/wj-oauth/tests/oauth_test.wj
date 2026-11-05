@@ -1,6 +1,9 @@
 // Expected values come from Python: hashlib and base64 for PKCE, urllib.parse.quote for encoding, PyJWT for tokens.
 // The PKCE pair is the one in RFC 7636 appendix B.
-use crate::b64
+use crate::b64::decode
+use crate::b64::decode_text
+use crate::b64::encode_text
+use crate::jwt::Claims
 use crate::jwt::Expect
 use crate::jwt::validate_claims
 use crate::jwt::validate_id_token_hs256
@@ -72,25 +75,27 @@ fn from_range(n: int) -> Vec<u8> {
 
 @test
 fn test_base64url_round_trips() {
-    assert_eq(b64::encode_text("subjects?>>"), "c3ViamVjdHM_Pj4")
-    assert_eq(b64::decode_text("aMOpbGxvIOKckw").unwrap_or("bad"), "héllo ✓")
-    assert(b64::decode("a").is_err(), "length 1 mod 4")
-    assert(b64::decode("ab$d").is_err(), "bad character")
-    assert_eq(b64::decode("YQ").unwrap_or(Vec::new()).len(), 1)
-    assert_eq(b64::decode("YQ==").unwrap_or(Vec::new()).len(), 1)
+    assert_eq(encode_text("subjects?>>"), "c3ViamVjdHM_Pj4")
+    assert_eq(decode_text("aMOpbGxvIOKckw").unwrap_or("bad"), "héllo ✓")
+    assert(decode("a").is_err(), "length 1 mod 4")
+    assert(decode("ab$d").is_err(), "bad character")
+    assert_eq(decode("YQ").unwrap_or(Vec::new()).len(), 1)
+    assert_eq(decode("YQ==").unwrap_or(Vec::new()).len(), 1)
 }
 
 @test
 fn test_authorization_url_matches_python_quote() {
+    let scopes: Vec<string> = ["openid", "profile", "email"]
+    let extra: Vec<(string, string)> = [("prompt", "consent"), ("login_hint", "jos\u{e9}@example.com")]
     let req = AuthRequest {
         authorization_endpoint: "https://id.example.com/authorize",
         client_id: "my client/1",
         redirect_uri: "https://app.example.com/cb?x=1&y=2",
-        scopes: ["openid", "profile", "email"],
+        scopes: scopes,
         state: "st4te-xyz-123",
         code_verifier: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
         nonce: "n0nce~._-",
-        extra: [("prompt", "consent"), ("login_hint", "josé@example.com")],
+        extra: extra,
     }
     assert_eq(shown(authorization_url(req)), "https://id.example.com/authorize?response_type=code&client_id=my%20client%2F1&redirect_uri=https%3A%2F%2Fapp.example.com%2Fcb%3Fx%3D1%26y%3D2&scope=openid%20profile%20email&state=st4te-xyz-123&code_challenge=ZtNPunH49FD35FWYhT5Tv8I7vRKQJ8uxMaL0_9eHjNA&code_challenge_method=S256&nonce=n0nce~._-&prompt=consent&login_hint=jos%C3%A9%40example.com")
 }
@@ -157,12 +162,15 @@ fn test_accept_callback_checks_state_error_and_code() {
 
 @test
 fn test_token_requests_match_python_urlencode() {
+    let ab: Vec<string> = ["a", "b"]
+    let rw: Vec<string> = ["read", "write"]
+    let pairs: Vec<(string, string)> = [("a b", "c&d"), ("e", "ü")]
     assert_eq(token_request_authorization_code("cid", "s3cr&t", "a b/c", "https://app/cb", "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"), "grant_type=authorization_code&code=a%20b%2Fc&redirect_uri=https%3A%2F%2Fapp%2Fcb&client_id=cid&code_verifier=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa&client_secret=s3cr%26t")
     assert_eq(token_request_authorization_code("cid", "", "a b/c", "https://app/cb", "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"), "grant_type=authorization_code&code=a%20b%2Fc&redirect_uri=https%3A%2F%2Fapp%2Fcb&client_id=cid&code_verifier=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa")
-    assert_eq(token_request_refresh("cid", "sec", "r/t==", ["a", "b"]), "grant_type=refresh_token&refresh_token=r%2Ft%3D%3D&client_id=cid&client_secret=sec&scope=a%20b")
+    assert_eq(token_request_refresh("cid", "sec", "r/t==", ab), "grant_type=refresh_token&refresh_token=r%2Ft%3D%3D&client_id=cid&client_secret=sec&scope=a%20b")
     assert_eq(token_request_refresh("cid", "", "r/t==", Vec::new()), "grant_type=refresh_token&refresh_token=r%2Ft%3D%3D&client_id=cid")
-    assert_eq(token_request_client_credentials("cid", "sec", ["read", "write"]), "grant_type=client_credentials&client_id=cid&client_secret=sec&scope=read%20write")
-    assert_eq(form_encode([("a b", "c&d"), ("e", "ü")]), "a%20b=c%26d&e=%C3%BC")
+    assert_eq(token_request_client_credentials("cid", "sec", rw), "grant_type=client_credentials&client_id=cid&client_secret=sec&scope=read%20write")
+    assert_eq(form_encode(pairs), "a%20b=c%26d&e=%C3%BC")
     assert_eq(basic_auth_header("my id", "p@ss w:rd"), "Basic bXklMjBpZDpwJTQwc3MlMjB3JTNBcmQ=")
     assert_eq(bearer_header("tok"), "Bearer tok")
 }
@@ -172,17 +180,17 @@ fn test_token_responses() {
     let ok = parse_token_response("{\"access_token\":\"AT\",\"token_type\":\"Bearer\",\"expires_in\":3600,\"refresh_token\":\"RT\",\"id_token\":\"IT\",\"scope\":\"openid\",\"extra\":{\"x\":1}}")
     match ok {
         Ok(t) => {
+            assert_eq(expires_at(t, 1000), 4600)
             assert_eq(t.access_token, "AT")
             assert_eq(t.refresh_token.unwrap_or(""), "RT")
             assert_eq(t.id_token.unwrap_or(""), "IT")
-            assert_eq(expires_at(t, 1000), 4600)
         },
         Err(e) => assert(false, e),
     }
     match parse_token_response("{\"access_token\":\"AT\",\"token_type\":\"bearer\"}") {
         Ok(t) => {
-            assert_eq(t.expires_in.unwrap_or(-1), -1)
             assert_eq(expires_at(t, 1000), 0)
+            assert_eq(t.expires_in.unwrap_or(-1), -1)
         },
         Err(e) => assert(false, e),
     }
@@ -215,7 +223,7 @@ fn expect(now: int) -> Expect {
     Expect { issuer: "https://id.example.com", audience: "my-client", nonce: "n-1", now: now, leeway: 5 }
 }
 
-fn claims_summary(r: Result<crate::jwt::Claims, string>) -> string {
+fn claims_summary(r: Result<Claims, string>) -> string {
     match r {
         Ok(c) => "${c.subject}|${c.issuer}|${c.expires_at}|${c.nonce}|${c.email}",
         Err(e) => "error: ${e}",

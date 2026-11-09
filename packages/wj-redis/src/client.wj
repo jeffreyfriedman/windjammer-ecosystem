@@ -1,0 +1,66 @@
+use std::net::TcpStream
+use wj_cache::resp::Reply
+use wj_cache::resp::encode_command
+use wj_cache::resp::parse_reply
+
+/// A connection to a Redis server. Replies are read in order; bytes after a complete reply stay buffered.
+pub struct Client {
+    stream: TcpStream,
+    pending: Vec<u8>,
+}
+
+impl Client {
+    /// Connect to `host:port`; `timeout_ms` bounds the connect and every later read and write.
+    pub fn connect(addr: string, timeout_ms: int) -> Result<Client, string> {
+        let mut stream = TcpStream::connect_timeout(addr, timeout_ms)?
+        stream.set_timeouts(timeout_ms, timeout_ms)?
+        Ok(Client { stream: stream, pending: Vec::new() })
+    }
+
+    /// Send one command (`["SET", "k", "v"]`) without waiting for its reply (pipelining).
+    pub fn send(&mut self, args: Vec<string>) -> Result<(), string> {
+        self.stream.write_all(encode_command(args))
+    }
+
+    /// The next reply.
+    pub fn receive(&mut self) -> Result<Reply, string> {
+        loop {
+            match parse_reply(self.pending.clone())? {
+                Some(p) => {
+                    let mut rest: Vec<u8> = Vec::new()
+                    let mut i = p.used
+                    while i < self.pending.len() {
+                        rest.push(self.pending[i])
+                        i = i + 1
+                    }
+                    self.pending = rest
+                    return Ok(p.reply)
+                },
+                None => {
+                    let chunk = self.stream.read(4096)?
+                    if chunk.len() == 0 {
+                        return Err("connection closed by the server")
+                    }
+                    for b in chunk {
+                        self.pending.push(b)
+                    }
+                },
+            }
+        }
+    }
+
+    /// Send one command and wait for its reply; a Redis error reply is `Err`.
+    pub fn call(&mut self, args: Vec<string>) -> Result<Reply, string> {
+        self.send(args)?
+        let r = self.receive()?
+        if r.kind == "error" {
+            return Err(r.text)
+        }
+        Ok(r)
+    }
+
+    /// Close the connection (the server sees end of stream).
+    pub fn close(&mut self) -> Result<(), string> {
+        self.stream.shutdown()
+    }
+}

@@ -1,0 +1,101 @@
+// The wire bytes and replies below follow the RESP2 specification (redis.io/docs/reference/protocol-spec):
+// a command is an array of bulk strings; `+OK`, `:1`, `$1\r\n1`, `$-1` (nil) and `-ERR ...` are the replies.
+use crate::client::Client
+use crate::server::TestServer
+use wj_cache::resp::show
+
+fn shown(r: Result<wj_cache::resp::Reply, string>) -> string {
+    match r {
+        Ok(reply) => show(reply),
+        Err(e) => "error: ${e}",
+    }
+}
+
+@test
+fn test_commands_round_trip_in_lockstep() {
+    let mut server = TestServer::bind("127.0.0.1:0").unwrap()
+    let mut client = Client::connect(server.addr(), 2000).unwrap()
+    let mut session = server.accept().unwrap()
+    let script: Vec<Vec<string>> = vec![
+        vec!["PING"],
+        vec!["SET", "greeting", "héllo"],
+        vec!["GET", "greeting"],
+        vec!["GET", "missing"],
+        vec!["INCR", "hits"],
+        vec!["INCR", "hits"],
+        vec!["DEL", "greeting", "missing"],
+        vec!["NOPE"],
+    ]
+    let mut seen: Vec<string> = Vec::new()
+    for cmd in script {
+        client.send(cmd).unwrap()
+        assert(server.serve_one(&mut session).unwrap())
+        seen.push(shown(client.receive()))
+    }
+    assert_eq(seen[0], "+PONG")
+    assert_eq(seen[1], "+OK")
+    assert_eq(seen[2], "\"héllo\"")
+    assert_eq(seen[3], "(nil)")
+    assert_eq(seen[4], ":1")
+    assert_eq(seen[5], ":2")
+    assert_eq(seen[6], ":1")
+    assert_eq(seen[7], "-ERR unknown command 'NOPE'")
+}
+
+@test
+fn test_pipelined_commands_keep_their_order() {
+    let mut server = TestServer::bind("127.0.0.1:0").unwrap()
+    let mut client = Client::connect(server.addr(), 2000).unwrap()
+    let mut session = server.accept().unwrap()
+    client.send(vec!["SET", "a", "1"]).unwrap()
+    client.send(vec!["ECHO", "two"]).unwrap()
+    client.send(vec!["GET", "a"]).unwrap()
+    assert(server.serve_one(&mut session).unwrap())
+    assert(server.serve_one(&mut session).unwrap())
+    assert(server.serve_one(&mut session).unwrap())
+    assert_eq(shown(client.receive()), "+OK")
+    assert_eq(shown(client.receive()), "\"two\"")
+    assert_eq(shown(client.receive()), "\"1\"")
+}
+
+@test
+fn test_a_closed_client_ends_the_session() {
+    let mut server = TestServer::bind("127.0.0.1:0").unwrap()
+    let mut client = Client::connect(server.addr(), 2000).unwrap()
+    let mut session = server.accept().unwrap()
+    client.close().unwrap()
+    assert(!server.serve_one(&mut session).unwrap())
+}
+
+@test
+fn test_a_silent_server_times_out() {
+    let server = TestServer::bind("127.0.0.1:0").unwrap()
+    let mut client = Client::connect(server.addr(), 100).unwrap()
+    client.send(vec!["PING"]).unwrap()
+    assert_eq(shown(client.receive()), "error: timed out")
+}
+
+@test
+fn test_error_replies_arrive_in_order() {
+    let mut server = TestServer::bind("127.0.0.1:0").unwrap()
+    let mut client = Client::connect(server.addr(), 2000).unwrap()
+    let mut session = server.accept().unwrap()
+    client.send(vec!["INCR", "x"]).unwrap()
+    client.send(vec!["SET", "x", "abc"]).unwrap()
+    client.send(vec!["INCR", "x"]).unwrap()
+    for _ in 0..3 {
+        assert(server.serve_one(&mut session).unwrap())
+    }
+    assert_eq(shown(client.receive()), ":1")
+    assert_eq(shown(client.receive()), "+OK")
+    assert_eq(shown(client.receive()), "-ERR value is not an integer or out of range")
+}
+
+@test
+fn test_nobody_listening_is_connection_refused() {
+    let addr = TestServer::bind("127.0.0.1:0").unwrap().addr()
+    match Client::connect(addr, 500) {
+        Ok(_) => assert(false),
+        Err(e) => assert_eq(e, "connection refused"),
+    }
+}

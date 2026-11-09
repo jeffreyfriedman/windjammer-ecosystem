@@ -1,5 +1,5 @@
 //! An in-memory LRU cache with per-entry TTL, and the Redis wire protocol (RESP2) as a codec.
-//! Time is an argument (milliseconds) so behaviour is deterministic. `std::net` has no raw TCP yet, so the
-//! Redis client is a codec plus command helpers; the caller moves the bytes.
+//! Time is an argument (milliseconds) so behaviour is deterministic. The codec is pure; `wj-redis` moves its
+//! bytes over `std::net::TcpStream`.
 pub mod lru
 pub mod resp

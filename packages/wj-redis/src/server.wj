@@ -1,0 +1,147 @@
+use std::collections::HashMap
+use std::net::TcpListener
+use std::net::TcpStream
+use wj_cache::resp::parse_reply
+
+fn bytes(text: string) -> Vec<u8> {
+    text.as_bytes().to_vec()
+}
+
+fn simple(text: string) -> Vec<u8> {
+    bytes("+${text}\r\n")
+}
+
+fn error(text: string) -> Vec<u8> {
+    bytes("-${text}\r\n")
+}
+
+fn integer(n: int) -> Vec<u8> {
+    bytes(":${n}\r\n")
+}
+
+fn bulk(text: string) -> Vec<u8> {
+    let n = text.as_bytes().len()
+    bytes("$" + "${n}\r\n${text}\r\n")
+}
+
+/// One client connection of the server, with the bytes of a command still arriving.
+pub struct Session {
+    conn: TcpStream,
+    pending: Vec<u8>,
+}
+
+/// A Redis-compatible server for tests: string keys in memory, one command per `serve_one`.
+pub struct TestServer {
+    listener: TcpListener,
+    store: HashMap<string, string>,
+}
+
+impl TestServer {
+    /// Listen on `host:port` (port 0 picks a free one; `addr` tells which).
+    pub fn bind(addr: string) -> Result<TestServer, string> {
+        let listener = TcpListener::bind(addr)?
+        Ok(TestServer { listener: listener, store: HashMap::new() })
+    }
+
+    pub fn addr(&self) -> string {
+        self.listener.local_addr()
+    }
+
+    /// The next client.
+    pub fn accept(&self) -> Result<Session, string> {
+        let conn = self.listener.accept()?
+        Ok(Session { conn: conn, pending: Vec::new() })
+    }
+
+    /// The reply to one command.
+    pub fn execute(&mut self, args: Vec<string>) -> Vec<u8> {
+        if args.len() == 0 {
+            return error("ERR empty command")
+        }
+        let name = args[0].to_uppercase()
+        if name == "PING" {
+            return if args.len() > 1 { bulk(args[1].clone()) } else { simple("PONG") }
+        }
+        if name == "ECHO" && args.len() == 2 {
+            return bulk(args[1].clone())
+        }
+        if name == "SET" && args.len() == 3 {
+            self.store.insert(args[1].clone(), args[2].clone())
+            return simple("OK")
+        }
+        if name == "GET" && args.len() == 2 {
+            return match self.store.get(&args[1]) {
+                Some(v) => bulk(v.clone()),
+                None => bytes("$-1\r\n"),
+            }
+        }
+        if name == "DEL" && args.len() >= 2 {
+            let mut n = 0
+            let mut i = 1
+            while i < args.len() {
+                if self.store.remove(&args[i]).is_some() {
+                    n = n + 1
+                }
+                i = i + 1
+            }
+            return integer(n)
+        }
+        if name == "INCR" && args.len() == 2 {
+            let current = match self.store.get(&args[1]) {
+                Some(v) => v.clone(),
+                None => "0",
+            }
+            return match current.parse::<int>() {
+                Ok(n) => {
+                    self.store.insert(args[1].clone(), "${n + 1}")
+                    integer(n + 1)
+                },
+                Err(_) => error("ERR value is not an integer or out of range"),
+            }
+        }
+        error("ERR unknown command '${name}'")
+    }
+
+    /// Read one command from `s` and answer it; `false` when the client has closed the connection.
+    pub fn serve_one(&mut self, s: &mut Session) -> Result<bool, string> {
+        loop {
+            match parse_reply(s.pending.clone())? {
+                Some(p) => {
+                    let mut rest: Vec<u8> = Vec::new()
+                    let mut i = p.used
+                    while i < s.pending.len() {
+                        rest.push(s.pending[i])
+                        i = i + 1
+                    }
+                    s.pending = rest
+                    let mut args: Vec<string> = Vec::new()
+                    for item in p.reply.items {
+                        args.push(item.text)
+                    }
+                    let reply = self.execute(args)
+                    s.conn.write_all(reply)?
+                    return Ok(true)
+                },
+                None => {
+                    let chunk = s.conn.read(4096)?
+                    if chunk.len() == 0 {
+                        return Ok(false)
+                    }
+                    for b in chunk {
+                        s.pending.push(b)
+                    }
+                },
+            }
+        }
+    }
+
+    /// Serve one client until it closes the connection; the number of commands answered.
+    pub fn serve_client(&mut self) -> Result<int, string> {
+        let mut s = self.accept()?
+        let mut n = 0
+        while self.serve_one(&mut s)? {
+            n = n + 1
+        }
+        Ok(n)
+    }
+}

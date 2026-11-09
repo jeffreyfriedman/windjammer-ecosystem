@@ -1,0 +1,20 @@
+[package]
+name = "wj-redis"
+version = "0.1.0"
+edition = "2025"
+
+[lib]
+
+[dependencies]
+wj_cache = { path = "../wj-cache/build" }
+
+[dev-dependencies]
+
+[profile.release]
+opt-level = 3
+lto = true
+
+# The client connects where the caller says; the tests run their server on loopback only.
+[capabilities]
+net.connect = ["127.0.0.1"]
+net.listen = ["127.0.0.1"]

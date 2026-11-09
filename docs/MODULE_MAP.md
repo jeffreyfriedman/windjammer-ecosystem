@@ -14,6 +14,7 @@
 | wj-archive | Tar and zip read/write, DEFLATE, CRC-32 | std |
 | wj-base64 | Base64 and Basic-auth header helpers | std |
 | wj-cache | LRU + TTL cache, Redis protocol codec | std |
+| wj-redis | Redis client over std::net TcpStream + in-process test server | std, wj-cache |
 | wj-cli-args | argv flags and positionals | std |
 | wj-cli-ui | Colour, text width, progress, prompts | std |
 | wj-compress | Accept-Encoding negotiation, gzip | std |

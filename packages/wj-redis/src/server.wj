@@ -43,35 +43,35 @@ impl TestServer {
         Ok(TestServer { listener: listener, store: HashMap::new() })
     }
 
-    pub fn addr(&self) -> string {
+    pub fn addr(self) -> string {
         self.listener.local_addr()
     }
 
     /// The next client.
-    pub fn accept(&self) -> Result<Session, string> {
+    pub fn accept(self) -> Result<Session, string> {
         let conn = self.listener.accept()?
         Ok(Session { conn: conn, pending: Vec::new() })
     }
 
     /// The reply to one command.
-    pub fn execute(&mut self, args: Vec<string>) -> Vec<u8> {
+    pub fn execute(self, args: Vec<string>) -> Vec<u8> {
         if args.len() == 0 {
             return error("ERR empty command")
         }
         let name = args[0].to_uppercase()
         if name == "PING" {
-            return if args.len() > 1 { bulk(args[1].clone()) } else { simple("PONG") }
+            return if args.len() > 1 { bulk(args[1]) } else { simple("PONG") }
         }
         if name == "ECHO" && args.len() == 2 {
-            return bulk(args[1].clone())
+            return bulk(args[1])
         }
         if name == "SET" && args.len() == 3 {
-            self.store.insert(args[1].clone(), args[2].clone())
+            self.store.insert(args[1], args[2])
             return simple("OK")
         }
         if name == "GET" && args.len() == 2 {
-            return match self.store.get(&args[1]) {
-                Some(v) => bulk(v.clone()),
+            return match self.store.get(args[1]) {
+                Some(v) => bulk(v),
                 None => bytes("$-1\r\n"),
             }
         }
@@ -79,7 +79,7 @@ impl TestServer {
             let mut n = 0
             let mut i = 1
             while i < args.len() {
-                if self.store.remove(&args[i]).is_some() {
+                if self.store.remove(args[i]).is_some() {
                     n = n + 1
                 }
                 i = i + 1
@@ -87,13 +87,13 @@ impl TestServer {
             return integer(n)
         }
         if name == "INCR" && args.len() == 2 {
-            let current = match self.store.get(&args[1]) {
-                Some(v) => v.clone(),
+            let current = match self.store.get(args[1]) {
+                Some(v) => v,
                 None => "0",
             }
             return match current.parse::<int>() {
                 Ok(n) => {
-                    self.store.insert(args[1].clone(), "${n + 1}")
+                    self.store.insert(args[1], "${n + 1}")
                     integer(n + 1)
                 },
                 Err(_) => error("ERR value is not an integer or out of range"),
@@ -103,9 +103,9 @@ impl TestServer {
     }
 
     /// Read one command from `s` and answer it; `false` when the client has closed the connection.
-    pub fn serve_one(&mut self, s: &mut Session) -> Result<bool, string> {
+    pub fn serve_one(self, s: Session) -> Result<bool, string> {
         loop {
-            match parse_reply(s.pending.clone())? {
+            match parse_reply(s.pending)? {
                 Some(p) => {
                     let mut rest: Vec<u8> = Vec::new()
                     let mut i = p.used
@@ -136,10 +136,10 @@ impl TestServer {
     }
 
     /// Serve one client until it closes the connection; the number of commands answered.
-    pub fn serve_client(&mut self) -> Result<int, string> {
+    pub fn serve_client(self) -> Result<int, string> {
         let mut s = self.accept()?
         let mut n = 0
-        while self.serve_one(&mut s)? {
+        while self.serve_one(s)? {
             n = n + 1
         }
         Ok(n)

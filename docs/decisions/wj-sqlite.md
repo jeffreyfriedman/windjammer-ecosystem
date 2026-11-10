@@ -21,3 +21,8 @@ migrations over `std::db`. Typed row mapping with `@json`-style derives is a can
 
 **Revisit when** `std::db` lacks a feature a project needs (user-defined functions, backup API, extensions): then wrap
 `rusqlite` through `wj rust-surface` for that feature only, behind a package that declares `ffi(rusqlite)`.
+
+**Update (2026-11-10).** The first rung of the native ladder now exists as `packages/wj-sqlite`: a read-only file-format
+reader (header, `sqlite_master`, table b-trees, overflow chains, records), proven against Python's `sqlite3` and against
+SQLite itself through `std::db`. Queries, writes and transactions stay with `std::db`. Next rungs, in order: index b-trees
+(so `WITHOUT ROWID` tables and index-only scans work), then a page-level writer for appending rows, then SQL.

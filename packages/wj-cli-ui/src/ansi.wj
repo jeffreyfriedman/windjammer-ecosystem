@@ -1,0 +1,107 @@
+use crate::style::Theme
+
+/// Control sequences (ECMA-48 CSI, xterm OSC). Every function returns the bytes to print; none of them print.
+pub fn csi(params: string, final_byte: string) -> string {
+    "\u{1b}[" + params + final_byte
+}
+
+fn count(n: int) -> string {
+    if n <= 1 { "" } else { "${n}" }
+}
+
+pub fn cursor_up(n: int) -> string {
+    csi(count(n), "A")
+}
+
+pub fn cursor_down(n: int) -> string {
+    csi(count(n), "B")
+}
+
+pub fn cursor_forward(n: int) -> string {
+    csi(count(n), "C")
+}
+
+pub fn cursor_back(n: int) -> string {
+    csi(count(n), "D")
+}
+
+/// Column `n`, counting from 1, on the current line.
+pub fn cursor_column(n: int) -> string {
+    csi("${n}", "G")
+}
+
+/// Row and column, both counting from 1.
+pub fn move_to(row: int, column: int) -> string {
+    csi("${row};${column}", "H")
+}
+
+pub fn save_cursor() -> string {
+    "\u{1b}7"
+}
+
+pub fn restore_cursor() -> string {
+    "\u{1b}8"
+}
+
+pub fn hide_cursor() -> string {
+    csi("?25", "l")
+}
+
+pub fn show_cursor() -> string {
+    csi("?25", "h")
+}
+
+/// Erase the whole current line, cursor stays put.
+pub fn clear_line() -> string {
+    csi("2", "K")
+}
+
+pub fn clear_to_line_end() -> string {
+    csi("0", "K")
+}
+
+pub fn clear_screen() -> string {
+    csi("2", "J") + csi("", "H")
+}
+
+/// Switch to the alternate screen buffer and back (full-screen programs).
+pub fn enter_alt_screen() -> string {
+    csi("?1049", "h")
+}
+
+pub fn leave_alt_screen() -> string {
+    csi("?1049", "l")
+}
+
+/// Window title (OSC 0), terminated with BEL.
+pub fn set_title(title: string) -> string {
+    "\u{1b}]0;" + title + "\u{7}"
+}
+
+pub fn bell() -> string {
+    "\u{7}"
+}
+
+/// A clickable link (OSC 8). Plain text when colour and escapes are off.
+pub fn hyperlink(theme: Theme, url: string, text: string) -> string {
+    if !theme.enabled {
+        return text
+    }
+    "\u{1b}]8;;" + url + "\u{1b}\\" + text + "\u{1b}]8;;\u{1b}\\"
+}
+
+/// Rewrite the line that was just printed: return to column 1, clear it, print `line`.
+pub fn rewrite_line(line: string) -> string {
+    "\r" + clear_line() + line
+}
+
+/// Move up `lines` lines and clear each of them (to redraw a block such as a multi-line progress display).
+pub fn clear_lines_above(lines: int) -> string {
+    let mut out = ""
+    let mut i = 0
+    while i < lines {
+        out = out + cursor_up(1) + clear_line()
+        i = i + 1
+    }
+    out + "\r"
+}

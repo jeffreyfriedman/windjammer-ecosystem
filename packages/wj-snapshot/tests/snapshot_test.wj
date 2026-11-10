@@ -1,0 +1,136 @@
+// Expected diffs come from Python's difflib.unified_diff (n=3, lineterm=""), on inputs where the longest common
+// subsequence is unambiguous so both algorithms must agree.
+use crate::diff::lines_of
+use crate::diff::unified
+use crate::store::check
+use crate::store::normalize
+use crate::store::redact
+use std::env
+use std::fs
+
+fn join(lines: Vec<string>) -> string {
+    lines.join("\n")
+}
+
+fn run(a: Vec<string>, b: Vec<string>) -> string {
+    unified(join(a), join(b), "old", "new", 3)
+}
+
+@test
+fn test_unified_diff_matches_difflib() {
+    // one change
+    let a_6785: Vec<string> = ["line 1", "line 2", "line 3", "line 4", "line 5", "line 6", "line 7", "line 8", "line 9", "line 10", "line 11", "line 12"]
+    let b_6785: Vec<string> = ["line 1", "line 2", "line 3", "line 4", "line 5", "line six", "line 7", "line 8", "line 9", "line 10", "line 11", "line 12"]
+    assert_eq(run(a_6785, b_6785), "--- old\n+++ new\n@@ -3,7 +3,7 @@\n line 3\n line 4\n line 5\n-line 6\n+line six\n line 7\n line 8\n line 9")
+    // insert
+    let a_8251: Vec<string> = ["line 1", "line 2", "line 3", "line 4", "line 5", "line 6", "line 7", "line 8", "line 9", "line 10", "line 11", "line 12"]
+    let b_8251: Vec<string> = ["line 1", "line 2", "line 3", "line 4", "new line", "line 5", "line 6", "line 7", "line 8", "line 9", "line 10", "line 11", "line 12"]
+    assert_eq(run(a_8251, b_8251), "--- old\n+++ new\n@@ -2,6 +2,7 @@\n line 2\n line 3\n line 4\n+new line\n line 5\n line 6\n line 7")
+    // delete
+    let a_1748: Vec<string> = ["line 1", "line 2", "line 3", "line 4", "line 5", "line 6", "line 7", "line 8", "line 9", "line 10", "line 11", "line 12"]
+    let b_1748: Vec<string> = ["line 1", "line 2", "line 3", "line 4", "line 5", "line 6", "line 7", "line 9", "line 10", "line 11", "line 12"]
+    assert_eq(run(a_1748, b_1748), "--- old\n+++ new\n@@ -5,7 +5,6 @@\n line 5\n line 6\n line 7\n-line 8\n line 9\n line 10\n line 11")
+    // two far hunks
+    let a_8257: Vec<string> = ["line 1", "line 2", "line 3", "line 4", "line 5", "line 6", "line 7", "line 8", "line 9", "line 10", "line 11", "line 12"]
+    let b_8257: Vec<string> = ["line 1", "LINE 2", "line 3", "line 4", "line 5", "line 6", "line 7", "line 8", "line 9", "line 10", "LINE 11", "line 12"]
+    assert_eq(run(a_8257, b_8257), "--- old\n+++ new\n@@ -1,5 +1,5 @@\n line 1\n-line 2\n+LINE 2\n line 3\n line 4\n line 5\n@@ -8,5 +8,5 @@\n line 8\n line 9\n line 10\n-line 11\n+LINE 11\n line 12")
+    // two near hunks merge
+    let a_9761: Vec<string> = ["line 1", "line 2", "line 3", "line 4", "line 5", "line 6", "line 7", "line 8", "line 9", "line 10", "line 11", "line 12"]
+    let b_9761: Vec<string> = ["line 1", "line 2", "line 3", "line 4", "line 5!", "line 6", "line 7", "line 8!", "line 9", "line 10", "line 11", "line 12"]
+    assert_eq(run(a_9761, b_9761), "--- old\n+++ new\n@@ -2,10 +2,10 @@\n line 2\n line 3\n line 4\n-line 5\n+line 5!\n line 6\n line 7\n-line 8\n+line 8!\n line 9\n line 10\n line 11")
+    // first line
+    let a_6988: Vec<string> = ["line 1", "line 2", "line 3", "line 4", "line 5", "line 6", "line 7", "line 8", "line 9", "line 10", "line 11", "line 12"]
+    let b_6988: Vec<string> = ["first", "line 2", "line 3", "line 4", "line 5", "line 6", "line 7", "line 8", "line 9", "line 10", "line 11", "line 12"]
+    assert_eq(run(a_6988, b_6988), "--- old\n+++ new\n@@ -1,4 +1,4 @@\n-line 1\n+first\n line 2\n line 3\n line 4")
+    // last line
+    let a_9806: Vec<string> = ["line 1", "line 2", "line 3", "line 4", "line 5", "line 6", "line 7", "line 8", "line 9", "line 10", "line 11", "line 12"]
+    let b_9806: Vec<string> = ["line 1", "line 2", "line 3", "line 4", "line 5", "line 6", "line 7", "line 8", "line 9", "line 10", "line 11", "last"]
+    assert_eq(run(a_9806, b_9806), "--- old\n+++ new\n@@ -9,4 +9,4 @@\n line 9\n line 10\n line 11\n-line 12\n+last")
+    // empty to text
+    let a_5810: Vec<string> = []
+    let b_5810: Vec<string> = ["a", "b"]
+    assert_eq(run(a_5810, b_5810), "--- old\n+++ new\n@@ -0,0 +1,2 @@\n+a\n+b")
+    // text to empty
+    let a_8426: Vec<string> = ["a", "b"]
+    let b_8426: Vec<string> = []
+    assert_eq(run(a_8426, b_8426), "--- old\n+++ new\n@@ -1,2 +0,0 @@\n-a\n-b")
+    // identical
+    let a_5426: Vec<string> = ["line 1", "line 2", "line 3", "line 4", "line 5", "line 6", "line 7", "line 8", "line 9", "line 10", "line 11", "line 12"]
+    let b_5426: Vec<string> = ["line 1", "line 2", "line 3", "line 4", "line 5", "line 6", "line 7", "line 8", "line 9", "line 10", "line 11", "line 12"]
+    assert_eq(run(a_5426, b_5426), "")
+    // adjacent changes
+    let a_7960: Vec<string> = ["line 1", "line 2", "line 3", "line 4", "line 5", "line 6", "line 7", "line 8", "line 9", "line 10", "line 11", "line 12"]
+    let b_7960: Vec<string> = ["line 1", "line 2", "line 3", "x", "y", "z", "line 7", "line 8", "line 9", "line 10", "line 11", "line 12"]
+    assert_eq(run(a_7960, b_7960), "--- old\n+++ new\n@@ -1,9 +1,9 @@\n line 1\n line 2\n line 3\n-line 4\n-line 5\n-line 6\n+x\n+y\n+z\n line 7\n line 8\n line 9")
+    // append
+    let a_3892: Vec<string> = ["a", "b", "c"]
+    let b_3892: Vec<string> = ["a", "b", "c", "d", "e"]
+    assert_eq(run(a_3892, b_3892), "--- old\n+++ new\n@@ -1,3 +1,5 @@\n a\n b\n c\n+d\n+e")
+    // replace all
+    let a_8225: Vec<string> = ["a", "b"]
+    let b_8225: Vec<string> = ["c", "d", "e"]
+    assert_eq(run(a_8225, b_8225), "--- old\n+++ new\n@@ -1,2 +1,3 @@\n-a\n-b\n+c\n+d\n+e")
+}
+
+@test
+fn test_lines_of_ignores_terminators() {
+    assert_eq(lines_of("a\nb\n").len(), 2)
+    assert_eq(lines_of("a\r\nb").len(), 2)
+    assert_eq(lines_of("").len(), 0)
+    assert_eq(lines_of("\n").len(), 1)
+    assert_eq(lines_of("a\n\nb").len(), 3)
+}
+
+@test
+fn test_normalize_and_redact() {
+    assert_eq(normalize("a  \r\nb\t\n\n\n"), "a\nb\n")
+    assert_eq(normalize("single"), "single\n")
+    assert_eq(normalize("\n\n"), "")
+    assert_eq(redact("id=42 id=42", "42", "<id>"), "id=<id> id=<id>")
+    assert_eq(redact("keep", "", "x"), "keep")
+}
+
+fn scratch(name: string) -> string {
+    let dir = env.temp_dir() + "/wj-snapshot-tests/" + name
+    let _ = fs.remove_dir_all(dir)
+    let _ = fs.create_dir_all(dir)
+    dir
+}
+
+@test
+fn test_missing_snapshot_fails_unless_updating() {
+    let dir = scratch("missing")
+    let r = check(dir, "greeting", "hello\n", false)
+    assert(!r.ok, "must fail")
+    assert_eq(r.status, "missing")
+    assert_str_contains(r.message, "WJ_UPDATE_SNAPSHOTS=1")
+    assert(!fs.exists(dir + "/greeting.snap"), "nothing was written")
+    let made = check(dir, "greeting", "hello\n", true)
+    assert(made.ok, "created")
+    assert_eq(made.status, "created")
+    assert_eq(fs.read_to_string(dir + "/greeting.snap").unwrap_or("?"), "hello\n")
+}
+
+@test
+fn test_matching_changed_and_updated() {
+    let dir = scratch("flow")
+    let _ = check(dir, "page", "title\nbody\nfooter\n", true)
+    let same = check(dir, "page", "title  \r\nbody\r\nfooter", false)
+    assert(same.ok, "whitespace and line-ending noise is normalized")
+    assert_eq(same.status, "matched")
+    let changed = check(dir, "page", "title\nBODY\nfooter\n", false)
+    assert(!changed.ok, "different output fails")
+    assert_eq(changed.status, "changed")
+    assert_eq(changed.message, "--- page.snap (stored)\n+++ page.snap (actual)\n@@ -1,3 +1,3 @@\n title\n-body\n+BODY\n footer")
+    assert_eq(fs.read_to_string(dir + "/page.snap").unwrap_or("?"), "title\nbody\nfooter\n")
+    let updated = check(dir, "page", "title\nBODY\nfooter\n", true)
+    assert(updated.ok, "updating succeeds")
+    assert_eq(updated.status, "updated")
+    assert(check(dir, "page", "title\nBODY\nfooter\n", false).ok, "the new snapshot matches")
+}
+
+@test
+fn test_updating_reads_the_environment() {
+    // Not set under the test runner, so the default is to compare, never to write.
+    assert(!crate::store::updating(), "updating is off by default")
+}

@@ -16,10 +16,12 @@ println(progress_bar(7, 10, 20))   // [##############------]  70%
 
 - `style`: `Theme`, `theme_for(no_color, term)`, `theme_from_env()`, `always()`, `never()`, `paint`, `bold`, `dim`, `red`, `green`, `yellow`, `blue`, `cyan`, `gray`, `color256`, `rgb`
 - `text`: `strip_ansi`, `display_width`, `pad_left`, `pad_right`, `center`, `truncate`, `wrap`, `format_bytes`, `format_duration_ms`
-- `progress`: `progress_bar`, `styled_bar`, `spinner_frame`, `redraw`, `eta_seconds`
-- `prompt`: `answers_from_stdin()`, `answers_from(lines)`, `confirm`, `ask`, `select`, and the pure parsers `parse_confirm`, `parse_choice`
+- `ansi`: cursor movement, line and screen erase, alternate screen, window title, bell, `hyperlink` (OSC 8), `rewrite_line`, `clear_lines_above`
+- `layout`: `boxed`, `rule`, `justify` (measured in terminal columns)
+- `progress`: `progress_bar`, `styled_bar`, `spinner_frame`, `redraw`, `eta_seconds`, `rate_text`, `eta_text`, `status_line`
+- `prompt`: `answers_from_stdin()`, `answers_from(lines)`, `confirm`, `ask`, `ask_int`, `ask_valid`, `select`, `multi_select`, and the pure parsers `parse_confirm`, `parse_choice`, `parse_multi`
 
-Widths agree with Python's `unicodedata`; sizes and durations with Python's formatting. Prompts read piped standard input (`fs.read /dev/stdin`); line-by-line interactive reading is waiting for `std::io`.
+Control sequences are the ECMA-48 / xterm values. Widths agree with Python's `unicodedata`; sizes and durations with Python's formatting. Prompts read piped standard input (`fs.read /dev/stdin`); line-by-line interactive reading is waiting for `std::io`.
 
 ## Build / test
 

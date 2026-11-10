@@ -9,7 +9,7 @@ on:
 env:
   CARGO_TERM_COLOR: always
   # Pinned to WJ_PIN.md (full SHA; must exist on the remote). Bump both together, deliberately.
-  WINDJAMMER_REF: 6ed79d644d3f4d03114b61f36540a8165782502d
+  WINDJAMMER_REF: 88d4cea796fd846e0318bd2ac3f740c28eecdf66
 
 jobs:
   pin-check:

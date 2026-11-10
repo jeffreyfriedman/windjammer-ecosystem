@@ -5,7 +5,7 @@ commit below. CI never uses a floating branch.
 
 ```
 WJ_REPO=https://github.com/jeffreyfriedman/windjammer.git
-WJ_COMMIT=6ed79d644d3f4d03114b61f36540a8165782502d
+WJ_COMMIT=88d4cea796fd846e0318bd2ac3f740c28eecdf66
 ```
 
 Status: VERIFIED for the ecosystem loop. Sweep at this commit (interpreted `wj test --interpret` and compiled `wj test`, per

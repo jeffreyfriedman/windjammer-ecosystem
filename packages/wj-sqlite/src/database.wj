@@ -1,0 +1,349 @@
+use std::fs
+use std::strings
+use crate::format::Value
+use crate::format::decode_record
+use crate::format::show
+use crate::format::u16_at
+use crate::format::u32_at
+use crate::format::varint
+
+/// An opened database image.
+pub struct Database {
+    data: Vec<u8>,
+    page_size: int,
+    usable: int,
+    pages: int,
+}
+
+/// One row: its rowid and the column values (an `INTEGER PRIMARY KEY` column holds the rowid, as SQLite reports it).
+pub struct Row {
+    pub rowid: int,
+    pub values: Vec<Value>,
+}
+
+/// A table from `sqlite_master`.
+pub struct Table {
+    pub name: string,
+    pub root_page: int,
+    pub sql: string,
+    pub columns: Vec<string>,
+    /// Index into `columns` of the `INTEGER PRIMARY KEY` column, or -1.
+    pub rowid_column: int,
+}
+
+pub fn read_file(path: string) -> Result<Database, string> {
+    match fs.read(path) {
+        Ok(b) => open(b),
+        Err(e) => Err("cannot read ${path}: ${e}"),
+    }
+}
+
+/// Check the header and open the image. UTF-8 databases in rollback-journal mode, or a WAL database whose log has been
+/// checkpointed (closing the last connection does that).
+pub fn open(data: Vec<u8>) -> Result<Database, string> {
+    if data.len() < 100 {
+        return Err("too short for a SQLite database")
+    }
+    let magic = "SQLite format 3"
+    let mut i = 0
+    for ch in strings.chars(magic) {
+        if data[i] as int != ch as int {
+            return Err("not a SQLite database (bad header)")
+        }
+        i = i + 1
+    }
+    if data[15] != 0 {
+        return Err("not a SQLite database (bad header)")
+    }
+    let raw_size = u16_at(data, 16)
+    let page_size = if raw_size == 1 { 65536 } else { raw_size }
+    if page_size < 512 || page_size > 65536 {
+        return Err("invalid page size ${page_size}")
+    }
+    let reserved = data[20] as int
+    let encoding = u32_at(data, 56)
+    if encoding != 1 && encoding != 0 {
+        return Err("only UTF-8 databases are supported (text encoding ${encoding})")
+    }
+    let pages = data.len() as int / page_size
+    if pages < 1 {
+        return Err("file is smaller than one page")
+    }
+    Ok(Database { data: data, page_size: page_size, usable: page_size - reserved, pages: pages })
+}
+
+fn slice(d: Vec<u8>, from: int, to: int) -> Vec<u8> {
+    let mut out: Vec<u8> = Vec::new()
+    let mut i = from
+    while i < to {
+        out.push(d[i as usize])
+        i = i + 1
+    }
+    out
+}
+
+impl Database {
+    pub fn page_count(self) -> int {
+        self.pages
+    }
+
+    pub fn page_size(self) -> int {
+        self.page_size
+    }
+
+    fn page_start(self, page: int) -> Result<int, string> {
+        if page < 1 || page > self.pages {
+            return Err("page ${page} is outside the file (${self.pages} pages)")
+        }
+        Ok((page - 1) * self.page_size)
+    }
+
+    /// The payload of a table-leaf cell at `cell`, joining overflow pages.
+    fn payload(self, cell: int, size: int, size_len: int, rowid_len: int) -> Result<Vec<u8>, string> {
+        let u = self.usable
+        let max_local = u - 35
+        let min_local = ((u - 12) * 32) / 255 - 23
+        let mut local = size
+        if size > max_local {
+            let k = min_local + ((size - min_local) % (u - 4))
+            if k <= max_local {
+                local = k
+            } else {
+                local = min_local
+            }
+        }
+        let start = cell + size_len + rowid_len
+        let mut out = slice(self.data, start, start + local)
+        if local < size {
+            let mut next = u32_at(self.data, start + local)
+            let mut left = size - local
+            let mut hops = 0
+            while left > 0 {
+                if next == 0 || hops > self.pages {
+                    return Err("overflow chain ends early")
+                }
+                let base: int = self.page_start(next)?
+                let take: int = if left < u - 4 { left } else { u - 4 }
+                let mut j: int = 0
+                while j < take {
+                    let at: int = base + 4 + j
+                    out.push(self.data[at as usize])
+                    j = j + 1
+                }
+                left = left - take
+                next = u32_at(self.data, base)
+                hops = hops + 1
+            }
+        }
+        Ok(out)
+    }
+
+    /// Append the rows under `page` (depth first, so rowid order) to `rows`.
+    fn walk(self, page: int, depth: int, rows: Vec<Row>) -> Result<Vec<Row>, string> {
+        if depth > 40 {
+            return Err("b-tree is too deep (corrupt file?)")
+        }
+        let base = self.page_start(page)?
+        let hdr = if page == 1 { base + 100 } else { base }
+        let kind = self.data[hdr as usize] as int
+        let cells = u16_at(self.data, hdr + 3)
+        let mut out = rows
+        if kind == 13 {
+            let mut c = 0
+            while c < cells {
+                let cell = base + u16_at(self.data, hdr + 8 + c * 2)
+                let size = varint(self.data, cell)
+                let rid = varint(self.data, cell + size.len)
+                let bytes = self.payload(cell, size.value, size.len, rid.len)?
+                out.push(Row { rowid: rid.value, values: decode_record(bytes)? })
+                c = c + 1
+            }
+            return Ok(out)
+        }
+        if kind == 5 {
+            let mut c = 0
+            while c < cells {
+                let cell = base + u16_at(self.data, hdr + 12 + c * 2)
+                out = self.walk(u32_at(self.data, cell), depth + 1, out)?
+                c = c + 1
+            }
+            return self.walk(u32_at(self.data, hdr + 8), depth + 1, out)
+        }
+        Err("page ${page} is not a table b-tree page (type ${kind})")
+    }
+
+    /// Every row of the table b-tree rooted at `root`.
+    pub fn scan(self, root: int) -> Result<Vec<Row>, string> {
+        self.walk(root, 0, Vec::new())
+    }
+
+    /// The tables in `sqlite_master` (indexes, views and triggers are skipped).
+    pub fn tables(self) -> Result<Vec<Table>, string> {
+        let rows = self.scan(1)?
+        let mut out: Vec<Table> = Vec::new()
+        for r in rows {
+            if r.values.len() < 5 {
+                continue
+            }
+            if show(r.values[0]) != "table" {
+                continue
+            }
+            let sql = show(r.values[4])
+            let cols = columns_of(sql)
+            out.push(Table {
+                name: show(r.values[1]),
+                root_page: match r.values[3] {
+                    Value::Int(n) => n,
+                    _ => 0,
+                },
+                sql: sql,
+                columns: cols,
+                rowid_column: rowid_alias(sql),
+            })
+        }
+        Ok(out)
+    }
+
+    pub fn table(self, name: string) -> Result<Table, string> {
+        for t in self.tables()? {
+            if t.name == name {
+                return Ok(t)
+            }
+        }
+        Err("no table named '${name}'")
+    }
+
+    /// Rows of a table by name, with an `INTEGER PRIMARY KEY` column filled in from the rowid.
+    pub fn rows(self, name: string) -> Result<Vec<Row>, string> {
+        let t = self.table(name)?
+        let raw = self.scan(t.root_page)?
+        if t.rowid_column < 0 {
+            return Ok(raw)
+        }
+        let mut out: Vec<Row> = Vec::new()
+        for r in raw {
+            let mut vals: Vec<Value> = Vec::new()
+            let mut i = 0
+            while i < r.values.len() as int {
+                if i == t.rowid_column {
+                    vals.push(Value::Int(r.rowid))
+                } else {
+                    vals.push(r.values[i as usize])
+                }
+                i = i + 1
+            }
+            out.push(Row { rowid: r.rowid, values: vals })
+        }
+        Ok(out)
+    }
+}
+
+fn unquote(name: string) -> string {
+    let mut n = strings.trim(name)
+    if strings.len(n) >= 2 {
+        let first = strings.substring(n, 0, 1)
+        let last = strings.substring(n, strings.len(n) - 1, strings.len(n))
+        if (first == "\"" && last == "\"") || (first == "`" && last == "`") || (first == "[" && last == "]") || (first == "'" && last == "'") {
+            n = strings.substring(n, 1, strings.len(n) - 1)
+        }
+    }
+    n
+}
+
+/// The column definitions of `CREATE TABLE name (a, b, ...)`, split at top-level commas.
+fn definitions(sql: string) -> Vec<string> {
+    let mut defs: Vec<string> = Vec::new()
+    let mut depth = 0
+    let mut current = ""
+    let mut quote = ""
+    let mut started = false
+    for ch in strings.chars(sql) {
+        let c = "${ch}"
+        if strings.len(quote) > 0 {
+            if started {
+                current = current + c
+            }
+            if c == quote {
+                quote = ""
+            }
+            continue
+        }
+        if c == "\"" || c == "'" || c == "`" {
+            quote = c
+            if started {
+                current = current + c
+            }
+            continue
+        }
+        if c == "(" {
+            depth = depth + 1
+            if depth == 1 {
+                started = true
+                continue
+            }
+        }
+        if c == ")" {
+            depth = depth - 1
+            if depth == 0 && started {
+                defs.push(strings.trim(current))
+                return defs
+            }
+        }
+        if started {
+            if c == "," && depth == 1 {
+                defs.push(strings.trim(current))
+                current = ""
+            } else {
+                current = current + c
+            }
+        }
+    }
+    defs
+}
+
+fn is_constraint(def: string) -> bool {
+    let w = strings.to_upper(strings.trim(def))
+    strings.starts_with(w, "PRIMARY ") || strings.starts_with(w, "UNIQUE") || strings.starts_with(w, "FOREIGN ") || strings.starts_with(w, "CHECK") || strings.starts_with(w, "CONSTRAINT ")
+}
+
+fn first_word(def: string) -> string {
+    let t = strings.trim(def)
+    if strings.starts_with(t, "\"") || strings.starts_with(t, "`") || strings.starts_with(t, "[") {
+        let close = if strings.starts_with(t, "[") { "]" } else { strings.substring(t, 0, 1) }
+        let rest = strings.substring(t, 1, strings.len(t))
+        let at = strings.split(rest, close)[0]
+        return at
+    }
+    let parts = strings.split_whitespace(t)
+    if parts.len() == 0 {
+        return ""
+    }
+    unquote(parts[0])
+}
+
+pub fn columns_of(sql: string) -> Vec<string> {
+    let mut cols: Vec<string> = Vec::new()
+    for d in definitions(sql) {
+        if !is_constraint(d) && strings.len(d) > 0 {
+            cols.push(first_word(d))
+        }
+    }
+    cols
+}
+
+/// Position of the `INTEGER PRIMARY KEY` column (SQLite stores it as NULL and uses the rowid), or -1.
+pub fn rowid_alias(sql: string) -> int {
+    let mut idx = 0
+    for d in definitions(sql) {
+        if is_constraint(d) {
+            continue
+        }
+        let up = strings.to_upper(d)
+        let words = strings.split_whitespace(up)
+        if words.len() >= 3 && words[1] == "INTEGER" && words[2] == "PRIMARY" && !strings.contains(up, "DESC") {
+            return idx
+        }
+        idx = idx + 1
+    }
+    -1
+}

@@ -1,0 +1,81 @@
+use std::env
+use std::fs
+use std::strings
+use crate::diff::unified
+
+/// The outcome of comparing output with a stored snapshot.
+pub struct Outcome {
+    pub ok: bool,
+    /// What happened: `matched`, `created`, `updated`, `changed`, `missing`.
+    pub status: string,
+    /// The unified diff when the output changed, or a hint when the snapshot is missing.
+    pub message: string,
+}
+
+/// True when `WJ_UPDATE_SNAPSHOTS` is set to a non-empty value other than `0`.
+pub fn updating() -> bool {
+    let v = env.var("WJ_UPDATE_SNAPSHOTS").unwrap_or("")
+    strings.len(v) > 0 && v != "0"
+}
+
+fn path_of(dir: string, name: string) -> string {
+    "${dir}/${name}.snap"
+}
+
+/// Make output comparable: `\r\n` becomes `\n`, trailing spaces and tabs go, and the text ends in exactly one newline.
+pub fn normalize(text: string) -> string {
+    let mut lines: Vec<string> = Vec::new()
+    for line in strings.split(strings.replace(text, "\r\n", "\n"), "\n") {
+        lines.push(strings.trim_end(line))
+    }
+    while lines.len() > 0 && strings.len(lines[lines.len() - 1]) == 0 {
+        lines.pop()
+    }
+    if lines.len() == 0 {
+        return ""
+    }
+    lines.join("\n") + "\n"
+}
+
+/// Replace every `needle` with `label` so volatile values (ids, timestamps, temp paths) do not break snapshots.
+pub fn redact(text: string, needle: string, label: string) -> string {
+    if strings.len(needle) == 0 {
+        return text
+    }
+    strings.replace(text, needle, label)
+}
+
+/// Compare `actual` with `dir/name.snap`. With `update` set the file is written (created or replaced).
+pub fn check(dir: string, name: string, actual: string, update: bool) -> Outcome {
+    let path = path_of(dir, name)
+    let got = normalize(actual)
+    let had = fs.exists(path)
+    if !had {
+        if update {
+            let _ = fs.create_dir_all(dir)
+            return write_snapshot(path, got, "created")
+        }
+        return Outcome { ok: false, status: "missing", message: "no snapshot at ${path}; run with WJ_UPDATE_SNAPSHOTS=1 to create it" }
+    }
+    let stored = normalize(fs.read_to_string(path).unwrap_or(""))
+    if stored == got {
+        return Outcome { ok: true, status: "matched", message: "" }
+    }
+    if update {
+        return write_snapshot(path, got, "updated")
+    }
+    Outcome { ok: false, status: "changed", message: unified(stored, got, "${name}.snap (stored)", "${name}.snap (actual)", 3) }
+}
+
+fn write_snapshot(path: string, text: string, status: string) -> Outcome {
+    match fs.write(path, text) {
+        Ok(_) => Outcome { ok: true, status: status, message: "" },
+        Err(e) => Outcome { ok: false, status: "error", message: "cannot write ${path}: ${e}" },
+    }
+}
+
+/// The usual test call: snapshots in `tests/snapshots`, update mode from the environment. Fails the test with the diff.
+pub fn assert_snapshot(name: string, actual: string) {
+    let r = check("tests/snapshots", name, actual, updating())
+    assert(r.ok, "snapshot '${name}' ${r.status}:\n${r.message}")
+}

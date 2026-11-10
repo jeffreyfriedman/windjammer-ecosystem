@@ -1,0 +1,195 @@
+/// One SQLite value (https://www.sqlite.org/datatype3.html).
+pub enum Value {
+    Null,
+    Int(int),
+    Real(float),
+    Text(string),
+    Blob(Vec<u8>),
+}
+
+pub struct Varint {
+    pub value: int,
+    pub len: int,
+}
+
+pub fn u16_at(d: Vec<u8>, at: int) -> int {
+    d[at as usize] as int * 256 + d[(at + 1) as usize] as int
+}
+
+pub fn u32_at(d: Vec<u8>, at: int) -> int {
+    u16_at(d, at) * 65536 + u16_at(d, at + 2)
+}
+
+/// SQLite's varint: 1 to 9 bytes, big-endian groups of 7 bits, the ninth byte contributes all 8 bits.
+pub fn varint(d: Vec<u8>, at: int) -> Varint {
+    let mut acc: u64 = 0
+    let mut i = 0
+    while i < 8 {
+        let b = d[(at + i) as usize] as u64
+        acc = (acc << 7) | (b & 127)
+        if b < 128 {
+            return Varint { value: acc as i64, len: i + 1 }
+        }
+        i = i + 1
+    }
+    let last = d[(at + 8) as usize] as u64
+    acc = (acc << 8) | last
+    Varint { value: acc as i64, len: 9 }
+}
+
+/// Big-endian two's complement integer of `n` bytes starting at `at`.
+fn signed_be(d: Vec<u8>, at: int, n: int) -> int {
+    let mut acc: u64 = 0
+    let mut i = 0
+    while i < n {
+        acc = (acc << 8) | (d[(at + i) as usize] as u64)
+        i = i + 1
+    }
+    if n == 8 {
+        return acc as i64
+    }
+    let full = pow256(n)
+    let v = acc as i64
+    if v >= full / 2 {
+        return v - full
+    }
+    v
+}
+
+fn pow256(n: int) -> int {
+    let mut r = 1
+    let mut i = 0
+    while i < n {
+        r = r * 256
+        i = i + 1
+    }
+    r
+}
+
+fn pow2(k: int) -> float {
+    let mut r = 1.0
+    let mut i = 0
+    if k >= 0 {
+        while i < k {
+            r = r * 2.0
+            i = i + 1
+        }
+    } else {
+        while i < 0 - k {
+            r = r / 2.0
+            i = i + 1
+        }
+    }
+    r
+}
+
+/// IEEE 754 binary64 from 8 big-endian bytes.
+pub fn real_be(d: Vec<u8>, at: int) -> float {
+    let mut bits: u64 = 0
+    let mut i = 0
+    while i < 8 {
+        bits = (bits << 8) | (d[(at + i) as usize] as u64)
+        i = i + 1
+    }
+    let sign = if (bits >> 63) == 1 { -1.0 } else { 1.0 }
+    let exp = ((bits >> 52) & 2047) as i64
+    let mant = (bits & 4503599627370495) as i64
+    if exp == 2047 {
+        if mant == 0 {
+            return sign * (1.0 / 0.0)
+        }
+        return 0.0 / 0.0
+    }
+    if exp == 0 {
+        return sign * (mant as float) * pow2(-1074)
+    }
+    sign * ((mant + 4503599627370496) as float) * pow2(exp - 1075)
+}
+
+fn slice(d: Vec<u8>, from: int, to: int) -> Vec<u8> {
+    let mut out: Vec<u8> = Vec::new()
+    let mut i = from
+    while i < to {
+        out.push(d[i as usize])
+        i = i + 1
+    }
+    out
+}
+
+fn text_of(bytes: Vec<u8>) -> Result<string, string> {
+    // UTF-8 bytes to text through base64, which validates the encoding.
+    match std::encoding::base64_decode_string(std::encoding::base64_encode(bytes)) {
+        Ok(t) => Ok(t),
+        Err(_) => Err("text value is not valid UTF-8"),
+    }
+}
+
+/// Decode a record (https://www.sqlite.org/fileformat2.html#record_format) into its values.
+pub fn decode_record(d: Vec<u8>) -> Result<Vec<Value>, string> {
+    if d.len() == 0 {
+        return Ok(Vec::new())
+    }
+    let header = varint(d, 0)
+    let header_end = header.value
+    if header_end < 1 || header_end > d.len() as int {
+        return Err("record header runs past the payload")
+    }
+    let mut types: Vec<int> = Vec::new()
+    let mut at = header.len
+    while at < header_end {
+        let t = varint(d, at)
+        types.push(t.value)
+        at = at + t.len
+    }
+    let mut out: Vec<Value> = Vec::new()
+    let mut pos = header_end
+    for t in types {
+        if t == 0 {
+            out.push(Value::Null)
+        } else if t >= 1 && t <= 6 {
+            let sizes = [0, 1, 2, 3, 4, 6, 8]
+            let n = sizes[t as usize]
+            if pos + n > d.len() as int {
+                return Err("integer runs past the payload")
+            }
+            out.push(Value::Int(signed_be(d, pos, n)))
+            pos = pos + n
+        } else if t == 7 {
+            if pos + 8 > d.len() as int {
+                return Err("real runs past the payload")
+            }
+            out.push(Value::Real(real_be(d, pos)))
+            pos = pos + 8
+        } else if t == 8 {
+            out.push(Value::Int(0))
+        } else if t == 9 {
+            out.push(Value::Int(1))
+        } else if t >= 12 {
+            let n = if t % 2 == 0 { (t - 12) / 2 } else { (t - 13) / 2 }
+            if pos + n > d.len() as int {
+                return Err("value runs past the payload")
+            }
+            let body = slice(d, pos, pos + n)
+            if t % 2 == 0 {
+                out.push(Value::Blob(body))
+            } else {
+                out.push(Value::Text(text_of(body)?))
+            }
+            pos = pos + n
+        } else {
+            return Err("reserved serial type ${t}")
+        }
+    }
+    Ok(out)
+}
+
+/// A value as text: NULL, the number, the text, or `x'hex'` for a blob.
+pub fn show(v: Value) -> string {
+    match v {
+        Value::Null => "NULL",
+        Value::Int(n) => "${n}",
+        Value::Real(f) => "${f}",
+        Value::Text(s) => s,
+        Value::Blob(b) => "x'" + std::encoding::hex_encode(b) + "'",
+    }
+}

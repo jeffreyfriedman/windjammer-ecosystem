@@ -59,3 +59,33 @@ pub fn eta_seconds(done: int, total: int, elapsed_ms: int) -> Option<int> {
     }
     Some((elapsed_ms * (total - done)) / (done * 1000))
 }
+
+/// Items per second with one decimal, from a count and elapsed milliseconds (`0.0/s` before any time has passed).
+pub fn rate_text(done: int, elapsed_ms: int) -> string {
+    if elapsed_ms <= 0 {
+        return "0.0/s"
+    }
+    let per_second = (done as float * 1000.0) / elapsed_ms as float
+    "${per_second:.1}/s"
+}
+
+/// `1m 5s`-style remaining time, or `--` when unknown.
+pub fn eta_text(done: int, total: int, elapsed_ms: int) -> string {
+    match eta_seconds(done, total, elapsed_ms) {
+        Some(s) => {
+            if s >= 3600 {
+                "${s / 3600}h ${(s % 3600) / 60}m"
+            } else if s >= 60 {
+                "${s / 60}m ${s % 60}s"
+            } else {
+                "${s}s"
+            }
+        },
+        None => "--",
+    }
+}
+
+/// One status line: `label [#####-----]  50% 5/10 2.5/s ETA 2s`.
+pub fn status_line(label: string, done: int, total: int, elapsed_ms: int, bar_width: int) -> string {
+    "${label} ${progress_bar(done, total, bar_width)} ${done}/${total} ${rate_text(done, elapsed_ms)} ETA ${eta_text(done, total, elapsed_ms)}"
+}

@@ -130,3 +130,89 @@ pub fn select(answers: Answers, question: string, options: Vec<string>, attempts
     }
     -1
 }
+
+/// Ask for a whole number in `lo..=hi`; empty input takes `default`. -1 stands for "no valid answer" only if `lo` is not
+/// negative, so check `remaining` first when -1 is a legal answer.
+pub fn ask_int(answers: Answers, question: string, lo: int, hi: int, default: int, attempts: int) -> int {
+    let mut tries = 0
+    while tries < attempts {
+        println("${question} [${default}]")
+        if answers.remaining() == 0 {
+            return default
+        }
+        let a = answers.take()
+        if strings.len(a) == 0 {
+            return default
+        }
+        match a.parse::<int>() {
+            Ok(n) => {
+                if n >= lo && n <= hi {
+                    return n
+                }
+                println("Enter a number from ${lo} to ${hi}.")
+            },
+            Err(_) => println("Enter a number from ${lo} to ${hi}."),
+        }
+        tries = tries + 1
+    }
+    default
+}
+
+/// Indexes (0-based, ascending, no repeats) from answers like `1,3` or `2 4`; `None` on any invalid or repeated item.
+pub fn parse_multi(answer: string, options: Vec<string>) -> Option<Vec<int>> {
+    let cleaned = strings.replace(strings.trim(answer), ",", " ")
+    let mut picked: Vec<int> = Vec::new()
+    for word in strings.split_whitespace(cleaned) {
+        match parse_choice(word, options) {
+            Some(i) => {
+                if picked.contains(&i) {
+                    return None
+                }
+                picked.push(i)
+            },
+            None => return None,
+        }
+    }
+    picked.sort()
+    Some(picked)
+}
+
+/// Pick any number of `options`; an empty answer selects none. `None` when attempts run out.
+pub fn multi_select(answers: Answers, question: string, options: Vec<string>, attempts: int) -> Option<Vec<int>> {
+    let mut tries = 0
+    while tries < attempts {
+        println(question)
+        let mut i = 0
+        while i < options.len() {
+            println("  ${i + 1}) ${options[i]}")
+            i = i + 1
+        }
+        if answers.remaining() == 0 {
+            return None
+        }
+        let a = answers.take()
+        if strings.len(a) == 0 {
+            return Some(Vec::new())
+        }
+        match parse_multi(a, options) {
+            Some(v) => return Some(v),
+            None => println("Enter numbers or names separated by commas."),
+        }
+        tries = tries + 1
+    }
+    None
+}
+
+/// A free-text answer that must pass `valid`; the default is not checked. `None` when attempts run out.
+pub fn ask_valid(answers: Answers, question: string, default: string, valid: fn(string) -> bool, attempts: int) -> Option<string> {
+    let mut tries = 0
+    while tries < attempts {
+        let a = ask(answers, question, default)
+        if a == default || valid(a) {
+            return Some(a)
+        }
+        println("That answer is not valid.")
+        tries = tries + 1
+    }
+    None
+}

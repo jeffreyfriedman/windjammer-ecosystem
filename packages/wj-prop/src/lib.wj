@@ -1,0 +1,5 @@
+//! Property-based testing: a seeded PCG32 random source, generators for integers, pairs, vectors and strings,
+//! and a runner that shrinks a failing input to a small counterexample. Every failure report carries the seed and
+//! the case number, so `check_*` with the same configuration replays it exactly.
+pub mod rng
+pub mod check

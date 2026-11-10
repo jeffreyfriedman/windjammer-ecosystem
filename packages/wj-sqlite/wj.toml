@@ -1,0 +1,20 @@
+[package]
+name = "wj-sqlite"
+version = "0.1.0"
+edition = "2025"
+
+[lib]
+
+[dependencies]
+
+[dev-dependencies]
+
+[profile.release]
+opt-level = 3
+lto = true
+
+# The reader works on bytes. `read_file` needs fs.read for the database path; the tests build databases in a scratch
+# directory under /tmp with std::db and read them back.
+[capabilities]
+fs.read = ["./**", "/tmp/**"]
+fs.write = ["/tmp/**"]

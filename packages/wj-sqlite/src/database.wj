@@ -16,7 +16,7 @@ pub struct Database {
 }
 
 /// One row: its rowid and the column values (an `INTEGER PRIMARY KEY` column holds the rowid, as SQLite reports it).
-pub struct Row {
+pub struct Record {
     pub rowid: int,
     pub values: Vec<Value>,
 }
@@ -139,7 +139,7 @@ impl Database {
     }
 
     /// Append the rows under `page` (depth first, so rowid order) to `rows`.
-    fn walk(self, page: int, depth: int, rows: Vec<Row>) -> Result<Vec<Row>, string> {
+    fn walk(self, page: int, depth: int, rows: Vec<Record>) -> Result<Vec<Record>, string> {
         if depth > 40 {
             return Err("b-tree is too deep (corrupt file?)")
         }
@@ -155,7 +155,7 @@ impl Database {
                 let size = varint(self.data, cell)
                 let rid = varint(self.data, cell + size.len)
                 let bytes = self.payload(cell, size.value, size.len, rid.len)?
-                out.push(Row { rowid: rid.value, values: decode_record(bytes)? })
+                out.push(Record { rowid: rid.value, values: decode_record(bytes)? })
                 c = c + 1
             }
             return Ok(out)
@@ -173,7 +173,7 @@ impl Database {
     }
 
     /// Every row of the table b-tree rooted at `root`.
-    pub fn scan(self, root: int) -> Result<Vec<Row>, string> {
+    pub fn scan(self, root: int) -> Result<Vec<Record>, string> {
         self.walk(root, 0, Vec::new())
     }
 
@@ -214,13 +214,13 @@ impl Database {
     }
 
     /// Rows of a table by name, with an `INTEGER PRIMARY KEY` column filled in from the rowid.
-    pub fn rows(self, name: string) -> Result<Vec<Row>, string> {
+    pub fn rows(self, name: string) -> Result<Vec<Record>, string> {
         let t = self.table(name)?
         let raw = self.scan(t.root_page)?
         if t.rowid_column < 0 {
             return Ok(raw)
         }
-        let mut out: Vec<Row> = Vec::new()
+        let mut out: Vec<Record> = Vec::new()
         for r in raw {
             let mut vals: Vec<Value> = Vec::new()
             let mut i = 0
@@ -232,7 +232,7 @@ impl Database {
                 }
                 i = i + 1
             }
-            out.push(Row { rowid: r.rowid, values: vals })
+            out.push(Record { rowid: r.rowid, values: vals })
         }
         Ok(out)
     }

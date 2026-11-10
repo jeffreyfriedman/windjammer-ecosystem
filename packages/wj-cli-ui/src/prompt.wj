@@ -205,16 +205,65 @@ pub fn multi_select(answers: Answers, question: string, options: Vec<string>, at
     None
 }
 
-/// A free-text answer that must pass `valid`; the default is not checked. `None` when attempts run out.
-pub fn ask_valid(answers: Answers, question: string, default: string, valid: fn(string) -> bool, attempts: int) -> Option<string> {
-    let mut tries = 0
-    while tries < attempts {
-        let a = ask(answers, question, default)
-        if a == default || valid(a) {
-            return Some(a)
-        }
-        println("That answer is not valid.")
-        tries = tries + 1
+/// What a free-text answer must satisfy.
+pub enum Rule {
+    NonEmpty,
+    /// No whitespace anywhere (slugs, identifiers).
+    NoSpaces,
+    /// Only the digits 0-9.
+    Digits,
+    /// At most this many characters.
+    MaxLen(int),
+    /// One of these words, ignoring case.
+    OneOf(Vec<string>),
+}
+
+/// True when `answer` satisfies `rule`.
+pub fn check_rule(rule: Rule, answer: string) -> bool {
+    match rule {
+        Rule::NonEmpty => strings.len(strings.trim(answer)) > 0,
+        Rule::NoSpaces => strings.len(answer) > 0 && strings.len(strings.replace(answer, " ", "")) == strings.len(answer),
+        Rule::Digits => {
+            if strings.len(answer) == 0 {
+                return false
+            }
+            for ch in strings.chars(answer) {
+                if ch < '0' || ch > '9' {
+                    return false
+                }
+            }
+            true
+        },
+        Rule::MaxLen(n) => (strings.len(answer) as int) <= n,
+        Rule::OneOf(words) => {
+            let lower = strings.to_lower(answer)
+            for w in words {
+                if strings.to_lower(w) == lower {
+                    return true
+                }
+            }
+            false
+        },
     }
-    None
+}
+
+impl Answers {
+    /// A free-text answer that must satisfy `rule`; an empty answer takes the default (which is not checked).
+    /// `None` when attempts run out.
+    pub fn ask_rule(self, question: string, default: string, rule: Rule, attempts: int) -> Option<string> {
+        let mut tries = 0
+        while tries < attempts {
+            println(if strings.len(default) > 0 { "${question} [${default}]" } else { question })
+            let a = self.take()
+            if strings.len(a) == 0 && strings.len(default) > 0 {
+                return Some(default)
+            }
+            if check_rule(rule, a) {
+                return Some(a)
+            }
+            println("That answer is not valid.")
+            tries = tries + 1
+        }
+        None
+    }
 }

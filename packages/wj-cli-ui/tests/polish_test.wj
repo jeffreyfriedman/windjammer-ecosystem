@@ -24,9 +24,10 @@ use crate::layout::rule
 use crate::progress::eta_text
 use crate::progress::rate_text
 use crate::progress::status_line
+use crate::prompt::Rule
 use crate::prompt::answers_from
+use crate::prompt::check_rule
 use crate::prompt::ask_int
-use crate::prompt::ask_valid
 use crate::prompt::multi_select
 use crate::prompt::parse_multi
 use crate::style::always
@@ -45,9 +46,6 @@ fn picks(r: Option<Vec<int>>) -> string {
     }
 }
 
-fn is_slug(s: string) -> bool {
-    s.len() > 0 && !s.contains(" ")
-}
 
 @test
 fn test_control_sequences() {
@@ -113,11 +111,28 @@ fn test_numeric_and_validated_prompts() {
     let d = answers_from(Vec::new())
     assert_eq(ask_int(d, "Port", 1, 65535, 8080, 3), 8080)
     let mut e = answers_from(["has space", "good-slug"])
-    assert_eq(ask_valid(e, "Slug", "fallback", is_slug, 3).unwrap_or("none"), "good-slug")
+    assert_eq(e.ask_rule("Slug", "fallback", Rule::NoSpaces, 3).unwrap_or("none"), "good-slug")
     let mut f = answers_from(["a b", "c d"])
-    assert_eq(ask_valid(f, "Slug", "fallback", is_slug, 2).unwrap_or("none"), "none")
+    assert_eq(f.ask_rule("Slug", "fallback", Rule::NoSpaces, 2).unwrap_or("none"), "none")
     let mut g = answers_from([""])
-    assert_eq(ask_valid(g, "Slug", "fallback", is_slug, 2).unwrap_or("none"), "fallback")
+    assert_eq(g.ask_rule("Slug", "fallback", Rule::NoSpaces, 2).unwrap_or("none"), "fallback")
+}
+
+@test
+fn test_rules() {
+    assert(check_rule(Rule::NonEmpty, "x"), "non-empty")
+    assert(!check_rule(Rule::NonEmpty, "   "), "blank")
+    assert(check_rule(Rule::NoSpaces, "a-b"), "slug")
+    assert(!check_rule(Rule::NoSpaces, "a b"), "space")
+    assert(check_rule(Rule::Digits, "0123"), "digits")
+    assert(!check_rule(Rule::Digits, "12a"), "letters")
+    assert(!check_rule(Rule::Digits, ""), "empty")
+    assert(check_rule(Rule::MaxLen(3), "abc"), "at the limit")
+    assert(!check_rule(Rule::MaxLen(3), "abcd"), "over the limit")
+    let words: Vec<string> = ["Yes", "no"]
+    assert(check_rule(Rule::OneOf(words), "YES"), "case-insensitive")
+    let words2: Vec<string> = ["Yes", "no"]
+    assert(!check_rule(Rule::OneOf(words2), "maybe"), "not listed")
 }
 
 @test

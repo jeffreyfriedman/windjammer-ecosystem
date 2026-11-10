@@ -1,0 +1,8 @@
+use crate::summarize
+
+fn test_summarize() {
+    match summarize(3) {
+        Ok(s) => assert_eq(s.count, 3),
+        Err(e) => assert(false, e),
+    }
+}

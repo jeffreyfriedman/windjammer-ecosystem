@@ -15,7 +15,7 @@ fn rle(parts: Vec<string>) -> Vec<u8> {
     for p in parts {
         if p.starts_with("Z") {
             let n = p.substring(1, p.len()).parse::<int>().unwrap_or(0)
-            let mut i = 0
+            let mut i: int = 0
             while i < n {
                 out.push(0)
                 i = i + 1

@@ -14,6 +14,7 @@
 | wj-archive | Tar and zip read/write, DEFLATE, CRC-32 | std |
 | wj-base64 | Base64 and Basic-auth header helpers | std |
 | wj-cache | LRU + TTL cache, Redis protocol codec | std |
+| wj-prop | Property-based testing: PCG32, generators, shrinking | std |
 | wj-redis | Redis client over std::net TcpStream + in-process test server | std, wj-cache |
 | wj-cli-args | argv flags and positionals | std |
 | wj-cli-ui | Colour, text width, progress, prompts | std |
@@ -53,6 +54,8 @@
 | wj-semver | Version parse and compare | std |
 | wj-sha | SHA-256 hex | std |
 | wj-smtp | MIME messages and SMTP planning | std |
+| wj-snapshot | Snapshot tests with unified diffs | std |
+| wj-sqlite | Read-only SQLite file reader (b-trees, records) | std |
 | wj-stats | Mean, median, standard deviation | std |
 | wj-sync | Channels, shared state, pools | std |
 | wj-table | Markdown and plain tables, fixed-point numbers | std |

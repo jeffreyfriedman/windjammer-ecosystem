@@ -2,7 +2,7 @@
 
 Strong stdlib is the adoption lever. Ecosystem packages should **dogfood gaps** and **stay thin wrappers** once `std::*` is wired — not permanently duplicate platform primitives.
 
-Updated 2026-11-05: tip-health table re-measured; `std::crypto` gains HMAC-SHA256 and constant-time compare (compiler branch `wt/std-hmac`).
+Updated 2026-11-10: tip-health table re-measured; `std::crypto` gains HMAC-SHA256 and constant-time compare (compiler branch `wt/std-hmac`).
 
 ## Principle
 
@@ -53,27 +53,28 @@ Updated 2026-11-05: tip-health table re-measured; `std::crypto` gains HMAC-SHA25
 | `wj-url` | Query_* sugar over tip-green `std::url` |
 | Apps (`wj-todo-cli`, `wj-proxy`, `wj-pipeline`, …) | Never std |
 
-## Tip health (2026-11-05, `wj` 0.50.0 at 6ed79d644, the pinned head)
+## Tip health (2026-11-10, `wj` 0.50.0 at 88d4cea, the pinned head)
 
 Every package and app under `packages/*` and `apps/*`, tests run interpreted (`wj test --interpret`) and
 compiled (`wj test`) by `scripts/health_sweep.wj`; the table is rendered by `scripts/health_table.wj`. Counts
-are tests passed. 70 targets (53 packages, 17 apps): all 70 are green in both modes. The open compiler findings
-are in [findings](findings/README.md); none of them leaves a red cell.
+are tests passed. 74 targets (57 packages, 17 apps): all 74 are green in both modes, and the compiler's own
+`scripts/ecosystem_width_gate.wj` passes 9 of 9 compiled. The open compiler findings are in [findings](findings/README.md);
+none of them leaves a red cell.
 
 | Package | Interpreted | Compiled | Notes |
 |---|---|---|---|
-| `packages/wj-archive` | pass (17) | pass (17) | tar and zip, checked against Python `tarfile`, `zipfile`, `zlib` |
+| `packages/wj-archive` | pass (17) | pass (17) |  |
 | `packages/wj-base64` | pass (14) | pass (14) |  |
-| `packages/wj-cache` | pass (14) | pass (14) | New: LRU + TTL, Redis protocol codec |
+| `packages/wj-cache` | pass (14) | pass (14) |  |
 | `packages/wj-cli-args` | pass (24) | pass (24) |  |
-| `packages/wj-cli-ui` | pass (12) | pass (12) | New: colour, widths, progress, prompts |
+| `packages/wj-cli-ui` | pass (18) | pass (18) | ansi, layout, status line and prompt polish added |
 | `packages/wj-compress` | pass (21) | pass (21) |  |
 | `packages/wj-config` | pass (19) | pass (19) |  |
 | `packages/wj-cookie` | pass (20) | pass (20) |  |
 | `packages/wj-cors` | pass (17) | pass (17) |  |
 | `packages/wj-cron` | pass (34) | pass (34) |  |
 | `packages/wj-csv` | pass (16) | pass (16) |  |
-| `packages/wj-decimal` | pass (13) | pass (13) | Fixed-point money, checked against Python `decimal` |
+| `packages/wj-decimal` | pass (13) | pass (13) |  |
 | `packages/wj-dotenv` | pass (18) | pass (18) |  |
 | `packages/wj-duration` | pass (25) | pass (25) |  |
 | `packages/wj-event` | pass (22) | pass (22) |  |
@@ -88,22 +89,26 @@ are in [findings](findings/README.md); none of them leaves a red cell.
 | `packages/wj-json-util` | pass (23) | pass (23) |  |
 | `packages/wj-jwt` | pass (12) | pass (12) |  |
 | `packages/wj-log` | pass (17) | pass (17) |  |
-| `packages/wj-markdown` | pass (7) | pass (7) | CommonMark subset, checked against markdown-it-py; no clone workarounds |
-| `packages/wj-metrics` | pass (11) | pass (11) | Prometheus text format, typed `@json` snapshot |
+| `packages/wj-markdown` | pass (7) | pass (7) |  |
+| `packages/wj-metrics` | pass (11) | pass (11) |  |
 | `packages/wj-migrate` | pass (25) | pass (25) |  |
 | `packages/wj-mime` | pass (24) | pass (24) |  |
 | `packages/wj-multipart` | pass (21) | pass (21) |  |
-| `packages/wj-oauth` | pass (12) | pass (12) | New: PKCE, OIDC requests, ID token validation |
+| `packages/wj-oauth` | pass (12) | pass (12) |  |
 | `packages/wj-path` | pass (20) | pass (20) |  |
 | `packages/wj-proc` | pass (8) | pass (8) |  |
+| `packages/wj-prop` | pass (7) | pass (7) | PCG32 property testing with shrinking |
 | `packages/wj-querystring` | pass (29) | pass (29) |  |
 | `packages/wj-rate-limit` | pass (17) | pass (17) |  |
+| `packages/wj-redis` | pass (7) | pass (7) | Redis client and in-process test server over `std::net` TCP |
 | `packages/wj-regex` | pass (16) | pass (16) |  |
 | `packages/wj-retry` | pass (27) | pass (27) |  |
 | `packages/wj-router` | pass (13) | pass (13) |  |
 | `packages/wj-semver` | pass (17) | pass (17) |  |
 | `packages/wj-sha` | pass (11) | pass (11) |  |
-| `packages/wj-smtp` | pass (17) | pass (17) | New: MIME messages, SMTP planning |
+| `packages/wj-smtp` | pass (17) | pass (17) |  |
+| `packages/wj-snapshot` | pass (6) | pass (6) | Snapshot tests, difflib-checked unified diff |
+| `packages/wj-sqlite` | pass (6) | pass (6) | Read-only SQLite file reader; checked against Python sqlite3 and SQLite itself |
 | `packages/wj-stats` | pass (5) | pass (5) |  |
 | `packages/wj-sync` | pass (50) | pass (50) |  |
 | `packages/wj-table` | pass (4) | pass (4) |  |
@@ -113,15 +118,15 @@ are in [findings](findings/README.md); none of them leaves a red cell.
 | `packages/wj-url` | pass (22) | pass (22) |  |
 | `packages/wj-uuid` | pass (24) | pass (24) |  |
 | `packages/wj-validate` | pass (36) | pass (36) |  |
-| `packages/wj-ws` | pass (16) | pass (16) | RFC 6455 frames and handshake, checked against `websockets` |
+| `packages/wj-ws` | pass (16) | pass (16) |  |
 | `packages/wj-yaml` | pass (26) | pass (26) |  |
 | `apps/wj-auth-api` | pass (48) | pass (48) |  |
 | `apps/wj-chat` | pass (20) | pass (20) |  |
-| `apps/wj-fetch` | pass (37) | pass (37) | `--timeout` applied through `http.request` |
-| `apps/wj-find` | pass (12) | pass (12) | Passes compiled again (dependency fix) |
+| `apps/wj-fetch` | pass (37) | pass (37) |  |
+| `apps/wj-find` | pass (12) | pass (12) |  |
 | `apps/wj-first-hour` | pass (4) | pass (4) |  |
 | `apps/wj-form-parse` | pass (12) | pass (12) |  |
-| `apps/wj-grep` | pass (38) | pass (38) | Passes compiled again (dependency fix) |
+| `apps/wj-grep` | pass (38) | pass (38) |  |
 | `apps/wj-hello` | pass (8) | pass (8) |  |
 | `apps/wj-migrate-cli` | pass (27) | pass (27) |  |
 | `apps/wj-notes-api` | pass (62) | pass (62) |  |

@@ -9,6 +9,7 @@ use crate::format::real_be
 use crate::format::show
 use crate::format::varint
 use std::encoding
+use std::strings
 
 fn rle(parts: Vec<string>) -> Vec<u8> {
     let mut out: Vec<u8> = Vec::new()
@@ -182,7 +183,7 @@ fn mismatches(table: string, expected: Vec<string>) -> string {
     let mut bad = ""
     let mut i = 0
     while i < expected.len() {
-        let specs = expected[i].split("\u{1f}").collect()
+        let specs = strings.split(expected[i], "\u{1f}")
         if !row_matches(rows[i].values, specs) {
             bad = bad + "row ${i + 1} differs; "
         }

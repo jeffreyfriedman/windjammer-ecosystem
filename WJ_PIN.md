@@ -9,8 +9,8 @@ WJ_COMMIT=88d4cea796fd846e0318bd2ac3f740c28eecdf66
 ```
 
 Status: VERIFIED for the ecosystem loop. Sweep at this commit (interpreted `wj test --interpret` and compiled `wj test`, per
-package and app, 2026-11-05): 70 of 70 targets are green in both modes (`docs/STDLIB_GRADUATION.md`). The commit must exist on
-`WJ_REPO` before CI can fetch it.
+package and app, 2026-11-10): 74 of 74 targets are green in both modes (`docs/STDLIB_GRADUATION.md`), and the compiler's
+`scripts/ecosystem_width_gate.wj` passes 9 of 9. The commit must exist on `WJ_REPO` before CI can fetch it.
 
 ## Pin policy
 

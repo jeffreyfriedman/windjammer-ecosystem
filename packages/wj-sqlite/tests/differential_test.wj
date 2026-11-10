@@ -1,5 +1,6 @@
 // SQLite itself is the oracle: std::db writes a database (page size 512, 400 rows, so the table b-tree has interior pages),
 // the connection closes, and the reader must return every cell the way SQLite's own query does.
+use crate::database::open
 use crate::database::read_file
 use crate::verify::verify_file
 use crate::format::Value
@@ -89,7 +90,7 @@ fn test_reader_agrees_with_sqlite_on_400_rows() {
 
 @test
 fn test_verify_file_agrees_with_sqlite_row_counts() {
-    let path = "/tmp/wj-sqlite-differential.db"
+    let path = "/tmp/wj-sqlite-verify.db"
     match build(path) {
         Ok(_) => {},
         Err(e) => return assert(false, "building the database: ${e}"),
@@ -107,13 +108,13 @@ fn test_verify_file_agrees_with_sqlite_row_counts() {
 
 @test
 fn test_bad_files_are_rejected() {
-    assert(crate::database::open(Vec::new()).is_err(), "empty")
+    assert(open(Vec::new()).is_err(), "empty")
     let mut junk: Vec<u8> = Vec::new()
     let mut i = 0
     while i < 200 {
         junk.push(7)
         i = i + 1
     }
-    assert(crate::database::open(junk).is_err(), "not SQLite")
+    assert(open(junk).is_err(), "not SQLite")
     assert(read_file("/tmp/definitely-missing.db").is_err(), "missing file")
 }

@@ -57,9 +57,13 @@ Replaces the old weekly log. Levels:
 | wj-metrics | Counters, gauges, histograms, Prometheus text | 16 | 11 / 11 |
 | wj-ws | WebSocket frames, messages, handshake | 22 | 16 / 16 |
 | wj-cache | LRU + TTL cache, Redis protocol codec | 22 | 14 / 14 |
-| wj-cli-ui | Colour, text width, progress, prompts | 51 | 12 / 12 |
+| wj-cli-ui | Colour, text width, progress, prompts | 51 | 18 / 18 |
 | wj-oauth | OAuth 2.0 / OIDC: PKCE, requests, ID token validation | 27 | 12 / 12 |
 | wj-smtp | MIME messages and SMTP planning | 21 | 17 / 17 |
+| wj-prop | Property-based testing, PCG32, shrinking | 15 | 7 / 7 |
+| wj-redis | Redis client over TCP, in-process test server | 11 | 7 / 7 |
+| wj-snapshot | Snapshot tests, unified diff | 7 | 6 / 6 |
+| wj-sqlite | Read-only SQLite file reader | 18 | 6 / 6 |
 | wj-gitignore | Subset (.gitignore matching) | 3 | 12 / 12 |
 | wj-json-doc | Order-preserving JSON documents | 24 | 12 / 12 |
 | wj-proc | Wrapper (process, git, CPU timing) | 12 | 8 / 8 |

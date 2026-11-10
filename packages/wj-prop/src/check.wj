@@ -97,7 +97,7 @@ fn shrink_int(cfg: Config, lo: int, start: int, prop: fn(int) -> bool) -> (int, 
 pub fn check_int(cfg: Config, lo: int, hi: int, prop: fn(int) -> bool) -> Report {
     let mut case = 0
     while case < cfg.cases {
-        let rng = rng_for(cfg, case)
+        let mut rng = rng_for(cfg, case)
         let n = rng.range(lo, hi)
         if !prop(n) {
             let (small, steps) = shrink_int(cfg, lo, n, prop)
@@ -112,7 +112,7 @@ pub fn check_int(cfg: Config, lo: int, hi: int, prop: fn(int) -> bool) -> Report
 pub fn check_int_pair(cfg: Config, lo: int, hi: int, prop: fn(int, int) -> bool) -> Report {
     let mut case = 0
     while case < cfg.cases {
-        let rng = rng_for(cfg, case)
+        let mut rng = rng_for(cfg, case)
         let a = rng.range(lo, hi)
         let b = rng.range(lo, hi)
         if !prop(a, b) {
@@ -216,7 +216,7 @@ fn shrink_ints(cfg: Config, lo: int, start: Vec<int>, prop: fn(Vec<int>) -> bool
 pub fn check_ints(cfg: Config, max_len: int, lo: int, hi: int, prop: fn(Vec<int>) -> bool) -> Report {
     let mut case = 0
     while case < cfg.cases {
-        let rng = rng_for(cfg, case)
+        let mut rng = rng_for(cfg, case)
         let len = rng.range(0, max_len)
         let mut v: Vec<int> = Vec::new()
         let mut i = 0
@@ -270,11 +270,11 @@ fn shrink_string(cfg: Config, start: string, simplest: string, prop: fn(string) 
 
 /// `prop` must hold for strings of up to `max_len` characters drawn from `alphabet` (a string of ASCII characters).
 pub fn check_string(cfg: Config, max_len: int, alphabet: string, prop: fn(string) -> bool) -> Report {
-    let letters = strings.len(alphabet)
+    let letters = strings.len(alphabet) as int
     let simplest = strings.substring(alphabet, 0, 1)
     let mut case = 0
     while case < cfg.cases {
-        let rng = rng_for(cfg, case)
+        let mut rng = rng_for(cfg, case)
         let len = rng.range(0, max_len)
         let mut s = ""
         let mut i = 0

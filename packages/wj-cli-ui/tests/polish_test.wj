@@ -112,11 +112,11 @@ fn test_numeric_and_validated_prompts() {
     assert_eq(ask_int(c, "Port", 1, 65535, 8080, 3), 8080)
     let d = answers_from(Vec::new())
     assert_eq(ask_int(d, "Port", 1, 65535, 8080, 3), 8080)
-    let e = answers_from(["has space", "good-slug"])
+    let mut e = answers_from(["has space", "good-slug"])
     assert_eq(ask_valid(e, "Slug", "fallback", is_slug, 3).unwrap_or("none"), "good-slug")
-    let f = answers_from(["a b", "c d"])
+    let mut f = answers_from(["a b", "c d"])
     assert_eq(ask_valid(f, "Slug", "fallback", is_slug, 2).unwrap_or("none"), "none")
-    let g = answers_from([""])
+    let mut g = answers_from([""])
     assert_eq(ask_valid(g, "Slug", "fallback", is_slug, 2).unwrap_or("none"), "fallback")
 }
 

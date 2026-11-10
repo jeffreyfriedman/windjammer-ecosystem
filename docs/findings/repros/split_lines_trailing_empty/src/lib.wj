@@ -1,6 +1,0 @@
-use std::strings
-
-/// Number of lines in a CRLF-terminated reply: 1 interpreted, 2 compiled (a trailing empty element).
-pub fn line_count(text: string) -> int {
-    strings.split_lines(text).len() as int
-}

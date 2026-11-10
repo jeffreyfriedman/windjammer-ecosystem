@@ -1,0 +1,33 @@
+pub struct Queue {
+    items: Vec<string>,
+}
+
+pub fn new_queue(items: Vec<string>) -> Queue {
+    Queue { items: items }
+}
+
+impl Queue {
+    pub fn take(self) -> string {
+        if self.items.len() == 0 {
+            return ""
+        }
+        self.items.remove(0)
+    }
+}
+
+/// A function with a function-typed parameter. Call sites that pass a closure here get their other arguments
+/// wrong: the literal bounds are typed i32 (E0308 expected i64) and a queue held in an immutable local is not borrowed `&mut`.
+pub fn within(lo: int, hi: int, accept: fn(int) -> bool) -> bool {
+    accept(lo) && accept(hi)
+}
+
+pub fn drain_while(q: Queue, limit: int, keep: fn(string) -> bool) -> int {
+    let mut n = 0
+    while n < limit {
+        if !keep(q.take()) {
+            return n
+        }
+        n = n + 1
+    }
+    n
+}

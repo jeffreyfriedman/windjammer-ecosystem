@@ -1,0 +1,30 @@
+use std::db
+use crate::database::read_file
+
+/// Row counts for one table: what the reader found and what SQLite reports.
+pub struct Check {
+    pub table: string,
+    pub reader_rows: int,
+    pub sqlite_rows: int,
+}
+
+impl Check {
+    pub fn agrees(self) -> bool {
+        self.reader_rows == self.sqlite_rows
+    }
+}
+
+/// Compare the reader's row count for every table with `select count(*)` on a `std::db` connection to the same file.
+/// This pulls in the SQLite binding (the `db` feature of the runtime); the reader itself does not need it.
+pub fn verify_file(path: string) -> Result<Vec<Check>, string> {
+    let image = read_file(path)?
+    let conn = db.connect(path)?
+    let mut out: Vec<Check> = Vec::new()
+    for t in image.tables()? {
+        let counted = conn.query("select count(*) as n from \"" + t.name + "\"", [])?
+        let sqlite_rows = if counted.len() > 0 { counted[0].get_int("n").unwrap_or(0 - 1) } else { 0 - 1 }
+        let found = image.rows(t.name)?
+        out.push(Check { table: t.name, reader_rows: found.len() as int, sqlite_rows: sqlite_rows })
+    }
+    Ok(out)
+}

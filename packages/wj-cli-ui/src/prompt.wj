@@ -165,8 +165,10 @@ pub fn parse_multi(answer: string, options: Vec<string>) -> Option<Vec<int>> {
     for word in strings.split_whitespace(cleaned) {
         match parse_choice(word, options) {
             Some(i) => {
-                if picked.contains(&i) {
-                    return None
+                for seen in picked {
+                    if seen == i {
+                        return None
+                    }
                 }
                 picked.push(i)
             },

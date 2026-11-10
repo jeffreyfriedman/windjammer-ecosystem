@@ -1,3 +1,5 @@
+use std::encoding
+
 /// One SQLite value (https://www.sqlite.org/datatype3.html).
 pub enum Value {
     Null,
@@ -118,7 +120,7 @@ fn slice(d: Vec<u8>, from: int, to: int) -> Vec<u8> {
 
 fn text_of(bytes: Vec<u8>) -> Result<string, string> {
     // UTF-8 bytes to text through base64, which validates the encoding.
-    match std::encoding::base64_decode_string(std::encoding::base64_encode(bytes)) {
+    match encoding.base64_decode_string(encoding.base64_encode(bytes)) {
         Ok(t) => Ok(t),
         Err(_) => Err("text value is not valid UTF-8"),
     }
@@ -190,6 +192,6 @@ pub fn show(v: Value) -> string {
         Value::Int(n) => "${n}",
         Value::Real(f) => "${f}",
         Value::Text(s) => s,
-        Value::Blob(b) => "x'" + std::encoding::hex_encode(b) + "'",
+        Value::Blob(b) => "x'" + encoding.hex_encode(b) + "'",
     }
 }

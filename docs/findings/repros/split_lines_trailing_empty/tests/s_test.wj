@@ -1,6 +1,0 @@
-use crate::line_count
-
-fn test_count() {
-    assert_eq(line_count("250 OK\r\n"), 1)
-    assert_eq(line_count("a\r\nb\r\n"), 2)
-}

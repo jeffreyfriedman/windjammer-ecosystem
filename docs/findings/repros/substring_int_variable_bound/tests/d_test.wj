@@ -1,5 +1,0 @@
-use crate::drop_indent
-
-fn test_drop() {
-    assert_eq(drop_indent("  ab", 2, 4), "ab")
-}

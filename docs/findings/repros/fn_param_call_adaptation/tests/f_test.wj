@@ -1,0 +1,12 @@
+use crate::drain_while
+use crate::new_queue
+use crate::within
+
+fn test_within() {
+    assert(within(1, 9, |n| n > 0), "bounds")
+}
+
+fn test_drain() {
+    let q = new_queue(["a", "b", "stop"])
+    assert_eq(drain_while(q, 10, |s| s != "stop"), 2)
+}

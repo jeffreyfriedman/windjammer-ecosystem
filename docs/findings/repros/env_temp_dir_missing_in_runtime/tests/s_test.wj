@@ -1,0 +1,5 @@
+use crate::scratch
+
+fn test_scratch() {
+    assert(scratch("x").ends_with("/x"), "path")
+}

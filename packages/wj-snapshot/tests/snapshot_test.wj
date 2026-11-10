@@ -5,7 +5,7 @@ use crate::diff::unified
 use crate::store::check
 use crate::store::normalize
 use crate::store::redact
-use std::env
+use crate::store::updating
 use std::fs
 
 fn join(lines: Vec<string>) -> string {
@@ -91,7 +91,7 @@ fn test_normalize_and_redact() {
 }
 
 fn scratch(name: string) -> string {
-    let dir = env.temp_dir() + "/wj-snapshot-tests/" + name
+    let dir = "/tmp/wj-snapshot-tests/" + name
     let _ = fs.remove_dir_all(dir)
     let _ = fs.create_dir_all(dir)
     dir
@@ -132,5 +132,5 @@ fn test_matching_changed_and_updated() {
 @test
 fn test_updating_reads_the_environment() {
     // Not set under the test runner, so the default is to compare, never to write.
-    assert(!crate::store::updating(), "updating is off by default")
+    assert(!updating(), "updating is off by default")
 }

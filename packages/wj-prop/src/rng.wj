@@ -4,27 +4,28 @@ pub struct Rng {
     inc: u64,
 }
 
-fn step(r: Rng) -> u32 {
-    let old = r.state
-    r.state = old.wrapping_mul(6364136223846793005).wrapping_add(r.inc)
-    let xorshifted = (((old >> 18) ^ old) >> 27) as u32
-    let rot = (old >> 59) as u32
-    (xorshifted >> rot) | (xorshifted << ((32 - rot) & 31))
-}
-
 /// Seed a generator: `seed` picks the starting point, `stream` the sequence (same as `pcg32_srandom_r`).
 pub fn new_rng(seed: int, stream: int) -> Rng {
     let mut r = Rng { state: 0, inc: (((stream as u64) << 1) | 1) }
-    let _ = step(r)
+    let _ = r.advance()
     r.state = r.state.wrapping_add(seed as u64)
-    let _ = step(r)
+    let _ = r.advance()
     r
 }
 
 impl Rng {
+    /// One PCG32 step: update the state and return the output word.
+    fn advance(self) -> u32 {
+        let old = self.state
+        self.state = old.wrapping_mul(6364136223846793005).wrapping_add(self.inc)
+        let xorshifted = (((old >> 18) ^ old) >> 27) as u32
+        let rot = (old >> 59) as u32
+        (xorshifted >> rot) | (xorshifted << ((32 - rot) & 31))
+    }
+
     /// The next 32 random bits, as a non-negative `int`.
     pub fn next_u32(self) -> int {
-        step(self) as int
+        self.advance() as int
     }
 
     /// Uniform in `0..bound` without modulo bias (rejection sampling, as in `pcg32_boundedrand_r`).
@@ -33,9 +34,9 @@ impl Rng {
             return 0
         }
         let threshold = (4294967296 - bound) % bound
-        let mut r = step(self) as int
+        let mut r = self.advance() as int
         while r < threshold {
-            r = step(self) as int
+            r = self.advance() as int
         }
         r % bound
     }
@@ -54,6 +55,6 @@ impl Rng {
 
     /// Uniform in `[0, 1)` with 32 bits of resolution.
     pub fn unit(self) -> float {
-        step(self) as float / 4294967296.0
+        self.advance() as float / 4294967296.0
     }
 }

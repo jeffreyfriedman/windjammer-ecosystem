@@ -102,13 +102,13 @@ fn test_boxes_rules_and_justify() {
 
 @test
 fn test_numeric_and_validated_prompts() {
-    let a = answers_from(["abc", "99", "7"])
+    let mut a = answers_from(["abc", "99", "7"])
     assert_eq(ask_int(a, "Port", 1, 65535, 8080, 5), 99)
-    let b = answers_from(["", "x"])
+    let mut b = answers_from(["", "x"])
     assert_eq(ask_int(b, "Port", 1, 65535, 8080, 5), 8080)
-    let c = answers_from(["0", "70000", "-5"])
+    let mut c = answers_from(["0", "70000", "-5"])
     assert_eq(ask_int(c, "Port", 1, 65535, 8080, 3), 8080)
-    let d = answers_from(Vec::new())
+    let mut d = answers_from(Vec::new())
     assert_eq(ask_int(d, "Port", 1, 65535, 8080, 3), 8080)
     let mut e = answers_from(["has space", "good-slug"])
     assert_eq(e.ask_rule("Slug", "fallback", Rule::NoSpaces, 3).unwrap_or("none"), "good-slug")
@@ -145,10 +145,10 @@ fn test_multiple_choice() {
     assert_eq(picks(parse_multi("5", options)), "none")
     assert_eq(picks(parse_multi("red,purple", options)), "none")
     assert_eq(picks(parse_multi("", options)), "[]")
-    let a = answers_from(["9", "2,4"])
+    let mut a = answers_from(["9", "2,4"])
     assert_eq(picks(multi_select(a, "Colours?", options, 3)), "[1,3]")
-    let b = answers_from([""])
+    let mut b = answers_from([""])
     assert_eq(picks(multi_select(b, "Colours?", options, 3)), "[]")
-    let c = answers_from(Vec::new())
+    let mut c = answers_from(Vec::new())
     assert_eq(picks(multi_select(c, "Colours?", options, 3)), "none")
 }

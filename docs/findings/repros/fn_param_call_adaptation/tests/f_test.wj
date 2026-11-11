@@ -7,6 +7,6 @@ fn test_within() {
 }
 
 fn test_drain() {
-    let q = new_queue(["a", "b", "stop"])
+    let mut q = new_queue(["a", "b", "stop"])
     assert_eq(drain_while(q, 10, |s| s != "stop"), 2)
 }

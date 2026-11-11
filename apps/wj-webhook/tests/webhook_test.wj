@@ -115,7 +115,7 @@ fn test_security_headers_on_health() {
 }
 
 fn test_cors_preflight_allowed_origin() {
-    let app = WebhookApp::new_with_config(config_with_cors())
+    let mut app = WebhookApp::new_with_config(config_with_cors())
     let reply = app.handle("OPTIONS", "/webhook", "http://localhost:3000", "", "", "")
     assert_eq(reply.status, 204)
     assert_eq(reply.allow_origin, "http://localhost:3000")
@@ -123,7 +123,7 @@ fn test_cors_preflight_allowed_origin() {
 }
 
 fn test_cors_preflight_rejects_unknown_origin() {
-    let app = WebhookApp::new_with_config(config_with_cors())
+    let mut app = WebhookApp::new_with_config(config_with_cors())
     let reply = app.handle("OPTIONS", "/webhook", "http://evil.example", "", "", "")
     assert_eq(reply.status, 403)
 }
@@ -139,7 +139,7 @@ fn test_post_webhook_rejects_empty_event() {
 fn test_post_webhook_rejects_oversized_event() {
     let mut cfg = default_config()
     cfg.max_event_len = 10
-    let app = WebhookApp::new_with_config(cfg)
+    let mut app = WebhookApp::new_with_config(cfg)
     let body = "{\"event\":\"this-is-way-too-long\",\"id\":\"1\"}"
     let reply = app.handle("POST", "/webhook", "", "secret", "", body)
     assert_eq(reply.status, 400)

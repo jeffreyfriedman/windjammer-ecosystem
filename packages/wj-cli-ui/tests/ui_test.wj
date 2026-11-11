@@ -187,13 +187,13 @@ fn test_prompt_parsers() {
 
 @test
 fn test_prompts_consume_answers_in_order() {
-    let a = answers_from(["x", "yes", "", "ada", "9", "green"])
+    let mut a = answers_from(["x", "yes", "", "ada", "9", "green"])
     assert(confirm(a, "Continue?", false, 3), "second try says yes")
     assert_eq(ask(a, "Name", "anon"), "anon")
     assert_eq(ask(a, "Name", "anon"), "ada")
-    let b = answers_from(["9", "green"])
+    let mut b = answers_from(["9", "green"])
     assert_eq(select(b, "Colour?", ["red", "green"], 3), 1)
-    let empty = answers_from(Vec::new())
+    let mut empty = answers_from(Vec::new())
     assert(confirm(empty, "Sure?", true, 3), "no input falls back to the default")
     assert_eq(select(empty, "Pick", ["a"], 2), -1)
 }

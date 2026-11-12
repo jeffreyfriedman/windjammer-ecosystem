@@ -19,10 +19,17 @@
 
 ## Compiler pin
 
-`WJ_PIN.md` holds the full SHA; `ci.yml` `WINDJAMMER_REF` must match (job `pin-check`). The SHA must exist
+The `[toolchain]` table in `wj.toml` holds the full SHA; `ci.yml` `WINDJAMMER_REF` must match (job `pin-check`). The SHA must exist
 on the compiler remote or the checkout fails. Bump pin and ref together.
 
 ## Unverified
 
 CI has not been run. `wj test` exits 0 on zero tests in the current compiler (a fix is pending there), which
 is why the assertion script exists; it stays useful afterward.
+
+## Public hygiene gate
+
+`scripts/public_hygiene.wj` fails when a tracked file name or content matches a forbidden-term pattern from
+`scripts/public-hygiene-patterns.txt` (a copy of the compiler repo's list). Run
+`wj run --interpret --allow process --allow fs.read --allow env.read --allow console scripts/public_hygiene.wj`,
+with `--self-test` to prove the matcher fires on planted terms. CI runs both in job `build-apps`.

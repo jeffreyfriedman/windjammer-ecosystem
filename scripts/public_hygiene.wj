@@ -1,0 +1,154 @@
+// Public-hygiene gate: no tracked file name or content may match a forbidden-term pattern.
+// Patterns live in scripts/public-hygiene-patterns.txt (a copy of the compiler repo's list; format in its header).
+// Usage: wj run --allow process,fs scripts/public_hygiene.wj            scan every tracked file, exit 1 on a hit
+//        wj run --allow process,fs scripts/public_hygiene.wj --self-test  prove the matcher fires on planted terms
+use std::process
+use std::fs
+use std::env
+use std::strings
+
+struct Term {
+    seps: string,
+    pieces: Vec<string>,
+}
+
+fn parse_patterns(text: string) -> Vec<Term> {
+    let mut terms: Vec<Term> = Vec::new()
+    for raw in strings.split_lines(text) {
+        let line = strings.trim(raw)
+        if line.len() == 0 || strings.starts_with(line, "#") {
+            continue
+        }
+        let parts = strings.split(line, ":")
+        let mut pieces: Vec<string> = Vec::new()
+        for p in strings.split(parts[1], "|") {
+            pieces.push(strings.to_lower(p))
+        }
+        terms.push(Term { seps: parts[0], pieces: pieces })
+    }
+    terms
+}
+
+// Does `term` match `hay` with its piece `idx` starting at char index `pos`?
+fn match_from(term: Term, hay: Vec<string>, idx: int, pos: int) -> bool {
+    let piece = term.pieces[idx]
+    let chars = strings.chars(piece)
+    let n = chars.len()
+    if pos + n > hay.len() {
+        return false
+    }
+    let mut i = 0
+    while i < n {
+        if hay[pos + i] != chars[i] {
+            return false
+        }
+        i = i + 1
+    }
+    if idx + 1 == term.pieces.len() {
+        return true
+    }
+    let after = pos + n
+    if match_from(term, hay, idx + 1, after) {
+        return true
+    }
+    if after < hay.len() && strings.contains(term.seps, hay[after].to_string()) {
+        return match_from(term, hay, idx + 1, after + 1)
+    }
+    false
+}
+
+fn text_matches(terms: Vec<Term>, text: string) -> bool {
+    let hay = strings.chars(strings.to_lower(text))
+    for term in terms {
+        let first = strings.chars(term.pieces[0])[0]
+        let mut pos = 0
+        while pos < hay.len() {
+            if hay[pos] == first && match_from(term, hay, 0, pos) {
+                return true
+            }
+            pos = pos + 1
+        }
+    }
+    false
+}
+
+fn tracked_files() -> Vec<string> {
+    match process.run_with_output("git", ["ls-files"]) {
+        Ok(o) => strings.split_lines(o.stdout),
+        Err(e) => {
+            println("git ls-files failed: " + e)
+            Vec::new()
+        },
+    }
+}
+
+fn scan(terms: Vec<Term>) -> Vec<string> {
+    let mut bad: Vec<string> = Vec::new()
+    for f in tracked_files() {
+        if f.len() == 0 {
+            continue
+        }
+        let mut hit = text_matches(terms, f)
+        if !hit {
+            match fs.read_to_string(f) {
+                Ok(s) => { hit = text_matches(terms, s) },
+                Err(_) => {},
+            }
+        }
+        if hit {
+            bad.push(f)
+        }
+    }
+    bad
+}
+
+// Plant each term (pieces joined by each allowed separator, upper-cased) and require a hit; require clean text to pass.
+fn self_test(terms: Vec<Term>) -> int {
+    let mut failures = 0
+    if text_matches(terms, "a generic table component with ordinary words") {
+        println("self-test FAIL: clean text flagged")
+        failures = failures + 1
+    }
+    for term in terms {
+        let adjacent = strings.to_upper("see " + strings.join(term.pieces, "") + " here")
+        if !text_matches(terms, adjacent) {
+            println("self-test FAIL: adjacent form not detected: " + strings.join(term.pieces, ""))
+            failures = failures + 1
+        }
+        if term.seps.len() > 0 {
+            let sep = strings.chars(term.seps)[0].to_string()
+            let spaced = "see " + strings.join(term.pieces, sep) + " here"
+            if !text_matches(terms, spaced) {
+                println("self-test FAIL: separated form not detected: " + spaced)
+                failures = failures + 1
+            }
+        }
+    }
+    failures
+}
+
+fn main() {
+    let args = env::args()
+    let pat_text = fs.read_to_string("scripts/public-hygiene-patterns.txt").unwrap_or("")
+    let terms = parse_patterns(pat_text)
+    if terms.len() == 0 {
+        println("no patterns loaded from scripts/public-hygiene-patterns.txt")
+        process.exit(1)
+    }
+    if args.len() > 1 && args[1] == "--self-test" {
+        let failures = self_test(terms)
+        if failures > 0 {
+            process.exit(1)
+        }
+        println("self-test ok: " + terms.len().to_string() + " patterns detected when planted")
+        return
+    }
+    let bad = scan(terms)
+    for f in bad {
+        println("public-hygiene hit: " + f)
+    }
+    if bad.len() > 0 {
+        process.exit(1)
+    }
+    println("public hygiene ok")
+}

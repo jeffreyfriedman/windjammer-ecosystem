@@ -88,7 +88,7 @@ Both should be empty for application sources.
 
 1. **Compiler-first.** If `wj` generates wrong or non-compiling Rust, file a minimal, generic repro in the compiler repo's `tests/` and fix it there. Never add shims (`+ ""`, spurious `.clone()`, `.as_str()`), never hand-edit generated Rust, never restructure idiomatic code to dodge a codegen bug.
 2. **No compiler bug tracking here.** Status/"tip RED/GREEN" commits, repro queues and compiler incident docs live in the compiler repo only.
-3. **Pin the compiler.** Record the known-good `wj` commit in `WJ_PIN.md`; bump deliberately, in its own commit.
+3. **Pin the compiler.** Record the known-good `wj` commit in the `[toolchain]` table of `wj.toml`; bump deliberately, in its own commit.
 4. **Generated output is never source.** Don't commit `build/`, `gen/` or transpiled `.rs` unless this repo's section below says otherwise; never edit them by hand.
 5. **No status-report files.** No `*_COMPLETE.md`, `SESSION_SUMMARY*`, `*_STATUS.md` in the repo; record decisions in `docs/` ADRs and progress in commit messages.
 6. **Real tests only.** Each feature needs a behavior test; no padding with trivial predicate/getter functions or placeholder `-> true` stubs.

@@ -6,8 +6,8 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 WJ="${WJ_COMPILER:-${WJ:-}}"
 if [[ -z "${WJ}" ]]; then
-  if [[ -x /home/user/src/wj/windjammer/target/release/wj ]]; then
-    WJ=/home/user/src/wj/windjammer/target/release/wj
+  if [[ -n "${WINDJAMMER_DIR:-}" && -x "${WINDJAMMER_DIR}/target/release/wj" ]]; then
+    WJ="${WINDJAMMER_DIR}/target/release/wj"
   else
     WJ="$(command -v wj)"
   fi

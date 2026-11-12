@@ -1,0 +1,492 @@
+//! A SQL query builder that cannot be talked into injection: values never enter the SQL text (they come out as
+//! bound parameters in placeholder order), and table and column names are quoted and validated.
+//! `build()` returns the SQL and the parameter list, ready for `std::db` or any driver.
+use std::strings
+
+/// Placeholder style of the target database.
+pub enum Dialect {
+    /// `?` (SQLite, MySQL)
+    Question,
+    /// `$1`, `$2`, ... (PostgreSQL)
+    Dollar,
+}
+
+/// A finished statement: SQL text plus parameters in placeholder order.
+pub struct Query {
+    pub sql: string,
+    pub params: Vec<string>,
+}
+
+fn placeholder(d: Dialect, n: int) -> string {
+    match d {
+        Dialect::Question => "?",
+        Dialect::Dollar => "$" + n.to_string(),
+    }
+}
+
+fn is_ident_char(c: int) -> bool {
+    (c >= 97 && c <= 122) || (c >= 65 && c <= 90) || (c >= 48 && c <= 57) || c == 95
+}
+
+/// True for a plain identifier (`users`, `created_at`) or a dotted pair (`users.id`, `main.users`).
+pub fn is_valid_name(name: string) -> bool {
+    let bytes = name.as_bytes()
+    if bytes.len() == 0 {
+        return false
+    }
+    let mut seg_len = 0
+    let mut dots = 0
+    let mut i = 0
+    while i < bytes.len() {
+        let c = bytes[i] as int
+        if c == 46 {
+            if seg_len == 0 {
+                return false
+            }
+            dots = dots + 1
+            seg_len = 0
+        } else if is_ident_char(c) {
+            seg_len = seg_len + 1
+        } else {
+            return false
+        }
+        i = i + 1
+    }
+    seg_len > 0 && dots <= 1
+}
+
+/// Quote an identifier with double quotes: `users.id` becomes `"users"."id"`, `*` stays `*`.
+/// Returns Err for anything that is not a plain name, so a column name taken from user input cannot inject SQL.
+pub fn quote_name(name: string) -> Result<string, string> {
+    if name == "*" {
+        return Ok("*")
+    }
+    if !is_valid_name(name) {
+        return Err("invalid SQL name: " + name)
+    }
+    let parts = strings.split(name, ".")
+    let mut out = ""
+    let mut i = 0
+    for p in parts {
+        if i > 0 {
+            out = out + "."
+        }
+        out = out + "\"" + p + "\""
+        i = i + 1
+    }
+    Ok(out)
+}
+
+/// Comparison operators the builder accepts in `where_op`.
+fn is_operator(op: string) -> bool {
+    op == "=" || op == "!=" || op == "<" || op == "<=" || op == ">" || op == ">=" || op == "LIKE" || op == "NOT LIKE"
+}
+
+/// A growing WHERE clause shared by select, update and delete.
+struct Conditions {
+    sql: Vec<string>,
+    params: Vec<string>,
+    errors: Vec<string>,
+}
+
+fn new_conditions() -> Conditions {
+    Conditions { sql: Vec::new(), params: Vec::new(), errors: Vec::new() }
+}
+
+fn add_condition(c: Conditions, column: string, op: string, value: string) -> Conditions {
+    let mut next = c
+    match quote_name(column) {
+        Err(e) => next.errors.push(e),
+        Ok(q) => {
+            if is_operator(op) {
+                next.sql.push(q + " " + op + " ?")
+                next.params.push(value)
+            } else {
+                next.errors.push("invalid SQL operator: " + op)
+            }
+        },
+    }
+    next
+}
+
+fn add_in(c: Conditions, column: string, values: Vec<string>) -> Conditions {
+    let mut next = c
+    match quote_name(column) {
+        Err(e) => next.errors.push(e),
+        Ok(q) => {
+            if values.len() == 0 {
+                // IN () is a syntax error in most databases; an empty set matches nothing
+                next.sql.push("1 = 0")
+            } else {
+                let mut marks = Vec::new()
+                for v in values {
+                    marks.push("?")
+                    next.params.push(v)
+                }
+                next.sql.push(q + " IN (" + marks.join(", ") + ")")
+            }
+        },
+    }
+    next
+}
+
+fn add_null(c: Conditions, column: string, is_null: bool) -> Conditions {
+    let mut next = c
+    match quote_name(column) {
+        Err(e) => next.errors.push(e),
+        Ok(q) => next.sql.push(q + (if is_null { " IS NULL" } else { " IS NOT NULL" })),
+    }
+    next
+}
+
+/// Rewrite the `?` marks of `sql` into the dialect's placeholders, starting at number `first`.
+/// Values are never part of `sql`, so every `?` is one of ours.
+fn number_marks(sql: string, d: Dialect, first: int) -> string {
+    let parts = strings.split(sql, "?")
+    let mut out = parts[0]
+    let mut n = first
+    let mut i = 1
+    while i < parts.len() {
+        out = out + placeholder(d, n) + parts[i]
+        n = n + 1
+        i = i + 1
+    }
+    out
+}
+
+fn where_clause(c: Conditions) -> string {
+    if c.sql.len() == 0 {
+        ""
+    } else {
+        " WHERE " + c.sql.join(" AND ")
+    }
+}
+
+fn first_error(errors: Vec<string>) -> string {
+    if errors.len() == 0 { "" } else { errors[0] }
+}
+
+// ---------------------------------------------------------------- SELECT
+
+pub struct Select {
+    table: string,
+    columns: Vec<string>,
+    conds: Conditions,
+    joins: Vec<string>,
+    order: Vec<string>,
+    limit: int,
+    offset: int,
+    errors: Vec<string>,
+}
+
+/// Start a SELECT from `table`. Without `columns(...)` it selects `*`.
+pub fn select_from(table: string) -> Select {
+    let mut errors = Vec::new()
+    let t = match quote_name(table) {
+        Ok(q) => q,
+        Err(e) => {
+            errors.push(e)
+            ""
+        },
+    }
+    Select {
+        table: t,
+        columns: Vec::new(),
+        conds: new_conditions(),
+        joins: Vec::new(),
+        order: Vec::new(),
+        limit: -1,
+        offset: -1,
+        errors: errors,
+    }
+}
+
+impl Select {
+    pub fn columns(self, names: Vec<string>) -> Select {
+        let mut s = self
+        for n in names {
+            match quote_name(n) {
+                Ok(q) => s.columns.push(q),
+                Err(e) => s.errors.push(e),
+            }
+        }
+        s
+    }
+
+    pub fn where_eq(self, column: string, value: string) -> Select {
+        self.where_op(column, "=", value)
+    }
+
+    pub fn where_op(self, column: string, op: string, value: string) -> Select {
+        let mut s = self
+        s.conds = add_condition(s.conds, column, op, value)
+        s
+    }
+
+    pub fn where_in(self, column: string, values: Vec<string>) -> Select {
+        let mut s = self
+        s.conds = add_in(s.conds, column, values)
+        s
+    }
+
+    pub fn where_null(self, column: string) -> Select {
+        let mut s = self
+        s.conds = add_null(s.conds, column, true)
+        s
+    }
+
+    pub fn where_not_null(self, column: string) -> Select {
+        let mut s = self
+        s.conds = add_null(s.conds, column, false)
+        s
+    }
+
+    /// `JOIN other ON left = right` (all three are names, validated).
+    pub fn join(self, other: string, left: string, right: string) -> Select {
+        let mut s = self
+        match (quote_name(other), quote_name(left), quote_name(right)) {
+            (Ok(o), Ok(l), Ok(r)) => s.joins.push(" JOIN " + o + " ON " + l + " = " + r),
+            _ => s.errors.push("invalid join: " + other + " ON " + left + " = " + right),
+        }
+        s
+    }
+
+    pub fn order_by(self, column: string, descending: bool) -> Select {
+        let mut s = self
+        match quote_name(column) {
+            Ok(q) => s.order.push(q + (if descending { " DESC" } else { " ASC" })),
+            Err(e) => s.errors.push(e),
+        }
+        s
+    }
+
+    pub fn limit(self, n: int) -> Select {
+        let mut s = self
+        s.limit = n
+        s
+    }
+
+    pub fn offset(self, n: int) -> Select {
+        let mut s = self
+        s.offset = n
+        s
+    }
+
+    /// Page `page` (1-based) of `per_page` rows.
+    pub fn page(self, page: int, per_page: int) -> Select {
+        let p = if page < 1 { 1 } else { page }
+        self.limit(per_page).offset((p - 1) * per_page)
+    }
+
+    pub fn build(self, d: Dialect) -> Result<Query, string> {
+        let err = first_error(self.errors)
+        if strings.len(err) > 0 {
+            return Err(err)
+        }
+        let cerr = first_error(self.conds.errors)
+        if strings.len(cerr) > 0 {
+            return Err(cerr)
+        }
+        let cols = if self.columns.len() == 0 { "*" } else { self.columns.join(", ") }
+        let mut sql = "SELECT " + cols + " FROM " + self.table
+        for j in self.joins {
+            sql = sql + j
+        }
+        sql = sql + where_clause(self.conds)
+        if self.order.len() > 0 {
+            sql = sql + " ORDER BY " + self.order.join(", ")
+        }
+        if self.limit >= 0 {
+            sql = sql + " LIMIT " + self.limit.to_string()
+        }
+        if self.offset >= 0 {
+            sql = sql + " OFFSET " + self.offset.to_string()
+        }
+        Ok(Query { sql: number_marks(sql, d, 1), params: self.conds.params })
+    }
+}
+
+// ---------------------------------------------------------------- INSERT
+
+pub struct Insert {
+    table: string,
+    columns: Vec<string>,
+    values: Vec<string>,
+    errors: Vec<string>,
+}
+
+pub fn insert_into(table: string) -> Insert {
+    let mut errors = Vec::new()
+    let t = match quote_name(table) {
+        Ok(q) => q,
+        Err(e) => {
+            errors.push(e)
+            ""
+        },
+    }
+    Insert { table: t, columns: Vec::new(), values: Vec::new(), errors: errors }
+}
+
+impl Insert {
+    pub fn value(self, column: string, value: string) -> Insert {
+        let mut s = self
+        match quote_name(column) {
+            Ok(q) => {
+                s.columns.push(q)
+                s.values.push(value)
+            },
+            Err(e) => s.errors.push(e),
+        }
+        s
+    }
+
+    pub fn build(self, d: Dialect) -> Result<Query, string> {
+        let err = first_error(self.errors)
+        if strings.len(err) > 0 {
+            return Err(err)
+        }
+        if self.columns.len() == 0 {
+            return Err("INSERT needs at least one value")
+        }
+        let mut marks = Vec::new()
+        for c in self.columns {
+            marks.push("?")
+        }
+        let sql = "INSERT INTO " + self.table + " (" + self.columns.join(", ") + ") VALUES (" + marks.join(", ") + ")"
+        Ok(Query { sql: number_marks(sql, d, 1), params: self.values })
+    }
+}
+
+// ---------------------------------------------------------------- UPDATE
+
+pub struct Update {
+    table: string,
+    sets: Vec<string>,
+    set_params: Vec<string>,
+    conds: Conditions,
+    errors: Vec<string>,
+}
+
+pub fn update_table(table: string) -> Update {
+    let mut errors = Vec::new()
+    let t = match quote_name(table) {
+        Ok(q) => q,
+        Err(e) => {
+            errors.push(e)
+            ""
+        },
+    }
+    Update { table: t, sets: Vec::new(), set_params: Vec::new(), conds: new_conditions(), errors: errors }
+}
+
+impl Update {
+    pub fn set(self, column: string, value: string) -> Update {
+        let mut s = self
+        match quote_name(column) {
+            Ok(q) => {
+                s.sets.push(q + " = ?")
+                s.set_params.push(value)
+            },
+            Err(e) => s.errors.push(e),
+        }
+        s
+    }
+
+    pub fn where_eq(self, column: string, value: string) -> Update {
+        let mut s = self
+        s.conds = add_condition(s.conds, column, "=", value)
+        s
+    }
+
+    pub fn where_in(self, column: string, values: Vec<string>) -> Update {
+        let mut s = self
+        s.conds = add_in(s.conds, column, values)
+        s
+    }
+
+    /// Refuses to build without a WHERE clause: an UPDATE of every row must be asked for with `build_all_rows`.
+    pub fn build(self, d: Dialect) -> Result<Query, string> {
+        if self.conds.sql.len() == 0 {
+            return Err("UPDATE without WHERE; use build_all_rows to change every row")
+        }
+        self.build_all_rows(d)
+    }
+
+    pub fn build_all_rows(self, d: Dialect) -> Result<Query, string> {
+        let err = first_error(self.errors)
+        if strings.len(err) > 0 {
+            return Err(err)
+        }
+        let cerr = first_error(self.conds.errors)
+        if strings.len(cerr) > 0 {
+            return Err(cerr)
+        }
+        if self.sets.len() == 0 {
+            return Err("UPDATE needs at least one set")
+        }
+        let sql = "UPDATE " + self.table + " SET " + self.sets.join(", ") + where_clause(self.conds)
+        let mut params = Vec::new()
+        for p in self.set_params {
+            params.push(p)
+        }
+        for p in self.conds.params {
+            params.push(p)
+        }
+        Ok(Query { sql: number_marks(sql, d, 1), params: params })
+    }
+}
+
+// ---------------------------------------------------------------- DELETE
+
+pub struct Delete {
+    table: string,
+    conds: Conditions,
+    errors: Vec<string>,
+}
+
+pub fn delete_from(table: string) -> Delete {
+    let mut errors = Vec::new()
+    let t = match quote_name(table) {
+        Ok(q) => q,
+        Err(e) => {
+            errors.push(e)
+            ""
+        },
+    }
+    Delete { table: t, conds: new_conditions(), errors: errors }
+}
+
+impl Delete {
+    pub fn where_eq(self, column: string, value: string) -> Delete {
+        let mut s = self
+        s.conds = add_condition(s.conds, column, "=", value)
+        s
+    }
+
+    pub fn where_in(self, column: string, values: Vec<string>) -> Delete {
+        let mut s = self
+        s.conds = add_in(s.conds, column, values)
+        s
+    }
+
+    /// Refuses to build without a WHERE clause; use `build_all_rows` to empty a table on purpose.
+    pub fn build(self, d: Dialect) -> Result<Query, string> {
+        if self.conds.sql.len() == 0 {
+            return Err("DELETE without WHERE; use build_all_rows to delete every row")
+        }
+        self.build_all_rows(d)
+    }
+
+    pub fn build_all_rows(self, d: Dialect) -> Result<Query, string> {
+        let err = first_error(self.errors)
+        if strings.len(err) > 0 {
+            return Err(err)
+        }
+        let cerr = first_error(self.conds.errors)
+        if strings.len(cerr) > 0 {
+            return Err(cerr)
+        }
+        let sql = "DELETE FROM " + self.table + where_clause(self.conds)
+        Ok(Query { sql: number_marks(sql, d, 1), params: self.conds.params })
+    }
+}

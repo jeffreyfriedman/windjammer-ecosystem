@@ -62,7 +62,7 @@
 | wj-token-bucket | Token-bucket and sliding-window rate limiters on an injected clock | std |
 | wj-circuit-breaker | Closed / open / half-open breaker with failure-rate window and probes | std |
 | wj-trace | Spans, trace ids, sampling, `traceparent`, exporter trait | std |
-| wj-middleware | Closure-based request/response middleware pipeline | std |
+| wj-middleware | Request/response middleware pipeline over `Layer` trait objects | std |
 | wj-stats | Mean, median, standard deviation | std |
 | wj-sync | Channels, shared state, pools | std |
 | wj-table | Markdown and plain tables, fixed-point numbers | std |

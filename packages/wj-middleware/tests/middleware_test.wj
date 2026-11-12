@@ -2,29 +2,59 @@ use crate::new_pipeline
 use crate::request
 use crate::response
 use crate::Flow
-use crate::Pipeline
+use crate::Layer
+use crate::PathPrefix
 use crate::Request
+use crate::RequireHeader
 use crate::Response
+use crate::ResponseHeader
 
-fn ok_handler() -> Box<dyn Fn(Request) -> Response> {
-    Box::new(|req| response(200, "hello " + req.path))
+fn ok_handler(req: Request) -> Response {
+    response(200, "hello " + req.path)
 }
 
-// A layer that notes, in X-Trace, that the request passed through on the way in and the response on the way out.
-fn tracing_layer(p: Pipeline, name: string) {
-    let n_in = name + ">"
-    let n_out = "<" + name
-    p.layer(
-        name,
-        Box::new(|req| Flow::Continue(req.with_header("x-in", n_in))),
-        Box::new(|_req, resp| resp.with_header("x-out", n_out)),
-    )
+fn tagged(name: string, value: string) -> Box<ResponseHeader> {
+    Box::new(ResponseHeader { header: name, value: value })
+}
+
+// A layer defined in the test: records on the way out which path the inner layers handed the handler.
+struct EchoPath {}
+
+impl Layer for EchoPath {
+    fn name(&self) -> string {
+        "echo-path"
+    }
+
+    fn before(&self, req: Request) -> Flow {
+        Flow::Continue(req)
+    }
+
+    fn after(&self, req: Request, resp: Response) -> Response {
+        resp.with_header("x-path", req.path)
+    }
+}
+
+// A layer that always answers 500 (to prove inner layers are skipped).
+struct Boom {}
+
+impl Layer for Boom {
+    fn name(&self) -> string {
+        "boom"
+    }
+
+    fn before(&self, req: Request) -> Flow {
+        Flow::Respond(response(500, "inner layer ran"))
+    }
+
+    fn after(&self, req: Request, resp: Response) -> Response {
+        resp
+    }
 }
 
 @test
 fn test_empty_pipeline_calls_the_handler() {
     let mut p = new_pipeline()
-    let r = p.handle(request("GET", "/a"), ok_handler())
+    let r = p.handle(request("GET", "/a"), ok_handler)
     assert_eq(r.status, 200)
     assert_eq(r.body, "hello /a")
 }
@@ -32,30 +62,32 @@ fn test_empty_pipeline_calls_the_handler() {
 @test
 fn test_before_layer_can_rewrite_the_request() {
     let mut p = new_pipeline()
-    p.on_request("slash", Box::new(|req| Flow::Continue(req.with_path("/rewritten"))))
-    let r = p.handle(request("GET", "/a"), ok_handler())
-    assert_eq(r.body, "hello /rewritten")
+    p.add(Box::new(PathPrefix { prefix: "/api" }))
+    let r = p.handle(request("GET", "/a"), ok_handler)
+    assert_eq(r.body, "hello /api/a")
 }
 
 @test
 fn test_after_layer_can_rewrite_the_response() {
     let mut p = new_pipeline()
-    p.on_response("tag", Box::new(|_req, resp| resp.with_header("x-served-by", "wj")))
-    let r = p.handle(request("GET", "/a"), ok_handler())
+    p.add(tagged("x-served-by", "wj"))
+    let r = p.handle(request("GET", "/a"), ok_handler)
     assert_eq(r.header("X-Served-By"), "wj")
 }
 
 @test
 fn test_layers_run_in_onion_order() {
     let mut p = new_pipeline()
-    p.on_request("outer", Box::new(|req| Flow::Continue(req.with_path(req.path + "/outer"))))
-    p.on_request("inner", Box::new(|req| Flow::Continue(req.with_path(req.path + "/inner"))))
-    let r = p.handle(request("GET", ""), ok_handler())
-    assert_eq(r.body, "hello /outer/inner")
-    p.on_response("o1", Box::new(|_req, resp| resp.with_header("x-order", "1")))
-    p.on_response("o2", Box::new(|_req, resp| resp.with_header("x-order", "2")))
-    let r2 = p.handle(request("GET", ""), ok_handler())
-    // responses unwind innermost first: o2 sets its header before o1
+    p.add(Box::new(PathPrefix { prefix: "/outer" }))
+    p.add(Box::new(PathPrefix { prefix: "/inner" }))
+    let r = p.handle(request("GET", ""), ok_handler)
+    // the outer prefix is applied first, so the inner one lands in front of it
+    assert_eq(r.body, "hello /inner/outer")
+    let mut q = new_pipeline()
+    q.add(tagged("x-order", "1"))
+    q.add(tagged("x-order", "2"))
+    let r2 = q.handle(request("GET", ""), ok_handler)
+    // responses unwind innermost first: layer 2 sets its header before layer 1
     assert_eq(r2.headers[0].value, "2")
     assert_eq(r2.headers[1].value, "1")
 }
@@ -63,57 +95,51 @@ fn test_layers_run_in_onion_order() {
 @test
 fn test_short_circuit_skips_the_handler_and_inner_layers() {
     let mut p = new_pipeline()
-    p.on_request("auth", Box::new(|req| {
-        if req.header("authorization") == "" {
-            Flow::Respond(response(401, "who are you"))
-        } else {
-            Flow::Continue(req)
-        }
-    }))
-    p.on_request("never", Box::new(|req| Flow::Respond(response(500, "inner layer ran"))))
-    let r = p.handle(request("GET", "/"), ok_handler())
+    p.add(Box::new(RequireHeader { header: "authorization", status: 401, body: "who are you" }))
+    p.add(Box::new(Boom {}))
+    let r = p.handle(request("GET", "/"), ok_handler)
     assert_eq(r.status, 401)
+    assert_eq(r.body, "who are you")
     let authed = request("GET", "/").with_header("Authorization", "Bearer t")
-    assert_eq(p.handle(authed, ok_handler()).status, 500)
+    assert_eq(p.handle(authed, ok_handler).status, 500)
 }
 
 @test
 fn test_outer_layers_still_see_a_short_circuited_response() {
     let mut p = new_pipeline()
-    p.on_response("outer", Box::new(|_req, resp| resp.with_header("x-outer", "saw it")))
-    p.on_request("gate", Box::new(|_req| Flow::Respond(response(403, "no"))))
-    let r = p.handle(request("GET", "/"), ok_handler())
+    p.add(tagged("x-outer", "saw it"))
+    p.add(Box::new(RequireHeader { header: "x-key", status: 403, body: "no" }))
+    let r = p.handle(request("GET", "/"), ok_handler)
     assert_eq(r.status, 403)
     assert_eq(r.header("x-outer"), "saw it")
 }
 
 @test
-fn test_closures_capture_configuration() {
+fn test_the_handler_is_a_closure_that_can_capture() {
     let mut p = new_pipeline()
-    let prefix = "/api"
-    p.on_request("prefix", Box::new(|req| Flow::Continue(req.with_path(prefix + req.path))))
-    let r = p.handle(request("GET", "/users"), ok_handler())
-    assert_eq(r.body, "hello /api/users")
+    let greeting = "welcome"
+    let r = p.handle(request("GET", "/users"), |req| response(200, greeting + " " + req.path))
+    assert_eq(r.body, "welcome /users")
 }
 
 @test
-fn test_after_layer_sees_the_request_as_the_inner_layers_left_it() {
+fn test_after_layer_sees_the_request_it_passed_inward() {
     let mut p = new_pipeline()
-    p.on_request("rewrite", Box::new(|req| Flow::Continue(req.with_path("/final"))))
-    p.on_response("echo", Box::new(|req, resp| resp.with_header("x-path", req.path)))
-    let r = p.handle(request("GET", "/orig"), ok_handler())
-    assert_eq(r.header("x-path"), "/final")
+    p.add(Box::new(PathPrefix { prefix: "/final" }))
+    p.add(Box::new(EchoPath {}))
+    let r = p.handle(request("GET", "/orig"), ok_handler)
+    assert_eq(r.header("x-path"), "/final/orig")
 }
 
 @test
 fn test_names_list_layers_outermost_first() {
     let mut p = new_pipeline()
-    tracing_layer(p, "a")
-    tracing_layer(p, "b")
+    p.add(Box::new(EchoPath {}))
+    p.add(Box::new(PathPrefix { prefix: "/v1" }))
     assert_eq(p.len(), 2)
     let names = p.names()
-    assert_eq(names[0], "a")
-    assert_eq(names[1], "b")
+    assert_eq(names[0], "echo-path")
+    assert_eq(names[1], "path-prefix:/v1")
 }
 
 @test

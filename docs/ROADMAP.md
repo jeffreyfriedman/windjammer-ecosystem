@@ -135,7 +135,7 @@ Measured against the packages in `packages/` (81 after the second pass). "Added"
 | Need | Package(s) | State |
 |---|---|---|
 | HTTP client | `wj-http-client`, `wj-headers`, `wj-url`, `wj-querystring`, `wj-retry` | covered (status and body helpers over `std::http`; no streaming) |
-| HTTP server and routing | `wj-router`, `wj-cors`, `wj-cookie`, `wj-multipart`, `wj-compress`, `wj-ws`, `std::http` | routing covered; **`wj-middleware` (added)**: closure-based pipeline with early responses |
+| HTTP server and routing | `wj-router`, `wj-cors`, `wj-cookie`, `wj-multipart`, `wj-compress`, `wj-ws`, `std::http` | routing covered; **`wj-middleware` (added)**: layer pipeline with early responses (closure-field form waits on a compiler fix) |
 | JSON, CSV, YAML, TOML | `wj-json-util`, `wj-json-doc`, `wj-csv`, `wj-yaml`, `wj-toml` | covered |
 | SQL helpers and migrations | `wj-migrate`, `wj-sqlite` (reader), **`wj-sql` (added)** | covered: parameterised builder for select, insert, update, delete |
 | Auth, JWT, sessions | `wj-jwt`, `wj-oauth`, `wj-hash`, `wj-cookie`, **`wj-session` (added)** | covered: store, timeouts, rotation, CSRF |

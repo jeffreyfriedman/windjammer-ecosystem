@@ -119,7 +119,7 @@ modes (interpreted 74 of 74; compiled 74 of 74), and the three packages added in
 | `packages/wj-token-bucket` | pass (14) | pass (14) | Token bucket and sliding-window limiters |
 | `packages/wj-circuit-breaker` | pass (15) | pass (15) | Circuit breaker, injected clock |
 | `packages/wj-trace` | pass (18) | pass (18) | Spans, sampling, traceparent, exporter trait |
-| `packages/wj-middleware` | pass (10) | pass (10) | Closure-based middleware pipeline |
+| `packages/wj-middleware` | pass (10) | pass (10) | Middleware pipeline (Layer trait objects) |
 | `packages/wj-stats` | pass (5) | pass (5) |  |
 | `packages/wj-sync` | pass (50) | pass (50) |  |
 | `packages/wj-table` | pass (4) | pass (4) |  |

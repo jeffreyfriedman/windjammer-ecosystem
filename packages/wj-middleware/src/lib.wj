@@ -1,0 +1,222 @@
+//! A request/response middleware pipeline. Each layer can inspect or rewrite the request on the way in
+//! (`before`), answer early (short-circuit), and inspect or rewrite the response on the way out (`after`).
+//! Layers are values that implement `Layer`, so they carry their own configuration; the terminal handler is a
+//! closure. Pure computation: no I/O.
+
+pub struct Header {
+    pub name: string,
+    pub value: string,
+}
+
+pub struct Request {
+    pub method: string,
+    pub path: string,
+    pub headers: Vec<Header>,
+    pub body: string,
+}
+
+pub struct Response {
+    pub status: int,
+    pub headers: Vec<Header>,
+    pub body: string,
+}
+
+pub fn request(method: string, path: string) -> Request {
+    Request { method: method, path: path, headers: Vec::new(), body: "" }
+}
+
+pub fn response(status: int, body: string) -> Response {
+    Response { status: status, headers: Vec::new(), body: body }
+}
+
+fn find(headers: Vec<Header>, name: string) -> string {
+    let want = name.to_lowercase()
+    let mut i = 0
+    while i < headers.len() {
+        if headers[i].name.to_lowercase() == want {
+            return headers[i].value
+        }
+        i = i + 1
+    }
+    ""
+}
+
+impl Request {
+    pub fn with_header(self, name: string, value: string) -> Request {
+        let mut hs = self.headers
+        hs.push(Header { name: name, value: value })
+        Request { method: self.method, path: self.path, headers: hs, body: self.body }
+    }
+
+    pub fn with_body(self, body: string) -> Request {
+        Request { method: self.method, path: self.path, headers: self.headers, body: body }
+    }
+
+    pub fn with_path(self, path: string) -> Request {
+        Request { method: self.method, path: path, headers: self.headers, body: self.body }
+    }
+
+    /// Case-insensitive header lookup; "" when absent.
+    pub fn header(self, name: string) -> string {
+        find(self.headers, name)
+    }
+}
+
+impl Response {
+    pub fn with_header(self, name: string, value: string) -> Response {
+        let mut hs = self.headers
+        hs.push(Header { name: name, value: value })
+        Response { status: self.status, headers: hs, body: self.body }
+    }
+
+    pub fn with_status(self, status: int) -> Response {
+        Response { status: status, headers: self.headers, body: self.body }
+    }
+
+    pub fn header(self, name: string) -> string {
+        find(self.headers, name)
+    }
+}
+
+/// What a `before` hook decides: pass the (possibly rewritten) request on, or answer now.
+pub enum Flow {
+    Continue(Request),
+    Respond(Response),
+}
+
+/// One stage of the pipeline.
+pub trait Layer {
+    fn name(&self) -> string
+    /// Runs on the way in.
+    fn before(&self, req: Request) -> Flow
+    /// Runs on the way out with the request as this layer passed it inward.
+    fn after(&self, req: Request, resp: Response) -> Response
+}
+
+/// Adds a fixed header to every response.
+pub struct ResponseHeader {
+    pub header: string,
+    pub value: string,
+}
+
+impl Layer for ResponseHeader {
+    fn name(&self) -> string {
+        "response-header:" + self.header
+    }
+
+    fn before(&self, req: Request) -> Flow {
+        Flow::Continue(req)
+    }
+
+    fn after(&self, req: Request, resp: Response) -> Response {
+        resp.with_header(self.header, self.value)
+    }
+}
+
+/// Answers `status` right away when the request lacks `header` (a simple auth or API-key gate).
+pub struct RequireHeader {
+    pub header: string,
+    pub status: int,
+    pub body: string,
+}
+
+impl Layer for RequireHeader {
+    fn name(&self) -> string {
+        "require-header:" + self.header
+    }
+
+    fn before(&self, req: Request) -> Flow {
+        if req.header(self.header) == "" {
+            Flow::Respond(response(self.status, self.body))
+        } else {
+            Flow::Continue(req)
+        }
+    }
+
+    fn after(&self, req: Request, resp: Response) -> Response {
+        resp
+    }
+}
+
+/// Prepends a prefix to every request path.
+pub struct PathPrefix {
+    pub prefix: string,
+}
+
+impl Layer for PathPrefix {
+    fn name(&self) -> string {
+        "path-prefix:" + self.prefix
+    }
+
+    fn before(&self, req: Request) -> Flow {
+        let path = self.prefix + req.path
+        Flow::Continue(req.with_path(path))
+    }
+
+    fn after(&self, req: Request, resp: Response) -> Response {
+        resp
+    }
+}
+
+/// An ordered stack of layers around a handler. The first layer added is the outermost.
+pub struct Pipeline {
+    layers: Vec<Box<dyn Layer>>,
+}
+
+pub fn new_pipeline() -> Pipeline {
+    Pipeline { layers: Vec::new() }
+}
+
+impl Pipeline {
+    /// Add a layer inside the ones added before it.
+    pub fn add(self, layer: Box<dyn Layer>) {
+        self.layers.push(layer)
+    }
+
+    pub fn len(self) -> int {
+        self.layers.len()
+    }
+
+    /// Layer names, outermost first.
+    pub fn names(self) -> Vec<string> {
+        let mut out: Vec<string> = Vec::new()
+        let mut i = 0
+        while i < self.layers.len() {
+            out.push(self.layers[i].name())
+            i = i + 1
+        }
+        out
+    }
+
+    /// Run `req` through the layers into `handler`, then back out. A layer that responds early skips the
+    /// handler and the layers inside it, but the layers outside it still see the response.
+    pub fn handle(self, req: Request, handler: fn(Request) -> Response) -> Response {
+        let mut current = req
+        let mut reached: Vec<Request> = Vec::new()
+        let mut answer = response(0, "")
+        let mut answered = false
+        let mut depth = 0
+        while depth < self.layers.len() && !answered {
+            let flow = self.layers[depth].before(current)
+            match flow {
+                Flow::Continue(next) => {
+                    reached.push(next)
+                    current = next
+                    depth = depth + 1
+                },
+                Flow::Respond(r) => {
+                    answer = r
+                    answered = true
+                },
+            }
+        }
+        if !answered {
+            answer = handler(current)
+        }
+        while depth > 0 {
+            depth = depth - 1
+            answer = self.layers[depth].after(reached[depth], answer)
+        }
+        answer
+    }
+}

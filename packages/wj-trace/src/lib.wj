@@ -1,0 +1,204 @@
+//! Tracing spans: trace and span ids, parent-child links, attributes, head sampling, W3C `traceparent` headers and a
+//! pluggable exporter. Ids come from a seeded generator and time is an argument (milliseconds), so a test run
+//! always produces the same trace.
+
+use std::strings
+
+pub struct Attr {
+    pub key: string,
+    pub value: string,
+}
+
+/// A finished (or in-flight) span.
+pub struct Span {
+    pub trace_id: string,
+    pub span_id: string,
+    pub parent_id: string,
+    pub name: string,
+    pub start_ms: int,
+    pub end_ms: int,
+    pub attrs: Vec<Attr>,
+    pub error: string,
+    pub sampled: bool,
+    pub ended: bool,
+}
+
+impl Span {
+    pub fn duration_ms(self) -> int {
+        if self.ended { self.end_ms - self.start_ms } else { 0 }
+    }
+
+    pub fn is_root(self) -> bool {
+        self.parent_id == ""
+    }
+
+    /// Value of attribute `key`, or "" when absent.
+    pub fn attr(self, key: string) -> string {
+        let mut i = 0
+        while i < self.attrs.len() {
+            if self.attrs[i].key == key {
+                return self.attrs[i].value
+            }
+            i = i + 1
+        }
+        ""
+    }
+}
+
+/// Where finished spans go. Implement it for a log line, an OTLP batch, a test recorder.
+pub trait Exporter {
+    fn export(&mut self, span: Span)
+}
+
+/// Collects exported spans in memory: the exporter to use in tests.
+pub struct MemoryExporter {
+    pub spans: Vec<Span>,
+}
+
+pub fn memory_exporter() -> MemoryExporter {
+    MemoryExporter { spans: Vec::new() }
+}
+
+impl Exporter for MemoryExporter {
+    fn export(&mut self, span: Span) {
+        self.spans.push(span)
+    }
+}
+
+/// Creates spans, decides sampling once per trace (children follow their root) and buffers finished spans.
+pub struct Tracer {
+    rng: int,
+    sample_pct: int,
+    spans: Vec<Span>,
+    finished: Vec<Span>,
+}
+
+/// A tracer that records every trace. `seed` makes the generated ids reproducible.
+pub fn new_tracer(seed: int) -> Tracer {
+    new_sampled_tracer(seed, 100)
+}
+
+/// A tracer that records `sample_pct` percent of traces (0 to 100), chosen by the seeded generator.
+pub fn new_sampled_tracer(seed: int, sample_pct: int) -> Tracer {
+    Tracer { rng: seed % 2147483648, sample_pct: sample_pct, spans: Vec::new(), finished: Vec::new() }
+}
+
+fn hex_digit(n: int) -> string {
+    strings.substring("0123456789abcdef", n, n + 1)
+}
+
+/// Lower-case hex of `n` padded to `width` digits.
+pub fn hex(n: int, width: int) -> string {
+    let mut out = ""
+    let mut rest = n
+    let mut i = 0
+    while i < width {
+        out = hex_digit(rest % 16) + out
+        rest = rest / 16
+        i = i + 1
+    }
+    out
+}
+
+impl Tracer {
+    fn next(self) -> int {
+        self.rng = (self.rng * 1103515245 + 12345) % 2147483648
+        self.rng
+    }
+
+    fn new_id(self, hex_digits: int) -> string {
+        let mut out = ""
+        while out.len() < hex_digits {
+            out = out + hex(self.next(), 8)
+        }
+        let id = strings.substring(out, 0, hex_digits)
+        id
+    }
+
+    /// Start a new trace. Returns the span handle.
+    pub fn start_root(self, name: string, now: int) -> int {
+        let trace = self.new_id(32)
+        let draw = self.next() % 100
+        self.push_span(trace, "", name, now, draw < self.sample_pct)
+    }
+
+    /// Start a child of `parent` (same trace, same sampling decision).
+    pub fn start_child(self, parent: int, name: string, now: int) -> int {
+        let p = self.spans[parent]
+        self.push_span(p.trace_id, p.span_id, name, now, p.sampled)
+    }
+
+    /// Continue a trace from an incoming `traceparent` header; a malformed header starts a fresh trace.
+    pub fn start_from_traceparent(self, header: string, name: string, now: int) -> int {
+        let parts = strings.split(header, "-")
+        if parts.len() == 4 && parts[1].len() == 32 && parts[2].len() == 16 {
+            return self.push_span(parts[1], parts[2], name, now, parts[3] == "01")
+        }
+        self.start_root(name, now)
+    }
+
+    fn push_span(self, trace: string, parent: string, name: string, now: int, sampled: bool) -> int {
+        let id = self.new_id(16)
+        self.spans.push(Span {
+            trace_id: trace,
+            span_id: id,
+            parent_id: parent,
+            name: name,
+            start_ms: now,
+            end_ms: 0,
+            attrs: Vec::new(),
+            error: "",
+            sampled: sampled,
+            ended: false,
+        })
+        self.spans.len() - 1
+    }
+
+    pub fn set_attr(self, handle: int, key: string, value: string) {
+        self.spans[handle].attrs.push(Attr { key: key, value: value })
+    }
+
+    /// Mark the span as failed with a message.
+    pub fn set_error(self, handle: int, message: string) {
+        self.spans[handle].error = message
+    }
+
+    /// Finish the span. Sampled spans move to the finished buffer; unsampled ones are dropped.
+    pub fn end(self, handle: int, now: int) {
+        if self.spans[handle].ended {
+            return
+        }
+        self.spans[handle].end_ms = now
+        self.spans[handle].ended = true
+        if self.spans[handle].sampled {
+            let s = self.spans[handle]
+            self.finished.push(s)
+        }
+    }
+
+    pub fn span(self, handle: int) -> Span {
+        self.spans[handle]
+    }
+
+    /// The `traceparent` header value for propagating this span to another service.
+    pub fn traceparent(self, handle: int) -> string {
+        let s = self.spans[handle]
+        "00-" + s.trace_id + "-" + s.span_id + (if s.sampled { "-01" } else { "-00" })
+    }
+
+    pub fn finished_count(self) -> int {
+        self.finished.len()
+    }
+
+    /// Hand every finished span to the exporter, oldest first, and clear the buffer.
+    pub fn flush<E: Exporter>(self, exporter: E) -> int {
+        let n = self.finished.len()
+        let mut i = 0
+        while i < n {
+            exporter.export(self.finished[i])
+            i = i + 1
+        }
+        self.finished = Vec::new()
+        n
+    }
+}

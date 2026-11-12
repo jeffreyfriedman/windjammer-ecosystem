@@ -1,0 +1,139 @@
+//! Token-bucket and sliding-window rate limiters. Time is an argument (milliseconds), so every decision is
+//! deterministic: tests and simulations feed the clock, production feeds the wall clock.
+
+/// The answer to one request. `retry_after_ms` is 0 when the request was allowed.
+pub struct Decision {
+    pub allowed: bool,
+    pub remaining: int,
+    pub retry_after_ms: int,
+}
+
+/// A bucket that holds up to `capacity` tokens and gains `refill_tokens` every `refill_interval_ms`.
+/// Internally tokens are counted in units of 1/`refill_interval_ms`, so refill is exact (no rounding drift).
+pub struct TokenBucket {
+    capacity: int,
+    refill_tokens: int,
+    refill_interval_ms: int,
+    units: int,
+    last_ms: int,
+}
+
+/// A full bucket: `capacity` tokens, refilled at `refill_tokens` per `refill_interval_ms`.
+pub fn token_bucket(capacity: int, refill_tokens: int, refill_interval_ms: int) -> TokenBucket {
+    let interval = if refill_interval_ms < 1 { 1 } else { refill_interval_ms }
+    TokenBucket {
+        capacity: capacity,
+        refill_tokens: refill_tokens,
+        refill_interval_ms: interval,
+        units: capacity * interval,
+        last_ms: 0,
+    }
+}
+
+impl TokenBucket {
+    fn refill(self, now: int) {
+        if now > self.last_ms {
+            let max_units = self.capacity * self.refill_interval_ms
+            let gained = (now - self.last_ms) * self.refill_tokens
+            let total = self.units + gained
+            self.units = if total > max_units { max_units } else { total }
+            self.last_ms = now
+        }
+    }
+
+    /// Take `n` tokens at time `now`, or leave the bucket untouched and say how long to wait.
+    pub fn try_take(self, now: int, n: int) -> Decision {
+        self.refill(now)
+        let need = n * self.refill_interval_ms
+        if n > self.capacity || (n > 0 && self.refill_tokens < 1 && self.units < need) {
+            return Decision { allowed: false, remaining: self.available_now(), retry_after_ms: -1 }
+        }
+        if self.units >= need {
+            self.units = self.units - need
+            return Decision { allowed: true, remaining: self.available_now(), retry_after_ms: 0 }
+        }
+        let missing = need - self.units
+        let wait = (missing + self.refill_tokens - 1) / self.refill_tokens
+        Decision { allowed: false, remaining: self.available_now(), retry_after_ms: wait }
+    }
+
+    /// Take one token.
+    pub fn try_acquire(self, now: int) -> Decision {
+        self.try_take(now, 1)
+    }
+
+    fn available_now(self) -> int {
+        self.units / self.refill_interval_ms
+    }
+
+    /// Whole tokens available at `now` (refills first).
+    pub fn available(self, now: int) -> int {
+        self.refill(now)
+        self.available_now()
+    }
+
+    pub fn capacity(self) -> int {
+        self.capacity
+    }
+}
+
+/// Allows at most `limit` requests in any rolling window of `window_ms`.
+pub struct SlidingWindow {
+    limit: int,
+    window_ms: int,
+    stamps: Vec<int>,
+}
+
+pub fn sliding_window(limit: int, window_ms: int) -> SlidingWindow {
+    SlidingWindow { limit: limit, window_ms: window_ms, stamps: Vec::new() }
+}
+
+impl SlidingWindow {
+    fn evict(self, now: int) {
+        let mut keep: Vec<int> = Vec::new()
+        let mut i = 0
+        while i < self.stamps.len() {
+            if self.stamps[i] > now - self.window_ms {
+                keep.push(self.stamps[i])
+            }
+            i = i + 1
+        }
+        self.stamps = keep
+    }
+
+    /// Record a request at `now` if the window has room; otherwise report when the oldest request leaves it.
+    pub fn try_acquire(self, now: int) -> Decision {
+        self.evict(now)
+        let used = self.stamps.len()
+        if used < self.limit {
+            self.stamps.push(now)
+            return Decision { allowed: true, remaining: self.limit - used - 1, retry_after_ms: 0 }
+        }
+        if self.limit < 1 {
+            return Decision { allowed: false, remaining: 0, retry_after_ms: -1 }
+        }
+        let oldest = self.stamps[0]
+        Decision { allowed: false, remaining: 0, retry_after_ms: oldest + self.window_ms - now }
+    }
+
+    /// Requests that would still be allowed at `now`.
+    pub fn remaining(self, now: int) -> int {
+        self.evict(now)
+        let left = self.limit - self.stamps.len()
+        if left < 0 { 0 } else { left }
+    }
+
+    pub fn used(self, now: int) -> int {
+        self.evict(now)
+        self.stamps.len()
+    }
+}
+
+/// The standard `Retry-After` header value (whole seconds, rounded up) for a decision, or "" when allowed.
+pub fn retry_after_header(d: Decision) -> string {
+    if d.allowed || d.retry_after_ms < 0 {
+        return ""
+    }
+    let secs = (d.retry_after_ms + 999) / 1000
+    "Retry-After: " + secs.to_string()
+}

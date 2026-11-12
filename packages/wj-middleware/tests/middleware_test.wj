@@ -1,0 +1,150 @@
+use crate::new_pipeline
+use crate::request
+use crate::response
+use crate::Flow
+use crate::Layer
+use crate::PathPrefix
+use crate::Request
+use crate::RequireHeader
+use crate::Response
+use crate::ResponseHeader
+
+fn ok_handler(req: Request) -> Response {
+    response(200, "hello " + req.path)
+}
+
+fn tagged(name: string, value: string) -> Box<ResponseHeader> {
+    Box::new(ResponseHeader { header: name, value: value })
+}
+
+// A layer defined in the test: records on the way out which path the inner layers handed the handler.
+struct EchoPath {}
+
+impl Layer for EchoPath {
+    fn name(&self) -> string {
+        "echo-path"
+    }
+
+    fn before(&self, req: Request) -> Flow {
+        Flow::Continue(req)
+    }
+
+    fn after(&self, req: Request, resp: Response) -> Response {
+        resp.with_header("x-path", req.path)
+    }
+}
+
+// A layer that always answers 500 (to prove inner layers are skipped).
+struct Boom {}
+
+impl Layer for Boom {
+    fn name(&self) -> string {
+        "boom"
+    }
+
+    fn before(&self, req: Request) -> Flow {
+        Flow::Respond(response(500, "inner layer ran"))
+    }
+
+    fn after(&self, req: Request, resp: Response) -> Response {
+        resp
+    }
+}
+
+@test
+fn test_empty_pipeline_calls_the_handler() {
+    let mut p = new_pipeline()
+    let r = p.handle(request("GET", "/a"), ok_handler)
+    assert_eq(r.status, 200)
+    assert_eq(r.body, "hello /a")
+}
+
+@test
+fn test_before_layer_can_rewrite_the_request() {
+    let mut p = new_pipeline()
+    p.add(Box::new(PathPrefix { prefix: "/api" }))
+    let r = p.handle(request("GET", "/a"), ok_handler)
+    assert_eq(r.body, "hello /api/a")
+}
+
+@test
+fn test_after_layer_can_rewrite_the_response() {
+    let mut p = new_pipeline()
+    p.add(tagged("x-served-by", "wj"))
+    let r = p.handle(request("GET", "/a"), ok_handler)
+    assert_eq(r.header("X-Served-By"), "wj")
+}
+
+@test
+fn test_layers_run_in_onion_order() {
+    let mut p = new_pipeline()
+    p.add(Box::new(PathPrefix { prefix: "/outer" }))
+    p.add(Box::new(PathPrefix { prefix: "/inner" }))
+    let r = p.handle(request("GET", ""), ok_handler)
+    // the outer prefix is applied first, so the inner one lands in front of it
+    assert_eq(r.body, "hello /inner/outer")
+    let mut q = new_pipeline()
+    q.add(tagged("x-order", "1"))
+    q.add(tagged("x-order", "2"))
+    let r2 = q.handle(request("GET", ""), ok_handler)
+    // responses unwind innermost first: layer 2 sets its header before layer 1
+    assert_eq(r2.headers[0].value, "2")
+    assert_eq(r2.headers[1].value, "1")
+}
+
+@test
+fn test_short_circuit_skips_the_handler_and_inner_layers() {
+    let mut p = new_pipeline()
+    p.add(Box::new(RequireHeader { header: "authorization", status: 401, body: "who are you" }))
+    p.add(Box::new(Boom {}))
+    let r = p.handle(request("GET", "/"), ok_handler)
+    assert_eq(r.status, 401)
+    assert_eq(r.body, "who are you")
+    let authed = request("GET", "/").with_header("Authorization", "Bearer t")
+    assert_eq(p.handle(authed, ok_handler).status, 500)
+}
+
+@test
+fn test_outer_layers_still_see_a_short_circuited_response() {
+    let mut p = new_pipeline()
+    p.add(tagged("x-outer", "saw it"))
+    p.add(Box::new(RequireHeader { header: "x-key", status: 403, body: "no" }))
+    let r = p.handle(request("GET", "/"), ok_handler)
+    assert_eq(r.status, 403)
+    assert_eq(r.header("x-outer"), "saw it")
+}
+
+@test
+fn test_the_handler_is_a_closure_that_can_capture() {
+    let mut p = new_pipeline()
+    let greeting = "welcome"
+    let r = p.handle(request("GET", "/users"), |req| response(200, greeting + " " + req.path))
+    assert_eq(r.body, "welcome /users")
+}
+
+@test
+fn test_after_layer_sees_the_request_it_passed_inward() {
+    let mut p = new_pipeline()
+    p.add(Box::new(PathPrefix { prefix: "/final" }))
+    p.add(Box::new(EchoPath {}))
+    let r = p.handle(request("GET", "/orig"), ok_handler)
+    assert_eq(r.header("x-path"), "/final/orig")
+}
+
+@test
+fn test_names_list_layers_outermost_first() {
+    let mut p = new_pipeline()
+    p.add(Box::new(EchoPath {}))
+    p.add(Box::new(PathPrefix { prefix: "/v1" }))
+    assert_eq(p.len(), 2)
+    let names = p.names()
+    assert_eq(names[0], "echo-path")
+    assert_eq(names[1], "path-prefix:/v1")
+}
+
+@test
+fn test_header_lookup_ignores_case() {
+    let req = request("GET", "/").with_header("Content-Type", "text/plain")
+    assert_eq(req.header("content-type"), "text/plain")
+    assert_eq(req.header("accept"), "")
+}

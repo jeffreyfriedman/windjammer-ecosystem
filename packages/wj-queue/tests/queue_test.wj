@@ -1,0 +1,203 @@
+use crate::backoff_ms
+use crate::default_config
+use crate::new_queue
+use crate::queue_config
+use crate::Config
+
+fn small() -> Config {
+    Config { lease_ms: 100, max_attempts: 3, base_backoff_ms: 10, max_backoff_ms: 50 }
+}
+
+fn payload_of(j: Option<crate::Job>) -> string {
+    match j {
+        Some(job) => job.payload,
+        None => "-",
+    }
+}
+
+fn attempts_of(j: Option<crate::Job>) -> int {
+    match j {
+        Some(job) => job.attempts,
+        None => -1,
+    }
+}
+
+fn error_of(j: Option<crate::Job>) -> string {
+    match j {
+        Some(job) => job.last_error,
+        None => "-",
+    }
+}
+
+@test
+fn test_jobs_come_out_in_arrival_order() {
+    let mut q = new_queue(small())
+    q.push("a", 0)
+    q.push("b", 0)
+    assert_eq(payload_of(q.pop(0)), "a")
+    assert_eq(payload_of(q.pop(0)), "b")
+    assert_eq(payload_of(q.pop(0)), "-")
+}
+
+@test
+fn test_higher_priority_runs_first() {
+    let mut q = new_queue(small())
+    q.push_with("low", 1, 0, 0)
+    q.push_with("urgent", 9, 0, 0)
+    q.push_with("mid", 5, 0, 0)
+    assert_eq(payload_of(q.pop(0)), "urgent")
+    assert_eq(payload_of(q.pop(0)), "mid")
+    assert_eq(payload_of(q.pop(0)), "low")
+}
+
+@test
+fn test_delayed_job_waits_for_its_time() {
+    let mut q = new_queue(small())
+    q.push_with("later", 0, 500, 1000)
+    assert_eq(payload_of(q.pop(1499)), "-")
+    assert_eq(payload_of(q.pop(1500)), "later")
+}
+
+@test
+fn test_ack_removes_the_job() {
+    let mut q = new_queue(small())
+    let id = q.push("a", 0)
+    let _ = q.pop(0)
+    assert(q.ack(id), "ack a leased job")
+    assert_eq(q.len(), 0)
+    assert(!q.ack(id), "second ack is refused")
+    assert_eq(q.stats().completed, 1)
+}
+
+@test
+fn test_ack_needs_a_lease() {
+    let mut q = new_queue(small())
+    let id = q.push("a", 0)
+    assert(!q.ack(id), "not leased yet")
+    assert(!q.ack(404), "unknown id")
+}
+
+@test
+fn test_nack_retries_after_backoff() {
+    let mut q = new_queue(small())
+    let id = q.push("a", 0)
+    let first = q.pop(0)
+    assert_eq(attempts_of(first), 1)
+    assert(q.nack(id, "boom", 5), "nack")
+    assert_eq(payload_of(q.pop(14)), "-")
+    let again = q.pop(15)
+    assert_eq(error_of(again), "boom")
+    assert_eq(q.stats().retried, 1)
+}
+
+@test
+fn test_job_dies_after_max_attempts() {
+    let mut q = new_queue(small())
+    let id = q.push("a", 0)
+    let mut now = 0
+    let mut n: int = 0
+    while n < 3 {
+        let j = q.pop(now)
+        assert_eq(attempts_of(j), n + 1)
+        q.nack(id, "fail ${n}", now)
+        now = now + 1000
+        n = n + 1
+    }
+    assert_eq(q.len(), 0)
+    let dead = q.dead_letters()
+    assert_eq(dead.len(), 1)
+    assert_eq(dead[0].last_error, "fail 2")
+    assert_eq(q.stats().dead, 1)
+    assert_eq(payload_of(q.pop(now)), "-")
+}
+
+@test
+fn test_expired_lease_returns_the_job() {
+    let mut q = new_queue(small())
+    q.push("a", 0)
+    let _ = q.pop(0)
+    assert_eq(payload_of(q.pop(99)), "-")
+    // lease ran out at 100: retry after the 10 ms backoff
+    assert_eq(payload_of(q.pop(105)), "-")
+    assert_eq(payload_of(q.pop(110)), "a")
+}
+
+@test
+fn test_extend_keeps_a_slow_worker_alive() {
+    let mut q = new_queue(small())
+    let id = q.push("a", 0)
+    let _ = q.pop(0)
+    assert(q.extend(id, 90), "heartbeat")
+    assert_eq(payload_of(q.pop(150)), "-")
+    assert(q.ack(id), "still leased at 150")
+}
+
+@test
+fn test_requeue_dead_gives_fresh_attempts() {
+    let cfg = Config { lease_ms: 100, max_attempts: 1, base_backoff_ms: 10, max_backoff_ms: 50 }
+    let mut q = new_queue(cfg)
+    let id = q.push("a", 0)
+    let _ = q.pop(0)
+    q.nack(id, "no", 1)
+    assert_eq(q.dead_letters().len(), 1)
+    assert(q.requeue_dead(id, 2), "requeue")
+    assert_eq(q.dead_letters().len(), 0)
+    assert_eq(attempts_of(q.pop(2)), 1)
+    assert(!q.requeue_dead(id, 3), "gone from the dead letters")
+}
+
+@test
+fn test_backoff_doubles_and_caps() {
+    assert_eq(backoff_ms(10, 50, 1), 10)
+    assert_eq(backoff_ms(10, 50, 2), 20)
+    assert_eq(backoff_ms(10, 50, 3), 40)
+    assert_eq(backoff_ms(10, 50, 4), 50)
+    assert_eq(backoff_ms(10, 50, 30), 50)
+}
+
+@test
+fn test_next_ready_at_and_stats() {
+    let mut q = new_queue(default_config())
+    assert(q.next_ready_at().is_none(), "empty queue")
+    q.push_with("later", 0, 700, 100)
+    q.push("now", 100)
+    assert_eq(q.next_ready_at() ?? -1, 100)
+    let _ = q.pop(100)
+    let s = q.stats()
+    assert_eq(s.enqueued, 2)
+    assert_eq(s.leased, 1)
+    assert_eq(s.waiting, 1)
+    assert_eq(q.next_ready_at() ?? -1, 800)
+}
+
+// The README walkthrough: a worker loop where one job is flaky and fails twice before it succeeds.
+@test
+fn test_worker_loop_retries_a_flaky_job_until_it_succeeds() {
+    let mut q = new_queue(queue_config(1000, 5, 100, 5000))
+    q.push_with("send-welcome-email", 5, 0, 0)
+    q.push("rebuild-search-index", 0)
+    let mut now = 0
+    let mut log = Vec::new()
+    while q.len() > 0 && now < 10000 {
+        match q.pop(now) {
+            Some(job) => {
+                let ok = job.payload != "send-welcome-email" || job.attempts >= 3
+                if ok {
+                    q.ack(job.id)
+                    log.push("t=${now} ok ${job.payload} #${job.attempts}")
+                } else {
+                    q.nack(job.id, "smtp timeout", now)
+                    log.push("t=${now} retry ${job.payload} #${job.attempts}")
+                }
+            },
+            None => {
+                now = q.next_ready_at() ?? (now + 1)
+            },
+        }
+    }
+    assert_eq(log.join("; "), "t=0 retry send-welcome-email #1; t=0 ok rebuild-search-index #1; t=100 retry send-welcome-email #2; t=300 ok send-welcome-email #3")
+    let s = q.stats()
+    assert_eq(s.completed, 2)
+    assert_eq(s.retried, 2)
+    assert_eq(s.dead, 0)
+}

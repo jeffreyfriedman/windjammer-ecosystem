@@ -61,6 +61,10 @@ are tests passed. 74 targets (57 packages, 17 apps): all 74 are green in both mo
 `scripts/ecosystem_width_gate.wj` passes 9 of 9 compiled. The open compiler findings are in [findings](findings/README.md);
 none of them leaves a red cell.
 
+Re-run on 2026-11-12 with `wj` 0.50.0 at b5444baa7 (the `next/v0.50.0` tip): the original 74 targets are green in both
+modes (interpreted 74 of 74; compiled 74 of 74), and the three packages added in this pass (`wj-queue`, `wj-session`,
+`wj-sql`) are green in both modes as well, 77 of 77 interpreted.
+
 | Package | Interpreted | Compiled | Notes |
 |---|---|---|---|
 | `packages/wj-archive` | pass (17) | pass (17) |  |
@@ -109,6 +113,9 @@ none of them leaves a red cell.
 | `packages/wj-smtp` | pass (17) | pass (17) |  |
 | `packages/wj-snapshot` | pass (6) | pass (6) | Snapshot tests, difflib-checked unified diff |
 | `packages/wj-sqlite` | pass (6) | pass (6) | Read-only SQLite file reader; checked against Python sqlite3 and SQLite itself |
+| `packages/wj-queue` | pass (13) | pass (13) | Job queue: leases, backoff retries, dead letters |
+| `packages/wj-session` | pass (12) | pass (12) | Sessions: timeouts, rotation, CSRF, cookies |
+| `packages/wj-sql` | pass (15) | pass (15) | Parameterised SQL builder |
 | `packages/wj-stats` | pass (5) | pass (5) |  |
 | `packages/wj-sync` | pass (50) | pass (50) |  |
 | `packages/wj-table` | pass (4) | pass (4) |  |

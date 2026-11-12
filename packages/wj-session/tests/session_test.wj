@@ -1,0 +1,143 @@
+use crate::clear_cookie_value
+use crate::constant_time_eq
+use crate::default_policy
+use crate::id_from_cookie_header
+use crate::new_store
+use crate::set_cookie_value
+use crate::Miss
+use crate::Policy
+
+fn short() -> Policy {
+    Policy { idle_ms: 100, absolute_ms: 1000 }
+}
+
+fn why(r: Result<bool, Miss>) -> string {
+    match r {
+        Ok(_) => "live",
+        Err(Miss::Unknown) => "unknown",
+        Err(Miss::IdleTimeout) => "idle",
+        Err(Miss::AbsoluteTimeout) => "absolute",
+    }
+}
+
+@test
+fn test_values_round_trip() {
+    let mut s = new_store(short())
+    s.create("sid1", "csrf1", 0)
+    assert(s.set("sid1", "user", "ada", 10), "set")
+    assert_eq(s.get("sid1", "user", 20) ?? "-", "ada")
+    assert(s.get("sid1", "missing", 20).is_none(), "missing key")
+    assert(s.remove("sid1", "user", 30), "remove")
+    assert(s.get("sid1", "user", 40).is_none(), "removed")
+}
+
+@test
+fn test_unknown_session_is_refused() {
+    let mut s = new_store(short())
+    assert_eq(why(s.touch("nope", 0)), "unknown")
+    assert(!s.set("nope", "k", "v", 0), "set on unknown")
+    assert(s.get("nope", "k", 0).is_none(), "get on unknown")
+}
+
+@test
+fn test_idle_timeout_slides_with_use() {
+    let mut s = new_store(short())
+    s.create("a", "c", 0)
+    assert_eq(why(s.touch("a", 90)), "live")
+    assert_eq(why(s.touch("a", 180)), "live")
+    assert_eq(why(s.touch("a", 281)), "idle")
+    assert_eq(s.len(), 0)
+}
+
+@test
+fn test_absolute_timeout_beats_activity() {
+    let mut s = new_store(short())
+    s.create("a", "c", 0)
+    let mut t = 90
+    while t < 1000 {
+        assert_eq(why(s.touch("a", t)), "live")
+        t = t + 90
+    }
+    assert_eq(why(s.touch("a", 1000)), "absolute")
+}
+
+@test
+fn test_rotate_moves_data_and_kills_the_old_id() {
+    let mut s = new_store(short())
+    s.create("old", "tok", 0)
+    s.set("old", "user", "ada", 5)
+    assert_eq(why(s.rotate("old", "new", 10)), "live")
+    assert(s.get("old", "user", 11).is_none(), "old id is dead")
+    assert_eq(s.get("new", "user", 11) ?? "-", "ada")
+    assert_eq(s.csrf_token("new", 12) ?? "-", "tok")
+    assert_eq(why(s.rotate("old", "again", 13)), "unknown")
+}
+
+@test
+fn test_csrf_token_must_match() {
+    let mut s = new_store(short())
+    s.create("a", "secret-token", 0)
+    assert(s.csrf_valid("a", "secret-token", 1), "right token")
+    assert(!s.csrf_valid("a", "secret-tokeX", 2), "wrong token")
+    assert(!s.csrf_valid("a", "short", 3), "wrong length")
+    assert(!s.csrf_valid("zzz", "secret-token", 4), "unknown session")
+}
+
+@test
+fn test_destroy_and_purge() {
+    let mut s = new_store(short())
+    s.create("a", "c", 0)
+    s.create("b", "c", 50)
+    s.create("c", "c", 500)
+    assert(s.destroy("c"), "logout")
+    assert(!s.destroy("c"), "already gone")
+    assert_eq(s.purge_expired(120), 1)
+    assert_eq(s.len(), 1)
+    assert_eq(why(s.touch("b", 130)), "live")
+}
+
+@test
+fn test_zero_limits_never_expire() {
+    let mut s = new_store(Policy { idle_ms: 0, absolute_ms: 0 })
+    s.create("a", "c", 0)
+    assert_eq(why(s.touch("a", 99999999)), "live")
+}
+
+@test
+fn test_cookie_values() {
+    assert_eq(set_cookie_value("sid", "abc", 3600, true), "sid=abc; Path=/; HttpOnly; SameSite=Lax; Secure; Max-Age=3600")
+    assert_eq(set_cookie_value("sid", "abc", 0, false), "sid=abc; Path=/; HttpOnly; SameSite=Lax")
+    assert_eq(clear_cookie_value("sid", true), "sid=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0; Secure")
+}
+
+@test
+fn test_id_from_cookie_header() {
+    assert_eq(id_from_cookie_header("a=1; sid=abc123; b=2", "sid") ?? "-", "abc123")
+    assert(id_from_cookie_header("a=1; b=2", "sid").is_none(), "absent")
+    assert(id_from_cookie_header("sid=; a=1", "sid").is_none(), "empty value")
+    assert(id_from_cookie_header("xsid=nope", "sid").is_none(), "name must match exactly")
+}
+
+@test
+fn test_constant_time_eq() {
+    assert(constant_time_eq("abc", "abc"), "same")
+    assert(!constant_time_eq("abc", "abd"), "differs")
+    assert(!constant_time_eq("abc", "abcd"), "length")
+    assert(constant_time_eq("", ""), "empty")
+    let _ = default_policy()
+}
+
+// The README walkthrough: anonymous session, login with id rotation, CSRF check, idle expiry.
+@test
+fn test_login_flow() {
+    let mut s = new_store(default_policy())
+    s.create("anon-1", "csrf-aaa", 0)
+    assert(why(s.rotate("anon-1", "user-9", 1000)) == "live", "rotate at login")
+    s.set("user-9", "user", "ada", 1000)
+    assert(s.get("anon-1", "user", 1001).is_none(), "the pre-login id is dead")
+    assert_eq(s.get("user-9", "user", 1002) ?? "-", "ada")
+    assert(s.csrf_valid("user-9", "csrf-aaa", 1003), "real token")
+    assert(!s.csrf_valid("user-9", "csrf-zzz", 1004), "forged token")
+    // 31 minutes of silence passes the 30 minute idle limit
+    assert(s.get("user-9", "user", 1004 + 31 * 60000).is_none(), "idle expiry")
+}

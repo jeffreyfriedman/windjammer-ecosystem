@@ -1,0 +1,315 @@
+//! An in-memory job queue with priorities, delayed jobs, leases (visibility timeouts), retries with exponential
+//! backoff and a dead-letter list. Time is an argument (milliseconds), so behaviour is deterministic and testable.
+
+/// A unit of work. `attempts` counts how many times the job has been handed out.
+pub struct Job {
+    pub id: int,
+    pub payload: string,
+    pub priority: int,
+    pub attempts: int,
+    pub max_attempts: int,
+    pub run_at: int,
+    /// 0 while waiting; otherwise the time the current lease ends.
+    pub lease_until: int,
+    pub last_error: string,
+}
+
+/// Queue settings: how long a worker may hold a job, how often a job is tried, and the retry delay curve.
+pub struct Config {
+    pub lease_ms: int,
+    pub max_attempts: int,
+    pub base_backoff_ms: int,
+    pub max_backoff_ms: int,
+}
+
+/// Counts since the queue was created, plus what is queued right now.
+pub struct Stats {
+    pub enqueued: int,
+    pub completed: int,
+    pub retried: int,
+    pub dead: int,
+    pub waiting: int,
+    pub leased: int,
+}
+
+pub struct Queue {
+    config: Config,
+    jobs: Vec<Job>,
+    dead_letters: Vec<Job>,
+    next_id: int,
+    enqueued: int,
+    completed: int,
+    retried: int,
+}
+
+/// Settings from four numbers: lease, attempts per job, first retry delay, retry delay cap (all milliseconds but attempts).
+pub fn queue_config(lease_ms: int, max_attempts: int, base_backoff_ms: int, max_backoff_ms: int) -> Config {
+    Config { lease_ms: lease_ms, max_attempts: max_attempts, base_backoff_ms: base_backoff_ms, max_backoff_ms: max_backoff_ms }
+}
+
+/// 30 s lease, 5 attempts, retry delay 1 s doubling up to 5 minutes.
+pub fn default_config() -> Config {
+    Config { lease_ms: 30000, max_attempts: 5, base_backoff_ms: 1000, max_backoff_ms: 300000 }
+}
+
+pub fn new_queue(config: Config) -> Queue {
+    Queue {
+        config: config,
+        jobs: Vec::new(),
+        dead_letters: Vec::new(),
+        next_id: 1,
+        enqueued: 0,
+        completed: 0,
+        retried: 0,
+    }
+}
+
+/// Delay before attempt number `attempts + 1`: `base * 2^(attempts - 1)`, capped at `max_ms`.
+pub fn backoff_ms(base_ms: int, max_ms: int, attempts: int) -> int {
+    let mut delay = base_ms
+    let mut n = 1
+    while n < attempts && delay < max_ms {
+        delay = delay * 2
+        n = n + 1
+    }
+    if delay > max_ms { max_ms } else { delay }
+}
+
+impl Queue {
+    /// Queue a job that is ready now, at priority 0. Returns its id.
+    pub fn push(self, payload: string, now: int) -> int {
+        self.push_with(payload, 0, 0, now)
+    }
+
+    /// Queue a job with a priority (higher runs first) and a delay before it becomes ready.
+    pub fn push_with(self, payload: string, priority: int, delay_ms: int, now: int) -> int {
+        let id = self.next_id
+        self.next_id = id + 1
+        self.enqueued = self.enqueued + 1
+        self.jobs.push(Job {
+            id: id,
+            payload: payload,
+            priority: priority,
+            attempts: 0,
+            max_attempts: self.config.max_attempts,
+            run_at: now + delay_ms,
+            lease_until: 0,
+            last_error: "",
+        })
+        id
+    }
+
+    /// Hand out the best ready job (highest priority, then oldest) and lease it for `lease_ms`.
+    /// A job whose lease ran out comes back as a retry; one that used its last attempt goes to the dead letters.
+    pub fn pop(self, now: int) -> Option<Job> {
+        self.reap_expired(now)
+        let mut best = -1
+        let mut i = 0
+        while i < self.jobs.len() {
+            let j = self.jobs[i]
+            if j.lease_until == 0 && now >= j.run_at {
+                if best < 0 || j.priority > self.jobs[best].priority {
+                    best = i
+                }
+            }
+            i = i + 1
+        }
+        if best < 0 {
+            return None
+        }
+        let j = self.jobs[best]
+        let leased = Job {
+            id: j.id,
+            payload: j.payload,
+            priority: j.priority,
+            attempts: j.attempts + 1,
+            max_attempts: j.max_attempts,
+            run_at: j.run_at,
+            lease_until: now + self.config.lease_ms,
+            last_error: j.last_error,
+        }
+        self.jobs[best] = leased
+        Some(Job {
+            id: leased.id,
+            payload: leased.payload,
+            priority: leased.priority,
+            attempts: leased.attempts,
+            max_attempts: leased.max_attempts,
+            run_at: leased.run_at,
+            lease_until: leased.lease_until,
+            last_error: leased.last_error,
+        })
+    }
+
+    fn reap_expired(self, now: int) {
+        let mut i = 0
+        while i < self.jobs.len() {
+            let j = self.jobs[i]
+            if j.lease_until > 0 && now >= j.lease_until {
+                self.fail_at(i, "lease expired", j.lease_until)
+                // fail_at either rewrote slot i or removed it: look at slot i again
+            } else {
+                i = i + 1
+            }
+        }
+    }
+
+    fn index_of(self, id: int) -> int {
+        let mut i = 0
+        while i < self.jobs.len() {
+            if self.jobs[i].id == id {
+                return i as int
+            }
+            i = i + 1
+        }
+        -1
+    }
+
+    /// The worker finished the job: remove it. False when the id is unknown or no longer leased.
+    pub fn ack(self, id: int) -> bool {
+        let i = self.index_of(id)
+        if i < 0 || self.jobs[i].lease_until == 0 {
+            return false
+        }
+        self.jobs.remove(i)
+        self.completed = self.completed + 1
+        true
+    }
+
+    /// The worker failed: schedule a retry after the backoff delay, or move the job to the dead letters once it
+    /// has used all its attempts. False when the id is unknown or not leased.
+    pub fn nack(self, id: int, error: string, now: int) -> bool {
+        let i = self.index_of(id)
+        if i < 0 || self.jobs[i].lease_until == 0 {
+            return false
+        }
+        self.fail_at(i, error, now)
+        true
+    }
+
+    fn fail_at(self, i: int, error: string, now: int) {
+        if self.jobs[i].attempts >= self.jobs[i].max_attempts {
+            let j = self.jobs.remove(i)
+            self.dead_letters.push(Job {
+                id: j.id,
+                payload: j.payload,
+                priority: j.priority,
+                attempts: j.attempts,
+                max_attempts: j.max_attempts,
+                run_at: j.run_at,
+                lease_until: 0,
+                last_error: error,
+            })
+        } else {
+            let j = self.jobs[i]
+            self.retried = self.retried + 1
+            let delay = backoff_ms(self.config.base_backoff_ms, self.config.max_backoff_ms, j.attempts)
+            self.jobs[i] = Job {
+                id: j.id,
+                payload: j.payload,
+                priority: j.priority,
+                attempts: j.attempts,
+                max_attempts: j.max_attempts,
+                run_at: now + delay,
+                lease_until: 0,
+                last_error: error,
+            }
+        }
+    }
+
+    /// Give a leased job more time (a heartbeat). False when the id is unknown or not leased.
+    pub fn extend(self, id: int, now: int) -> bool {
+        let i = self.index_of(id)
+        if i < 0 || self.jobs[i].lease_until == 0 {
+            return false
+        }
+        let j = self.jobs[i]
+        self.jobs[i] = Job {
+            id: j.id,
+            payload: j.payload,
+            priority: j.priority,
+            attempts: j.attempts,
+            max_attempts: j.max_attempts,
+            run_at: j.run_at,
+            lease_until: now + self.config.lease_ms,
+            last_error: j.last_error,
+        }
+        true
+    }
+
+    /// The earliest time a job could be handed out, or None when nothing is queued.
+    pub fn next_ready_at(self) -> Option<int> {
+        let mut found = false
+        let mut best = 0
+        let mut i = 0
+        while i < self.jobs.len() {
+            let j = self.jobs[i]
+            let at = if j.lease_until > 0 { j.lease_until } else { j.run_at }
+            if !found || at < best {
+                best = at
+                found = true
+            }
+            i = i + 1
+        }
+        if found { Some(best) } else { None }
+    }
+
+    /// Jobs that ran out of attempts, oldest first.
+    pub fn dead_letters(self) -> Vec<Job> {
+        let mut out = Vec::new()
+        let mut i = 0
+        while i < self.dead_letters.len() {
+            let j = self.dead_letters[i]
+            out.push(j)
+            i = i + 1
+        }
+        out
+    }
+
+    /// Put a dead job back in the queue with fresh attempts. False when the id is not in the dead letters.
+    pub fn requeue_dead(self, id: int, now: int) -> bool {
+        let mut i = 0
+        while i < self.dead_letters.len() {
+            if self.dead_letters[i].id == id {
+                let j = self.dead_letters.remove(i)
+                self.jobs.push(Job {
+                    id: j.id,
+                    payload: j.payload,
+                    priority: j.priority,
+                    attempts: 0,
+                    max_attempts: j.max_attempts,
+                    run_at: now,
+                    lease_until: 0,
+                    last_error: j.last_error,
+                })
+                return true
+            }
+            i = i + 1
+        }
+        false
+    }
+
+    /// Jobs still queued (waiting or leased).
+    pub fn len(self) -> int {
+        self.jobs.len() as int
+    }
+
+    pub fn stats(self) -> Stats {
+        let mut leased = 0
+        let mut i = 0
+        while i < self.jobs.len() {
+            if self.jobs[i].lease_until > 0 {
+                leased = leased + 1
+            }
+            i = i + 1
+        }
+        Stats {
+            enqueued: self.enqueued,
+            completed: self.completed,
+            retried: self.retried,
+            dead: self.dead_letters.len() as int,
+            waiting: self.jobs.len() as int - leased,
+            leased: leased,
+        }
+    }
+}

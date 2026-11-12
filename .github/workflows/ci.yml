@@ -8,18 +8,18 @@ on:
 
 env:
   CARGO_TERM_COLOR: always
-  # Pinned to WJ_PIN.md (full SHA; must exist on the remote). Bump both together, deliberately.
+  # Pinned to the [toolchain] table in wj.toml (full SHA; must exist on the remote). Bump both together, deliberately.
   WINDJAMMER_REF: 88d4cea796fd846e0318bd2ac3f740c28eecdf66
 
 jobs:
   pin-check:
-    name: WJ_PIN.md matches WINDJAMMER_REF
+    name: wj.toml pin matches WINDJAMMER_REF
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - run: |
-          pin=$(grep -E '^WJ_COMMIT=' WJ_PIN.md | head -1 | cut -d= -f2)
-          [ "$pin" = "$WINDJAMMER_REF" ] || { echo "::error::WJ_PIN.md ($pin) != WINDJAMMER_REF ($WINDJAMMER_REF)"; exit 1; }
+          pin=$(grep -E '^wj *= *"' wj.toml | head -1 | cut -d'"' -f2)
+          [ "$pin" = "$WINDJAMMER_REF" ] || { echo "::error::wj.toml pin ($pin) != WINDJAMMER_REF ($WINDJAMMER_REF)"; exit 1; }
 
   orphan-tests:
     name: Orphan test check
@@ -74,6 +74,13 @@ jobs:
           unset CARGO_TARGET_DIR
           cargo build --release -p windjammer --bin wj
           ./target/release/wj --version
+
+      - name: Public hygiene gate (self-test, then scan of tracked files)
+        working-directory: windjammer-ecosystem
+        run: |
+          W="${{ github.workspace }}/windjammer/target/release/wj"
+          "$W" run --interpret --allow process --allow fs.read --allow env.read --allow console scripts/public_hygiene.wj --self-test
+          "$W" run --interpret --allow process --allow fs.read --allow env.read --allow console scripts/public_hygiene.wj
 
       - name: Every package defines at least one test (wj test --list when supported)
         env:

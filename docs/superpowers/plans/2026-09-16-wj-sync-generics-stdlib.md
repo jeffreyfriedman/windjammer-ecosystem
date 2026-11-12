@@ -52,7 +52,7 @@ pub fn send<T>(tx: Sender<T>, value: T) -> Sender<T> {
 - [ ] **Step 3: Run test — expect FAIL (RED)**
 
 ```bash
-cd /home/user/src/wj/windjammer
+cd path/to/windjammer
 unset CARGO_TARGET_DIR
 export CARGO_TARGET_DIR="$HOME/Library/Caches/windjammer/cargo-target/shared"
 cargo test --release --test all -- generic_channel_send_owned_param_must_not_demote --nocapture

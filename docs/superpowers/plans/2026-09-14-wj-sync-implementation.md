@@ -15,7 +15,7 @@
 - Pure Windjammer only — no `extern fn`, no `ffi/`, no rust-interop Tokio/rayon
 - Public API: `Channel`/`Sender`/`Receiver`, `Shared`/`SharedMap`/`Counter`, `Barrier`/`Once`/`Latch`, `Pending`/`task`/`parallel`, `Pool` — never expose `Arc`/`Mutex`/`async`/`spawn`/`go`
 - TDD: failing test → `$WJ test` red → implement → green; compiler bugs → `windjammer/tests/` repro, fix compiler, no app workarounds
-- Build: `unset CARGO_TARGET_DIR && /home/user/src/wj/windjammer/target/release/wj`
+- Build: `unset CARGO_TARGET_DIR && "$WJ"`
 - Bench gate: warn if >2× Rust baseline; fail soft gate if >5×
 - Commits only when user asks
 
@@ -72,7 +72,7 @@ fn test_unbounded_send_recv() {
 
 ```bash
 cd packages/wj-sync && unset CARGO_TARGET_DIR && \
-  /home/user/src/wj/windjammer/target/release/wj test
+  "$WJ" test
 ```
 
 Expected: compile/link failure or missing `unbounded_int`

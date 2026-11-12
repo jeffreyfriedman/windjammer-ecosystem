@@ -1,5 +1,5 @@
 // Tip-health sweep: run every package and app test suite interpreted and compiled.
-// Usage: wj run --allow process,fs,env scripts/health_sweep.wj <wj-binary> <logdir> [mode: interp|compiled|both] [dir...]
+// Usage: wj run --allow process --allow fs.read --allow fs.write --allow env.read scripts/health_sweep.wj <wj-binary> <logdir> [mode: interp|compiled|both] [dir...]
 // Prints one TSV row per directory: dir, mode, status, last result line.
 use std::process
 use std::fs

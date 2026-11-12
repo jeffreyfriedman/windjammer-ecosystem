@@ -37,7 +37,7 @@ Newer packages and the std modules they use: `wj-decimal` (`std::strings`), `wj-
 `wj-archive` (`std::encoding`, `std::strings`; DEFLATE and CRC-32 are written in Windjammer), `wj-oauth` (`std::crypto`
 HMAC and constant-time compare, `std::encoding`, `std::json` with typed `@json` structs), `wj-smtp` (`std::encoding`,
 `std::strings`), `wj-cache` (`std::collections`, `std::encoding`), `wj-redis` (`std::net` raw TCP, `std::thread`),
-`wj-cli-ui` (`std::env`, `std::fs` for `/dev/stdin`, `std::strings`), `wj-prop` (no std module beyond `std::strings`; PCG32
+`wj-cli-ui` (`std::env`, `std::fs` for `/dev/stdin`, `std::strings`), `wj-queue`, `wj-session` and `wj-sql` (`std::strings`, `std::collections`; pure computation, no capabilities), `wj-prop` (no std module beyond `std::strings`; PCG32
 runs on wrapping `u64` arithmetic), `wj-snapshot` (`std::fs`, `std::env`), `wj-sqlite` (`std::fs`, `std::encoding`,
 `std::strings`; `verify` uses `std::db`). Packages that declare capabilities: `wj-cli-ui` (`env.read` for `NO_COLOR` and `TERM`,
 `fs.read` for `/dev/stdin`), `wj-snapshot` (`env.read WJ_UPDATE_SNAPSHOTS`, `fs` under `tests/snapshots`), `wj-sqlite`

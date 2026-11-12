@@ -56,6 +56,9 @@
 | wj-smtp | MIME messages and SMTP planning | std |
 | wj-snapshot | Snapshot tests with unified diffs | std |
 | wj-sqlite | Read-only SQLite file reader (b-trees, records) | std |
+| wj-queue | Job queue: priorities, delays, leases, backoff retries, dead letters | std |
+| wj-session | Sessions: timeouts, id rotation, CSRF tokens, session cookies | std |
+| wj-sql | Parameterised SQL builder (select, insert, update, delete) | std |
 | wj-stats | Mean, median, standard deviation | std |
 | wj-sync | Channels, shared state, pools | std |
 | wj-table | Markdown and plain tables, fixed-point numbers | std |

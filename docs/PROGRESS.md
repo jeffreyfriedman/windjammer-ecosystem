@@ -64,6 +64,9 @@ Replaces the old weekly log. Levels:
 | wj-redis | Redis client over TCP, in-process test server | 11 | 7 / 7 |
 | wj-snapshot | Snapshot tests, unified diff | 7 | 6 / 6 |
 | wj-sqlite | Read-only SQLite file reader | 18 | 6 / 6 |
+| wj-queue | Job queue with leases, backoff, dead letters | 15 | 13 / 13 |
+| wj-session | Sessions with timeouts, rotation, CSRF | 17 | 12 / 12 |
+| wj-sql | Parameterised SQL query builder | 29 | 15 / 15 |
 | wj-gitignore | Subset (.gitignore matching) | 3 | 12 / 12 |
 | wj-json-doc | Order-preserving JSON documents | 24 | 12 / 12 |
 | wj-proc | Wrapper (process, git, CPU timing) | 12 | 8 / 8 |

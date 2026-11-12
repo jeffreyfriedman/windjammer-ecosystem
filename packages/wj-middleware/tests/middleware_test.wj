@@ -1,0 +1,124 @@
+use crate::new_pipeline
+use crate::request
+use crate::response
+use crate::Flow
+use crate::Pipeline
+use crate::Request
+use crate::Response
+
+fn ok_handler() -> Box<dyn Fn(Request) -> Response> {
+    Box::new(|req| response(200, "hello " + req.path))
+}
+
+// A layer that notes, in X-Trace, that the request passed through on the way in and the response on the way out.
+fn tracing_layer(p: Pipeline, name: string) {
+    let n_in = name + ">"
+    let n_out = "<" + name
+    p.layer(
+        name,
+        Box::new(|req| Flow::Continue(req.with_header("x-in", n_in))),
+        Box::new(|_req, resp| resp.with_header("x-out", n_out)),
+    )
+}
+
+@test
+fn test_empty_pipeline_calls_the_handler() {
+    let mut p = new_pipeline()
+    let r = p.handle(request("GET", "/a"), ok_handler())
+    assert_eq(r.status, 200)
+    assert_eq(r.body, "hello /a")
+}
+
+@test
+fn test_before_layer_can_rewrite_the_request() {
+    let mut p = new_pipeline()
+    p.on_request("slash", Box::new(|req| Flow::Continue(req.with_path("/rewritten"))))
+    let r = p.handle(request("GET", "/a"), ok_handler())
+    assert_eq(r.body, "hello /rewritten")
+}
+
+@test
+fn test_after_layer_can_rewrite_the_response() {
+    let mut p = new_pipeline()
+    p.on_response("tag", Box::new(|_req, resp| resp.with_header("x-served-by", "wj")))
+    let r = p.handle(request("GET", "/a"), ok_handler())
+    assert_eq(r.header("X-Served-By"), "wj")
+}
+
+@test
+fn test_layers_run_in_onion_order() {
+    let mut p = new_pipeline()
+    p.on_request("outer", Box::new(|req| Flow::Continue(req.with_path(req.path + "/outer"))))
+    p.on_request("inner", Box::new(|req| Flow::Continue(req.with_path(req.path + "/inner"))))
+    let r = p.handle(request("GET", ""), ok_handler())
+    assert_eq(r.body, "hello /outer/inner")
+    p.on_response("o1", Box::new(|_req, resp| resp.with_header("x-order", "1")))
+    p.on_response("o2", Box::new(|_req, resp| resp.with_header("x-order", "2")))
+    let r2 = p.handle(request("GET", ""), ok_handler())
+    // responses unwind innermost first: o2 sets its header before o1
+    assert_eq(r2.headers[0].value, "2")
+    assert_eq(r2.headers[1].value, "1")
+}
+
+@test
+fn test_short_circuit_skips_the_handler_and_inner_layers() {
+    let mut p = new_pipeline()
+    p.on_request("auth", Box::new(|req| {
+        if req.header("authorization") == "" {
+            Flow::Respond(response(401, "who are you"))
+        } else {
+            Flow::Continue(req)
+        }
+    }))
+    p.on_request("never", Box::new(|req| Flow::Respond(response(500, "inner layer ran"))))
+    let r = p.handle(request("GET", "/"), ok_handler())
+    assert_eq(r.status, 401)
+    let authed = request("GET", "/").with_header("Authorization", "Bearer t")
+    assert_eq(p.handle(authed, ok_handler()).status, 500)
+}
+
+@test
+fn test_outer_layers_still_see_a_short_circuited_response() {
+    let mut p = new_pipeline()
+    p.on_response("outer", Box::new(|_req, resp| resp.with_header("x-outer", "saw it")))
+    p.on_request("gate", Box::new(|_req| Flow::Respond(response(403, "no"))))
+    let r = p.handle(request("GET", "/"), ok_handler())
+    assert_eq(r.status, 403)
+    assert_eq(r.header("x-outer"), "saw it")
+}
+
+@test
+fn test_closures_capture_configuration() {
+    let mut p = new_pipeline()
+    let prefix = "/api"
+    p.on_request("prefix", Box::new(|req| Flow::Continue(req.with_path(prefix + req.path))))
+    let r = p.handle(request("GET", "/users"), ok_handler())
+    assert_eq(r.body, "hello /api/users")
+}
+
+@test
+fn test_after_layer_sees_the_request_as_the_inner_layers_left_it() {
+    let mut p = new_pipeline()
+    p.on_request("rewrite", Box::new(|req| Flow::Continue(req.with_path("/final"))))
+    p.on_response("echo", Box::new(|req, resp| resp.with_header("x-path", req.path)))
+    let r = p.handle(request("GET", "/orig"), ok_handler())
+    assert_eq(r.header("x-path"), "/final")
+}
+
+@test
+fn test_names_list_layers_outermost_first() {
+    let mut p = new_pipeline()
+    tracing_layer(p, "a")
+    tracing_layer(p, "b")
+    assert_eq(p.len(), 2)
+    let names = p.names()
+    assert_eq(names[0], "a")
+    assert_eq(names[1], "b")
+}
+
+@test
+fn test_header_lookup_ignores_case() {
+    let req = request("GET", "/").with_header("Content-Type", "text/plain")
+    assert_eq(req.header("content-type"), "text/plain")
+    assert_eq(req.header("accept"), "")
+}

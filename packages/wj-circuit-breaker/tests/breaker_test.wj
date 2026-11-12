@@ -1,0 +1,169 @@
+use crate::breaker_config
+use crate::default_config
+use crate::new_breaker
+use crate::Breaker
+use crate::State
+
+// trips at 50% of at least 4 calls in a 1000 ms window; open 500 ms; 2 probes
+fn small() -> Breaker {
+    new_breaker(breaker_config(50, 4, 1000, 500, 2))
+}
+
+fn fail_n(b: Breaker, n: int, at: int) {
+    let mut i = 0
+    while i < n {
+        b.allow(at)
+        b.record_failure(at)
+        i = i + 1
+    }
+}
+
+@test
+fn test_starts_closed_and_allows() {
+    let mut b = small()
+    assert(b.allow(0))
+    assert_eq(b.state_name(0), "closed")
+}
+
+@test
+fn test_does_not_trip_below_min_calls() {
+    let mut b = small()
+    fail_n(b, 3, 10)
+    assert_eq(b.state_name(10), "closed")
+    assert(b.allow(10))
+}
+
+@test
+fn test_trips_at_the_failure_rate() {
+    let mut b = small()
+    b.record_success(1)
+    b.record_success(2)
+    b.record_failure(3)
+    assert_eq(b.state_name(3), "closed")
+    b.record_failure(4)
+    assert_eq(b.state_name(4), "open")
+    assert_eq(b.trips(), 1)
+}
+
+@test
+fn test_mostly_healthy_traffic_stays_closed() {
+    let mut b = small()
+    let mut t = 0
+    while t < 30 {
+        b.record_success(t)
+        t = t + 1
+    }
+    b.record_failure(30)
+    b.record_failure(31)
+    assert_eq(b.state_name(31), "closed")
+    assert_eq(b.failure_rate_pct(31), 6)
+}
+
+@test
+fn test_open_refuses_calls_and_reports_wait() {
+    let mut b = small()
+    fail_n(b, 4, 100)
+    assert(!b.allow(200))
+    assert_eq(b.wait_ms(200), 400)
+    assert_eq(b.wait_ms(599), 1)
+}
+
+@test
+fn test_old_failures_age_out_of_the_window() {
+    let mut b = small()
+    fail_n(b, 3, 0)
+    b.record_failure(2000)
+    assert_eq(b.state_name(2000), "closed")
+    assert_eq(b.failure_rate_pct(2000), 100)
+}
+
+@test
+fn test_becomes_half_open_after_cooldown() {
+    let mut b = small()
+    fail_n(b, 4, 0)
+    assert_eq(b.state_name(499), "open")
+    assert_eq(b.state_name(500), "half-open")
+    assert_eq(b.wait_ms(500), 0)
+}
+
+@test
+fn test_half_open_admits_only_probe_limit_calls() {
+    let mut b = small()
+    fail_n(b, 4, 0)
+    assert(b.allow(500))
+    assert(b.allow(500))
+    assert(!b.allow(500))
+}
+
+@test
+fn test_all_probes_succeeding_closes_the_breaker() {
+    let mut b = small()
+    fail_n(b, 4, 0)
+    b.allow(500)
+    b.record_success(501)
+    assert_eq(b.state_name(501), "half-open")
+    b.allow(502)
+    b.record_success(503)
+    assert_eq(b.state_name(503), "closed")
+    assert(b.allow(503))
+    assert_eq(b.failure_rate_pct(503), 0)
+}
+
+@test
+fn test_one_failed_probe_reopens_with_a_fresh_cooldown() {
+    let mut b = small()
+    fail_n(b, 4, 0)
+    b.allow(500)
+    b.record_success(501)
+    b.allow(502)
+    b.record_failure(510)
+    assert_eq(b.state_name(510), "open")
+    assert_eq(b.wait_ms(510), 500)
+    assert_eq(b.trips(), 2)
+}
+
+@test
+fn test_reopened_breaker_recovers_later() {
+    let mut b = small()
+    fail_n(b, 4, 0)
+    b.allow(500)
+    b.record_failure(500)
+    assert_eq(b.state_name(999), "open")
+    assert_eq(b.state_name(1000), "half-open")
+}
+
+@test
+fn test_retry_in_takes_the_longer_of_policy_and_cooldown() {
+    let mut b = small()
+    assert_eq(b.retry_in(0, 200), 200)
+    fail_n(b, 4, 0)
+    assert_eq(b.retry_in(100, 200), 400)
+    assert_eq(b.retry_in(100, 900), 900)
+}
+
+@test
+fn test_reset_closes_an_open_breaker() {
+    let mut b = small()
+    fail_n(b, 4, 0)
+    b.reset()
+    assert(b.allow(1))
+}
+
+@test
+fn test_default_config_values() {
+    let c = default_config()
+    assert_eq(c.failure_rate_pct, 50)
+    assert_eq(c.probe_limit, 3)
+}
+
+@test
+fn test_state_enum_follows_the_lifecycle() {
+    let mut b = small()
+    let closed = match b.state(0) { State::Closed => true, _ => false }
+    assert(closed)
+    fail_n(b, 4, 0)
+    let open = match b.state(1) { State::Open => true, _ => false }
+    assert(open)
+    let half = match b.state(500) { State::HalfOpen => true, _ => false }
+    assert(half)
+}

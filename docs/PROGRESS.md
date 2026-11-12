@@ -67,6 +67,10 @@ Replaces the old weekly log. Levels:
 | wj-queue | Job queue with leases, backoff, dead letters | 15 | 13 / 13 |
 | wj-session | Sessions with timeouts, rotation, CSRF | 17 | 12 / 12 |
 | wj-sql | Parameterised SQL query builder | 29 | 15 / 15 |
+| wj-token-bucket | Token bucket and sliding-window limiters | 10 | 14 / 14 |
+| wj-circuit-breaker | Circuit breaker with failure-rate window and probes | 13 | 15 / 15 |
+| wj-trace | Spans, sampling, traceparent, exporter trait | 17 | 18 / 18 |
+| wj-middleware | Middleware pipeline over closures | 16 | 10 / 10 |
 | wj-gitignore | Subset (.gitignore matching) | 3 | 12 / 12 |
 | wj-json-doc | Order-preserving JSON documents | 24 | 12 / 12 |
 | wj-proc | Wrapper (process, git, CPU timing) | 12 | 8 / 8 |

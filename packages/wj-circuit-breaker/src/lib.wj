@@ -1,0 +1,212 @@
+//! A circuit breaker: closed (calls flow), open (calls are refused while a dependency recovers) and half-open
+//! (a few probe calls decide whether to close again). Time is an argument in milliseconds, so behaviour is
+//! deterministic. Compose with `wj-retry`: pass its `delay_ms` to `retry_in` and the breaker raises it to the
+//! moment the next probe is allowed.
+
+pub enum State {
+    Closed,
+    Open,
+    HalfOpen,
+}
+
+/// Tuning: trip when at least `min_calls` calls landed in the last `window_ms` and `failure_rate_pct` percent
+/// of them failed; stay open for `open_ms`; then let `probe_limit` probes through, all of which must succeed.
+pub struct Config {
+    pub failure_rate_pct: int,
+    pub min_calls: int,
+    pub window_ms: int,
+    pub open_ms: int,
+    pub probe_limit: int,
+}
+
+pub fn breaker_config(failure_rate_pct: int, min_calls: int, window_ms: int, open_ms: int, probe_limit: int) -> Config {
+    Config {
+        failure_rate_pct: failure_rate_pct,
+        min_calls: min_calls,
+        window_ms: window_ms,
+        open_ms: open_ms,
+        probe_limit: probe_limit,
+    }
+}
+
+/// Trip at 50% failures over 10 calls in 60 s, stay open 30 s, 3 probes.
+pub fn default_config() -> Config {
+    Config { failure_rate_pct: 50, min_calls: 10, window_ms: 60000, open_ms: 30000, probe_limit: 3 }
+}
+
+pub struct Breaker {
+    config: Config,
+    times: Vec<int>,
+    failed: Vec<bool>,
+    phase: int,
+    opened_at: int,
+    probes_started: int,
+    probes_ok: int,
+    trips: int,
+}
+
+const CLOSED: int = 0
+const OPEN: int = 1
+const HALF_OPEN: int = 2
+
+pub fn new_breaker(config: Config) -> Breaker {
+    Breaker {
+        config: config,
+        times: Vec::new(),
+        failed: Vec::new(),
+        phase: CLOSED,
+        opened_at: 0,
+        probes_started: 0,
+        probes_ok: 0,
+        trips: 0,
+    }
+}
+
+impl Breaker {
+    fn advance(self, now: int) {
+        if self.phase == OPEN && now >= self.opened_at + self.config.open_ms {
+            self.phase = HALF_OPEN
+            self.probes_started = 0
+            self.probes_ok = 0
+        }
+    }
+
+    fn trim(self, now: int) {
+        let mut t: Vec<int> = Vec::new()
+        let mut f: Vec<bool> = Vec::new()
+        let mut i = 0
+        while i < self.times.len() {
+            if self.times[i] > now - self.config.window_ms {
+                t.push(self.times[i])
+                f.push(self.failed[i])
+            }
+            i = i + 1
+        }
+        self.times = t
+        self.failed = f
+    }
+
+    fn trip(self, now: int) {
+        self.phase = OPEN
+        self.opened_at = now
+        self.trips = self.trips + 1
+        self.times = Vec::new()
+        self.failed = Vec::new()
+    }
+
+    /// Current state at `now` (an open breaker turns half-open once its cool-down has passed).
+    pub fn state(self, now: int) -> State {
+        self.advance(now)
+        if self.phase == OPEN {
+            State::Open
+        } else if self.phase == HALF_OPEN {
+            State::HalfOpen
+        } else {
+            State::Closed
+        }
+    }
+
+    pub fn state_name(self, now: int) -> string {
+        self.advance(now)
+        if self.phase == OPEN {
+            "open"
+        } else if self.phase == HALF_OPEN {
+            "half-open"
+        } else {
+            "closed"
+        }
+    }
+
+    /// May a call start now? Closed: yes. Open: no. Half-open: yes until `probe_limit` probes are in flight or done.
+    /// Report the outcome with `record_success` or `record_failure`.
+    pub fn allow(self, now: int) -> bool {
+        self.advance(now)
+        if self.phase == CLOSED {
+            return true
+        }
+        if self.phase == HALF_OPEN && self.probes_started < self.config.probe_limit {
+            self.probes_started = self.probes_started + 1
+            return true
+        }
+        false
+    }
+
+    pub fn record_success(self, now: int) {
+        self.advance(now)
+        if self.phase == HALF_OPEN {
+            self.probes_ok = self.probes_ok + 1
+            if self.probes_ok >= self.config.probe_limit {
+                self.phase = CLOSED
+                self.times = Vec::new()
+                self.failed = Vec::new()
+            }
+        } else if self.phase == CLOSED {
+            self.times.push(now)
+            self.failed.push(false)
+            self.trim(now)
+        }
+    }
+
+    pub fn record_failure(self, now: int) {
+        self.advance(now)
+        if self.phase == HALF_OPEN {
+            self.trip(now)
+        } else if self.phase == CLOSED {
+            self.times.push(now)
+            self.failed.push(true)
+            self.trim(now)
+            let total = self.times.len()
+            if total >= self.config.min_calls && self.failures_in_window() * 100 >= self.config.failure_rate_pct * total {
+                self.trip(now)
+            }
+        }
+    }
+
+    fn failures_in_window(self) -> int {
+        let mut n = 0
+        let mut i = 0
+        while i < self.failed.len() {
+            if self.failed[i] {
+                n = n + 1
+            }
+            i = i + 1
+        }
+        n
+    }
+
+    /// Failure percentage over the current window (0 when empty).
+    pub fn failure_rate_pct(self, now: int) -> int {
+        self.trim(now)
+        if self.times.len() == 0 {
+            return 0
+        }
+        self.failures_in_window() * 100 / self.times.len()
+    }
+
+    /// Milliseconds until a call may be attempted: 0 when calls are allowed now.
+    pub fn wait_ms(self, now: int) -> int {
+        self.advance(now)
+        if self.phase == OPEN {
+            return self.opened_at + self.config.open_ms - now
+        }
+        0
+    }
+
+    /// How long to wait before the next try: the retry policy's delay, or the breaker's cool-down if that is longer.
+    pub fn retry_in(self, now: int, retry_delay_ms: int) -> int {
+        let w = self.wait_ms(now)
+        if w > retry_delay_ms { w } else { retry_delay_ms }
+    }
+
+    /// Times the breaker has opened.
+    pub fn trips(self) -> int {
+        self.trips
+    }
+
+    /// Force the breaker closed with an empty window (for operators).
+    pub fn reset(self) {
+        self.phase = CLOSED
+        self.times = Vec::new()
+        self.failed = Vec::new()
+    }
+}

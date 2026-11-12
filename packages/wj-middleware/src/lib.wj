@@ -1,0 +1,165 @@
+//! A request/response middleware pipeline. Each layer can inspect or rewrite the request on the way in
+//! (`before`), answer early (short-circuit), and inspect or rewrite the response on the way out (`after`).
+//! Layers are closures, so they can capture configuration. Pure computation: no I/O.
+
+pub struct Header {
+    pub name: string,
+    pub value: string,
+}
+
+pub struct Request {
+    pub method: string,
+    pub path: string,
+    pub headers: Vec<Header>,
+    pub body: string,
+}
+
+pub struct Response {
+    pub status: int,
+    pub headers: Vec<Header>,
+    pub body: string,
+}
+
+pub fn request(method: string, path: string) -> Request {
+    Request { method: method, path: path, headers: Vec::new(), body: "" }
+}
+
+pub fn response(status: int, body: string) -> Response {
+    Response { status: status, headers: Vec::new(), body: body }
+}
+
+fn find(headers: Vec<Header>, name: string) -> string {
+    let want = name.to_lowercase()
+    let mut i = 0
+    while i < headers.len() {
+        if headers[i].name.to_lowercase() == want {
+            return headers[i].value
+        }
+        i = i + 1
+    }
+    ""
+}
+
+impl Request {
+    pub fn with_header(self, name: string, value: string) -> Request {
+        let mut hs = self.headers
+        hs.push(Header { name: name, value: value })
+        Request { method: self.method, path: self.path, headers: hs, body: self.body }
+    }
+
+    pub fn with_body(self, body: string) -> Request {
+        Request { method: self.method, path: self.path, headers: self.headers, body: body }
+    }
+
+    pub fn with_path(self, path: string) -> Request {
+        Request { method: self.method, path: path, headers: self.headers, body: self.body }
+    }
+
+    /// Case-insensitive header lookup; "" when absent.
+    pub fn header(self, name: string) -> string {
+        find(self.headers, name)
+    }
+}
+
+impl Response {
+    pub fn with_header(self, name: string, value: string) -> Response {
+        let mut hs = self.headers
+        hs.push(Header { name: name, value: value })
+        Response { status: self.status, headers: hs, body: self.body }
+    }
+
+    pub fn with_status(self, status: int) -> Response {
+        Response { status: status, headers: self.headers, body: self.body }
+    }
+
+    pub fn header(self, name: string) -> string {
+        find(self.headers, name)
+    }
+}
+
+/// What a `before` layer decides: pass the (possibly rewritten) request on, or answer now.
+pub enum Flow {
+    Continue(Request),
+    Respond(Response),
+}
+
+struct Layer {
+    name: string,
+    before: Box<dyn Fn(Request) -> Flow>,
+    after: Box<dyn Fn(Request, Response) -> Response>,
+}
+
+/// An ordered stack of layers around a handler. The first layer added is the outermost.
+pub struct Pipeline {
+    layers: Vec<Layer>,
+}
+
+pub fn new_pipeline() -> Pipeline {
+    Pipeline { layers: Vec::new() }
+}
+
+impl Pipeline {
+    /// Add a layer with both hooks.
+    pub fn layer(self, name: string, before: Box<dyn Fn(Request) -> Flow>, after: Box<dyn Fn(Request, Response) -> Response>) {
+        self.layers.push(Layer { name: name, before: before, after: after })
+    }
+
+    /// Add a layer that only looks at the way in.
+    pub fn on_request(self, name: string, before: Box<dyn Fn(Request) -> Flow>) {
+        self.layer(name, before, Box::new(|_req, resp| resp))
+    }
+
+    /// Add a layer that only looks at the way out.
+    pub fn on_response(self, name: string, after: Box<dyn Fn(Request, Response) -> Response>) {
+        self.layer(name, Box::new(|req| Flow::Continue(req)), after)
+    }
+
+    pub fn len(self) -> int {
+        self.layers.len()
+    }
+
+    /// Layer names, outermost first.
+    pub fn names(self) -> Vec<string> {
+        let mut out: Vec<string> = Vec::new()
+        let mut i = 0
+        while i < self.layers.len() {
+            out.push(self.layers[i].name)
+            i = i + 1
+        }
+        out
+    }
+
+    /// Run `req` through the layers into `handler`, then back out. A layer that responds early skips the
+    /// handler and the layers inside it, but the layers outside it still see the response.
+    pub fn handle(self, req: Request, handler: Box<dyn Fn(Request) -> Response>) -> Response {
+        let mut current = req
+        let mut reached: Vec<Request> = Vec::new()
+        let mut answer = response(0, "")
+        let mut answered = false
+        let mut depth = 0
+        while depth < self.layers.len() && !answered {
+            let f = self.layers[depth].before
+            let flow = f(current)
+            match flow {
+                Flow::Continue(next) => {
+                    reached.push(next)
+                    current = next
+                    depth = depth + 1
+                },
+                Flow::Respond(r) => {
+                    answer = r
+                    answered = true
+                },
+            }
+        }
+        if !answered {
+            answer = handler(current)
+        }
+        while depth > 0 {
+            depth = depth - 1
+            let g = self.layers[depth].after
+            answer = g(reached[depth], answer)
+        }
+        answer
+    }
+}

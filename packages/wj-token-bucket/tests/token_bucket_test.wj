@@ -1,0 +1,137 @@
+use crate::retry_after_header
+use crate::sliding_window
+use crate::token_bucket
+
+@test
+fn test_full_bucket_allows_a_burst_up_to_capacity() {
+    let mut b = token_bucket(3, 1, 1000)
+    assert(b.try_acquire(0).allowed)
+    assert(b.try_acquire(0).allowed)
+    let third = b.try_acquire(0)
+    assert(third.allowed)
+    assert_eq(third.remaining, 0)
+    assert(!b.try_acquire(0).allowed)
+}
+
+@test
+fn test_denied_request_reports_exact_wait() {
+    let mut b = token_bucket(2, 1, 1000)
+    b.try_take(0, 2)
+    let d = b.try_acquire(250)
+    assert(!d.allowed)
+    assert_eq(d.retry_after_ms, 750)
+}
+
+@test
+fn test_waiting_the_reported_time_succeeds() {
+    let mut b = token_bucket(2, 1, 1000)
+    b.try_take(0, 2)
+    let d = b.try_acquire(250)
+    assert(b.try_acquire(250 + d.retry_after_ms).allowed)
+}
+
+@test
+fn test_refill_is_capped_at_capacity() {
+    let mut b = token_bucket(5, 2, 1000)
+    b.try_take(0, 5)
+    assert_eq(b.available(1000000), 5)
+}
+
+@test
+fn test_partial_refills_accumulate_without_drift() {
+    let mut b = token_bucket(10, 1, 3)
+    b.try_take(0, 10)
+    // 1 token per 3 ms: after 1 ms nothing, 3 ms one, 7 ms two (the leftover millisecond counts)
+    assert_eq(b.available(1), 0)
+    assert_eq(b.available(2), 0)
+    assert_eq(b.available(3), 1)
+    assert_eq(b.available(7), 2)
+}
+
+@test
+fn test_failed_take_leaves_tokens_untouched() {
+    let mut b = token_bucket(4, 1, 1000)
+    b.try_take(0, 3)
+    let d = b.try_take(0, 3)
+    assert(!d.allowed)
+    assert_eq(d.remaining, 1)
+    assert(b.try_take(0, 1).allowed)
+}
+
+@test
+fn test_request_larger_than_capacity_can_never_succeed() {
+    let mut b = token_bucket(2, 1, 1000)
+    let d = b.try_take(0, 3)
+    assert(!d.allowed)
+    assert_eq(d.retry_after_ms, -1)
+}
+
+@test
+fn test_zero_refill_bucket_never_recovers() {
+    let mut b = token_bucket(1, 0, 1000)
+    assert(b.try_acquire(0).allowed)
+    let d = b.try_acquire(99999)
+    assert(!d.allowed)
+    assert_eq(d.retry_after_ms, -1)
+}
+
+@test
+fn test_clock_going_backwards_does_not_mint_tokens() {
+    let mut b = token_bucket(1, 1, 1000)
+    assert(b.try_acquire(5000).allowed)
+    assert(!b.try_acquire(1000).allowed)
+}
+
+@test
+fn test_sliding_window_blocks_after_limit() {
+    let mut w = sliding_window(2, 1000)
+    assert(w.try_acquire(0).allowed)
+    assert(w.try_acquire(100).allowed)
+    let d = w.try_acquire(200)
+    assert(!d.allowed)
+    assert_eq(d.retry_after_ms, 800)
+    assert_eq(d.remaining, 0)
+}
+
+@test
+fn test_sliding_window_has_no_boundary_burst() {
+    // a fixed window would allow 2 at t=999 and 2 more at t=1000; a sliding window does not
+    let mut w = sliding_window(2, 1000)
+    assert(w.try_acquire(998).allowed)
+    assert(w.try_acquire(999).allowed)
+    assert(!w.try_acquire(1000).allowed)
+    assert(!w.try_acquire(1997).allowed)
+    assert(w.try_acquire(1998).allowed)
+}
+
+@test
+fn test_sliding_window_frees_slots_one_at_a_time() {
+    let mut w = sliding_window(3, 100)
+    w.try_acquire(0)
+    w.try_acquire(10)
+    w.try_acquire(20)
+    assert_eq(w.remaining(50), 0)
+    assert_eq(w.remaining(100), 1)
+    assert_eq(w.remaining(110), 2)
+    assert_eq(w.used(120), 0)
+}
+
+@test
+fn test_denied_requests_are_not_counted() {
+    let mut w = sliding_window(1, 100)
+    w.try_acquire(0)
+    w.try_acquire(10)
+    w.try_acquire(20)
+    assert(w.try_acquire(100).allowed)
+}
+
+@test
+fn test_retry_after_header_rounds_up_to_seconds() {
+    let mut b = token_bucket(1, 1, 1000)
+    b.try_acquire(0)
+    assert_eq(retry_after_header(b.try_acquire(0)), "Retry-After: 1")
+    let mut w = sliding_window(1, 2500)
+    w.try_acquire(0)
+    assert_eq(retry_after_header(w.try_acquire(0)), "Retry-After: 3")
+    assert_eq(retry_after_header(token_bucket(1, 1, 1000).try_acquire(0)), "")
+}

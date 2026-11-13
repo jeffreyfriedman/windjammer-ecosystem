@@ -320,11 +320,15 @@ fn write_job(wj: string, outdir: string, dir: string, mode: string, timeout: int
         + "rm -f " + sh_quote(base + ".timeout") + "\n"
         + "( cd " + sh_quote(dir) + " && " + sh_quote(wj) + " test " + flag + " ) > " + sh_quote(base + ".log") + " 2>&1 &\n"
         + "pid=$!\n"
-        + "( sleep " + timeout.to_string() + "; echo 1 > " + sh_quote(base + ".timeout") + "; kill -TERM -$pid 2>/dev/null; sleep 3; kill -KILL -$pid 2>/dev/null ) &\n"
+        // The watcher polls once a second and leaves as soon as the job is gone: it never outlives the job (dash does not signal
+        // a background subshell's group), it cannot mark a finished job as timed out, and it closes the build-slot lock fd (9)
+        // it inherits so a surviving sleep can never hold the shared lock.
+        + "( exec 9>&-; i=0; while [ $i -lt " + timeout.to_string() + " ]; do sleep 1; kill -0 $pid 2>/dev/null || exit 0; i=$((i + 1)); done; "
+        + "kill -0 $pid 2>/dev/null || exit 0; echo 1 > " + sh_quote(base + ".timeout") + "; kill -TERM -$pid 2>/dev/null; kill -TERM $pid 2>/dev/null; sleep 3; kill -KILL -$pid 2>/dev/null; kill -KILL $pid 2>/dev/null ) &\n"
         + "watch=$!\n"
         + "wait $pid\n"
         + "rc=$?\n"
-        + "kill -TERM -$watch 2>/dev/null\n"
+        + "kill $watch 2>/dev/null\n"
         + "end=$(date +%s)\n"
         + "echo \"$rc $((end - start))\" > " + sh_quote(base + ".meta") + "\n"
     let _ = fs.remove_file(base + ".meta")

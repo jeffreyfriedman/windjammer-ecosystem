@@ -1,0 +1,16 @@
+use wj_pagination::describe
+use wj_pagination::link_header
+use wj_pagination::page_strip
+use wj_pagination::request_clamped
+use wj_pagination::strip_text
+
+fn main() {
+    // raw query values from the client: ?page=7&per_page=500
+    let req = request_clamped(7, 500, 20, 100)
+    let page = describe(req, 1234)
+
+    println("page ${page.page} of ${page.total_pages}, items ${page.first_item}-${page.last_item}")
+    println("SQL: LIMIT ${page.per_page} OFFSET ${page.offset}")
+    println(strip_text(page_strip(page.page, page.total_pages, 1)))
+    println(link_header("/items?", page))
+}

@@ -1,0 +1,257 @@
+//! Fuzzy text matching: edit distance, "did you mean" suggestions for CLIs and config keys, and a subsequence
+//! scorer for command palettes and file pickers. Comparison is by character, so accented text counts correctly.
+
+use std::strings
+
+/// Levenshtein distance: the fewest single-character insertions, deletions and substitutions that turn `a` into `b`.
+///
+/// ```wj
+/// use crate::levenshtein
+/// assert_eq(levenshtein("kitten", "sitting"), 3)
+/// assert_eq(levenshtein("", "abc"), 3)
+/// ```
+pub fn levenshtein(a: string, b: string) -> int {
+    let x = strings.chars(a)
+    let y = strings.chars(b)
+    if x.len() == 0 {
+        return y.len()
+    }
+    if y.len() == 0 {
+        return x.len()
+    }
+    let mut prev: Vec<int> = Vec::new()
+    let mut j = 0
+    while j <= y.len() {
+        prev.push(j)
+        j = j + 1
+    }
+    let mut i = 1
+    while i <= x.len() {
+        let mut cur: Vec<int> = Vec::new()
+        cur.push(i)
+        j = 1
+        while j <= y.len() {
+            let cost = if x[i - 1] == y[j - 1] { 0 } else { 1 }
+            cur.push(min3(prev[j] + 1, cur[j - 1] + 1, prev[j - 1] + cost))
+            j = j + 1
+        }
+        prev = cur
+        i = i + 1
+    }
+    prev[y.len()]
+}
+
+fn min3(a: int, b: int, c: int) -> int {
+    let mut m = a
+    if b < m {
+        m = b
+    }
+    if c < m {
+        m = c
+    }
+    m
+}
+
+/// Damerau-Levenshtein (optimal string alignment): like `levenshtein`, but swapping two neighbouring characters
+/// costs 1, which matches how people mistype (`teh` for `the`).
+///
+/// ```wj
+/// use crate::damerau
+/// use crate::levenshtein
+/// assert_eq(damerau("teh", "the"), 1)
+/// assert_eq(levenshtein("teh", "the"), 2)
+/// ```
+pub fn damerau(a: string, b: string) -> int {
+    let x = strings.chars(a)
+    let y = strings.chars(b)
+    if x.len() == 0 {
+        return y.len()
+    }
+    if y.len() == 0 {
+        return x.len()
+    }
+    let mut older: Vec<int> = Vec::new()
+    let mut prev: Vec<int> = Vec::new()
+    let mut j = 0
+    while j <= y.len() {
+        older.push(0)
+        prev.push(j)
+        j = j + 1
+    }
+    let mut i = 1
+    while i <= x.len() {
+        let mut cur: Vec<int> = Vec::new()
+        cur.push(i)
+        j = 1
+        while j <= y.len() {
+            let cost = if x[i - 1] == y[j - 1] { 0 } else { 1 }
+            let mut best = min3(prev[j] + 1, cur[j - 1] + 1, prev[j - 1] + cost)
+            if i > 1 && j > 1 && x[i - 1] == y[j - 2] && x[i - 2] == y[j - 1] {
+                if older[j - 2] + 1 < best {
+                    best = older[j - 2] + 1
+                }
+            }
+            cur.push(best)
+            j = j + 1
+        }
+        older = prev
+        prev = cur
+        i = i + 1
+    }
+    prev[y.len()]
+}
+
+/// Similarity from 0 (nothing in common) to 100 (identical), based on edit distance relative to the longer text.
+/// Two empty strings are 100% similar.
+pub fn similarity_percent(a: string, b: string) -> int {
+    let la = strings.chars(a).len()
+    let lb = strings.chars(b).len()
+    let longest = if la > lb { la } else { lb }
+    if longest == 0 {
+        return 100
+    }
+    ((longest - levenshtein(a, b)) * 100) / longest
+}
+
+/// The default tolerance for suggestions: about a third of the input length, at least 1.
+pub fn default_tolerance(input: string) -> int {
+    let n = strings.chars(input).len() / 3
+    if n < 1 { 1 } else { n }
+}
+
+/// Candidates within `max_distance` edits of `input` (case-insensitive, swaps count as one edit), nearest first;
+/// ties keep their original order.
+///
+/// ```wj
+/// use crate::suggest
+/// let names = ["build", "test", "check", "clean"]
+/// assert_eq(suggest("biuld", names, 2), ["build"])
+/// assert_eq(suggest("chek", names, 2), ["check"])
+/// ```
+pub fn suggest(input: string, candidates: Vec<string>, max_distance: int) -> Vec<string> {
+    let needle = strings.to_lower(input)
+    let mut scored: Vec<(int, string)> = Vec::new()
+    for c in candidates {
+        let d = damerau(needle, strings.to_lower(c))
+        if d <= max_distance {
+            // insertion that keeps the list sorted by distance and stable for ties
+            let mut at = scored.len()
+            let mut k = 0
+            while k < scored.len() {
+                if scored[k].0 > d {
+                    at = k
+                    break
+                }
+                k = k + 1
+            }
+            scored.insert(at, (d, c))
+        }
+    }
+    let mut out = Vec::new()
+    for pair in scored {
+        out.push(pair.1)
+    }
+    out
+}
+
+/// The single closest candidate within the default tolerance, or `None`. An exact match (ignoring case) wins.
+pub fn did_you_mean(input: string, candidates: Vec<string>) -> Option<string> {
+    let found = suggest(input, candidates, default_tolerance(input))
+    if found.len() == 0 {
+        return None
+    }
+    Some(found[0])
+}
+
+/// A ready-to-print hint such as `did you mean 'build'?`, or an empty string when nothing is close.
+///
+/// ```wj
+/// use crate::hint
+/// assert_eq(hint("biuld", ["build", "test"]), "did you mean 'build'?")
+/// assert_eq(hint("zzzzzz", ["build", "test"]), "")
+/// ```
+pub fn hint(input: string, candidates: Vec<string>) -> string {
+    match did_you_mean(input, candidates) {
+        Some(c) => "did you mean '${c}'?",
+        None => "",
+    }
+}
+
+fn is_separator(ch: char) -> bool {
+    ch == ' ' || ch == '_' || ch == '-' || ch == '/' || ch == '.' || ch == ':'
+}
+
+/// Score how well `pattern` matches `text` as a case-insensitive subsequence, for pickers and palettes. Returns -1
+/// when the pattern's characters do not all appear in order. Higher is better: consecutive characters, matches at
+/// the start of a word, a match at the very start, and shorter texts all score more. An empty pattern scores 0.
+///
+/// ```wj
+/// use crate::fuzzy_score
+/// assert!(fuzzy_score("gc", "git commit") > fuzzy_score("gc", "game over, cool"))
+/// assert_eq(fuzzy_score("xyz", "git commit"), -1)
+/// ```
+pub fn fuzzy_score(pattern: string, text: string) -> int {
+    let p = strings.chars(strings.to_lower(pattern))
+    let t = strings.chars(strings.to_lower(text))
+    if p.len() == 0 {
+        return 0
+    }
+    let mut score = 0
+    let mut pi = 0
+    let mut ti = 0
+    let mut last_match = -2
+    while ti < t.len() && pi < p.len() {
+        if t[ti] == p[pi] {
+            score = score + 10
+            if ti == last_match + 1 {
+                score = score + 15
+            }
+            if ti == 0 {
+                score = score + 20
+            } else if is_separator(t[ti - 1]) {
+                score = score + 12
+            }
+            last_match = ti
+            pi = pi + 1
+        }
+        ti = ti + 1
+    }
+    if pi < p.len() {
+        return -1
+    }
+    // shorter texts are more specific
+    let penalty = t.len() - p.len()
+    let result = score - penalty
+    if result < 0 { 0 } else { result }
+}
+
+/// The items that match `pattern`, best first; ties keep their original order.
+///
+/// ```wj
+/// use crate::rank
+/// let files = ["src/main.wj", "tests/main_test.wj", "README.md"]
+/// assert_eq(rank("main", files)[0], "src/main.wj")
+/// ```
+pub fn rank(pattern: string, items: Vec<string>) -> Vec<string> {
+    let mut scored: Vec<(int, string)> = Vec::new()
+    for item in items {
+        let s = fuzzy_score(pattern, item)
+        if s >= 0 {
+            let mut at = scored.len()
+            let mut k = 0
+            while k < scored.len() {
+                if scored[k].0 < s {
+                    at = k
+                    break
+                }
+                k = k + 1
+            }
+            scored.insert(at, (s, item))
+        }
+    }
+    let mut out = Vec::new()
+    for pair in scored {
+        out.push(pair.1)
+    }
+    out
+}

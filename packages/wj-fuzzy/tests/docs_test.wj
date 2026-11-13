@@ -1,0 +1,44 @@
+use crate::fuzzy_score
+use crate::hint
+use crate::rank
+use crate::suggest
+use std::fs
+use std::strings
+
+fn read(path: string) -> string {
+    fs.read_to_string(path).unwrap_or("")
+}
+
+/// The docs gate reads the package files relative to the package root, which is where interpreted `wj test` runs.
+/// A compiled `wj test` runs from a scratch crate where they do not exist; the checks then step aside.
+fn docs_present() -> bool {
+    strings.len(read("README.md")) > 0
+}
+
+fn readme_block(fence: string) -> string {
+    let parts = strings.split(read("README.md"), fence)
+    strings.split(parts[1], "```")[0]
+}
+
+@test
+fn test_readme_snippet_matches_the_example() {
+    if !docs_present() {
+        return
+    }
+    assert_eq(readme_block("```windjammer\n"), read("examples/command_hints.wj"))
+}
+
+@test
+fn test_readme_output_is_what_the_example_prints() {
+    if !docs_present() {
+        return
+    }
+    let commands = ["build", "test", "check", "clean", "publish"]
+    let files = ["README.md", "tests/main_test.wj", "src/main.wj", "Cargo.toml"]
+    let mut out = "unknown command 'biuld'; ${hint("biuld", commands)}\n"
+    out = "${out}nothing close: '${hint("deploy-everything", commands)}'\n"
+    out = "${out}candidates: ${suggest("cleen", commands, 2).join(", ")}\n"
+    out = "${out}rank 'main': ${rank("main", files).join(", ")}\n"
+    out = "${out}no match score: ${fuzzy_score("xyz", "src/main.wj")}\n"
+    assert_eq(readme_block("```text\n"), out)
+}

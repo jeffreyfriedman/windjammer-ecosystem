@@ -120,6 +120,12 @@ modes (interpreted 74 of 74; compiled 74 of 74), and the three packages added in
 | `packages/wj-circuit-breaker` | pass (15) | pass (15) | Circuit breaker, injected clock |
 | `packages/wj-trace` | pass (18) | pass (18) | Spans, sampling, traceparent, exporter trait |
 | `packages/wj-middleware` | pass (10) | pass (10) | Middleware pipeline (Layer trait objects) |
+| `packages/wj-pagination` | pass (22) | pass (22) | Offset and keyset pagination |
+| `packages/wj-ini` | pass (22) | pass (22) | INI config reader and writer |
+| `packages/wj-ulid` | pass (20) | pass (20) | ULIDs, injected clock |
+| `packages/wj-bytesize` | pass (18) | pass (18) | Human byte sizes |
+| `packages/wj-fuzzy` | pass (20) | pass (20) | Edit distance and did-you-mean |
+| `packages/wj-money` | pass (25) | pass (25) | Money minor units and allocation |
 | `packages/wj-stats` | pass (5) | pass (5) |  |
 | `packages/wj-sync` | pass (50) | pass (50) |  |
 | `packages/wj-table` | pass (4) | pass (4) |  |

@@ -1,0 +1,246 @@
+//! ULIDs: 128-bit identifiers that sort by creation time, written as 26 Crockford base32 characters
+//! (48 bits of millisecond timestamp, 80 bits of randomness). The core functions take the clock and the random
+//! bytes as arguments, so tests and replays are deterministic; `generate` supplies both from the runtime.
+
+use std::random
+use std::strings
+use std::time
+
+const ALPHABET: string = "0123456789ABCDEFGHJKMNPQRSTVWXYZ"
+const MAX_TIMESTAMP: int = 281474976710655
+
+/// Bit `p` (0 is the most significant) of a 16-byte value; positions outside 0..128 read as 0.
+fn bit_at(bytes: Vec<int>, p: int) -> int {
+    if p < 0 || p >= 128 {
+        return 0
+    }
+    (bytes[p / 8] >> (7 - p % 8)) & 1
+}
+
+/// The 16 bytes of a ULID: 6 bytes of big-endian timestamp followed by the 10 random bytes.
+fn to_bytes(timestamp_ms: int, random_bytes: Vec<int>) -> Vec<int> {
+    let mut out = Vec::new()
+    let mut shift = 40
+    while shift >= 0 {
+        out.push((timestamp_ms >> shift) & 255)
+        shift = shift - 8
+    }
+    for b in random_bytes {
+        out.push(b)
+    }
+    out
+}
+
+/// Encode a timestamp (Unix milliseconds, at most 2^48 - 1) and exactly 10 random bytes (each 0..=255).
+///
+/// ```wj
+/// use crate::encode
+/// let id = encode(0, [0, 0, 0, 0, 0, 0, 0, 0, 0, 0]).unwrap()
+/// assert_eq(id, "00000000000000000000000000")
+/// ```
+pub fn encode(timestamp_ms: int, random_bytes: Vec<int>) -> Result<string, string> {
+    if timestamp_ms < 0 || timestamp_ms > MAX_TIMESTAMP {
+        return Err("timestamp out of range (0..2^48-1)")
+    }
+    if random_bytes.len() != 10 {
+        return Err("expected exactly 10 random bytes")
+    }
+    for b in random_bytes {
+        if b < 0 || b > 255 {
+            return Err("random bytes must be 0..=255")
+        }
+    }
+    let bytes = to_bytes(timestamp_ms, random_bytes)
+    let mut out = ""
+    let mut k = 0
+    while k < 26 {
+        let start = 5 * k - 2
+        let mut v = 0
+        let mut j = 0
+        while j < 5 {
+            v = v * 2 + bit_at(bytes, start + j)
+            j = j + 1
+        }
+        out = "${out}${strings.substring_chars(ALPHABET, v, v + 1)}"
+        k = k + 1
+    }
+    Ok(out)
+}
+
+/// Decode the 26 characters into 16 bytes. Letters are accepted in either case.
+pub fn decode(text: string) -> Result<Vec<int>, string> {
+    let cs = strings.chars(text)
+    if cs.len() != 26 {
+        return Err("a ULID has 26 characters")
+    }
+    let upper = strings.to_upper(text)
+    let mut bits: Vec<int> = Vec::new()
+    let mut i = 0
+    while i < 26 {
+        let ch = strings.substring_chars(upper, i, i + 1)
+        let v = alphabet_index(ch)
+        if v < 0 || strings.len(ch) != 1 {
+            return Err("invalid character '${ch}' at position ${i}")
+        }
+        if i == 0 && v > 7 {
+            return Err("first character must be 0-7 (value exceeds 128 bits)")
+        }
+        let mut j = 4
+        while j >= 0 {
+            bits.push((v >> j) & 1)
+            j = j - 1
+        }
+        i = i + 1
+    }
+    let mut out = Vec::new()
+    let mut b = 0
+    while b < 16 {
+        let mut byte = 0
+        let mut j = 0
+        while j < 8 {
+            byte = byte * 2 + bits[2 + b * 8 + j]
+            j = j + 1
+        }
+        out.push(byte)
+        b = b + 1
+    }
+    Ok(out)
+}
+
+/// True when `text` is a well-formed ULID.
+pub fn is_valid(text: string) -> bool {
+    decode(text).is_ok()
+}
+
+/// The creation time (Unix milliseconds) stored in the first 10 characters.
+///
+/// ```wj
+/// use crate::encode
+/// use crate::timestamp_ms
+/// let id = encode(1700000000000, [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]).unwrap()
+/// assert_eq(timestamp_ms(id).unwrap(), 1700000000000)
+/// ```
+pub fn timestamp_ms(text: string) -> Result<int, string> {
+    match decode(text) {
+        Ok(bytes) => {
+            let mut t = 0
+            let mut i = 0
+            while i < 6 {
+                t = t * 256 + bytes[i]
+                i = i + 1
+            }
+            Ok(t)
+        },
+        Err(e) => Err(e),
+    }
+}
+
+/// The 10 random bytes stored in the last 16 characters.
+pub fn random_bytes(text: string) -> Result<Vec<int>, string> {
+    match decode(text) {
+        Ok(bytes) => {
+            let mut out = Vec::new()
+            let mut i = 6
+            while i < 16 {
+                out.push(bytes[i])
+                i = i + 1
+            }
+            Ok(out)
+        },
+        Err(e) => Err(e),
+    }
+}
+
+/// The next ULID in a monotonic sequence. Within the same millisecond as `previous` the random part is incremented
+/// by one, so IDs created in one process always sort in creation order; in a later millisecond `fresh_random`
+/// is used. `Err` when the clock moved backwards past `previous` or the increment would overflow 80 bits.
+///
+/// ```wj
+/// use crate::encode
+/// use crate::monotonic
+/// let a = encode(5, [0, 0, 0, 0, 0, 0, 0, 0, 0, 255]).unwrap()
+/// let b = monotonic(a, 5, [9, 9, 9, 9, 9, 9, 9, 9, 9, 9]).unwrap()
+/// assert(b > a)
+/// ```
+pub fn monotonic(previous: string, now_ms: int, fresh_random: Vec<int>) -> Result<string, string> {
+    match timestamp_ms(previous) {
+        Ok(prev_ms) => {
+            if now_ms > prev_ms {
+                return encode(now_ms, fresh_random)
+            }
+            match random_bytes(previous) {
+                Ok(rb) => {
+                    let mut bytes = rb
+                    let mut carry = true
+                    let mut step = 0
+                    while step < 10 && carry {
+                        let at = 9 - step
+                        if bytes[at] == 255 {
+                            bytes[at] = 0
+                        } else {
+                            bytes[at] = bytes[at] + 1
+                            carry = false
+                        }
+                        step = step + 1
+                    }
+                    if carry {
+                        return Err("random part overflowed within one millisecond")
+                    }
+                    encode(prev_ms, bytes)
+                },
+                Err(e) => Err(e),
+            }
+        },
+        Err(e) => Err(e),
+    }
+}
+
+/// A new ULID from the system clock and random source.
+pub fn generate() -> string {
+    let clock = time.utc_now().timestamp_millis() as int
+    let now = if clock < 0 { 0 } else { clock }
+    let mut rb = Vec::new()
+    let mut i = 0
+    while i < 10 {
+        rb.push(random.range(0, 256) as int)
+        i = i + 1
+    }
+    // the clock is clamped to a valid range and the bytes are 0..=255, so encoding cannot fail
+    match encode(now, rb) {
+        Ok(id) => id,
+        Err(_) => "00000000000000000000000000",
+    }
+}
+
+/// Order two ULIDs: -1, 0 or 1. Valid ULIDs compare the same way as their text (case-insensitively).
+pub fn compare(a: string, b: string) -> int {
+    let x = strings.to_upper(a)
+    let y = strings.to_upper(b)
+    if x < y {
+        return -1
+    }
+    if x > y {
+        return 1
+    }
+    0
+}
+
+/// The canonical (upper-case) form of a valid ULID.
+pub fn normalize(text: string) -> Result<string, string> {
+    match decode(text) {
+        Ok(_) => Ok(strings.to_upper(text)),
+        Err(e) => Err(e),
+    }
+}
+
+/// Position of a one-character string in the alphabet, or -1.
+fn alphabet_index(ch: string) -> int {
+    let mut i = 0
+    while i < 32 {
+        if strings.substring_chars(ALPHABET, i, i + 1) == ch {
+            return i
+        }
+        i = i + 1
+    }
+    -1
+}

@@ -1,0 +1,19 @@
+[package]
+name = "wj-pagination"
+version = "0.1.0"
+edition = "2025"
+
+[lib]
+
+[dependencies]
+
+[dev-dependencies]
+
+[profile.release]
+opt-level = 3
+lto = true
+
+# Pure computation: integer arithmetic only.
+[capabilities]
+# The docs gate test reads the README and the example to check them against each other.
+fs.read = ["./README.md", "./examples/**"]

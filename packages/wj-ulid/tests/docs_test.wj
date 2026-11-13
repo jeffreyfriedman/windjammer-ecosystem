@@ -1,0 +1,44 @@
+use crate::encode
+use crate::is_valid
+use crate::monotonic
+use crate::generate
+use crate::timestamp_ms
+use std::fs
+use std::strings
+
+fn read(path: string) -> string {
+    fs.read_to_string(path).unwrap_or("")
+}
+
+/// The docs gate reads the package files relative to the package root, which is where interpreted `wj test` runs.
+/// A compiled `wj test` runs from a scratch crate where they do not exist; the checks then step aside.
+fn docs_present() -> bool {
+    strings.len(read("README.md")) > 0
+}
+
+fn readme_block(fence: string) -> string {
+    let parts = strings.split(read("README.md"), fence)
+    strings.split(parts[1], "```")[0]
+}
+
+@test
+fn test_readme_snippet_matches_the_example() {
+    if !docs_present() {
+        return
+    }
+    assert_eq(readme_block("```windjammer\n"), read("examples/order_ids.wj"))
+}
+
+@test
+fn test_readme_output_is_what_the_example_prints() {
+    if !docs_present() {
+        return
+    }
+    let first = encode(1469922850259, [10, 20, 30, 40, 50, 60, 70, 80, 90, 100]).unwrap()
+    let second = monotonic(first, 1469922850259, [0, 0, 0, 0, 0, 0, 0, 0, 0, 0]).unwrap()
+    let mut out = "${first}\n${second}\n"
+    out = "${out}same millisecond, still ordered: ${first < second}\n"
+    out = "${out}created at ${timestamp_ms(first).unwrap()} ms\n"
+    out = "${out}generated id is valid: ${is_valid(generate())}\n"
+    assert_eq(readme_block("```text\n"), out)
+}

@@ -1,0 +1,265 @@
+//! Human-readable byte sizes without floating point: format `1536` as `1.5 KiB` (or `1.5 kB` in SI units) and parse
+//! `"2 GiB"` or `"1.5MB"` back into a byte count. Rounding is exact integer arithmetic, so results are identical on
+//! every platform.
+
+use std::strings
+
+const MAX_BYTES: int = 9223372036854775807
+
+/// Which family of units to write: binary (KiB = 1024 B) or decimal (kB = 1000 B).
+pub enum Base {
+    /// Powers of 1024: B, KiB, MiB, GiB, TiB, PiB.
+    Iec,
+    /// Powers of 1000: B, kB, MB, GB, TB, PB.
+    Si,
+}
+
+fn unit_size(base: Base, power: int) -> int {
+    let step = match base {
+        Base::Iec => 1024,
+        Base::Si => 1000,
+    }
+    let mut size = 1
+    let mut i = 0
+    while i < power {
+        size = size * step
+        i = i + 1
+    }
+    size
+}
+
+fn unit_name(base: Base, power: int) -> string {
+    let iec = ["B", "KiB", "MiB", "GiB", "TiB", "PiB"]
+    let si = ["B", "kB", "MB", "GB", "TB", "PB"]
+    match base {
+        Base::Iec => iec[power],
+        Base::Si => si[power],
+    }
+}
+
+fn step_of(base: Base) -> int {
+    match base {
+        Base::Iec => 1024,
+        Base::Si => 1000,
+    }
+}
+
+fn pow10(n: int) -> int {
+    let mut out = 1
+    let mut i = 0
+    while i < n {
+        out = out * 10
+        i = i + 1
+    }
+    out
+}
+
+/// `value / 10^places`-style fraction digits, zero padded to `places` and with trailing zeros removed.
+fn fraction_text(frac: int, places: int) -> string {
+    if places < 1 || frac == 0 {
+        return ""
+    }
+    let mut digits = "${frac}"
+    while strings.len(digits) < places {
+        digits = "0${digits}"
+    }
+    while strings.ends_with(digits, "0") {
+        digits = strings.substring(digits, 0, strings.len(digits) - 1)
+    }
+    ".${digits}"
+}
+
+/// Format with up to `places` decimals (0 to 3), trailing zeros dropped: `1536` is `1.5 KiB`, `1024` is `1 KiB`.
+/// Values round half up, and a value that rounds up to the next unit's threshold is shown in that unit
+/// (`1048575` is `1 MiB`, not `1024 KiB`).
+///
+/// ```wj
+/// use crate::Base
+/// use crate::format_places
+/// assert_eq(format_places(1536, Base::Iec, 1), "1.5 KiB")
+/// assert_eq(format_places(1500000, Base::Si, 2), "1.5 MB")
+/// assert_eq(format_places(999, Base::Si, 1), "999 B")
+/// ```
+pub fn format_places(bytes: int, base: Base, places: int) -> string {
+    if bytes < 0 {
+        return "-${format_places(0 - bytes, base, places)}"
+    }
+    let d = if places < 0 { 0 } else if places > 3 { 3 } else { places }
+    let step = step_of(base)
+    let mut power = 0
+    while power <= 5 {
+        let size = unit_size(base, power)
+        let mut q = bytes / size
+        let r = bytes % size
+        let scale = pow10(d)
+        let mut frac = (r * scale * 2 + size) / (2 * size)
+        if power == 0 {
+            frac = 0
+        }
+        if frac >= scale {
+            q = q + 1
+            frac = 0
+        }
+        if q < step || power == 5 {
+            return "${q}${fraction_text(frac, d)} ${unit_name(base, power)}"
+        }
+        power = power + 1
+    }
+    "${bytes} B"
+}
+
+/// Binary units with one decimal: `format_iec(1536)` is `1.5 KiB`.
+pub fn format_iec(bytes: int) -> string {
+    format_places(bytes, Base::Iec, 1)
+}
+
+/// Decimal units with one decimal: `format_si(1500)` is `1.5 kB`.
+pub fn format_si(bytes: int) -> string {
+    format_places(bytes, Base::Si, 1)
+}
+
+/// A transfer rate such as `12.5 MiB/s`, from a byte count and the milliseconds it took (`0` ms is treated as 1).
+pub fn format_rate(bytes: int, elapsed_ms: int) -> string {
+    let ms = if elapsed_ms < 1 { 1 } else { elapsed_ms }
+    // bytes * 1000 may overflow for huge counts; split the division instead
+    let per_second = (bytes / ms) * 1000 + ((bytes % ms) * 1000) / ms
+    "${format_iec(per_second)}/s"
+}
+
+fn multiplier(unit: string) -> Result<int, string> {
+    let uc = strings.chars(unit)
+    if uc.len() == 2 && strings.substring_chars(unit, 1, 2) == "b" && strings.to_upper(strings.substring_chars(unit, 0, 1)) == strings.substring_chars(unit, 0, 1) {
+        return Err("'${unit}' means bits; write ${strings.to_upper(unit)} or ${strings.substring_chars(unit, 0, 1)}iB")
+    }
+    let u = strings.to_lower(unit)
+    if u == "" || u == "b" {
+        return Ok(1)
+    }
+    if u == "k" || u == "kib" || u == "ki" {
+        return Ok(1024)
+    }
+    if u == "m" || u == "mib" || u == "mi" {
+        return Ok(1048576)
+    }
+    if u == "g" || u == "gib" || u == "gi" {
+        return Ok(1073741824)
+    }
+    if u == "t" || u == "tib" || u == "ti" {
+        return Ok(1099511627776)
+    }
+    if u == "p" || u == "pib" || u == "pi" {
+        return Ok(1125899906842624)
+    }
+    if u == "kb" {
+        return Ok(1000)
+    }
+    if u == "mb" {
+        return Ok(1000000)
+    }
+    if u == "gb" {
+        return Ok(1000000000)
+    }
+    if u == "tb" {
+        return Ok(1000000000000)
+    }
+    if u == "pb" {
+        return Ok(1000000000000000)
+    }
+    Err("unknown unit '${unit}'")
+}
+
+fn digit_value(ch: string) -> int {
+    if ch == "0" { return 0 }
+    if ch == "1" { return 1 }
+    if ch == "2" { return 2 }
+    if ch == "3" { return 3 }
+    if ch == "4" { return 4 }
+    if ch == "5" { return 5 }
+    if ch == "6" { return 6 }
+    if ch == "7" { return 7 }
+    if ch == "8" { return 8 }
+    if ch == "9" { return 9 }
+    -1
+}
+
+/// Parse `"512"`, `"2 GiB"`, `"1.5MB"`, `"64k"` into bytes. A bare number is bytes. Unit letters are case
+/// insensitive; `KiB`/`MiB`/... and bare `K`/`M`/`G` are powers of 1024, `kB`/`MB`/`GB` are powers of 1000.
+/// At most 3 decimal places are accepted, and a result beyond the 64-bit range is an error.
+///
+/// ```wj
+/// use crate::parse
+/// assert_eq(parse("2 GiB").unwrap(), 2147483648)
+/// assert_eq(parse("1.5MB").unwrap(), 1500000)
+/// assert!(parse("12 parsecs").is_err())
+/// ```
+pub fn parse(text: string) -> Result<int, string> {
+    let t = strings.trim(text)
+    let cs = strings.chars(t)
+    if cs.len() == 0 {
+        return Err("empty size")
+    }
+    let mut i = 0
+    let mut whole = 0
+    let mut digits = 0
+    while i < cs.len() {
+        let dv = digit_value(strings.substring_chars(t, i, i + 1))
+        if dv < 0 {
+            break
+        }
+        if whole > (MAX_BYTES - dv) / 10 {
+            return Err("size is too large")
+        }
+        whole = whole * 10 + dv
+        digits = digits + 1
+        i = i + 1
+    }
+    let mut frac = 0
+    let mut frac_digits = 0
+    if i < cs.len() && cs[i] == '.' {
+        i = i + 1
+        while i < cs.len() {
+            let dv = digit_value(strings.substring_chars(t, i, i + 1))
+            if dv < 0 {
+                break
+            }
+            if frac_digits == 3 {
+                return Err("at most 3 decimal places")
+            }
+            frac = frac * 10 + dv
+            frac_digits = frac_digits + 1
+            digits = digits + 1
+            i = i + 1
+        }
+        if frac_digits == 0 {
+            return Err("expected digits after the decimal point")
+        }
+    }
+    if digits == 0 {
+        return Err("expected a number")
+    }
+    let unit = strings.trim(strings.substring_chars(t, i, cs.len()))
+    match multiplier(unit) {
+        Ok(m) => {
+            if whole > MAX_BYTES / m {
+                return Err("size is too large")
+            }
+            let mut bytes = whole * m
+            let scale = pow10(frac_digits)
+            let extra = (frac * m) / scale
+            if bytes > MAX_BYTES - extra {
+                return Err("size is too large")
+            }
+            bytes = bytes + extra
+            Ok(bytes)
+        },
+        Err(e) => Err(e),
+    }
+}
+
+/// `parse`, or `fallback` when the text is not a size.
+pub fn parse_or(text: string, fallback: int) -> int {
+    match parse(text) {
+        Ok(n) => n,
+        Err(_) => fallback,
+    }
+}

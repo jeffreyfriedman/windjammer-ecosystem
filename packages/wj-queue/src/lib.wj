@@ -146,7 +146,7 @@ impl Queue {
         while i < self.jobs.len() {
             let j = self.jobs[i]
             if j.lease_until > 0 && now >= j.lease_until {
-                self.fail_at(i, "lease expired", j.lease_until)
+                self.fail_at(i as int, "lease expired", j.lease_until)
                 // fail_at either rewrote slot i or removed it: look at slot i again
             } else {
                 i = i + 1

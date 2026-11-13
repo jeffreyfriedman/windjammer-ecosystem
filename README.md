@@ -69,6 +69,8 @@ $WJ build --release src
 cd build && cargo run --release
 ```
 
+Every package and app is proven to pass its tests in the interpreter on every push, and interpreted-versus-compiled drift is measured: see "Health gate" in [docs/TESTING.md](docs/TESTING.md).
+
 Contributor guidelines: [AGENTS.md](AGENTS.md).  
 Stdlib usage across seeds: [docs/STDLIB_COVERAGE.md](docs/STDLIB_COVERAGE.md).
 

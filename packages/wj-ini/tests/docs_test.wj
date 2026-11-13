@@ -1,0 +1,46 @@
+use crate::get_bool
+use crate::get_int
+use crate::get_or
+use crate::parse
+use crate::set
+use crate::write
+use std::fs
+use std::strings
+
+fn read(path: string) -> string {
+    fs.read_to_string(path).unwrap_or("")
+}
+
+/// The docs gate reads the package files relative to the package root, which is where interpreted `wj test` runs.
+/// A compiled `wj test` runs from a scratch crate where they do not exist; the checks then step aside.
+fn docs_present() -> bool {
+    strings.len(read("README.md")) > 0
+}
+
+fn readme_block(fence: string) -> string {
+    let parts = strings.split(read("README.md"), fence)
+    strings.split(parts[1], "```")[0]
+}
+
+@test
+fn test_readme_snippet_matches_the_example() {
+    if !docs_present() {
+        return
+    }
+    assert_eq(readme_block("```windjammer\n"), read("examples/load_config.wj"))
+}
+
+@test
+fn test_readme_output_is_what_the_example_prints() {
+    if !docs_present() {
+        return
+    }
+    let text = "name = demo\n[server]\nport = 8080 ; default\nverbose = yes\ntitle = \"My App ; v2\"\n"
+    let ini = parse(text).unwrap()
+    let mut out = "port: ${get_int(ini, "server", "port").unwrap()}\n"
+    out = "${out}verbose: ${get_bool(ini, "server", "verbose").unwrap()}\n"
+    out = "${out}title: ${get_or(ini, "server", "title", "?")}\n"
+    out = "${out}missing: ${get_or(ini, "server", "host", "localhost")}\n"
+    out = "${out}${write(set(ini, "server", "port", "9090"))}"
+    assert_eq(readme_block("```text\n"), out)
+}

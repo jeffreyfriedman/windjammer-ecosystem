@@ -63,6 +63,12 @@
 | wj-circuit-breaker | Closed / open / half-open breaker with failure-rate window and probes | std |
 | wj-trace | Spans, trace ids, sampling, `traceparent`, exporter trait | std |
 | wj-middleware | Request/response middleware pipeline over `Layer` trait objects | std |
+| wj-pagination | Offset and keyset pagination, page strips, `Link` headers | std |
+| wj-ini | INI parse, typed getters, edit and write (round-trips) | std |
+| wj-ulid | Time-sortable ULIDs, monotonic generation, injected clock | std |
+| wj-bytesize | Human byte sizes (IEC and SI) and rates, exact integer parse and format | std |
+| wj-fuzzy | Edit distance, did-you-mean hints, subsequence picker scoring | std |
+| wj-money | Currency-tagged minor units: checked arithmetic, basis points, exact allocation | std |
 | wj-stats | Mean, median, standard deviation | std |
 | wj-sync | Channels, shared state, pools | std |
 | wj-table | Markdown and plain tables, fixed-point numbers | std |

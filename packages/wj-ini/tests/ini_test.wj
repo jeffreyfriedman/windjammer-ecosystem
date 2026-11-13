@@ -1,0 +1,187 @@
+use crate::empty
+use crate::get
+use crate::get_all
+use crate::get_bool
+use crate::get_int
+use crate::get_or
+use crate::has
+use crate::has_section
+use crate::keys
+use crate::parse
+use crate::quote
+use crate::remove
+use crate::section_names
+use crate::set
+use crate::write
+
+@test
+fn test_parse_sections_and_keys() {
+    let ini = parse("[db]\nhost = localhost\nport = 5432\n[cache]\nttl = 60\n").unwrap()
+    assert_eq(section_names(ini), ["db", "cache"])
+    assert_eq(get(ini, "db", "host"), Some("localhost"))
+    assert_eq(get(ini, "cache", "ttl"), Some("60"))
+    assert_eq(get(ini, "db", "nope"), None)
+    assert_eq(get(ini, "nope", "host"), None)
+}
+
+@test
+fn test_comments_and_blank_lines_are_ignored() {
+    let ini = parse("; top\n# also\n\n[a]\n  ; indented\nk = v\n").unwrap()
+    assert_eq(keys(ini, "a"), ["k"])
+}
+
+@test
+fn test_inline_comments_need_leading_space() {
+    let ini = parse("[a]\nx = 1 ; one\ny = 2 # two\nz = a;b\nurl = http://h/#frag\n").unwrap()
+    assert_eq(get(ini, "a", "x"), Some("1"))
+    assert_eq(get(ini, "a", "y"), Some("2"))
+    assert_eq(get(ini, "a", "z"), Some("a;b"))
+    assert_eq(get(ini, "a", "url"), Some("http://h/#frag"))
+}
+
+@test
+fn test_global_keys_live_in_the_empty_section() {
+    let ini = parse("name = top\n[s]\nk = v\n").unwrap()
+    assert_eq(get(ini, "", "name"), Some("top"))
+    assert_eq(section_names(ini), ["", "s"])
+}
+
+@test
+fn test_colon_separator_and_spacing() {
+    let ini = parse("[a]\nk:v\nspaced   =    wide   \n").unwrap()
+    assert_eq(get(ini, "a", "k"), Some("v"))
+    assert_eq(get(ini, "a", "spaced"), Some("wide"))
+}
+
+@test
+fn test_value_may_contain_equals() {
+    let ini = parse("[a]\nq = x=1&y=2\n").unwrap()
+    assert_eq(get(ini, "a", "q"), Some("x=1&y=2"))
+}
+
+@test
+fn test_quoted_values_keep_spaces_and_escapes() {
+    let ini = parse("[a]\nname = \"  padded ; not a comment  \"\nmsg = \"line1\\nline2\\t\\\"q\\\"\"\n").unwrap()
+    assert_eq(get(ini, "a", "name"), Some("  padded ; not a comment  "))
+    assert_eq(get(ini, "a", "msg"), Some("line1\nline2\t\"q\""))
+}
+
+@test
+fn test_empty_value() {
+    let ini = parse("[a]\nk =\n").unwrap()
+    assert_eq(get(ini, "a", "k"), Some(""))
+}
+
+@test
+fn test_repeated_key_last_wins_and_get_all_keeps_order() {
+    let ini = parse("[a]\nk = 1\nk = 2\nk = 3\n").unwrap()
+    assert_eq(get(ini, "a", "k"), Some("3"))
+    assert_eq(get_all(ini, "a", "k"), ["1", "2", "3"])
+    assert_eq(keys(ini, "a"), ["k"])
+}
+
+@test
+fn test_reopened_section_continues() {
+    let ini = parse("[a]\nx = 1\n[b]\ny = 2\n[a]\nz = 3\n").unwrap()
+    assert_eq(keys(ini, "a"), ["x", "z"])
+}
+
+@test
+fn test_errors_carry_line_numbers() {
+    assert_eq(parse("[a]\nnot a pair\n").unwrap_err(), "line 2: expected 'key = value'")
+    assert_eq(parse("[a\n").unwrap_err(), "line 1: section header is missing ']'")
+    assert_eq(parse("[]\n").unwrap_err(), "line 1: empty section name")
+    assert_eq(parse("[a]\n= v\n").unwrap_err(), "line 2: empty key")
+    assert_eq(parse("[a]\nk = \"open\n").unwrap_err(), "line 2: unterminated quoted value")
+    assert_eq(parse("[a]\nk = \"x\" junk\n").unwrap_err(), "line 2: unexpected text after closing quote")
+    assert_eq(parse("[a]\nk = \"a\\qb\"\n").unwrap_err(), "line 2: unknown escape '\\q'")
+}
+
+@test
+fn test_typed_getters() {
+    let ini = parse("[a]\nn = 42\nneg = -7\nbad = x1\non = Yes\noff = OFF\nflag = maybe\n").unwrap()
+    assert_eq(get_int(ini, "a", "n").unwrap(), 42)
+    assert_eq(get_int(ini, "a", "neg").unwrap(), -7)
+    assert_eq(get_int(ini, "a", "bad").unwrap_err(), "[a] bad: 'x1' is not an integer")
+    assert_eq(get_int(ini, "a", "zip").unwrap_err(), "[a] zip: missing")
+    assert_eq(get_bool(ini, "a", "on").unwrap(), true)
+    assert_eq(get_bool(ini, "a", "off").unwrap(), false)
+    assert(get_bool(ini, "a", "flag").is_err())
+    assert_eq(get_or(ini, "a", "zip", "dflt"), "dflt")
+}
+
+@test
+fn test_has_helpers() {
+    let ini = parse("[a]\nk = v\n").unwrap()
+    assert(has_section(ini, "a"))
+    assert(!has_section(ini, "b"))
+    assert(has(ini, "a", "k"))
+    assert(!has(ini, "a", "q"))
+}
+
+@test
+fn test_set_replaces_appends_and_creates() {
+    let ini = parse("[a]\nk = 1\nk = 2\nm = x\n").unwrap()
+    let one = set(ini, "a", "k", "9")
+    assert_eq(get_all(one, "a", "k"), ["9"])
+    assert_eq(keys(one, "a"), ["k", "m"])
+    let two = set(one, "a", "n", "new")
+    assert_eq(keys(two, "a"), ["k", "m", "n"])
+    let three = set(two, "fresh", "q", "1")
+    assert_eq(section_names(three), ["a", "fresh"])
+    assert_eq(get(set(empty(), "", "g", "1"), "", "g"), Some("1"))
+}
+
+@test
+fn test_remove_key() {
+    let ini = parse("[a]\nk = 1\nm = 2\n").unwrap()
+    assert_eq(keys(remove(ini, "a", "k"), "a"), ["m"])
+}
+
+@test
+fn test_quote_only_when_needed() {
+    assert_eq(quote("plain"), "plain")
+    assert_eq(quote(" lead"), "\" lead\"")
+    assert_eq(quote("a ; b"), "\"a ; b\"")
+    assert_eq(quote("a;b"), "a;b")
+    assert_eq(quote("say \"hi\""), "say \"hi\"")
+    assert_eq(quote("\"start"), "\"\\\"start\"")
+}
+
+@test
+fn test_write_layout() {
+    let ini = set(set(set(empty(), "", "name", "top"), "db", "host", "h"), "db", "port", "1")
+    assert_eq(write(ini), "name = top\n\n[db]\nhost = h\nport = 1\n")
+}
+
+@test
+fn test_property_write_then_parse_round_trips_awkward_values() {
+    let values = ["", "plain", " lead", "trail ", "a ; b", "a # b", "a;b", "x=y", "q\"uote", "\"quoted\"",
+        "back\\slash", "two\nlines", "tab\there", "unicode é ü", "[bracket]", "k: v"]
+    let mut i = 0
+    while i < values.len() {
+        let ini = set(empty(), "s", "key", values[i])
+        let back = parse(write(ini)).unwrap()
+        assert_eq(get(back, "s", "key"), Some(values[i]))
+        i = i + 1
+    }
+}
+
+@test
+fn test_property_parse_write_parse_is_stable() {
+    let text = "top = 1\n[a]\nx = \"  sp  \"\ny = z ; c\n[b]\nk = v\nk = w\n"
+    let once = write(parse(text).unwrap())
+    let twice = write(parse(once).unwrap())
+    assert_eq(once, twice)
+}
+
+@test
+fn test_integers_beyond_32_bits_and_junk() {
+    let ini = parse("[a]\nbig = 5000000000\nplus = +5\nempty =\nsign = -\nfloat = 1.5\nspace = 1 2\n").unwrap()
+    assert_eq(get_int(ini, "a", "big").unwrap(), 5000000000)
+    assert_eq(get_int(ini, "a", "plus").unwrap(), 5)
+    assert(get_int(ini, "a", "empty").is_err())
+    assert(get_int(ini, "a", "sign").is_err())
+    assert(get_int(ini, "a", "float").is_err())
+    assert(get_int(ini, "a", "space").is_err())
+}

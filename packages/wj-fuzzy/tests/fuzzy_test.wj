@@ -1,0 +1,176 @@
+use std::strings
+use crate::damerau
+use crate::default_tolerance
+use crate::did_you_mean
+use crate::fuzzy_score
+use crate::hint
+use crate::levenshtein
+use crate::rank
+use crate::similarity_percent
+use crate::suggest
+
+@test
+fn test_levenshtein_known_values() {
+    assert_eq(levenshtein("kitten", "sitting"), 3)
+    assert_eq(levenshtein("flaw", "lawn"), 2)
+    assert_eq(levenshtein("saturday", "sunday"), 3)
+    assert_eq(levenshtein("same", "same"), 0)
+}
+
+@test
+fn test_levenshtein_with_empty_sides() {
+    assert_eq(levenshtein("", ""), 0)
+    assert_eq(levenshtein("", "abc"), 3)
+    assert_eq(levenshtein("abc", ""), 3)
+}
+
+@test
+fn test_levenshtein_counts_characters_not_bytes() {
+    assert_eq(levenshtein("café", "cafe"), 1)
+    assert_eq(levenshtein("naïve", "naive"), 1)
+}
+
+@test
+fn test_damerau_treats_a_swap_as_one_edit() {
+    assert_eq(damerau("teh", "the"), 1)
+    assert_eq(damerau("ab", "ba"), 1)
+    assert_eq(damerau("abcd", "acbd"), 1)
+    assert_eq(levenshtein("abcd", "acbd"), 2)
+    assert_eq(damerau("kitten", "sitting"), 3)
+}
+
+@test
+fn test_similarity_percent() {
+    assert_eq(similarity_percent("same", "same"), 100)
+    assert_eq(similarity_percent("", ""), 100)
+    assert_eq(similarity_percent("abc", "xyz"), 0)
+    assert_eq(similarity_percent("abcd", "abcf"), 75)
+}
+
+@test
+fn test_default_tolerance_scales_with_length() {
+    assert_eq(default_tolerance("ab"), 1)
+    assert_eq(default_tolerance("build"), 1)
+    assert_eq(default_tolerance("configuration"), 4)
+}
+
+@test
+fn test_suggest_orders_by_distance_then_input_order() {
+    let names = ["cat", "cut", "car", "dog", "cast"]
+    assert_eq(suggest("cat", names, 1), ["cat", "cut", "car", "cast"])
+    assert_eq(suggest("cat", names, 0), ["cat"])
+}
+
+@test
+fn test_suggest_is_case_insensitive_and_keeps_original_spelling() {
+    assert_eq(suggest("BUILD", ["Build", "test"], 0), ["Build"])
+}
+
+@test
+fn test_suggest_with_no_candidates_or_no_match() {
+    assert!(suggest("x", [], 3).is_empty())
+    assert!(suggest("zzzzzzzz", ["build"], 2).is_empty())
+}
+
+@test
+fn test_did_you_mean() {
+    let cmds = ["build", "test", "check", "clean", "publish"]
+    assert_eq(did_you_mean("biuld", cmds), Some("build"))
+    assert_eq(did_you_mean("pubish", cmds), Some("publish"))
+    assert_eq(did_you_mean("completely-different", cmds), None)
+}
+
+@test
+fn test_hint_text() {
+    assert_eq(hint("chekc", ["build", "check"]), "did you mean 'check'?")
+    assert_eq(hint("nothing", ["build", "check"]), "")
+}
+
+@test
+fn test_fuzzy_score_requires_ordered_subsequence() {
+    assert_eq(fuzzy_score("xyz", "git commit"), -1)
+    assert_eq(fuzzy_score("tg", "git"), -1)
+    assert!(fuzzy_score("gt", "git") >= 0)
+    assert_eq(fuzzy_score("", "anything"), 0)
+}
+
+@test
+fn test_fuzzy_score_prefers_word_starts_and_runs() {
+    assert!(fuzzy_score("gc", "git commit") > fuzzy_score("gc", "game over, cool"))
+    assert!(fuzzy_score("com", "commit") > fuzzy_score("com", "c-o-m"))
+    assert!(fuzzy_score("main", "main.wj") > fuzzy_score("main", "domain.wj"))
+}
+
+@test
+fn test_fuzzy_score_prefers_shorter_text() {
+    assert!(fuzzy_score("log", "log") > fuzzy_score("log", "log_rotation_policy"))
+}
+
+@test
+fn test_fuzzy_score_is_case_insensitive() {
+    assert_eq(fuzzy_score("READ", "readme"), fuzzy_score("read", "README"))
+}
+
+@test
+fn test_rank_orders_matches_and_drops_misses() {
+    let files = ["README.md", "tests/main_test.wj", "src/main.wj", "Cargo.toml"]
+    let ranked = rank("main", files)
+    assert_eq(ranked.len(), 2)
+    assert_eq(ranked[0], "src/main.wj")
+    assert_eq(ranked[1], "tests/main_test.wj")
+}
+
+@test
+fn test_property_distance_axioms() {
+    let words = ["", "a", "ab", "abc", "acb", "kitten", "sitting", "mitten", "flaw", "lawn", "café", "cafe"]
+    let mut i = 0
+    while i < words.len() {
+        assert_eq(levenshtein(words[i], words[i]), 0)
+        let mut j = 0
+        while j < words.len() {
+            let d = levenshtein(words[i], words[j])
+            // symmetric, and zero only for equal strings
+            assert_eq(d, levenshtein(words[j], words[i]))
+            assert_eq(d == 0, words[i] == words[j])
+            // never worse than the longer length, never better than the length difference
+            let la = strings.chars(words[i]).len()
+            let lb = strings.chars(words[j]).len()
+            let longer = if la > lb { la } else { lb }
+            let diff = if la > lb { la - lb } else { lb - la }
+            assert!(d <= longer)
+            assert!(d >= diff)
+            // damerau is never larger than levenshtein
+            assert!(damerau(words[i], words[j]) <= d)
+            let mut k = 0
+            while k < words.len() {
+                // triangle inequality
+                assert!(levenshtein(words[i], words[k]) <= d + levenshtein(words[j], words[k]))
+                k = k + 1
+            }
+            j = j + 1
+        }
+        i = i + 1
+    }
+}
+
+@test
+fn test_property_one_edit_is_found_at_tolerance_one() {
+    let base = "configure"
+    let cs = strings.chars(base)
+    let mut i = 0
+    while i < cs.len() {
+        // drop one character
+        let mut dropped = ""
+        let mut j = 0
+        while j < cs.len() {
+            if j != i {
+                dropped = "${dropped}${cs[j]}"
+            }
+            j = j + 1
+        }
+        // the expected list is spelled out: an array literal of the reused local `base` does not compile in a loop yet
+        // (a recorded compiler gap; restore `[base]` once it is fixed)
+        assert_eq(suggest(dropped, [base, "zzz"], 1), ["configure"])
+        i = i + 1
+    }
+}

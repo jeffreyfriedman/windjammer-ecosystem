@@ -1,0 +1,461 @@
+//! INI configuration files: `[section]` headers, `key = value` pairs, `;` and `#` comments, quoted values with
+//! escapes, typed getters, and a writer whose output parses back to the same document.
+
+use std::strings
+
+/// One `key = value` pair.
+pub struct Entry {
+    pub key: string,
+    pub value: string,
+}
+
+/// A named group of entries. Keys that appear before any `[section]` header live in the section named `""`.
+pub struct Section {
+    pub name: string,
+    pub entries: Vec<Entry>,
+}
+
+/// A parsed document, sections in file order.
+pub struct Ini {
+    pub sections: Vec<Section>,
+}
+
+/// An empty document.
+pub fn empty() -> Ini {
+    Ini { sections: Vec::new() }
+}
+
+fn is_space(ch: char) -> bool {
+    ch == ' ' || ch == '\t' || ch == '\r'
+}
+
+fn trim_text(text: string) -> string {
+    strings.trim(text)
+}
+
+/// Parse INI text. Errors carry the 1-based line number.
+///
+/// ```wj
+/// use crate::parse
+/// use crate::get
+/// let ini = parse("[server]\nport = 8080 ; default\nname = \"my app\"\n").unwrap()
+/// assert_eq(get(ini, "server", "port"), Some("8080"))
+/// assert_eq(get(ini, "server", "name"), Some("my app"))
+/// ```
+pub fn parse(text: string) -> Result<Ini, string> {
+    let mut sections: Vec<Section> = Vec::new()
+    let mut current = Section { name: "", entries: Vec::new() }
+    let mut has_global = false
+    let mut line_no = 0
+    for raw in strings.split_lines(text) {
+        line_no = line_no + 1
+        let line = trim_text(raw)
+        if strings.len(line) == 0 {
+            continue
+        }
+        let first = strings.substring_chars(line, 0, 1)
+        if first == ";" || first == "#" {
+            continue
+        }
+        if first == "[" {
+            if !strings.ends_with(line, "]") {
+                return Err("line ${line_no}: section header is missing ']'")
+            }
+            let name = trim_text(strings.substring(line, 1, strings.len(line) - 1))
+            if strings.len(name) == 0 {
+                return Err("line ${line_no}: empty section name")
+            }
+            if strings.len(current.name) > 0 || has_global || current.entries.len() > 0 {
+                sections.push(current)
+            }
+            current = find_or_new(sections, name)
+            sections = remove_named(sections, name)
+            continue
+        }
+        let eq = find_separator(line)
+        if eq < 0 {
+            return Err("line ${line_no}: expected 'key = value'")
+        }
+        let key = trim_text(strings.substring_chars(line, 0, eq))
+        if strings.len(key) == 0 {
+            return Err("line ${line_no}: empty key")
+        }
+        let rest = strings.substring_chars(line, eq + 1, strings.chars(line).len())
+        match parse_value(rest) {
+            Ok(value) => {
+                current.entries.push(Entry { key: key, value: value })
+                if strings.len(current.name) == 0 {
+                    has_global = true
+                }
+            },
+            Err(e) => return Err("line ${line_no}: ${e}"),
+        }
+    }
+    if strings.len(current.name) > 0 || has_global || current.entries.len() > 0 {
+        sections.push(current)
+    }
+    Ok(Ini { sections: sections })
+}
+
+/// Index (in chars) of the first `=` or `:` that separates key from value, or -1.
+fn find_separator(line: string) -> int {
+    let cs = strings.chars(line)
+    let mut i = 0
+    while i < cs.len() {
+        if cs[i] == '=' || cs[i] == ':' {
+            return i
+        }
+        i = i + 1
+    }
+    -1
+}
+
+/// A section reopened later in the file continues the earlier one; return it (or a fresh one).
+fn find_or_new(sections: Vec<Section>, name: string) -> Section {
+    for s in sections {
+        if s.name == name {
+            return s
+        }
+    }
+    Section { name: name, entries: Vec::new() }
+}
+
+fn remove_named(sections: Vec<Section>, name: string) -> Vec<Section> {
+    let mut out = Vec::new()
+    for s in sections {
+        if s.name != name {
+            out.push(s)
+        }
+    }
+    out
+}
+
+/// Parse the text after the separator: a quoted string with escapes, or a bare value up to an inline comment.
+fn parse_value(rest: string) -> Result<string, string> {
+    let cs = strings.chars(rest)
+    let mut i = 0
+    while i < cs.len() && is_space(cs[i]) {
+        i = i + 1
+    }
+    if i < cs.len() && cs[i] == '"' {
+        i = i + 1
+        let mut out = ""
+        let mut closed = false
+        while i < cs.len() {
+            let ch = cs[i]
+            if ch == '\\' {
+                if i + 1 >= cs.len() {
+                    return Err("dangling backslash")
+                }
+                let nx = cs[i + 1]
+                if nx == 'n' {
+                    out = "${out}\n"
+                } else if nx == 't' {
+                    out = "${out}\t"
+                } else if nx == '"' || nx == '\\' {
+                    out = "${out}${nx}"
+                } else {
+                    return Err("unknown escape '\\${nx}'")
+                }
+                i = i + 2
+                continue
+            }
+            if ch == '"' {
+                closed = true
+                i = i + 1
+                break
+            }
+            out = "${out}${ch}"
+            i = i + 1
+        }
+        if !closed {
+            return Err("unterminated quoted value")
+        }
+        while i < cs.len() && is_space(cs[i]) {
+            i = i + 1
+        }
+        if i < cs.len() && cs[i] != ';' && cs[i] != '#' {
+            return Err("unexpected text after closing quote")
+        }
+        return Ok(out)
+    }
+    let mut out = ""
+    let mut prev_space = true
+    while i < cs.len() {
+        let ch = cs[i]
+        if (ch == ';' || ch == '#') && prev_space {
+            break
+        }
+        out = "${out}${ch}"
+        prev_space = is_space(ch)
+        i = i + 1
+    }
+    Ok(trim_text(out))
+}
+
+fn find_section(ini: Ini, name: string) -> Option<Section> {
+    for s in ini.sections {
+        if s.name == name {
+            return Some(s)
+        }
+    }
+    None
+}
+
+/// The value of `key` in `section` (use `""` for keys before any header). When a key repeats, the last one wins.
+pub fn get(ini: Ini, section: string, key: string) -> Option<string> {
+    match find_section(ini, section) {
+        Some(s) => {
+            let mut found = None
+            for e in s.entries {
+                if e.key == key {
+                    found = Some(e.value)
+                }
+            }
+            found
+        },
+        None => None,
+    }
+}
+
+/// Every value of a repeated key, in file order.
+pub fn get_all(ini: Ini, section: string, key: string) -> Vec<string> {
+    let mut out = Vec::new()
+    match find_section(ini, section) {
+        Some(s) => {
+            for e in s.entries {
+                if e.key == key {
+                    out.push(e.value)
+                }
+            }
+        },
+        None => {},
+    }
+    out
+}
+
+/// The value, or `fallback` when the section or key is missing.
+pub fn get_or(ini: Ini, section: string, key: string, fallback: string) -> string {
+    match get(ini, section, key) {
+        Some(v) => v,
+        None => fallback,
+    }
+}
+
+/// An integer value. `Err` names the section and key when the value is missing or not a number.
+pub fn get_int(ini: Ini, section: string, key: string) -> Result<int, string> {
+    match get(ini, section, key) {
+        Some(v) => match parse_int_text(v) {
+            Some(n) => Ok(n),
+            None => Err("[${section}] ${key}: '${v}' is not an integer"),
+        },
+        None => Err("[${section}] ${key}: missing"),
+    }
+}
+
+/// Parse an optionally signed decimal integer of at most 18 digits; anything else is `None`.
+pub fn parse_int_text(text: string) -> Option<int> {
+    let cs = strings.chars(text)
+    let mut i = 0
+    let mut negative = false
+    if cs.len() > 0 && (cs[0] == '-' || cs[0] == '+') {
+        negative = cs[0] == '-'
+        i = 1
+    }
+    if i >= cs.len() || cs.len() - i > 18 {
+        return None
+    }
+    let mut n = 0
+    while i < cs.len() {
+        let d = strings.substring_chars(text, i, i + 1)
+        if strings.len(d) != 1 || !strings.contains("0123456789", d) {
+            return None
+        }
+        n = n * 10 + (strings.parse_i32(d) as int)
+        i = i + 1
+    }
+    if negative {
+        return Some(0 - n)
+    }
+    Some(n)
+}
+
+/// A boolean value: `true/false`, `yes/no`, `on/off`, `1/0` in any letter case.
+pub fn get_bool(ini: Ini, section: string, key: string) -> Result<bool, string> {
+    match get(ini, section, key) {
+        Some(v) => {
+            let t = strings.to_lower(v)
+            if t == "true" || t == "yes" || t == "on" || t == "1" {
+                return Ok(true)
+            }
+            if t == "false" || t == "no" || t == "off" || t == "0" {
+                return Ok(false)
+            }
+            Err("[${section}] ${key}: '${v}' is not a boolean")
+        },
+        None => Err("[${section}] ${key}: missing"),
+    }
+}
+
+/// True when the section exists.
+pub fn has_section(ini: Ini, section: string) -> bool {
+    match find_section(ini, section) {
+        Some(_) => true,
+        None => false,
+    }
+}
+
+/// True when the key exists in the section.
+pub fn has(ini: Ini, section: string, key: string) -> bool {
+    match get(ini, section, key) {
+        Some(_) => true,
+        None => false,
+    }
+}
+
+/// Section names in file order (the global section `""` is included when it has entries).
+pub fn section_names(ini: Ini) -> Vec<string> {
+    let mut out = Vec::new()
+    for s in ini.sections {
+        out.push(s.name)
+    }
+    out
+}
+
+/// Distinct keys of a section in first-seen order.
+pub fn keys(ini: Ini, section: string) -> Vec<string> {
+    let mut out: Vec<string> = Vec::new()
+    match find_section(ini, section) {
+        Some(s) => {
+            for e in s.entries {
+                let mut seen = false
+                for k in out {
+                    if k == e.key {
+                        seen = true
+                    }
+                }
+                if !seen {
+                    out.push(e.key)
+                }
+            }
+        },
+        None => {},
+    }
+    out
+}
+
+/// A copy of the document with `key` set in `section`: an existing key is replaced (all repeats collapse to one),
+/// a new key is appended, and a missing section is created at the end.
+pub fn set(ini: Ini, section: string, key: string, value: string) -> Ini {
+    let mut out: Vec<Section> = Vec::new()
+    let mut placed = false
+    for s in ini.sections {
+        if s.name == section {
+            let mut entries: Vec<Entry> = Vec::new()
+            for e in s.entries {
+                if e.key == key {
+                    if !placed {
+                        entries.push(Entry { key: key, value: value })
+                        placed = true
+                    }
+                } else {
+                    entries.push(e)
+                }
+            }
+            if !placed {
+                entries.push(Entry { key: key, value: value })
+                placed = true
+            }
+            out.push(Section { name: s.name, entries: entries })
+        } else {
+            out.push(s)
+        }
+    }
+    if !placed {
+        let mut entries = Vec::new()
+        entries.push(Entry { key: key, value: value })
+        out.push(Section { name: section, entries: entries })
+    }
+    Ini { sections: out }
+}
+
+/// A copy of the document without `key` in `section`.
+pub fn remove(ini: Ini, section: string, key: string) -> Ini {
+    let mut out: Vec<Section> = Vec::new()
+    for s in ini.sections {
+        if s.name == section {
+            let mut entries: Vec<Entry> = Vec::new()
+            for e in s.entries {
+                if e.key != key {
+                    entries.push(e)
+                }
+            }
+            out.push(Section { name: s.name, entries: entries })
+        } else {
+            out.push(s)
+        }
+    }
+    Ini { sections: out }
+}
+
+fn needs_quotes(value: string) -> bool {
+    if strings.len(value) == 0 {
+        return false
+    }
+    let cs = strings.chars(value)
+    if is_space(cs[0]) || is_space(cs[cs.len() - 1]) || cs[0] == '"' {
+        return true
+    }
+    let mut prev_space = true
+    for ch in cs {
+        if ch == '\n' || ch == '\\' {
+            return true
+        }
+        if (ch == ';' || ch == '#') && prev_space {
+            return true
+        }
+        prev_space = is_space(ch)
+    }
+    false
+}
+
+/// Quote and escape a value so that `parse` reads it back unchanged.
+pub fn quote(value: string) -> string {
+    if !needs_quotes(value) {
+        return value
+    }
+    let mut out = "\""
+    for ch in strings.chars(value) {
+        if ch == '"' {
+            out = "${out}\\\""
+        } else if ch == '\\' {
+            out = "${out}\\\\"
+        } else if ch == '\n' {
+            out = "${out}\\n"
+        } else if ch == '\t' {
+            out = "${out}\\t"
+        } else {
+            out = "${out}${ch}"
+        }
+    }
+    "${out}\""
+}
+
+/// Serialize a document. Parsing the result gives back the same sections and entries.
+pub fn write(ini: Ini) -> string {
+    let mut out = ""
+    let mut first = true
+    for s in ini.sections {
+        if strings.len(s.name) > 0 {
+            if !first {
+                out = "${out}\n"
+            }
+            out = "${out}[${s.name}]\n"
+        }
+        for e in s.entries {
+            out = "${out}${e.key} = ${quote(e.value)}\n"
+        }
+        first = false
+    }
+    out
+}

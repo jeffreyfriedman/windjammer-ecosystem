@@ -71,6 +71,12 @@ Replaces the old weekly log. Levels:
 | wj-circuit-breaker | Circuit breaker with failure-rate window and probes | 13 | 15 / 15 |
 | wj-trace | Spans, sampling, traceparent, exporter trait | 17 | 18 / 18 |
 | wj-middleware | Middleware pipeline: Layer trait objects, closure handler | 16 | 10 / 10 |
+| wj-pagination | Offset and keyset pagination, page strips, Link headers | 11 | 22 / 22 |
+| wj-ini | INI config: parse, typed getters, edit, write | 16 | 22 / 22 |
+| wj-ulid | ULIDs: time-sortable ids, monotonic generation | 9 | 20 / 20 |
+| wj-bytesize | Human byte sizes and rates, exact parse and format | 6 | 18 / 18 |
+| wj-fuzzy | Edit distance, did-you-mean, picker scoring | 9 | 20 / 20 |
+| wj-money | Money in minor units: arithmetic, basis points, allocation | 17 | 25 / 25 |
 | wj-gitignore | Subset (.gitignore matching) | 3 | 12 / 12 |
 | wj-json-doc | Order-preserving JSON documents | 24 | 12 / 12 |
 | wj-proc | Wrapper (process, git, CPU timing) | 12 | 8 / 8 |

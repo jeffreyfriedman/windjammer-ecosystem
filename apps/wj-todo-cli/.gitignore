@@ -2,3 +2,6 @@ build/
 .wj-cache/
 target/
 todos.jsonl
+# written by the import tests
+wj_todo_import_fixture.json
+wj_todo_import_merge_fixture.json

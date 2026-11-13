@@ -5,6 +5,9 @@ on:
     branches: [main, "feat/**"]
   pull_request:
     branches: [main]
+  workflow_dispatch:
+  schedule:
+    - cron: "17 5 * * 1"
 
 env:
   CARGO_TERM_COLOR: always
@@ -115,3 +118,102 @@ jobs:
           if [[ "$found" -eq 0 ]]; then
             echo "No seed projects with wj.toml yet"
           fi
+
+  # Standing health gate: every package and app test suite must pass in INTERPRETED mode with the pinned wj.
+  # New failures fail the job; fixed ones must leave scripts/health-known-failures.txt (shrink-only ledger).
+  health-interpreted:
+    name: Health gate (interpreted, all packages and apps)
+    runs-on: ubuntu-latest
+    needs: ban-list
+    steps:
+      - name: Checkout ecosystem
+        uses: actions/checkout@v4
+        with:
+          path: windjammer-ecosystem
+
+      - name: Checkout windjammer (pinned)
+        uses: actions/checkout@v4
+        with:
+          repository: jeffreyfriedman/windjammer
+          ref: ${{ env.WINDJAMMER_REF }}
+          path: windjammer
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Build local wj
+        working-directory: windjammer
+        run: |
+          unset CARGO_TARGET_DIR
+          cargo build --release -p windjammer --bin wj
+
+      - name: Gate self-test (planted failure, planted hang, planted drift must all be caught)
+        working-directory: windjammer-ecosystem
+        run: |
+          W="${{ github.workspace }}/windjammer/target/release/wj"
+          "$W" run --interpret --allow process --allow fs.read --allow fs.write --allow env.read --allow console \
+            scripts/health_gate.wj --self-test "$W" "$RUNNER_TEMP/health-selftest"
+
+      - name: Sweep every package and app, interpreted
+        working-directory: windjammer-ecosystem
+        env:
+          HEALTH_JOBS: "2"
+          HEALTH_TIMEOUT: "600"
+        run: |
+          W="${{ github.workspace }}/windjammer/target/release/wj"
+          "$W" run --interpret --allow process --allow fs.read --allow fs.write --allow env.read --allow console \
+            scripts/health_gate.wj "$W" "$RUNNER_TEMP/health" interp
+
+      - name: Upload results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: health-interpreted
+          path: ${{ runner.temp }}/health/results.json
+
+  # Optional: compiled sweep plus interpreted-vs-compiled drift. Slow, so it runs weekly and on demand and never blocks merges.
+  health-compiled:
+    name: Health gate (compiled and drift, optional)
+    if: github.event_name == 'workflow_dispatch' || github.event_name == 'schedule'
+    continue-on-error: true
+    runs-on: ubuntu-latest
+    needs: ban-list
+    steps:
+      - name: Checkout ecosystem
+        uses: actions/checkout@v4
+        with:
+          path: windjammer-ecosystem
+
+      - name: Checkout windjammer (pinned)
+        uses: actions/checkout@v4
+        with:
+          repository: jeffreyfriedman/windjammer
+          ref: ${{ env.WINDJAMMER_REF }}
+          path: windjammer
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Build local wj
+        working-directory: windjammer
+        run: |
+          unset CARGO_TARGET_DIR
+          cargo build --release -p windjammer --bin wj
+
+      - name: Sweep every package and app, interpreted and compiled
+        working-directory: windjammer-ecosystem
+        env:
+          HEALTH_JOBS: "2"
+          HEALTH_TIMEOUT: "1200"
+        run: |
+          unset CARGO_TARGET_DIR
+          W="${{ github.workspace }}/windjammer/target/release/wj"
+          "$W" run --interpret --allow process --allow fs.read --allow fs.write --allow env.read --allow console \
+            scripts/health_gate.wj "$W" "$RUNNER_TEMP/health" both
+
+      - name: Upload results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: health-both
+          path: ${{ runner.temp }}/health/results.json

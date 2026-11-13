@@ -33,3 +33,57 @@ is why the assertion script exists; it stays useful afterward.
 `scripts/public-hygiene-patterns.txt` (a copy of the compiler repo's list). Run
 `wj run --interpret --allow process --allow fs.read --allow env.read --allow console scripts/public_hygiene.wj`,
 with `--self-test` to prove the matcher fires on planted terms. CI runs both in job `build-apps`.
+
+## Health gate: every package and app, interpreted (and compiled)
+
+The interpreter is a first-class way to run Windjammer, so the whole ecosystem is proven to work in it on every push.
+`scripts/health_gate.wj` runs `wj test --interpret` (and, optionally, compiled `wj test`) in every `apps/*` and
+`packages/*` directory and decides pass or fail from the results.
+
+```bash
+# from the repo root; interpreted sweep of everything (about a minute), exit 0 means the gate holds
+wj run --interpret --allow process --allow fs.read --allow fs.write --allow env.read --allow console \
+    scripts/health_gate.wj "$(command -v wj)" /tmp/health interp
+
+# interpreted and compiled, with the drift comparison (compiled is slow: minutes per package on a cold build)
+SLOT_CMD=/path/to/your/build-slot-wrapper HEALTH_JOBS=2 wj run --interpret ... scripts/health_gate.wj "$WJ" /tmp/health both
+
+# a few directories only
+wj run --interpret ... scripts/health_gate.wj "$WJ" /tmp/health interp packages/wj-uuid apps/wj-hello
+
+# prove the gate itself catches a planted failure, a planted hang and planted drift
+wj run --interpret ... scripts/health_gate.wj --self-test "$WJ" /tmp/health-selftest
+```
+
+Environment knobs: `HEALTH_TIMEOUT` (seconds per package and mode, default 600), `HEALTH_JOBS` (packages at once,
+default 2), `SLOT_CMD` (a command prefix that wraps each compiled `wj test`, such as a shared build-slot wrapper; empty by
+default), `HEALTH_LEDGER` (default `scripts/health-known-failures.txt`).
+
+### What the numbers mean
+
+`<outdir>/results.json` has one entry per directory and mode: `status` (`pass`, `fail`, `timeout`, `skip`), the
+`passed` and `failed` test counts, `seconds` and a `duration_class` (`fast` under 10 s, `medium` under 60 s, `slow`
+under 300 s, `very-slow` beyond), plus a `comparison` block. A package shows **drift** when its interpreted and
+compiled runs disagree on outcome or on pass/fail counts: that is the interpreter and the compiler giving different
+answers for the same program, which we treat as a bug in one of them. The `summary` block gives interpreted and
+compiled package totals, total passing tests per mode and the drift count.
+
+### The known-failures ledger
+
+`scripts/health-known-failures.txt` lists accepted failures as `dir | mode | reason | owner`, where mode is `interp`,
+`compiled` or `drift`. It only shrinks:
+
+- a failure or drift that is not in the ledger fails the gate (a new regression);
+- an entry whose problem has been fixed also fails the gate until the line is deleted, so fixes are locked in.
+
+`--self-test` is the mutation check for the gate: it feeds planted failing, hanging and drifting results through the
+same decision code and runs real planted packages through the runner, and fails if the gate ever lets one through.
+
+### CI
+
+Job `health-interpreted` in `.github/workflows/ci.yml` builds the pinned `wj`, runs the self-test and sweeps every
+package and app interpreted. Job `health-compiled` runs weekly and on demand (`workflow_dispatch`); it adds the
+compiled sweep and drift comparison and does not block merges. Both upload `results.json`.
+
+`scripts/health_sweep.wj` is the lighter TSV sweeper that feeds `scripts/health_table.wj` (the table in
+`docs/STDLIB_GRADUATION.md`).

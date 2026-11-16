@@ -17,7 +17,7 @@ pub struct Timed {
 
 /// `s` in single quotes, safe to splice into a `sh -c` command line.
 pub fn quote(s: string) -> string {
-    "'" + strings.replace(s, "'", "'\\''") + "'"
+    "'${strings.replace(s, "'", "'\\''")}'"
 }
 
 /// Run `program` with `args`; Err when it cannot be started. A non-zero exit is an Ok(Output) with the status.
@@ -35,7 +35,7 @@ pub fn sh(command: string) -> Result<Output, string> {
 
 /// Run a command line through `sh -c` inside `dir`.
 pub fn sh_in(dir: string, command: string) -> Result<Output, string> {
-    sh("cd " + quote(dir) + " && " + command)
+    sh("cd ${quote(dir)} && ${command}")
 }
 
 /// Run `program` and report its user and system CPU seconds (child processes included).
@@ -64,7 +64,7 @@ pub fn timed(program: string, args: Vec<string>) -> Result<Timed, string> {
     while kept.len() > 0 && kept[kept.len() - 1].len() == 0 {
         kept.pop()
     }
-    let err_text = if kept.len() == 0 { "" } else { kept.join("\n") + "\n" }
+    let err_text = if kept.len() == 0 { "" } else { "${kept.join("\n")}\n" }
     Ok(Timed { output: Output { status: out.status, stdout: out.stdout, stderr: err_text }, user: user, sys: sys })
 }
 

@@ -86,22 +86,22 @@ pub fn signed(x: f64, decimals: int) -> string {
     if body.starts_with("-") {
         return body
     }
-    "+" + body
+    "+${body}"
 }
 
 /// A GitHub-flavoured markdown table: `| a | b |`, then `|---|---:|` (right-aligned columns end in `:`).
 pub fn markdown(t: Table) -> string {
     let mut lines = Vec::new()
-    lines.push("| " + t.headers.join(" | ") + " |")
+    lines.push("| ${t.headers.join(" | ")} |")
     let mut seps = Vec::new()
     let mut i = 0
     while i < t.headers.len() {
         seps.push(if t.right[i] { "---:" } else { "---" })
         i = i + 1
     }
-    lines.push("|" + seps.join("|") + "|")
+    lines.push("|${seps.join("|")}|")
     for row in t.rows {
-        lines.push("| " + row.join(" | ") + " |")
+        lines.push("| ${row.join(" | ")} |")
     }
     lines.join("\n")
 }

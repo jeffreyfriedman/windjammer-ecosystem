@@ -74,7 +74,7 @@ pub fn format_date(epoch_secs: int, offset_minutes: int) -> string {
     let months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
     let sign = if offset_minutes < 0 { "-" } else { "+" }
     let off = if offset_minutes < 0 { 0 - offset_minutes } else { offset_minutes }
-    "${days_names[weekday as usize]}, ${two(d)} ${months[(m - 1) as usize]} ${y} ${two(secs / 3600)}:${two((secs % 3600) / 60)}:${two(secs % 60)} ${sign}${two(off / 60)}${two(off % 60)}"
+    "${days_names[weekday]}, ${two(d)} ${months[m - 1]} ${y} ${two(secs / 3600)}:${two((secs % 3600) / 60)}:${two(secs % 60)} ${sign}${two(off / 60)}${two(off % 60)}"
 }
 
 fn header_ok(name: string, value: string) -> Result<(), string> {
@@ -108,9 +108,9 @@ fn is_ascii_text(text: string) -> bool {
 
 fn text_part(content_type: string, body: string) -> string {
     if is_ascii_text(body) && !strings.contains(body, "=") {
-        return "Content-Type: ${content_type}; charset=\"utf-8\"\r\nContent-Transfer-Encoding: 7bit\r\n\r\n" + strings.replace(body, "\n", "\r\n").replace("\r\r\n", "\r\n")
+        return "Content-Type: ${content_type}; charset=\"utf-8\"\r\nContent-Transfer-Encoding: 7bit\r\n\r\n${strings.replace(body, "\n", "\r\n").replace("\r\r\n", "\r\n")}"
     }
-    "Content-Type: ${content_type}; charset=\"utf-8\"\r\nContent-Transfer-Encoding: quoted-printable\r\n\r\n" + encode::quoted_printable(body)
+    "Content-Type: ${content_type}; charset=\"utf-8\"\r\nContent-Transfer-Encoding: quoted-printable\r\n\r\n${encode::quoted_printable(body)}"
 }
 
 fn attachment_part(a: Attachment) -> Result<string, string> {
@@ -118,7 +118,7 @@ fn attachment_part(a: Attachment) -> Result<string, string> {
     header_ok("filename", a.filename)?
     let name = a.filename
     let disp = if is_ascii_text(name) { "filename=\"${name}\"" } else { "filename*=utf-8''${encoding.url_encode_component(name)}" }
-    Ok("Content-Type: ${a.content_type}\r\nContent-Transfer-Encoding: base64\r\nContent-Disposition: attachment; ${disp}\r\n\r\n" + encode::base64_lines(a.data))
+    Ok("Content-Type: ${a.content_type}\r\nContent-Transfer-Encoding: base64\r\nContent-Disposition: attachment; ${disp}\r\n\r\n${encode::base64_lines(a.data)}")
 }
 
 /// The full RFC 5322 message with CRLF line ends. Addresses and header values are validated (no line breaks);
@@ -133,18 +133,18 @@ pub fn build(m: Message) -> Result<string, string> {
     header_ok("Subject", m.subject)?
     header_ok("Message-ID", m.message_id)?
     let mut head = "Date: ${format_date(m.date_secs, m.date_offset_minutes)}\r\n"
-    head = head + "From: ${format_address(m.from)?}\r\n"
+    head += "From: ${format_address(m.from)?}\r\n"
     if m.to.len() > 0 {
-        head = head + "To: ${address_list(m.to)?}\r\n"
+        head += "To: ${address_list(m.to)?}\r\n"
     }
     if m.cc.len() > 0 {
-        head = head + "Cc: ${address_list(m.cc)?}\r\n"
+        head += "Cc: ${address_list(m.cc)?}\r\n"
     }
-    head = head + "Subject: ${encode::encoded_words(m.subject)}\r\n"
-    head = head + "Message-ID: <${m.message_id}>\r\nMIME-Version: 1.0\r\n"
+    head += "Subject: ${encode::encoded_words(m.subject)}\r\n"
+    head += "Message-ID: <${m.message_id}>\r\nMIME-Version: 1.0\r\n"
     for h in m.extra_headers {
         header_ok(h.0, h.1)?
-        head = head + "${h.0}: ${h.1}\r\n"
+        head += "${h.0}: ${h.1}\r\n"
     }
     let has_html = strings.len(m.html) > 0
     let has_attach = m.attachments.len() > 0
@@ -152,19 +152,19 @@ pub fn build(m: Message) -> Result<string, string> {
     let alt_boundary = "=_alt_${seed}"
     let mix_boundary = "=_mix_${seed}"
     let body_part = if has_html {
-        "Content-Type: multipart/alternative; boundary=\"${alt_boundary}\"\r\n\r\n--${alt_boundary}\r\n" + text_part("text/plain", m.text) + "\r\n--${alt_boundary}\r\n" + text_part("text/html", m.html) + "\r\n--${alt_boundary}--"
+        "Content-Type: multipart/alternative; boundary=\"${alt_boundary}\"\r\n\r\n--${alt_boundary}\r\n${text_part("text/plain", m.text)}\r\n--${alt_boundary}\r\n${text_part("text/html", m.html)}\r\n--${alt_boundary}--"
     } else {
         text_part("text/plain", m.text)
     }
     if !has_attach {
         if has_html {
-            return Ok(head + body_part + "\r\n")
+            return Ok("${head}${body_part}\r\n")
         }
         return Ok(head + body_part)
     }
-    let mut out = head + "Content-Type: multipart/mixed; boundary=\"${mix_boundary}\"\r\n\r\n--${mix_boundary}\r\n" + body_part + "\r\n"
+    let mut out = "${head}Content-Type: multipart/mixed; boundary=\"${mix_boundary}\"\r\n\r\n--${mix_boundary}\r\n${body_part}\r\n"
     for a in m.attachments {
-        out = out + "--${mix_boundary}\r\n" + attachment_part(a)? + "\r\n"
+        out += "--${mix_boundary}\r\n${attachment_part(a)?}\r\n"
     }
-    Ok(out + "--${mix_boundary}--\r\n")
+    Ok("${out}--${mix_boundary}--\r\n")
 }

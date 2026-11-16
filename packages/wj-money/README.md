@@ -14,23 +14,24 @@ use wj_money::mul_int
 use wj_money::parse
 use wj_money::split
 
-fn main() {
-    let price = parse("19.99", "USD").unwrap()
-    let subtotal = mul_int(price, 3).unwrap()
-    let tax = apply_bps(subtotal, 825, Rounding::HalfUp).unwrap()
-    let total = add(subtotal, tax).unwrap()
+fn main() -> Result<(), string> {
+    let price = parse("19.99", "USD")?
+    let subtotal = mul_int(price, 3)?
+    let tax = apply_bps(subtotal, 825, Rounding::HalfUp)?
+    let total = add(subtotal, tax)?
     println("subtotal ${format(subtotal)}, tax ${format(tax)}, total ${format(total)}")
 
     // five friends split the bill: no cent is lost
-    let shares = split(total, 5).unwrap()
+    let shares = split(total, 5)?
     println("shares: ${format(shares[0])} ${format(shares[1])} ${format(shares[2])} ${format(shares[3])} ${format(shares[4])}")
 
     // revenue share 70/20/10
-    let parts = allocate(parse("1000.00", "USD").unwrap(), [70, 20, 10]).unwrap()
+    let parts = allocate(parse("1000.00", "USD")?, [70, 20, 10])?
     println("revenue: ${format(parts[0])} ${format(parts[1])} ${format(parts[2])}")
 
     // currencies never mix by accident
-    println("mixed: ${add(price, parse("5", "EUR").unwrap()).unwrap_err()}")
+    println("mixed: ${add(price, parse("5", "EUR")?).unwrap_err()}")
+    Ok(())
 }
 ```
 

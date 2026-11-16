@@ -135,5 +135,5 @@ pub fn retry_after_header(d: Decision) -> string {
         return ""
     }
     let secs = (d.retry_after_ms + 999) / 1000
-    "Retry-After: " + secs.to_string()
+    "Retry-After: ${secs}"
 }

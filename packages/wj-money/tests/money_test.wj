@@ -17,42 +17,49 @@ use crate::sub
 use crate::sum
 use crate::symbol
 
+fn must<T>(r: Result<T, string>) -> T {
+    match r {
+        Ok(v) => v,
+        Err(e) => panic("unexpected error: ${e}"),
+    }
+}
+
 @test
 fn test_exponents() {
-    assert_eq(exponent("USD").unwrap(), 2)
-    assert_eq(exponent("jpy").unwrap(), 0)
-    assert_eq(exponent("KWD").unwrap(), 3)
+    assert_eq(must(exponent("USD")), 2)
+    assert_eq(must(exponent("jpy")), 0)
+    assert_eq(must(exponent("KWD")), 3)
     assert_eq(exponent("XXX").unwrap_err(), "unknown currency 'XXX'")
 }
 
 @test
 fn test_parse_amounts() {
-    assert_eq(parse("19.99", "USD").unwrap().minor, 1999)
-    assert_eq(parse("19.9", "USD").unwrap().minor, 1990)
-    assert_eq(parse("19", "USD").unwrap().minor, 1900)
-    assert_eq(parse(".5", "USD").unwrap().minor, 50)
-    assert_eq(parse("-0.05", "USD").unwrap().minor, -5)
-    assert_eq(parse("+3", "usd").unwrap().minor, 300)
-    assert_eq(parse("1,234.56", "USD").unwrap().minor, 123456)
-    assert_eq(parse("500", "JPY").unwrap().minor, 500)
-    assert_eq(parse("1.234", "KWD").unwrap().minor, 1234)
+    assert_eq(must(parse("19.99", "USD")).minor, 1999)
+    assert_eq(must(parse("19.9", "USD")).minor, 1990)
+    assert_eq(must(parse("19", "USD")).minor, 1900)
+    assert_eq(must(parse(".5", "USD")).minor, 50)
+    assert_eq(must(parse("-0.05", "USD")).minor, -5)
+    assert_eq(must(parse("+3", "usd")).minor, 300)
+    assert_eq(must(parse("1,234.56", "USD")).minor, 123456)
+    assert_eq(must(parse("500", "JPY")).minor, 500)
+    assert_eq(must(parse("1.234", "KWD")).minor, 1234)
 }
 
 @test
 fn test_parse_rejects_bad_input() {
-    assert!(parse("", "USD").is_err())
-    assert!(parse("abc", "USD").is_err())
-    assert!(parse("1.2.3", "USD").is_err())
-    assert!(parse("-", "USD").is_err())
-    assert!(parse(".", "USD").is_err())
+    assert(parse("", "USD").is_err())
+    assert(parse("abc", "USD").is_err())
+    assert(parse("1.2.3", "USD").is_err())
+    assert(parse("-", "USD").is_err())
+    assert(parse(".", "USD").is_err())
     assert_eq(parse("1.005", "USD").unwrap_err(), "USD has 2 decimal places, got more")
     assert_eq(parse("1.5", "JPY").unwrap_err(), "JPY has 0 decimal places, got more")
-    assert!(parse("1", "XXX").is_err())
+    assert(parse("1", "XXX").is_err())
 }
 
 @test
 fn test_parse_overflow() {
-    assert!(parse("92233720368547758.07", "USD").is_ok())
+    assert(parse("92233720368547758.07", "USD").is_ok())
     assert_eq(parse("92233720368547758.08", "USD").unwrap_err(), "amount too large")
     assert_eq(parse("99999999999999999999", "USD").unwrap_err(), "amount too large")
 }
@@ -84,9 +91,9 @@ fn test_format_grouped_and_symbol() {
 fn test_add_and_sub() {
     let a = money(1050, "USD")
     let b = money(275, "USD")
-    assert_eq(add(a, b).unwrap().minor, 1325)
-    assert_eq(sub(a, b).unwrap().minor, 775)
-    assert_eq(sub(b, a).unwrap().minor, -775)
+    assert_eq(must(add(a, b)).minor, 1325)
+    assert_eq(must(sub(a, b)).minor, 775)
+    assert_eq(must(sub(b, a)).minor, -775)
 }
 
 @test
@@ -94,80 +101,80 @@ fn test_mixed_currencies_are_an_error() {
     let usd = money(100, "USD")
     let eur = money(100, "EUR")
     assert_eq(add(usd, eur).unwrap_err(), "currency mismatch: USD and EUR")
-    assert!(sub(usd, eur).is_err())
-    assert!(compare(usd, eur).is_err())
-    assert!(sum([usd, eur]).is_err())
+    assert(sub(usd, eur).is_err())
+    assert(compare(usd, eur).is_err())
+    assert(sum([usd, eur]).is_err())
 }
 
 @test
 fn test_add_overflow() {
     let big = money(9223372036854775807, "USD")
     assert_eq(add(big, money(1, "USD")).unwrap_err(), "amount overflow")
-    assert!(add(big, money(0, "USD")).is_ok())
-    assert!(add(negate(big), money(-2, "USD")).is_err())
+    assert(add(big, money(0, "USD")).is_ok())
+    assert(add(negate(big), money(-2, "USD")).is_err())
 }
 
 @test
 fn test_sum_compare_zero() {
     let items = [money(100, "USD"), money(250, "USD"), money(-50, "USD")]
-    assert_eq(sum(items).unwrap().minor, 300)
-    assert!(sum([]).is_err())
-    assert_eq(compare(money(1, "USD"), money(2, "USD")).unwrap(), -1)
-    assert_eq(compare(money(2, "USD"), money(2, "USD")).unwrap(), 0)
-    assert!(is_zero(money(0, "USD")))
-    assert!(!is_zero(money(1, "USD")))
+    assert_eq(must(sum(items)).minor, 300)
+    assert(sum([]).is_err())
+    assert_eq(must(compare(money(1, "USD"), money(2, "USD"))), -1)
+    assert_eq(must(compare(money(2, "USD"), money(2, "USD"))), 0)
+    assert(is_zero(money(0, "USD")))
+    assert(!is_zero(money(1, "USD")))
 }
 
 @test
 fn test_mul_int() {
-    assert_eq(mul_int(money(1999, "USD"), 3).unwrap().minor, 5997)
-    assert_eq(mul_int(money(1999, "USD"), 0).unwrap().minor, 0)
-    assert!(mul_int(money(9223372036854775807, "USD"), 2).is_err())
+    assert_eq(must(mul_int(money(1999, "USD"), 3)).minor, 5997)
+    assert_eq(must(mul_int(money(1999, "USD"), 0)).minor, 0)
+    assert(mul_int(money(9223372036854775807, "USD"), 2).is_err())
 }
 
 @test
 fn test_apply_bps_rounding_modes() {
     // 12.5% of 3 cents is 0.375 cents; 12.5% of 4 cents is exactly 0.5 cents
-    assert_eq(apply_bps(money(3, "USD"), 1250, Rounding::HalfUp).unwrap().minor, 0)
-    assert_eq(apply_bps(money(4, "USD"), 1250, Rounding::HalfUp).unwrap().minor, 1)
-    assert_eq(apply_bps(money(4, "USD"), 1250, Rounding::HalfEven).unwrap().minor, 0)
-    assert_eq(apply_bps(money(12, "USD"), 1250, Rounding::HalfEven).unwrap().minor, 2)
-    assert_eq(apply_bps(money(3, "USD"), 1250, Rounding::Up).unwrap().minor, 1)
-    assert_eq(apply_bps(money(7, "USD"), 5000, Rounding::Down).unwrap().minor, 3)
+    assert_eq(must(apply_bps(money(3, "USD"), 1250, Rounding::HalfUp)).minor, 0)
+    assert_eq(must(apply_bps(money(4, "USD"), 1250, Rounding::HalfUp)).minor, 1)
+    assert_eq(must(apply_bps(money(4, "USD"), 1250, Rounding::HalfEven)).minor, 0)
+    assert_eq(must(apply_bps(money(12, "USD"), 1250, Rounding::HalfEven)).minor, 2)
+    assert_eq(must(apply_bps(money(3, "USD"), 1250, Rounding::Up)).minor, 1)
+    assert_eq(must(apply_bps(money(7, "USD"), 5000, Rounding::Down)).minor, 3)
 }
 
 @test
 fn test_apply_bps_is_symmetric_for_negatives() {
-    assert_eq(apply_bps(money(-4, "USD"), 1250, Rounding::HalfUp).unwrap().minor, -1)
-    assert_eq(apply_bps(money(-7, "USD"), 5000, Rounding::Down).unwrap().minor, -3)
-    assert_eq(apply_bps(money(-3, "USD"), 1250, Rounding::Up).unwrap().minor, -1)
+    assert_eq(must(apply_bps(money(-4, "USD"), 1250, Rounding::HalfUp)).minor, -1)
+    assert_eq(must(apply_bps(money(-7, "USD"), 5000, Rounding::Down)).minor, -3)
+    assert_eq(must(apply_bps(money(-3, "USD"), 1250, Rounding::Up)).minor, -1)
 }
 
 @test
 fn test_sales_tax_example() {
-    let price = parse("19.99", "USD").unwrap()
-    let tax = apply_bps(price, 825, Rounding::HalfUp).unwrap()
+    let price = must(parse("19.99", "USD"))
+    let tax = must(apply_bps(price, 825, Rounding::HalfUp))
     assert_eq(tax.minor, 165)
-    assert_eq(format(add(price, tax).unwrap()), "$21.64")
+    assert_eq(format(must(add(price, tax))), "$21.64")
 }
 
 @test
 fn test_split_distributes_remainders_first() {
-    let shares = split(money(100, "USD"), 3).unwrap()
+    let shares = must(split(money(100, "USD"), 3))
     assert_eq(shares[0].minor, 34)
     assert_eq(shares[1].minor, 33)
     assert_eq(shares[2].minor, 33)
-    assert!(split(money(100, "USD"), 0).is_err())
-    assert_eq(split(money(0, "USD"), 4).unwrap()[3].minor, 0)
+    assert(split(money(100, "USD"), 0).is_err())
+    assert_eq(must(split(money(0, "USD"), 4))[3].minor, 0)
 }
 
 @test
 fn test_allocate_by_ratio() {
-    let shares = allocate(money(1000, "USD"), [70, 20, 10]).unwrap()
+    let shares = must(allocate(money(1000, "USD"), [70, 20, 10]))
     assert_eq(shares[0].minor, 700)
     assert_eq(shares[1].minor, 200)
     assert_eq(shares[2].minor, 100)
-    let odd = allocate(money(5, "USD"), [3, 7]).unwrap()
+    let odd = must(allocate(money(5, "USD"), [3, 7]))
     assert_eq(odd[0].minor + odd[1].minor, 5)
     assert_eq(odd[0].minor, 2)
     assert_eq(odd[1].minor, 3)
@@ -175,24 +182,24 @@ fn test_allocate_by_ratio() {
 
 @test
 fn test_allocate_zero_ratio_gets_nothing() {
-    let shares = allocate(money(100, "USD"), [0, 1, 1]).unwrap()
+    let shares = must(allocate(money(100, "USD"), [0, 1, 1]))
     assert_eq(shares[0].minor, 0)
     assert_eq(shares[1].minor + shares[2].minor, 100)
 }
 
 @test
 fn test_allocate_negative_amount_mirrors_positive() {
-    let shares = allocate(money(-100, "USD"), [1, 1, 1]).unwrap()
+    let shares = must(allocate(money(-100, "USD"), [1, 1, 1]))
     assert_eq(shares[0].minor, -34)
     assert_eq(shares[2].minor, -33)
 }
 
 @test
 fn test_allocate_rejects_bad_ratios() {
-    assert!(allocate(money(100, "USD"), []).is_err())
-    assert!(allocate(money(100, "USD"), [0, 0]).is_err())
-    assert!(allocate(money(100, "USD"), [1, -1]).is_err())
-    assert!(allocate(money(9223372036854775807, "USD"), [3, 1]).is_err())
+    assert(allocate(money(100, "USD"), []).is_err())
+    assert(allocate(money(100, "USD"), [0, 0]).is_err())
+    assert(allocate(money(100, "USD"), [1, -1]).is_err())
+    assert(allocate(money(9223372036854775807, "USD"), [3, 1]).is_err())
 }
 
 @test
@@ -203,7 +210,7 @@ fn test_property_allocate_always_conserves_the_total() {
     while a < amounts.len() {
         let mut r = 0
         while r < ratio_sets.len() {
-            let shares = allocate(money(amounts[a], "USD"), ratio_sets[r]).unwrap()
+            let shares = must(allocate(money(amounts[a], "USD"), ratio_sets[r]))
             let mut total = 0
             let mut i = 0
             while i < shares.len() {
@@ -223,7 +230,7 @@ fn test_property_split_shares_differ_by_at_most_one() {
     while amount <= 60 {
         let mut parts = 1
         while parts <= 9 {
-            let shares = split(money(amount, "USD"), parts).unwrap()
+            let shares = must(split(money(amount, "USD"), parts))
             let mut lo = shares[0].minor
             let mut hi = shares[0].minor
             let mut i = 0
@@ -236,7 +243,7 @@ fn test_property_split_shares_differ_by_at_most_one() {
                 }
                 i = i + 1
             }
-            assert!(hi - lo <= 1)
+            assert(hi - lo <= 1)
             parts = parts + 1
         }
         amount = amount + 1
@@ -249,8 +256,8 @@ fn test_property_format_then_parse_round_trips() {
     let mut i = 0
     while i < cents.len() {
         let m = money(cents[i], "USD")
-        assert_eq(parse(format_plain(m), "USD").unwrap().minor, cents[i])
-        assert_eq(parse(format_grouped(m), "USD").unwrap().minor, cents[i])
+        assert_eq(must(parse(format_plain(m), "USD")).minor, cents[i])
+        assert_eq(must(parse(format_grouped(m), "USD")).minor, cents[i])
         i = i + 1
     }
 }
@@ -264,7 +271,7 @@ fn test_property_add_then_sub_returns_the_start() {
         while j < values.len() {
             let a = money(values[i], "EUR")
             let b = money(values[j], "EUR")
-            assert_eq(sub(add(a, b).unwrap(), b).unwrap().minor, values[i])
+            assert_eq(must(sub(must(add(a, b)), b)).minor, values[i])
             j = j + 1
         }
         i = i + 1

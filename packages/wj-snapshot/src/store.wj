@@ -14,7 +14,7 @@ pub struct Outcome {
 
 /// True when `WJ_UPDATE_SNAPSHOTS` is set to a non-empty value other than `0`.
 pub fn updating() -> bool {
-    let v = env.var("WJ_UPDATE_SNAPSHOTS").unwrap_or("")
+    let v = env.var("WJ_UPDATE_SNAPSHOTS") ?? ""
     strings.len(v) > 0 && v != "0"
 }
 
@@ -34,7 +34,7 @@ pub fn normalize(text: string) -> string {
     if lines.len() == 0 {
         return ""
     }
-    lines.join("\n") + "\n"
+    "${lines.join("\n")}\n"
 }
 
 /// Replace every `needle` with `label` so volatile values (ids, timestamps, temp paths) do not break snapshots.
@@ -57,7 +57,7 @@ pub fn check(dir: string, name: string, actual: string, update: bool) -> Outcome
         }
         return Outcome { ok: false, status: "missing", message: "no snapshot at ${path}; run with WJ_UPDATE_SNAPSHOTS=1 to create it" }
     }
-    let stored = normalize(fs.read_to_string(path).unwrap_or(""))
+    let stored = normalize(fs.read_to_string(path) ?? "")
     if stored == got {
         return Outcome { ok: true, status: "matched", message: "" }
     }

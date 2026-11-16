@@ -68,8 +68,8 @@ fn test_suggest_is_case_insensitive_and_keeps_original_spelling() {
 
 @test
 fn test_suggest_with_no_candidates_or_no_match() {
-    assert!(suggest("x", [], 3).is_empty())
-    assert!(suggest("zzzzzzzz", ["build"], 2).is_empty())
+    assert(suggest("x", [], 3).is_empty())
+    assert(suggest("zzzzzzzz", ["build"], 2).is_empty())
 }
 
 @test
@@ -90,20 +90,20 @@ fn test_hint_text() {
 fn test_fuzzy_score_requires_ordered_subsequence() {
     assert_eq(fuzzy_score("xyz", "git commit"), -1)
     assert_eq(fuzzy_score("tg", "git"), -1)
-    assert!(fuzzy_score("gt", "git") >= 0)
+    assert(fuzzy_score("gt", "git") >= 0)
     assert_eq(fuzzy_score("", "anything"), 0)
 }
 
 @test
 fn test_fuzzy_score_prefers_word_starts_and_runs() {
-    assert!(fuzzy_score("gc", "git commit") > fuzzy_score("gc", "game over, cool"))
-    assert!(fuzzy_score("com", "commit") > fuzzy_score("com", "c-o-m"))
-    assert!(fuzzy_score("main", "main.wj") > fuzzy_score("main", "domain.wj"))
+    assert(fuzzy_score("gc", "git commit") > fuzzy_score("gc", "game over, cool"))
+    assert(fuzzy_score("com", "commit") > fuzzy_score("com", "c-o-m"))
+    assert(fuzzy_score("main", "main.wj") > fuzzy_score("main", "domain.wj"))
 }
 
 @test
 fn test_fuzzy_score_prefers_shorter_text() {
-    assert!(fuzzy_score("log", "log") > fuzzy_score("log", "log_rotation_policy"))
+    assert(fuzzy_score("log", "log") > fuzzy_score("log", "log_rotation_policy"))
 }
 
 @test
@@ -137,14 +137,14 @@ fn test_property_distance_axioms() {
             let lb = strings.chars(words[j]).len()
             let longer = if la > lb { la } else { lb }
             let diff = if la > lb { la - lb } else { lb - la }
-            assert!(d <= longer)
-            assert!(d >= diff)
+            assert(d <= longer)
+            assert(d >= diff)
             // damerau is never larger than levenshtein
-            assert!(damerau(words[i], words[j]) <= d)
+            assert(damerau(words[i], words[j]) <= d)
             let mut k = 0
             while k < words.len() {
                 // triangle inequality
-                assert!(levenshtein(words[i], words[k]) <= d + levenshtein(words[j], words[k]))
+                assert(levenshtein(words[i], words[k]) <= d + levenshtein(words[j], words[k]))
                 k = k + 1
             }
             j = j + 1
@@ -168,8 +168,6 @@ fn test_property_one_edit_is_found_at_tolerance_one() {
             }
             j = j + 1
         }
-        // the expected list is spelled out: an array literal of the reused local `base` does not compile in a loop yet
-        // (a recorded compiler gap; restore `[base]` once it is fixed)
         assert_eq(suggest(dropped, [base, "zzz"], 1), ["configure"])
         i = i + 1
     }

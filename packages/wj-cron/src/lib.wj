@@ -160,7 +160,7 @@ pub fn matches_field(field: string, value: int) -> bool {
     }
     // Exact value
     let n = strings.parse_i32(field) as int
-    return n == value
+    n == value
 }
 
 fn matches_range_step(field: string, value: int) -> bool {

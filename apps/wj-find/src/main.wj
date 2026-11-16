@@ -9,7 +9,7 @@ fn main() {
     match find_under(root, "**/*.wj") {
         Ok(hits) => {
             if hits.len() > 0 {
-                println!("{}", format_hits(hits))
+                println("${format_hits(hits)}")
             } else {
                 demo_sample()
             }
@@ -24,5 +24,5 @@ fn demo_sample() {
     paths.push("src/lib.rs")
     paths.push("README.md")
     let hits = find_matching("**/*.wj", paths)
-    println!("{}", format_hits(hits))
+    println("${format_hits(hits)}")
 }

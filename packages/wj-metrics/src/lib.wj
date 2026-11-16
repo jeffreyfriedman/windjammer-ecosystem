@@ -94,13 +94,13 @@ pub fn escape_label_value(text: string) -> string {
     let mut out = ""
     for ch in strings.chars(text) {
         if ch == '\\' {
-            out = out + "\\\\"
+            out = "${out}\\\\"
         } else if ch == '"' {
-            out = out + "\\\""
+            out = "${out}\\\""
         } else if ch == '\n' {
-            out = out + "\\n"
+            out = "${out}\\n"
         } else {
-            out = out + "${ch}"
+            out += "${ch}"
         }
     }
     out
@@ -111,11 +111,11 @@ pub fn escape_help(text: string) -> string {
     let mut out = ""
     for ch in strings.chars(text) {
         if ch == '\\' {
-            out = out + "\\\\"
+            out = "${out}\\\\"
         } else if ch == '\n' {
-            out = out + "\\n"
+            out = "${out}\\n"
         } else {
-            out = out + "${ch}"
+            out += "${ch}"
         }
     }
     out
@@ -166,7 +166,7 @@ fn label_text(labels: Vec<(string, string)>, extra: string) -> string {
     if parts.len() == 0 {
         return ""
     }
-    "{" + parts.join(",") + "}"
+    "{${parts.join(",")}}"
 }
 
 fn check_labels(labels: Vec<(string, string)>) -> Result<(), string> {
@@ -352,7 +352,7 @@ impl Registry {
         if lines.len() == 0 {
             return ""
         }
-        lines.join("\n") + "\n"
+        "${lines.join("\n")}\n"
     }
 
     /// Every series as typed data.

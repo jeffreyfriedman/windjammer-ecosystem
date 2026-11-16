@@ -18,7 +18,7 @@ pub fn default_config() -> Config {
 /// Read configuration from the environment (`TASKFLOW_JWT_SECRET`, `TASKFLOW_RATE_LIMIT`).
 pub fn config_from_env() -> Config {
     let mut config = default_config()
-    config.jwt_secret = std::env::var("TASKFLOW_JWT_SECRET").unwrap_or("")
+    config.jwt_secret = std::env::var("TASKFLOW_JWT_SECRET") ?? ""
     match std::env::var("TASKFLOW_RATE_LIMIT") {
         Ok(text) => match text.parse::<int>() {
             Ok(n) => config.rate_limit = n,

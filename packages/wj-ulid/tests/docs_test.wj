@@ -6,6 +6,13 @@ use crate::timestamp_ms
 use std::fs
 use std::strings
 
+fn must<T>(r: Result<T, string>) -> T {
+    match r {
+        Ok(v) => v,
+        Err(e) => panic("unexpected error: ${e}"),
+    }
+}
+
 fn read(path: string) -> string {
     fs.read_to_string(path).unwrap_or("")
 }
@@ -34,11 +41,11 @@ fn test_readme_output_is_what_the_example_prints() {
     if !docs_present() {
         return
     }
-    let first = encode(1469922850259, [10, 20, 30, 40, 50, 60, 70, 80, 90, 100]).unwrap()
-    let second = monotonic(first, 1469922850259, [0, 0, 0, 0, 0, 0, 0, 0, 0, 0]).unwrap()
+    let first = must(encode(1469922850259, [10, 20, 30, 40, 50, 60, 70, 80, 90, 100]))
+    let second = must(monotonic(first, 1469922850259, [0, 0, 0, 0, 0, 0, 0, 0, 0, 0]))
     let mut out = "${first}\n${second}\n"
     out = "${out}same millisecond, still ordered: ${first < second}\n"
-    out = "${out}created at ${timestamp_ms(first).unwrap()} ms\n"
+    out = "${out}created at ${must(timestamp_ms(first))} ms\n"
     out = "${out}generated id is valid: ${is_valid(generate())}\n"
     assert_eq(readme_block("```text\n"), out)
 }

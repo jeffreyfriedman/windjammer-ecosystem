@@ -6,7 +6,7 @@ use crate::domain::default_chat_config
 
 fn main() {
     let mut config = default_chat_config()
-    config.jwt_secret = std::env::var("CHAT_JWT_SECRET").unwrap_or("")
+    config.jwt_secret = std::env::var("CHAT_JWT_SECRET") ?? ""
     if config.jwt_secret == "" {
         eprintln("wj-chat: set CHAT_JWT_SECRET")
         process.exit(2)

@@ -64,13 +64,13 @@ fn test_incomplete_input_asks_for_more() {
 
 @test
 fn test_malformed_replies_are_errors() {
-    assert(shown("?what\r\n").starts_with("error"), "malformed: " + "?what\r\n")
-    assert(shown(":abc\r\n").starts_with("error"), "malformed: " + ":abc\r\n")
-    assert(shown("$x\r\n").starts_with("error"), "malformed: " + "$x\r\n")
-    assert(shown("$3\r\nfooXY").starts_with("error"), "malformed: " + "$3\r\nfooXY")
-    assert(shown("*x\r\n").starts_with("error"), "malformed: " + "*x\r\n")
-    assert(shown("$-5\r\n").starts_with("error"), "malformed: " + "$-5\r\n")
-    assert(shown("*-5\r\n").starts_with("error"), "malformed: " + "*-5\r\n")
+    assert(shown("?what\r\n").starts_with("error"), "malformed: ?what\r\n")
+    assert(shown(":abc\r\n").starts_with("error"), "malformed: :abc\r\n")
+    assert(shown("$x\r\n").starts_with("error"), "malformed: \$x\r\n")
+    assert(shown("$3\r\nfooXY").starts_with("error"), "malformed: \$3\r\nfooXY")
+    assert(shown("*x\r\n").starts_with("error"), "malformed: *x\r\n")
+    assert(shown("$-5\r\n").starts_with("error"), "malformed: \$-5\r\n")
+    assert(shown("*-5\r\n").starts_with("error"), "malformed: *-5\r\n")
 }
 
 @test

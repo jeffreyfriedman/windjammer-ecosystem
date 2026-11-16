@@ -19,9 +19,9 @@ use crate::domain::store::TaskStore
 
 fn filter_from_query(query: string) -> TaskFilter {
     let mut f = no_filter()
-    f.status = query_get(query, "status").unwrap_or("")
-    f.priority = query_get(query, "priority").unwrap_or("")
-    f.text = query_get(query, "q").unwrap_or("")
+    f.status = query_get(query, "status") ?? ""
+    f.priority = query_get(query, "priority") ?? ""
+    f.text = query_get(query, "q") ?? ""
     match query_get(query, "assigned_to") {
         Some(text) => match text.parse::<int>() {
             Ok(n) => f.assignee = n,
@@ -53,7 +53,7 @@ pub fn task_create(store: TaskStore, user: User, project_id: int, body: string) 
         Ok(value) => value,
         Err(_) => return error_reply(400, "invalid json"),
     }
-    let priority = input.priority.unwrap_or("medium")
+    let priority = input.priority ?? "medium"
     match check_title(input.title) {
         Ok(_) => {},
         Err(e) => return error_reply(422, e),
@@ -62,7 +62,7 @@ pub fn task_create(store: TaskStore, user: User, project_id: int, body: string) 
         Ok(_) => {},
         Err(e) => return error_reply(422, e),
     }
-    let task = store.add_task(project_id, input.title, input.description.unwrap_or(""), "todo", priority, user.id)
+    let task = store.add_task(project_id, input.title, input.description ?? "", "todo", priority, user.id)
     from_json(201, json.to_string(task))
 }
 

@@ -36,7 +36,7 @@ fn hex_upper(n: int) -> string {
 }
 
 fn qp_byte(b: int) -> string {
-    "=" + hex_upper(b / 16) + hex_upper(b % 16)
+    "=${hex_upper(b / 16)}${hex_upper(b % 16)}"
 }
 
 /// Quoted-printable (RFC 2045) with CRLF line ends: lines of at most 76 characters, soft breaks `=`,
@@ -62,12 +62,12 @@ pub fn quoted_printable(text: string) -> string {
         let mut line = ""
         let mut idx: int = 0
         while idx < pieces.len() as int {
-            let piece = pieces[idx as usize]
+            let piece = pieces[idx]
             let remaining_len = remaining_width(pieces, idx)
             let used = width(line)
             let limit = if remaining_len <= 76 - used { 76 } else { 75 }
             if used + width(piece) > limit {
-                out_lines.push(line + "=")
+                out_lines.push("${line}=")
                 line = ""
             }
             line = line + piece
@@ -86,7 +86,7 @@ fn remaining_width(pieces: Vec<string>, from: int) -> int {
     let mut w = 0
     let mut i = from
     while i < pieces.len() as int {
-        w = w + width(pieces[i as usize])
+        w = w + width(pieces[i])
         i = i + 1
     }
     w
@@ -109,7 +109,7 @@ pub fn encoded_words(text: string) -> string {
         let cb = utf8("${ch}")
         // 45 raw bytes make 60 base64 characters; with the 12 character wrapper that is 72 (limit 75).
         if chunk.len() + cb.len() > 45 {
-            words.push("=?utf-8?b?" + encoding.base64_encode(chunk) + "?=")
+            words.push("=?utf-8?b?${encoding.base64_encode(chunk)}?=")
             chunk = Vec::new()
         }
         for b in cb {
@@ -117,7 +117,7 @@ pub fn encoded_words(text: string) -> string {
         }
     }
     if chunk.len() > 0 {
-        words.push("=?utf-8?b?" + encoding.base64_encode(chunk) + "?=")
+        words.push("=?utf-8?b?${encoding.base64_encode(chunk)}?=")
     }
     words.join("\r\n ")
 }

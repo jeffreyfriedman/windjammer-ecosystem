@@ -11,78 +11,85 @@ use crate::timestamp_ms
 
 const SPEC_EXAMPLE: string = "01ARZ3NDEKTSV4RRFFQ69G5FAV"
 
+fn must<T>(r: Result<T, string>) -> T {
+    match r {
+        Ok(v) => v,
+        Err(e) => panic("unexpected error: ${e}"),
+    }
+}
+
 fn zeros() -> Vec<int> {
     [0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
 }
 
 @test
 fn test_zero_ulid() {
-    assert_eq(encode(0, zeros()).unwrap(), "00000000000000000000000000")
+    assert_eq(must(encode(0, zeros())), "00000000000000000000000000")
 }
 
 @test
 fn test_max_ulid() {
-    let max = encode(281474976710655, [255, 255, 255, 255, 255, 255, 255, 255, 255, 255]).unwrap()
+    let max = must(encode(281474976710655, [255, 255, 255, 255, 255, 255, 255, 255, 255, 255]))
     assert_eq(max, "7ZZZZZZZZZZZZZZZZZZZZZZZZZ")
 }
 
 @test
 fn test_spec_example_timestamp() {
-    assert_eq(timestamp_ms(SPEC_EXAMPLE).unwrap(), 1469922850259)
+    assert_eq(must(timestamp_ms(SPEC_EXAMPLE)), 1469922850259)
 }
 
 @test
 fn test_spec_example_round_trips() {
-    let ts = timestamp_ms(SPEC_EXAMPLE).unwrap()
-    let rb = random_bytes(SPEC_EXAMPLE).unwrap()
+    let ts = must(timestamp_ms(SPEC_EXAMPLE))
+    let rb = must(random_bytes(SPEC_EXAMPLE))
     assert_eq(rb.len(), 10)
-    assert_eq(encode(ts, rb).unwrap(), SPEC_EXAMPLE)
+    assert_eq(must(encode(ts, rb)), SPEC_EXAMPLE)
 }
 
 @test
 fn test_known_timestamp_prefix() {
     // the first 10 characters carry only the timestamp
-    let id = encode(1469922850259, zeros()).unwrap()
+    let id = must(encode(1469922850259, zeros()))
     assert_eq(strings.substring(id, 0, 10), "01ARZ3NDEK")
 }
 
 
 @test
 fn test_encode_validates_inputs() {
-    assert!(encode(-1, zeros()).is_err())
-    assert!(encode(281474976710656, zeros()).is_err())
-    assert!(encode(0, [1, 2, 3]).is_err())
-    assert!(encode(0, [0, 0, 0, 0, 0, 0, 0, 0, 0, 256]).is_err())
-    assert!(encode(0, [0, 0, 0, 0, 0, 0, 0, 0, 0, -1]).is_err())
+    assert(encode(-1, zeros()).is_err())
+    assert(encode(281474976710656, zeros()).is_err())
+    assert(encode(0, [1, 2, 3]).is_err())
+    assert(encode(0, [0, 0, 0, 0, 0, 0, 0, 0, 0, 256]).is_err())
+    assert(encode(0, [0, 0, 0, 0, 0, 0, 0, 0, 0, -1]).is_err())
 }
 
 @test
 fn test_decode_rejects_malformed_text() {
-    assert!(!is_valid(""))
-    assert!(!is_valid("01ARZ3NDEKTSV4RRFFQ69G5FA"))
-    assert!(!is_valid("01ARZ3NDEKTSV4RRFFQ69G5FAVX"))
-    assert!(!is_valid("01ARZ3NDEKTSV4RRFFQ69G5FAU"))
-    assert!(!is_valid("81ARZ3NDEKTSV4RRFFQ69G5FAV"))
-    assert!(!is_valid("01ARZ3NDEKTSV4RRFFQ69G5FA!"))
+    assert(!is_valid(""))
+    assert(!is_valid("01ARZ3NDEKTSV4RRFFQ69G5FA"))
+    assert(!is_valid("01ARZ3NDEKTSV4RRFFQ69G5FAVX"))
+    assert(!is_valid("01ARZ3NDEKTSV4RRFFQ69G5FAU"))
+    assert(!is_valid("81ARZ3NDEKTSV4RRFFQ69G5FAV"))
+    assert(!is_valid("01ARZ3NDEKTSV4RRFFQ69G5FA!"))
 }
 
 @test
 fn test_decode_is_case_insensitive() {
-    assert!(is_valid("01arz3ndektsv4rrffq69g5fav"))
-    assert_eq(normalize("01arz3ndektsv4rrffq69g5fav").unwrap(), SPEC_EXAMPLE)
-    assert_eq(decode("01arz3ndektsv4rrffq69g5fav").unwrap(), decode(SPEC_EXAMPLE).unwrap())
+    assert(is_valid("01arz3ndektsv4rrffq69g5fav"))
+    assert_eq(must(normalize("01arz3ndektsv4rrffq69g5fav")), SPEC_EXAMPLE)
+    assert_eq(must(decode("01arz3ndektsv4rrffq69g5fav")), must(decode(SPEC_EXAMPLE)))
 }
 
 @test
 fn test_first_character_overflow_is_rejected() {
-    assert!(decode("80000000000000000000000000").is_err())
-    assert!(decode("7ZZZZZZZZZZZZZZZZZZZZZZZZZ").is_ok())
+    assert(decode("80000000000000000000000000").is_err())
+    assert(decode("7ZZZZZZZZZZZZZZZZZZZZZZZZZ").is_ok())
 }
 
 @test
 fn test_ids_sort_by_time() {
-    let a = encode(1000, [255, 255, 255, 255, 255, 255, 255, 255, 255, 255]).unwrap()
-    let b = encode(1001, zeros()).unwrap()
+    let a = must(encode(1000, [255, 255, 255, 255, 255, 255, 255, 255, 255, 255]))
+    let b = must(encode(1001, zeros()))
     assert_eq(compare(a, b), -1)
     assert_eq(compare(b, a), 1)
     assert_eq(compare(a, a), 0)
@@ -91,38 +98,38 @@ fn test_ids_sort_by_time() {
 
 @test
 fn test_monotonic_increments_within_a_millisecond() {
-    let a = encode(5000, [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]).unwrap()
-    let b = monotonic(a, 5000, [0, 0, 0, 0, 0, 0, 0, 0, 0, 0]).unwrap()
-    assert_eq(random_bytes(b).unwrap(), [1, 2, 3, 4, 5, 6, 7, 8, 9, 11])
-    assert_eq(timestamp_ms(b).unwrap(), 5000)
+    let a = must(encode(5000, [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]))
+    let b = must(monotonic(a, 5000, [0, 0, 0, 0, 0, 0, 0, 0, 0, 0]))
+    assert_eq(must(random_bytes(b)), [1, 2, 3, 4, 5, 6, 7, 8, 9, 11])
+    assert_eq(must(timestamp_ms(b)), 5000)
 }
 
 @test
 fn test_monotonic_carries() {
-    let a = encode(5000, [0, 0, 0, 0, 0, 0, 0, 0, 0, 255]).unwrap()
-    let b = monotonic(a, 5000, zeros()).unwrap()
-    assert_eq(random_bytes(b).unwrap(), [0, 0, 0, 0, 0, 0, 0, 0, 1, 0])
+    let a = must(encode(5000, [0, 0, 0, 0, 0, 0, 0, 0, 0, 255]))
+    let b = must(monotonic(a, 5000, zeros()))
+    assert_eq(must(random_bytes(b)), [0, 0, 0, 0, 0, 0, 0, 0, 1, 0])
 }
 
 @test
 fn test_monotonic_uses_fresh_randomness_in_a_later_millisecond() {
-    let a = encode(5000, [9, 9, 9, 9, 9, 9, 9, 9, 9, 9]).unwrap()
-    let b = monotonic(a, 5001, [1, 1, 1, 1, 1, 1, 1, 1, 1, 1]).unwrap()
-    assert_eq(timestamp_ms(b).unwrap(), 5001)
-    assert_eq(random_bytes(b).unwrap(), [1, 1, 1, 1, 1, 1, 1, 1, 1, 1])
+    let a = must(encode(5000, [9, 9, 9, 9, 9, 9, 9, 9, 9, 9]))
+    let b = must(monotonic(a, 5001, [1, 1, 1, 1, 1, 1, 1, 1, 1, 1]))
+    assert_eq(must(timestamp_ms(b)), 5001)
+    assert_eq(must(random_bytes(b)), [1, 1, 1, 1, 1, 1, 1, 1, 1, 1])
 }
 
 @test
 fn test_monotonic_with_a_clock_that_went_backwards_keeps_order() {
-    let a = encode(5000, zeros()).unwrap()
-    let b = monotonic(a, 4000, zeros()).unwrap()
-    assert!(b > a)
+    let a = must(encode(5000, zeros()))
+    let b = must(monotonic(a, 4000, zeros()))
+    assert(b > a)
 }
 
 @test
 fn test_monotonic_overflow_is_an_error() {
-    let full = encode(5000, [255, 255, 255, 255, 255, 255, 255, 255, 255, 255]).unwrap()
-    assert!(monotonic(full, 5000, zeros()).is_err())
+    let full = must(encode(5000, [255, 255, 255, 255, 255, 255, 255, 255, 255, 255]))
+    assert(monotonic(full, 5000, zeros()).is_err())
 }
 
 @test
@@ -139,11 +146,11 @@ fn test_property_encode_decode_round_trip() {
         }
         seed = (seed * 1103515245 + 12345) % 2147483648
         let ts = seed * 131 + n
-        let id = encode(ts, rb).unwrap()
+        let id = must(encode(ts, rb))
         assert_eq(strings.chars(id).len(), 26)
-        assert_eq(timestamp_ms(id).unwrap(), ts)
-        assert_eq(random_bytes(id).unwrap(), rb)
-        assert!(is_valid(id))
+        assert_eq(must(timestamp_ms(id)), ts)
+        assert_eq(must(random_bytes(id)), rb)
+        assert(is_valid(id))
         n = n + 1
     }
 }
@@ -151,11 +158,11 @@ fn test_property_encode_decode_round_trip() {
 @test
 fn test_property_order_follows_timestamp_then_random() {
     let mut t = 0
-    let mut prev = encode(0, zeros()).unwrap()
+    let mut prev = must(encode(0, zeros()))
     while t < 200 {
-        let next = encode(t * 7919, [t % 256, 0, 0, 0, 0, 0, 0, 0, 0, 0]).unwrap()
+        let next = must(encode(t * 7919, [t % 256, 0, 0, 0, 0, 0, 0, 0, 0, 0]))
         if t > 0 {
-            assert!(next > prev)
+            assert(next > prev)
         }
         prev = next
         t = t + 1
@@ -166,8 +173,8 @@ fn test_property_order_follows_timestamp_then_random() {
 fn test_generate_makes_valid_distinct_recent_ids() {
     let a = generate()
     let b = generate()
-    assert!(is_valid(a))
-    assert!(a != b)
+    assert(is_valid(a))
+    assert(a != b)
     // 2020-01-01 in milliseconds
-    assert!(timestamp_ms(a).unwrap() > 1577836800000)
+    assert(must(timestamp_ms(a)) > 1577836800000)
 }

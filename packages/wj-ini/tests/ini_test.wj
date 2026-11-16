@@ -14,9 +14,16 @@ use crate::section_names
 use crate::set
 use crate::write
 
+fn must<T>(r: Result<T, string>) -> T {
+    match r {
+        Ok(v) => v,
+        Err(e) => panic("unexpected error: ${e}"),
+    }
+}
+
 @test
 fn test_parse_sections_and_keys() {
-    let ini = parse("[db]\nhost = localhost\nport = 5432\n[cache]\nttl = 60\n").unwrap()
+    let ini = must(parse("[db]\nhost = localhost\nport = 5432\n[cache]\nttl = 60\n"))
     assert_eq(section_names(ini), ["db", "cache"])
     assert_eq(get(ini, "db", "host"), Some("localhost"))
     assert_eq(get(ini, "cache", "ttl"), Some("60"))
@@ -26,13 +33,13 @@ fn test_parse_sections_and_keys() {
 
 @test
 fn test_comments_and_blank_lines_are_ignored() {
-    let ini = parse("; top\n# also\n\n[a]\n  ; indented\nk = v\n").unwrap()
+    let ini = must(parse("; top\n# also\n\n[a]\n  ; indented\nk = v\n"))
     assert_eq(keys(ini, "a"), ["k"])
 }
 
 @test
 fn test_inline_comments_need_leading_space() {
-    let ini = parse("[a]\nx = 1 ; one\ny = 2 # two\nz = a;b\nurl = http://h/#frag\n").unwrap()
+    let ini = must(parse("[a]\nx = 1 ; one\ny = 2 # two\nz = a;b\nurl = http://h/#frag\n"))
     assert_eq(get(ini, "a", "x"), Some("1"))
     assert_eq(get(ini, "a", "y"), Some("2"))
     assert_eq(get(ini, "a", "z"), Some("a;b"))
@@ -41,40 +48,40 @@ fn test_inline_comments_need_leading_space() {
 
 @test
 fn test_global_keys_live_in_the_empty_section() {
-    let ini = parse("name = top\n[s]\nk = v\n").unwrap()
+    let ini = must(parse("name = top\n[s]\nk = v\n"))
     assert_eq(get(ini, "", "name"), Some("top"))
     assert_eq(section_names(ini), ["", "s"])
 }
 
 @test
 fn test_colon_separator_and_spacing() {
-    let ini = parse("[a]\nk:v\nspaced   =    wide   \n").unwrap()
+    let ini = must(parse("[a]\nk:v\nspaced   =    wide   \n"))
     assert_eq(get(ini, "a", "k"), Some("v"))
     assert_eq(get(ini, "a", "spaced"), Some("wide"))
 }
 
 @test
 fn test_value_may_contain_equals() {
-    let ini = parse("[a]\nq = x=1&y=2\n").unwrap()
+    let ini = must(parse("[a]\nq = x=1&y=2\n"))
     assert_eq(get(ini, "a", "q"), Some("x=1&y=2"))
 }
 
 @test
 fn test_quoted_values_keep_spaces_and_escapes() {
-    let ini = parse("[a]\nname = \"  padded ; not a comment  \"\nmsg = \"line1\\nline2\\t\\\"q\\\"\"\n").unwrap()
+    let ini = must(parse("[a]\nname = \"  padded ; not a comment  \"\nmsg = \"line1\\nline2\\t\\\"q\\\"\"\n"))
     assert_eq(get(ini, "a", "name"), Some("  padded ; not a comment  "))
     assert_eq(get(ini, "a", "msg"), Some("line1\nline2\t\"q\""))
 }
 
 @test
 fn test_empty_value() {
-    let ini = parse("[a]\nk =\n").unwrap()
+    let ini = must(parse("[a]\nk =\n"))
     assert_eq(get(ini, "a", "k"), Some(""))
 }
 
 @test
 fn test_repeated_key_last_wins_and_get_all_keeps_order() {
-    let ini = parse("[a]\nk = 1\nk = 2\nk = 3\n").unwrap()
+    let ini = must(parse("[a]\nk = 1\nk = 2\nk = 3\n"))
     assert_eq(get(ini, "a", "k"), Some("3"))
     assert_eq(get_all(ini, "a", "k"), ["1", "2", "3"])
     assert_eq(keys(ini, "a"), ["k"])
@@ -82,7 +89,7 @@ fn test_repeated_key_last_wins_and_get_all_keeps_order() {
 
 @test
 fn test_reopened_section_continues() {
-    let ini = parse("[a]\nx = 1\n[b]\ny = 2\n[a]\nz = 3\n").unwrap()
+    let ini = must(parse("[a]\nx = 1\n[b]\ny = 2\n[a]\nz = 3\n"))
     assert_eq(keys(ini, "a"), ["x", "z"])
 }
 
@@ -99,20 +106,20 @@ fn test_errors_carry_line_numbers() {
 
 @test
 fn test_typed_getters() {
-    let ini = parse("[a]\nn = 42\nneg = -7\nbad = x1\non = Yes\noff = OFF\nflag = maybe\n").unwrap()
-    assert_eq(get_int(ini, "a", "n").unwrap(), 42)
-    assert_eq(get_int(ini, "a", "neg").unwrap(), -7)
+    let ini = must(parse("[a]\nn = 42\nneg = -7\nbad = x1\non = Yes\noff = OFF\nflag = maybe\n"))
+    assert_eq(must(get_int(ini, "a", "n")), 42)
+    assert_eq(must(get_int(ini, "a", "neg")), -7)
     assert_eq(get_int(ini, "a", "bad").unwrap_err(), "[a] bad: 'x1' is not an integer")
     assert_eq(get_int(ini, "a", "zip").unwrap_err(), "[a] zip: missing")
-    assert_eq(get_bool(ini, "a", "on").unwrap(), true)
-    assert_eq(get_bool(ini, "a", "off").unwrap(), false)
+    assert_eq(must(get_bool(ini, "a", "on")), true)
+    assert_eq(must(get_bool(ini, "a", "off")), false)
     assert(get_bool(ini, "a", "flag").is_err())
     assert_eq(get_or(ini, "a", "zip", "dflt"), "dflt")
 }
 
 @test
 fn test_has_helpers() {
-    let ini = parse("[a]\nk = v\n").unwrap()
+    let ini = must(parse("[a]\nk = v\n"))
     assert(has_section(ini, "a"))
     assert(!has_section(ini, "b"))
     assert(has(ini, "a", "k"))
@@ -121,7 +128,7 @@ fn test_has_helpers() {
 
 @test
 fn test_set_replaces_appends_and_creates() {
-    let ini = parse("[a]\nk = 1\nk = 2\nm = x\n").unwrap()
+    let ini = must(parse("[a]\nk = 1\nk = 2\nm = x\n"))
     let one = set(ini, "a", "k", "9")
     assert_eq(get_all(one, "a", "k"), ["9"])
     assert_eq(keys(one, "a"), ["k", "m"])
@@ -134,7 +141,7 @@ fn test_set_replaces_appends_and_creates() {
 
 @test
 fn test_remove_key() {
-    let ini = parse("[a]\nk = 1\nm = 2\n").unwrap()
+    let ini = must(parse("[a]\nk = 1\nm = 2\n"))
     assert_eq(keys(remove(ini, "a", "k"), "a"), ["m"])
 }
 
@@ -161,7 +168,7 @@ fn test_property_write_then_parse_round_trips_awkward_values() {
     let mut i = 0
     while i < values.len() {
         let ini = set(empty(), "s", "key", values[i])
-        let back = parse(write(ini)).unwrap()
+        let back = must(parse(write(ini)))
         assert_eq(get(back, "s", "key"), Some(values[i]))
         i = i + 1
     }
@@ -170,16 +177,16 @@ fn test_property_write_then_parse_round_trips_awkward_values() {
 @test
 fn test_property_parse_write_parse_is_stable() {
     let text = "top = 1\n[a]\nx = \"  sp  \"\ny = z ; c\n[b]\nk = v\nk = w\n"
-    let once = write(parse(text).unwrap())
-    let twice = write(parse(once).unwrap())
+    let once = write(must(parse(text)))
+    let twice = write(must(parse(once)))
     assert_eq(once, twice)
 }
 
 @test
 fn test_integers_beyond_32_bits_and_junk() {
-    let ini = parse("[a]\nbig = 5000000000\nplus = +5\nempty =\nsign = -\nfloat = 1.5\nspace = 1 2\n").unwrap()
-    assert_eq(get_int(ini, "a", "big").unwrap(), 5000000000)
-    assert_eq(get_int(ini, "a", "plus").unwrap(), 5)
+    let ini = must(parse("[a]\nbig = 5000000000\nplus = +5\nempty =\nsign = -\nfloat = 1.5\nspace = 1 2\n"))
+    assert_eq(must(get_int(ini, "a", "big")), 5000000000)
+    assert_eq(must(get_int(ini, "a", "plus")), 5)
     assert(get_int(ini, "a", "empty").is_err())
     assert(get_int(ini, "a", "sign").is_err())
     assert(get_int(ini, "a", "float").is_err())

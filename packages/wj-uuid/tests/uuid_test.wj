@@ -162,12 +162,10 @@ fn test_v7_now_has_version_seven() {
 fn test_nil_and_max_constants() {
     assert_eq(NIL, "00000000-0000-0000-0000-000000000000")
     assert_eq(MAX, "ffffffff-ffff-ffff-ffff-ffffffffffff")
-    // Literals (not module consts) into owned formals until
-    // bug_module_const_string_owned_formal_call_site_test is green.
-    assert(is_nil("00000000-0000-0000-0000-000000000000"), "nil")
-    assert(is_max("ffffffff-ffff-ffff-ffff-ffffffffffff"), "max")
-    assert(!is_nil("ffffffff-ffff-ffff-ffff-ffffffffffff"), "max is not nil")
-    assert(!is_max("00000000-0000-0000-0000-000000000000"), "nil is not max")
+    assert(is_nil(NIL), "nil")
+    assert(is_max(MAX), "max")
+    assert(!is_nil(MAX), "max is not nil")
+    assert(!is_max(NIL), "nil is not max")
     assert(is_max("FFFFFFFF-FFFF-FFFF-FFFF-FFFFFFFFFFFF"), "max uppercase")
 }
 

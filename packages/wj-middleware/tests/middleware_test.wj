@@ -10,7 +10,7 @@ use crate::Response
 use crate::ResponseHeader
 
 fn ok_handler(req: Request) -> Response {
-    response(200, "hello " + req.path)
+    response(200, "hello ${req.path}")
 }
 
 fn tagged(name: string, value: string) -> Box<ResponseHeader> {
@@ -21,15 +21,15 @@ fn tagged(name: string, value: string) -> Box<ResponseHeader> {
 struct EchoPath {}
 
 impl Layer for EchoPath {
-    fn name(&self) -> string {
+    fn name(self) -> string {
         "echo-path"
     }
 
-    fn before(&self, req: Request) -> Flow {
+    fn before(self, req: Request) -> Flow {
         Flow::Continue(req)
     }
 
-    fn after(&self, req: Request, resp: Response) -> Response {
+    fn after(self, req: Request, resp: Response) -> Response {
         resp.with_header("x-path", req.path)
     }
 }
@@ -38,15 +38,15 @@ impl Layer for EchoPath {
 struct Boom {}
 
 impl Layer for Boom {
-    fn name(&self) -> string {
+    fn name(self) -> string {
         "boom"
     }
 
-    fn before(&self, req: Request) -> Flow {
+    fn before(self, req: Request) -> Flow {
         Flow::Respond(response(500, "inner layer ran"))
     }
 
-    fn after(&self, req: Request, resp: Response) -> Response {
+    fn after(self, req: Request, resp: Response) -> Response {
         resp
     }
 }
@@ -118,7 +118,7 @@ fn test_outer_layers_still_see_a_short_circuited_response() {
 fn test_the_handler_is_a_closure_that_can_capture() {
     let mut p = new_pipeline()
     let greeting = "welcome"
-    let r = p.handle(request("GET", "/users"), |req| response(200, greeting + " " + req.path))
+    let r = p.handle(request("GET", "/users"), |req| response(200, "${greeting} ${req.path}"))
     assert_eq(r.body, "welcome /users")
 }
 

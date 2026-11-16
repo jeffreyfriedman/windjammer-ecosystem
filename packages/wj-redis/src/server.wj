@@ -21,7 +21,7 @@ fn integer(n: int) -> Vec<u8> {
 
 fn bulk(text: string) -> Vec<u8> {
     let n = text.as_bytes().len()
-    bytes("$" + "${n}\r\n${text}\r\n")
+    bytes("\$${n}\r\n${text}\r\n")
 }
 
 /// One client connection of the server, with the bytes of a command still arriving.

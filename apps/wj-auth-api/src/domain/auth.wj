@@ -136,8 +136,7 @@ impl AuthApp {
         )
     }
 
-    /// Adapter entry: same-crate `HttpMethod` (avoids dual-runtime mismatch in tests
-    /// and string-lit → demoted `&str` + `.to_string()` in multipass codegen).
+    /// Typed entry for adapters that already hold an `HttpMethod`; `handle` takes the method as a label and parses it.
     pub fn handle_http(
         self,
         method: HttpMethod,

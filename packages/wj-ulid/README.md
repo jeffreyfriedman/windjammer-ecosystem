@@ -14,17 +14,18 @@ use wj_ulid::is_valid
 use wj_ulid::monotonic
 use wj_ulid::timestamp_ms
 
-fn main() {
+fn main() -> Result<(), string> {
     // deterministic: the clock and the random bytes are arguments
-    let first = encode(1469922850259, [10, 20, 30, 40, 50, 60, 70, 80, 90, 100]).unwrap()
-    let second = monotonic(first, 1469922850259, [0, 0, 0, 0, 0, 0, 0, 0, 0, 0]).unwrap()
+    let first = encode(1469922850259, [10, 20, 30, 40, 50, 60, 70, 80, 90, 100])?
+    let second = monotonic(first, 1469922850259, [0, 0, 0, 0, 0, 0, 0, 0, 0, 0])?
     println(first)
     println(second)
     println("same millisecond, still ordered: ${first < second}")
-    println("created at ${timestamp_ms(first).unwrap()} ms")
+    println("created at ${timestamp_ms(first)?} ms")
 
     // convenient: system clock and random source
     println("generated id is valid: ${is_valid(generate())}")
+    Ok(())
 }
 ```
 

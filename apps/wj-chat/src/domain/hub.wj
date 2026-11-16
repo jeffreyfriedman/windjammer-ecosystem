@@ -124,7 +124,7 @@ impl Hub {
             return Vec::new()
         }
         if frame.kind == "auth" {
-            return self.authenticate(conn, frame.token.unwrap_or(""))
+            return self.authenticate(conn, frame.token ?? "")
         }
         if me.user == "" {
             return error_to(conn, "authenticate first")
@@ -132,7 +132,7 @@ impl Hub {
         if !self.allow(me.user.clone(), now_ms) {
             return error_to(conn, "rate limit exceeded")
         }
-        let room = frame.room.clone().unwrap_or("")
+        let room = frame.room.clone() ?? ""
         if frame.kind == "join" {
             return self.join(me, room)
         }
@@ -140,13 +140,13 @@ impl Hub {
             return self.leave(me, room)
         }
         if frame.kind == "say" {
-            return self.say(me, room, frame.text.unwrap_or(""), now_ms)
+            return self.say(me, room, frame.text ?? "", now_ms)
         }
         if frame.kind == "dm" {
-            return self.direct(me, frame.to.unwrap_or(""), frame.text.unwrap_or(""))
+            return self.direct(me, frame.to ?? "", frame.text ?? "")
         }
         if frame.kind == "history" {
-            return self.replay(me, room, frame.limit.unwrap_or(50))
+            return self.replay(me, room, frame.limit ?? 50)
         }
         error_to(conn, "unknown frame kind")
     }

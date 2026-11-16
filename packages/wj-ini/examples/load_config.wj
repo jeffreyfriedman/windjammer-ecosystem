@@ -5,15 +5,16 @@ use wj_ini::parse
 use wj_ini::set
 use wj_ini::write
 
-fn main() {
+fn main() -> Result<(), string> {
     let text = "name = demo\n[server]\nport = 8080 ; default\nverbose = yes\ntitle = \"My App ; v2\"\n"
-    let ini = parse(text).unwrap()
+    let ini = parse(text)?
 
-    println("port: ${get_int(ini, "server", "port").unwrap()}")
-    println("verbose: ${get_bool(ini, "server", "verbose").unwrap()}")
+    println("port: ${get_int(ini, "server", "port")?}")
+    println("verbose: ${get_bool(ini, "server", "verbose")?}")
     println("title: ${get_or(ini, "server", "title", "?")}")
     println("missing: ${get_or(ini, "server", "host", "localhost")}")
 
     let updated = set(ini, "server", "port", "9090")
     print(write(updated))
+    Ok(())
 }

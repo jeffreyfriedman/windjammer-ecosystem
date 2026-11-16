@@ -24,7 +24,7 @@ pub fn project_create(store: TaskStore, user: User, body: string) -> Reply {
         Ok(_) => {},
         Err(e) => return error_reply(422, e),
     }
-    let project = store.add_project(input.name, input.description.unwrap_or(""), user.id)
+    let project = store.add_project(input.name, input.description ?? "", user.id)
     from_json(201, json.to_string(project))
 }
 

@@ -18,7 +18,7 @@ pub fn answers_from_text(text: string) -> Answers {
 
 /// All of standard input, one answer per line (interactive line-by-line reading needs std::io).
 pub fn answers_from_stdin() -> Answers {
-    answers_from_text(fs.read_to_string("/dev/stdin").unwrap_or(""))
+    answers_from_text(fs.read_to_string("/dev/stdin") ?? "")
 }
 
 impl Answers {
@@ -27,7 +27,7 @@ impl Answers {
         if self.next >= self.lines.len() as int {
             return ""
         }
-        let line = self.lines[self.next as usize]
+        let line = self.lines[self.next]
         self.next = self.next + 1
         strings.trim(line)
     }

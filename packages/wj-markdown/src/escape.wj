@@ -16,15 +16,15 @@ pub fn html(text: string) -> string {
     let mut out = ""
     for ch in strings.chars(text) {
         if ch == '&' {
-            out = out + "&amp;"
+            out = "${out}&amp;"
         } else if ch == '<' {
-            out = out + "&lt;"
+            out = "${out}&lt;"
         } else if ch == '>' {
-            out = out + "&gt;"
+            out = "${out}&gt;"
         } else if ch == '"' {
-            out = out + "&quot;"
+            out = "${out}&quot;"
         } else {
-            out = out + "${ch}"
+            out += "${ch}"
         }
     }
     out
@@ -43,7 +43,7 @@ fn hex_digit(n: int) -> string {
 }
 
 fn pct(byte: int) -> string {
-    "%" + hex_digit(byte / 16) + hex_digit(byte % 16)
+    "%${hex_digit(byte / 16)}${hex_digit(byte % 16)}"
 }
 
 fn is_hex(ch: char) -> bool {
@@ -75,11 +75,11 @@ pub fn url(text: string) -> string {
         let keep = (ch >= 'a' && ch <= 'z') || (ch >= 'A' && ch <= 'Z') || (ch >= '0' && ch <= '9')
             || strings.contains(";/?:@=+$,-_.!~*'()#", "${ch}")
         if ch == '&' {
-            out = out + "&amp;"
+            out = "${out}&amp;"
         } else if ch == '%' && i + 2 < cs.len() + 0 && is_hex(cs[i + 1]) && is_hex(cs[i + 2]) {
-            out = out + "%"
+            out = "${out}%"
         } else if keep {
-            out = out + "${ch}"
+            out += "${ch}"
         } else {
             out = out + utf8_pct(ch as int)
         }

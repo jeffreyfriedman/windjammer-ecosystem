@@ -104,7 +104,7 @@ pub fn dot_stuff(body: string) -> string {
     let normalized = strings.replace(body, "\r\n", "\n")
     let mut out: Vec<string> = Vec::new()
     for line in strings.split(normalized, "\n") {
-        out.push(if strings.starts_with(line, ".") { "." + line } else { line })
+        out.push(if strings.starts_with(line, ".") { ".${line}" } else { line })
     }
     out.join("\r\n")
 }
@@ -137,8 +137,8 @@ pub fn plan(client_host: string, sender: Address, recipients: Vec<Address>, mess
     }
     steps.push(Step { send: "DATA\r\n", expect: [354], what: "DATA" })
     let stuffed = dot_stuff(message)
-    let body = if strings.ends_with(stuffed, "\r\n") { stuffed } else { stuffed + "\r\n" }
-    steps.push(Step { send: body + ".\r\n", expect: [250], what: "message body" })
+    let body = if strings.ends_with(stuffed, "\r\n") { stuffed } else { "${stuffed}\r\n" }
+    steps.push(Step { send: "${body}.\r\n", expect: [250], what: "message body" })
     steps.push(Step { send: "QUIT\r\n", expect: [221], what: "QUIT" })
     Ok(steps)
 }

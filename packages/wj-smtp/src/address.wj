@@ -62,11 +62,11 @@ fn quote_name(name: string) -> string {
     let mut out = "\""
     for ch in strings.chars(name) {
         if ch == '"' || ch == '\\' {
-            out = out + "\\"
+            out += "\\"
         }
-        out = out + "${ch}"
+        out += "${ch}"
     }
-    out + "\""
+    "${out}\""
 }
 
 fn needs_quotes(name: string) -> bool {

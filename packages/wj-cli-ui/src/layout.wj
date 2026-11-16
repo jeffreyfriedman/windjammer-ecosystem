@@ -17,12 +17,12 @@ pub fn rule(title: string, width: int) -> string {
     if strings.len(title) == 0 {
         return repeat("─", width)
     }
-    let label = " " + title + " "
+    let label = " ${title} "
     let used = 2 + display_width(label)
     if used >= width {
         return label
     }
-    "──" + label + repeat("─", width - used)
+    "──${label}${repeat("─", width - used)}"
 }
 
 /// Lines drawn in a single-line box. The inner width is the widest line (or `min_inner` if larger); wide characters
@@ -36,11 +36,11 @@ pub fn boxed(lines: Vec<string>, min_inner: int) -> Vec<string> {
         }
     }
     let mut out: Vec<string> = Vec::new()
-    out.push("┌" + repeat("─", inner + 2) + "┐")
+    out.push("┌${repeat("─", inner + 2)}┐")
     for l in lines {
-        out.push("│ " + pad_right(l, inner) + " │")
+        out.push("│ ${pad_right(l, inner)} │")
     }
-    out.push("└" + repeat("─", inner + 2) + "┘")
+    out.push("└${repeat("─", inner + 2)}┘")
     out
 }
 
@@ -48,7 +48,7 @@ pub fn boxed(lines: Vec<string>, min_inner: int) -> Vec<string> {
 pub fn justify(left: string, right: string, width: int) -> string {
     let gap = width - display_width(left) - display_width(right)
     if gap < 1 {
-        return left + " " + right
+        return "${left} ${right}"
     }
     left + repeat(" ", gap) + right
 }

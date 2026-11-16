@@ -10,14 +10,14 @@ use crate::Query
 fn sql_of(r: Result<Query, string>) -> string {
     match r {
         Ok(q) => q.sql,
-        Err(e) => "ERR " + e,
+        Err(e) => "ERR ${e}",
     }
 }
 
 fn params_of(r: Result<Query, string>) -> string {
     match r {
         Ok(q) => q.params.join("|"),
-        Err(e) => "ERR " + e,
+        Err(e) => "ERR ${e}",
     }
 }
 

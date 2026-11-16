@@ -153,7 +153,7 @@ fn show_ints(v: Vec<int>) -> string {
     for x in v {
         parts.push("${x}")
     }
-    "[" + parts.join(", ") + "]"
+    "[${parts.join(", ")}]"
 }
 
 fn without(v: Vec<int>, skip: int) -> Vec<int> {
@@ -161,7 +161,7 @@ fn without(v: Vec<int>, skip: int) -> Vec<int> {
     let mut i = 0
     while i < v.len() as int {
         if i != skip {
-            out.push(v[i as usize])
+            out.push(v[i])
         }
         i = i + 1
     }
@@ -172,7 +172,7 @@ fn with_value(v: Vec<int>, at: int, value: int) -> Vec<int> {
     let mut out: Vec<int> = Vec::new()
     let mut i = 0
     while i < v.len() as int {
-        out.push(if i == at { value } else { v[i as usize] })
+        out.push(if i == at { value } else { v[i] })
         i = i + 1
     }
     out
@@ -197,7 +197,7 @@ fn shrink_ints(cfg: Config, lo: int, start: Vec<int>, prop: fn(Vec<int>) -> bool
         }
         let mut j = 0
         while j < best.len() as int && !progress {
-            for c in int_candidates(best[j as usize], lo) {
+            for c in int_candidates(best[j], lo) {
                 let cand = with_value(best, j, c)
                 steps = steps + 1
                 if !prop(cand) {

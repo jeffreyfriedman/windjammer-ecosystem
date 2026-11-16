@@ -76,7 +76,7 @@ fn slice(d: Vec<u8>, from: int, to: int) -> Vec<u8> {
     let mut out: Vec<u8> = Vec::new()
     let mut i = from
     while i < to {
-        out.push(d[i as usize])
+        out.push(d[i])
         i = i + 1
     }
     out
@@ -127,7 +127,7 @@ impl Database {
                 let mut j: int = 0
                 while j < take {
                     let at: int = base + 4 + j
-                    out.push(self.data[at as usize])
+                    out.push(self.data[at])
                     j = j + 1
                 }
                 left = left - take
@@ -145,7 +145,7 @@ impl Database {
         }
         let base = self.page_start(page)?
         let hdr = if page == 1 { base + 100 } else { base }
-        let kind = self.data[hdr as usize] as int
+        let kind = self.data[hdr] as int
         let cells = u16_at(self.data, hdr + 3)
         let mut out = rows
         if kind == 13 {
@@ -228,7 +228,7 @@ impl Database {
                 if i == t.rowid_column {
                     vals.push(Value::Int(r.rowid))
                 } else {
-                    vals.push(r.values[i as usize])
+                    vals.push(r.values[i])
                 }
                 i = i + 1
             }

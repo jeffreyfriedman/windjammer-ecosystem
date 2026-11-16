@@ -168,7 +168,7 @@ pub fn parse(text: string) -> Result<Decimal, string> {
 fn pad_left(text: string, width: int) -> string {
     let mut out = text
     while strings.len(out) < width {
-        out = "0" + out
+        out = "0${out}"
     }
     out
 }
@@ -181,7 +181,7 @@ pub fn to_string(d: Decimal) -> string {
         return sign + body
     }
     let cut = strings.len(body) - d.scale
-    sign + strings.substring(body, 0, cut) + "." + strings.substring(body, cut, strings.len(body))
+    "${sign}${strings.substring(body, 0, cut)}.${strings.substring(body, cut, strings.len(body))}"
 }
 
 /// Same value at another scale; dropping digits uses `mode`.
@@ -222,14 +222,14 @@ pub fn with_thousands(d: Decimal) -> string {
         out = strings.substring(whole, i - 1, i) + out
         count = count + 1
         if count % 3 == 0 && i > 1 {
-            out = "," + out
+            out = ",${out}"
         }
         i = i - 1
     }
     if parts.len() > 1 {
-        out = out + "." + parts[1]
+        out += ".${parts[1]}"
     }
-    if negative { "-" + out } else { out }
+    if negative { "-${out}" } else { out }
 }
 
 fn max_int(a: int, b: int) -> int {

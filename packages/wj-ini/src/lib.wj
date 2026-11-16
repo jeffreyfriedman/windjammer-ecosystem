@@ -38,9 +38,12 @@ fn trim_text(text: string) -> string {
 /// ```wj
 /// use crate::parse
 /// use crate::get
-/// let ini = parse("[server]\nport = 8080 ; default\nname = \"my app\"\n").unwrap()
-/// assert_eq(get(ini, "server", "port"), Some("8080"))
-/// assert_eq(get(ini, "server", "name"), Some("my app"))
+/// fn main() -> Result<(), string> {
+///     let ini = parse("[server]\nport = 8080 ; default\nname = \"my app\"\n")?
+///     assert_eq(get(ini, "server", "port"), Some("8080"))
+///     assert_eq(get(ini, "server", "name"), Some("my app"))
+///     Ok(())
+/// }
 /// ```
 pub fn parse(text: string) -> Result<Ini, string> {
     let mut sections: Vec<Section> = Vec::new()

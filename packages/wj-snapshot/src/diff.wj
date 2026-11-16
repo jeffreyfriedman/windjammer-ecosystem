@@ -8,8 +8,8 @@ pub fn lines_of(text: string) -> Vec<string> {
     let mut i = 0
     while i < parts.len() as int {
         let last = i == parts.len() as int - 1
-        if !(last && strings.len(parts[i as usize]) == 0) {
-            out.push(parts[i as usize])
+        if !(last && strings.len(parts[i]) == 0) {
+            out.push(parts[i])
         }
         i = i + 1
     }
@@ -43,12 +43,12 @@ fn lcs_table(a: Vec<string>, b: Vec<string>) -> Vec<Vec<int>> {
     while i >= 0 {
         let mut j = m - 1
         while j >= 0 {
-            if a[i as usize] == b[j as usize] {
-                table[i as usize][j as usize] = table[(i + 1) as usize][(j + 1) as usize] + 1
+            if a[i] == b[j] {
+                table[i][j] = table[i + 1][j + 1] + 1
             } else {
-                let down = table[(i + 1) as usize][j as usize]
-                let right = table[i as usize][(j + 1) as usize]
-                table[i as usize][j as usize] = if down >= right { down } else { right }
+                let down = table[i + 1][j]
+                let right = table[i][j + 1]
+                table[i][j] = if down >= right { down } else { right }
             }
             j = j - 1
         }
@@ -65,15 +65,15 @@ fn edit_script(a: Vec<string>, b: Vec<string>) -> Vec<Op> {
     let mut i = 0
     let mut j = 0
     while i < n || j < m {
-        if i < n && j < m && a[i as usize] == b[j as usize] {
-            ops.push(Op { kind: "=", text: a[i as usize], old_at: i, new_at: j })
+        if i < n && j < m && a[i] == b[j] {
+            ops.push(Op { kind: "=", text: a[i], old_at: i, new_at: j })
             i = i + 1
             j = j + 1
-        } else if i < n && (j >= m || table[(i + 1) as usize][j as usize] >= table[i as usize][(j + 1) as usize]) {
-            ops.push(Op { kind: "-", text: a[i as usize], old_at: i, new_at: j })
+        } else if i < n && (j >= m || table[i + 1][j] >= table[i][j + 1]) {
+            ops.push(Op { kind: "-", text: a[i], old_at: i, new_at: j })
             i = i + 1
         } else {
-            ops.push(Op { kind: "+", text: b[j as usize], old_at: i, new_at: j })
+            ops.push(Op { kind: "+", text: b[j], old_at: i, new_at: j })
             j = j + 1
         }
     }
@@ -100,7 +100,7 @@ pub fn unified(old_text: string, new_text: string, old_name: string, new_name: s
     let mut changed: Vec<int> = Vec::new()
     let mut k = 0
     while k < ops.len() as int {
-        if ops[k as usize].kind != "=" {
+        if ops[k].kind != "=" {
             changed.push(k)
         }
         k = k + 1
@@ -115,11 +115,11 @@ pub fn unified(old_text: string, new_text: string, old_name: string, new_name: s
     let total = ops.len() as int
     let mut g = 0
     while g < changed.len() as int {
-        let mut first = changed[g as usize]
+        let mut first = changed[g]
         let mut last = first
         let mut h = g + 1
-        while h < changed.len() as int && changed[h as usize] - last <= 2 * context + 1 {
-            last = changed[h as usize]
+        while h < changed.len() as int && changed[h] - last <= 2 * context + 1 {
+            last = changed[h]
             h = h + 1
         }
         let from = if first - context < 0 { 0 } else { first - context }
@@ -129,7 +129,7 @@ pub fn unified(old_text: string, new_text: string, old_name: string, new_name: s
         let mut body: Vec<string> = Vec::new()
         let mut p = from
         while p < to {
-            let op = ops[p as usize]
+            let op = ops[p]
             if op.kind == "=" {
                 body.push(" ${op.text}")
                 old_len = old_len + 1
@@ -143,7 +143,7 @@ pub fn unified(old_text: string, new_text: string, old_name: string, new_name: s
             }
             p = p + 1
         }
-        let start_op = ops[from as usize]
+        let start_op = ops[from]
         out.push("@@ -${range_text(start_op.old_at, old_len)} +${range_text(start_op.new_at, new_len)} @@")
         for line in body {
             out.push(line)

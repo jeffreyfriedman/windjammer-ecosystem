@@ -140,8 +140,7 @@ impl NotesApp {
         )
     }
 
-    /// Adapter port: same-crate `HttpMethod` avoids demoted `method: &str` + owned
-    /// label helper (see `bug_owned_helper_into_demoted_str_formal_must_auto_borrow_test`).
+    /// Typed entry for adapters that already hold an `HttpMethod`; `handle` takes the method as a label and parses it.
     pub fn handle_http(
         self,
         method: HttpMethod,
@@ -405,10 +404,7 @@ fn location_header(url: string) -> string {
 }
 
 fn note_get_reply(note: Note, if_none_match: string, query: string) -> HttpReply {
-    // Keep formal owned (cargo-bin otherwise demotes to &str while callers pass String).
-    let mut held: Vec<string> = Vec::new()
-    held.push(if_none_match)
-    let inm = held[0]
+    let inm = if_none_match
     let want_base64 = query_wants_base64(query)
     let material = "${note.uid}:${note.title}:${note.body}"
     let tag = "\"${sha_digest(material)}\""

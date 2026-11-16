@@ -271,10 +271,10 @@ fn interrupts_paragraph(line: string) -> bool {
 fn code_block(lines: Vec<string>, class: string) -> string {
     let mut body = ""
     for l in lines {
-        body = body + escape::html(l) + "\n"
+        body += "${escape::html(l)}\n"
     }
-    let attr = if strings.len(class) > 0 { " class=\"language-" + escape::html(class) + "\"" } else { "" }
-    "<pre><code" + attr + ">" + body + "</code></pre>\n"
+    let attr = if strings.len(class) > 0 { " class=\"language-${escape::html(class)}\"" } else { "" }
+    "<pre><code${attr}>${body}</code></pre>\n"
 }
 
 fn first_word(text: string) -> string {
@@ -383,14 +383,14 @@ fn parse_list(lines: Vec<string>, at: int, tight_out: bool) -> (Block, int) {
     }
     let tag = if first.ordered { "ol" } else { "ul" }
     let start_attr = if first.ordered && first.start != 1 { " start=\"${first.start}\"" } else { "" }
-    let mut html = "<" + tag + start_attr + ">\n"
+    let mut html = "<${tag}${start_attr}>\n"
     let mut ij = 0
     while ij < items.len() {
         let item = items[ij]
         ij = ij + 1
         let blocks = parse_blocks(item)
         if blocks.len() == 0 {
-            html = html + "<li></li>\n"
+            html = "${html}<li></li>\n"
             continue
         }
         if loose {
@@ -398,7 +398,7 @@ fn parse_list(lines: Vec<string>, at: int, tight_out: bool) -> (Block, int) {
             for b in blocks {
                 inner = inner + html_of(b)
             }
-            html = html + "<li>\n" + inner + "</li>\n"
+            html += "<li>\n${inner}</li>\n"
         } else {
             let mut inner = ""
             let mut idx = 0
@@ -409,20 +409,21 @@ fn parse_list(lines: Vec<string>, at: int, tight_out: bool) -> (Block, int) {
             for b in blocks {
                 if b.kind == "p" {
                     if idx > 0 {
-                        inner = inner + (if prev_para { "\n" } else { "" })
+                        inner += (if prev_para { "\n" } else { "" })
                     }
                     inner = inner + inline::render(b.text)
                     prev_para = true
                 } else {
-                    inner = inner + (if prev_para { "\n" } else { "" }) + html_of(b)
+                    let gap = if prev_para { "\n" } else { "" }
+                    inner += "${gap}${html_of(b)}"
                     prev_para = false
                 }
                 idx = idx + 1
             }
-            html = html + "<li>" + inner + "</li>\n"
+            html += "<li>${inner}</li>\n"
         }
     }
-    html = html + "</" + tag + ">\n"
+    html += "</${tag}>\n"
     (make("list", html, ""), i)
 }
 
@@ -482,7 +483,7 @@ fn parse_blocks(lines: Vec<string>) -> Vec<Block> {
         }
         let h = atx(line)
         if h.0 > 0 {
-            out.push(make("h", "<h${h.0}>" + inline::render(h.1) + "</h${h.0}>\n", ""))
+            out.push(make("h", "<h${h.0}>${inline::render(h.1)}</h${h.0}>\n", ""))
             i = i + 1
             continue
         }
@@ -509,7 +510,7 @@ fn parse_blocks(lines: Vec<string>) -> Vec<Block> {
             for b in parse_blocks(inner) {
                 body = body + html_of(b)
             }
-            out.push(make("quote", "<blockquote>\n" + body + "</blockquote>\n", ""))
+            out.push(make("quote", "<blockquote>\n${body}</blockquote>\n", ""))
             continue
         }
         let m = marker_of(line)
@@ -540,7 +541,7 @@ fn parse_blocks(lines: Vec<string>) -> Vec<Block> {
         }
         let text = join_trimmed_start(para)
         if heading > 0 {
-            out.push(make("h", "<h${heading}>" + inline::render(text) + "</h${heading}>\n", ""))
+            out.push(make("h", "<h${heading}>${inline::render(text)}</h${heading}>\n", ""))
         } else {
             out.push(make("p", "", text))
         }
@@ -550,7 +551,7 @@ fn parse_blocks(lines: Vec<string>) -> Vec<Block> {
 
 fn html_of(b: Block) -> string {
     if b.kind == "p" {
-        return "<p>" + inline::render(b.text) + "</p>\n"
+        return "<p>${inline::render(b.text)}</p>\n"
     }
     b.html
 }

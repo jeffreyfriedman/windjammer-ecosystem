@@ -1,4 +1,4 @@
-// TDD: first-hour card must assemble tip-green std surfaces.
+// TDD: first-hour card must assemble std surfaces.
 
 use crate::domain::Card
 use crate::domain::build_card

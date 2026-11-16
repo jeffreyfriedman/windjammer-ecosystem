@@ -35,9 +35,9 @@ fn test_float_repr_matches_python() {
 }
 
 fn test_quote_escapes_like_python() {
-    assert_eq(quote("h" + chr(233) + "\n\"", true), "\"h\\u00e9\\n\\\"\"")
-    assert_eq(quote("h" + chr(233), false), "\"h" + chr(233) + "\"")
-    assert_eq(quote(chr(128512) + " " + chr(1) + " /", true), "\"\\ud83d\\ude00 \\u0001 /\"")
+    assert_eq(quote("h${chr(233)}\n\"", true), "\"h\\u00e9\\n\\\"\"")
+    assert_eq(quote("h${chr(233)}", false), "\"h${chr(233)}\"")
+    assert_eq(quote("${chr(128512)} ${chr(1)} /", true), "\"\\ud83d\\ude00 \\u0001 /\"")
 }
 
 fn sample() -> string {
@@ -69,7 +69,7 @@ fn test_sort_keys() {
 
 fn test_unicode_kept_when_asked() {
     match parse("[\"h\\u00e9\"]") {
-        Ok(doc) => assert_eq(dumps_unicode(doc, 0, false), "[\"h" + chr(233) + "\"]"),
+        Ok(doc) => assert_eq(dumps_unicode(doc, 0, false), "[\"h${chr(233)}\"]"),
         Err(e) => assert(false, e),
     }
 }

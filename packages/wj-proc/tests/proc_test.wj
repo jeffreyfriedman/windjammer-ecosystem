@@ -9,8 +9,8 @@ use crate::git_toplevel
 
 fn test_quote_survives_the_shell() {
     let tricky = "it's a \"test\" $HOME"
-    match sh("echo " + quote(tricky)) {
-        Ok(o) => assert_eq(o.stdout, tricky + "\n"),
+    match sh("echo ${quote(tricky)}") {
+        Ok(o) => assert_eq(o.stdout, "${tricky}\n"),
         Err(e) => assert(false, e),
     }
 }

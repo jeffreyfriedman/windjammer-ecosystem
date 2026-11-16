@@ -153,7 +153,7 @@ pub fn token_request_client_credentials(client_id: string, client_secret: string
 /// `Authorization` header value for `client_secret_basic`: the id and secret are form-encoded first (RFC 6749 section 2.3.1).
 pub fn basic_auth_header(client_id: string, client_secret: string) -> string {
     let raw = "${encoding.url_encode_component(client_id)}:${encoding.url_encode_component(client_secret)}"
-    "Basic " + encoding.base64_encode(b64::utf8(raw))
+    "Basic ${encoding.base64_encode(b64::utf8(raw))}"
 }
 
 /// `Authorization: Bearer ...` header value.

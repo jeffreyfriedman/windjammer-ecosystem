@@ -76,7 +76,7 @@ fn from_range(n: int) -> Vec<u8> {
 @test
 fn test_base64url_round_trips() {
     assert_eq(encode_text("subjects?>>"), "c3ViamVjdHM_Pj4")
-    assert_eq(decode_text("aMOpbGxvIOKckw").unwrap_or("bad"), "héllo ✓")
+    assert_eq(decode_text("aMOpbGxvIOKckw") ?? "bad", "héllo ✓")
     assert(decode("a").is_err(), "length 1 mod 4")
     assert(decode("ab$d").is_err(), "bad character")
     assert_eq(decode("YQ").unwrap_or(Vec::new()).len(), 1)
@@ -186,15 +186,15 @@ fn test_token_responses() {
         Ok(t) => {
             assert_eq(expires_at(t, 1000), 4600)
             assert_eq(t.access_token, "AT")
-            assert_eq(t.refresh_token.unwrap_or(""), "RT")
-            assert_eq(t.id_token.unwrap_or(""), "IT")
+            assert_eq(t.refresh_token ?? "", "RT")
+            assert_eq(t.id_token ?? "", "IT")
         },
         Err(e) => assert(false, e),
     }
     match parse_token_response("{\"access_token\":\"AT\",\"token_type\":\"bearer\"}") {
         Ok(t) => {
             assert_eq(expires_at(t, 1000), 0)
-            assert_eq(t.expires_in.unwrap_or(-1), -1)
+            assert_eq(t.expires_in ?? -1, -1)
         },
         Err(e) => assert(false, e),
     }
@@ -214,8 +214,8 @@ fn test_discovery_document() {
     match parse_discovery(body, "https://id.example.com") {
         Ok(d) => {
             assert_eq(d.token_endpoint, "https://id.example.com/token")
-            assert_eq(d.jwks_uri.unwrap_or(""), "https://id.example.com/keys")
-            assert_eq(d.userinfo_endpoint.unwrap_or("none"), "none")
+            assert_eq(d.jwks_uri ?? "", "https://id.example.com/keys")
+            assert_eq(d.userinfo_endpoint ?? "none", "none")
         },
         Err(e) => assert(false, e),
     }

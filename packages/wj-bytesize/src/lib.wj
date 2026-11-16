@@ -188,9 +188,9 @@ fn digit_value(ch: string) -> int {
 ///
 /// ```wj
 /// use crate::parse
-/// assert_eq(parse("2 GiB").unwrap(), 2147483648)
-/// assert_eq(parse("1.5MB").unwrap(), 1500000)
-/// assert!(parse("12 parsecs").is_err())
+/// assert_eq(parse("2 GiB"), Ok(2147483648))
+/// assert_eq(parse("1.5MB"), Ok(1500000))
+/// assert(parse("12 parsecs").is_err())
 /// ```
 pub fn parse(text: string) -> Result<int, string> {
     let t = strings.trim(text)

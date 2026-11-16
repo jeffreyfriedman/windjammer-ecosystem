@@ -40,7 +40,7 @@ fn picks(r: Option<Vec<int>>) -> string {
             for i in v {
                 parts.push("${i}")
             }
-            "[" + parts.join(",") + "]"
+            "[${parts.join(",")}]"
         },
         None => "none",
     }
@@ -111,11 +111,11 @@ fn test_numeric_and_validated_prompts() {
     let mut d = answers_from(Vec::new())
     assert_eq(ask_int(d, "Port", 1, 65535, 8080, 3), 8080)
     let mut e = answers_from(["has space", "good-slug"])
-    assert_eq(e.ask_rule("Slug", "fallback", Rule::NoSpaces, 3).unwrap_or("none"), "good-slug")
+    assert_eq(e.ask_rule("Slug", "fallback", Rule::NoSpaces, 3) ?? "none", "good-slug")
     let mut f = answers_from(["a b", "c d"])
-    assert_eq(f.ask_rule("Slug", "fallback", Rule::NoSpaces, 2).unwrap_or("none"), "none")
+    assert_eq(f.ask_rule("Slug", "fallback", Rule::NoSpaces, 2) ?? "none", "none")
     let mut g = answers_from([""])
-    assert_eq(g.ask_rule("Slug", "fallback", Rule::NoSpaces, 2).unwrap_or("none"), "fallback")
+    assert_eq(g.ask_rule("Slug", "fallback", Rule::NoSpaces, 2) ?? "none", "fallback")
 }
 
 @test

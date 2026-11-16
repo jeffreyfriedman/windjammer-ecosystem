@@ -14,12 +14,12 @@ fn lcg(seed: int) -> int {
 
 fn word(n: int) -> string {
     let parts = ["alpha", "caf\u{e9}", "\u{65e5}\u{672c}", "x", "", "with space", "quote'd", "\u{2713} done"]
-    parts[(n % 8) as usize]
+    parts[n % 8]
 }
 
 fn build(path: string) -> Result<int, string> {
     let _ = fs.remove_file(path)
-    let conn = db.connect(path + "?mode=rwc")?
+    let conn = db.connect("${path}?mode=rwc")?
     let _ = conn.query("pragma journal_mode=delete", [])
     let _ = conn.query("pragma page_size=512", [])
     conn.execute("create table t (id integer primary key, a integer, b real, c text, d)", [])?
@@ -32,7 +32,7 @@ fn build(path: string) -> Result<int, string> {
         let quarter = (seed % 4001 - 2000)
         let b = "${quarter / 4}.${(quarter % 4 * 25 + 100) % 100:02}"
         seed = lcg(seed)
-        let c = word(seed) + " " + word(seed / 8) + " #${i}"
+        let c = "${word(seed)} ${word(seed / 8)} #${i}"
         conn.execute("insert into t (a, b, c, d) values (?, ?, ?, ?)", ["${a}", b, c, "${seed}"])?
         i = i + 1
     }
@@ -64,7 +64,7 @@ fn test_reader_agrees_with_sqlite_on_400_rows() {
         Err(e) => return assert(false, e),
     }
     assert_eq(rows.len(), 400)
-    let conn = match db.connect(path + "?mode=rwc") {
+    let conn = match db.connect("${path}?mode=rwc") {
         Ok(c) => c,
         Err(e) => return assert(false, e),
     }
@@ -76,12 +76,12 @@ fn test_reader_agrees_with_sqlite_on_400_rows() {
     let mut bad = ""
     let mut i = 0
     while i < 400 {
-        let w = want[i as usize]
-        let r = rows[i as usize]
-        let id = w.get_int("id").unwrap_or(0 - 1)
-        let a = w.get_int("a").unwrap_or(0 - 1)
+        let w = want[i]
+        let r = rows[i]
+        let id = w.get_int("id") ?? 0 - 1
+        let a = w.get_int("a") ?? 0 - 1
         if id != r.rowid || show(r.values[0]) != "${id}" || cell(r.values[1]) != "${a}" || cell(r.values[3]) != w.get_string("c").unwrap_or("?") || cell(r.values[4]) != w.get_string("d").unwrap_or("?") {
-            bad = bad + "row ${i + 1}: ${cell(r.values[1])} ${cell(r.values[3])}; "
+            bad += "row ${i + 1}: ${cell(r.values[1])} ${cell(r.values[3])}; "
         }
         i = i + 1
     }

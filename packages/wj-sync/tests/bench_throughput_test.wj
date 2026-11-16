@@ -10,7 +10,6 @@ use std::time
 
 /// Larger wall-clock benches (vs `benches/rust_baseline`). Soft ceiling only —
 /// fair ≤1.2× ratios require `benches/run_release.sh` (release+LTO).
-/// Annotate `n: int` so void/`@test` i32-coord demotion does not mix with i64 APIs.
 @test
 fn test_bench_channel_sum_100k() {
     let n: int = 100_000
@@ -21,7 +20,7 @@ fn test_bench_channel_sum_100k() {
     assert_eq(out.0, n)
     assert_eq(out.1, n * (n - 1) / 2)
     assert(elapsed < 30_000, "channel_sum_range(100k) too slow")
-    println("wj_channel_sum n={} elapsed_ms={}", n, elapsed)
+    println("wj_channel_sum n=${n} elapsed_ms=${elapsed}")
 }
 
 @test
@@ -38,7 +37,7 @@ fn test_bench_shared_incs_100k() {
     let elapsed = end - start
     assert_eq(shared_int_get(s), n)
     assert(elapsed < 30_000, "shared_int 100k incs too slow")
-    println("wj_shared_incs n={} elapsed_ms={}", n, elapsed)
+    println("wj_shared_incs n=${n} elapsed_ms=${elapsed}")
 }
 
 @test
@@ -55,7 +54,7 @@ fn test_bench_counter_incs_100k() {
     let elapsed = end - start
     assert_eq(counter_get(c), n)
     assert(elapsed < 30_000, "counter 100k incs too slow")
-    println("wj_counter_incs n={} elapsed_ms={}", n, elapsed)
+    println("wj_counter_incs n=${n} elapsed_ms=${elapsed}")
 }
 
 @test
@@ -68,5 +67,5 @@ fn test_bench_pool_shared_inbox_5k() {
     assert_eq(out.0, n)
     assert_eq(out.1, n * (n - 1))
     assert(elapsed < 30_000, "pool_shared_inbox_sum(5k) too slow")
-    println("wj_pool_shared_inbox n={} workers=4 elapsed_ms={}", n, elapsed)
+    println("wj_pool_shared_inbox n=${n} workers=4 elapsed_ms=${elapsed}")
 }

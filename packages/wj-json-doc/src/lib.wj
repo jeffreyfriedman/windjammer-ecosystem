@@ -280,7 +280,7 @@ impl Parser {
         let mut text = ""
         let mut i = start
         while i < self.pos {
-            text = text + self.chars[i].to_string()
+            text += "${self.chars[i]}"
             i = i + 1
         }
         if is_float {
@@ -327,7 +327,7 @@ impl Parser {
                 return Ok(out)
             }
             if c != '\\' {
-                out = out + c.to_string()
+                out += "${c}"
                 continue
             }
             if self.eof() {
@@ -336,21 +336,21 @@ impl Parser {
             let e = self.chars[self.pos]
             self.pos = self.pos + 1
             if e == 'n' {
-                out = out + "\n"
+                out = "${out}\n"
             } else if e == 't' {
-                out = out + "\t"
+                out = "${out}\t"
             } else if e == 'r' {
-                out = out + "\r"
+                out = "${out}\r"
             } else if e == 'b' {
-                out = out + "" + chr(8) + ""
+                out += "${chr(8)}"
             } else if e == 'f' {
-                out = out + "" + chr(12) + ""
+                out += "${chr(12)}"
             } else if e == '/' {
-                out = out + "/"
+                out = "${out}/"
             } else if e == '"' {
-                out = out + "\""
+                out = "${out}\""
             } else if e == '\\' {
-                out = out + "\\"
+                out = "${out}\\"
             } else if e == 'u' {
                 let mut code = self.hex4()?
                 // a high surrogate pairs with the \uXXXX that follows
@@ -363,7 +363,7 @@ impl Parser {
                     code = combined as u32
                 }
                 match char::from_u32(code) {
-                    Some(ch) => { out = out + ch.to_string() },
+                    Some(ch) => { out += "${ch}" },
                     None => { out = out + chr(65533) },
                 }
             } else {
@@ -512,21 +512,21 @@ pub fn float_repr(x: f64) -> string {
     let exp: int = point - 1
     let sign = if neg { "-" } else { "" }
     if exp < -4 || exp >= 16 {
-        let mantissa = if digits.len() == 1 { digits } else { digits.substring(0, 1) + "." + digits.substring(1, digits.len()) }
+        let mantissa = if digits.len() == 1 { digits } else { "${digits.substring(0, 1)}.${digits.substring(1, digits.len())}" }
         let e = if exp < 0 { "-" } else { "+" }
         let mag: int = if exp < 0 { 0 - exp } else { exp }
         let mag_text = if mag < 10 { "0${mag}" } else { "${mag}" }
-        return sign + mantissa + "e" + e + mag_text
+        return "${sign}${mantissa}e${e}${mag_text}"
     }
     let ndig: int = digits.len() as int
     if point <= 0 {
-        return sign + "0." + repeat_text("0", 0 - point) + digits
+        return "${sign}0.${repeat_text("0", 0 - point)}${digits}"
     }
     if point >= ndig {
-        return sign + digits + repeat_text("0", point - ndig) + ".0"
+        return "${sign}${digits}${repeat_text("0", point - ndig)}.0"
     }
     let cut: usize = point as usize
-    sign + digits.substring(0, cut) + "." + digits.substring(cut, digits.len())
+    "${sign}${digits.substring(0, cut)}.${digits.substring(cut, digits.len())}"
 }
 
 /// JSON string literal. `ascii_only` escapes every non-ASCII character as `\uXXXX`, as Python's default does.
@@ -535,42 +535,42 @@ pub fn quote(s: string, ascii_only: bool) -> string {
     for c in s.chars() {
         let n = c as u32
         if c == '"' {
-            out = out + "\\\""
+            out = "${out}\\\""
         } else if c == '\\' {
-            out = out + "\\\\"
+            out = "${out}\\\\"
         } else if c == '\n' {
-            out = out + "\\n"
+            out = "${out}\\n"
         } else if c == '\r' {
-            out = out + "\\r"
+            out = "${out}\\r"
         } else if c == '\t' {
-            out = out + "\\t"
+            out = "${out}\\t"
         } else if n == 8 {
-            out = out + "\\b"
+            out = "${out}\\b"
         } else if n == 12 {
-            out = out + "\\f"
+            out = "${out}\\f"
         } else if n < 32 {
-            out = out + "\\u" + hex_pad(n)
+            out += "\\u${hex_pad(n)}"
         } else if n > 126 && ascii_only {
             if n >= 65536 {
                 let v = n - 65536
-                out = out + "\\u" + hex_pad(55296 + v / 1024) + "\\u" + hex_pad(56320 + v % 1024)
+                out += "\\u${hex_pad(55296 + v / 1024)}\\u${hex_pad(56320 + v % 1024)}"
             } else {
-                out = out + "\\u" + hex_pad(n)
+                out += "\\u${hex_pad(n)}"
             }
         } else {
-            out = out + c.to_string()
+            out += "${c}"
         }
     }
-    out + "\""
+    "${out}\""
 }
 
 fn hex_pad(n: u32) -> string {
     let digits = "0123456789abcdef"
     let d: Vec<char> = digits.chars().collect()
-    let a = d[((n / 4096) % 16) as usize].to_string()
-    let b = d[((n / 256) % 16) as usize].to_string()
-    let c = d[((n / 16) % 16) as usize].to_string()
-    let e = d[(n % 16) as usize].to_string()
+    let a = "${d[(n / 4096) % 16]}"
+    let b = "${d[(n / 256) % 16]}"
+    let c = "${d[(n / 16) % 16]}"
+    let e = "${d[n % 16]}"
     a + b + c + e
 }
 
@@ -618,13 +618,11 @@ fn write_value(doc: Json, indent: int, level: int, sort_keys: bool, ascii_only: 
 
 fn join_container(open: string, close: string, parts: Vec<string>, indent: int, level: int, is_obj: bool) -> string {
     if indent <= 0 {
-        let head = open.to_string()
-        return head + parts.join(", ") + close
+        return "${open}${parts.join(", ")}${close}"
     }
     let inner = repeat_text(" ", (level + 1) * indent)
     let outer = repeat_text(" ", level * indent)
-    let head = open.to_string()
-    head + "\n" + inner + parts.join(",\n" + inner) + "\n" + outer + close
+    "${open}\n${inner}${parts.join(",\n${inner}")}\n${outer}${close}"
 }
 
 /// Python's `json.dumps(doc, indent=indent, sort_keys=sort_keys)`. `indent == 0` is the single-line form
@@ -641,7 +639,7 @@ pub fn dumps_unicode(doc: Json, indent: int, sort_keys: bool) -> string {
 /// The character with code point `n` (U+FFFD when `n` is not a scalar value).
 pub fn chr(n: u32) -> string {
     match char::from_u32(n) {
-        Some(c) => c.to_string(),
+        Some(c) => "${c}",
         None => "?",
     }
 }

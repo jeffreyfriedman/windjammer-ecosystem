@@ -100,15 +100,15 @@ pub struct ResponseHeader {
 }
 
 impl Layer for ResponseHeader {
-    fn name(&self) -> string {
-        "response-header:" + self.header
+    fn name(self) -> string {
+        "response-header:${self.header}"
     }
 
-    fn before(&self, req: Request) -> Flow {
+    fn before(self, req: Request) -> Flow {
         Flow::Continue(req)
     }
 
-    fn after(&self, req: Request, resp: Response) -> Response {
+    fn after(self, req: Request, resp: Response) -> Response {
         resp.with_header(self.header, self.value)
     }
 }
@@ -121,11 +121,11 @@ pub struct RequireHeader {
 }
 
 impl Layer for RequireHeader {
-    fn name(&self) -> string {
-        "require-header:" + self.header
+    fn name(self) -> string {
+        "require-header:${self.header}"
     }
 
-    fn before(&self, req: Request) -> Flow {
+    fn before(self, req: Request) -> Flow {
         if req.header(self.header) == "" {
             Flow::Respond(response(self.status, self.body))
         } else {
@@ -133,7 +133,7 @@ impl Layer for RequireHeader {
         }
     }
 
-    fn after(&self, req: Request, resp: Response) -> Response {
+    fn after(self, req: Request, resp: Response) -> Response {
         resp
     }
 }
@@ -144,16 +144,16 @@ pub struct PathPrefix {
 }
 
 impl Layer for PathPrefix {
-    fn name(&self) -> string {
-        "path-prefix:" + self.prefix
+    fn name(self) -> string {
+        "path-prefix:${self.prefix}"
     }
 
-    fn before(&self, req: Request) -> Flow {
+    fn before(self, req: Request) -> Flow {
         let path = self.prefix + req.path
         Flow::Continue(req.with_path(path))
     }
 
-    fn after(&self, req: Request, resp: Response) -> Response {
+    fn after(self, req: Request, resp: Response) -> Response {
         resp
     }
 }

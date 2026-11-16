@@ -21,9 +21,9 @@ pub fn is_valid_key(key: string) -> bool {
 pub fn client_request(host: string, path: string, key: string, protocols: Vec<string>) -> string {
     let mut text = "GET ${path} HTTP/1.1\r\nHost: ${host}\r\nUpgrade: websocket\r\nConnection: Upgrade\r\nSec-WebSocket-Key: ${key}\r\nSec-WebSocket-Version: 13\r\n"
     if protocols.len() > 0 {
-        text = text + "Sec-WebSocket-Protocol: ${protocols.join(", ")}\r\n"
+        text += "Sec-WebSocket-Protocol: ${protocols.join(", ")}\r\n"
     }
-    text + "\r\n"
+    "${text}\r\n"
 }
 
 pub struct Request {
@@ -99,9 +99,9 @@ pub fn parse_request(text: string) -> Result<Request, string> {
 pub fn server_response(key: string, protocol: string) -> string {
     let mut text = "HTTP/1.1 101 Switching Protocols\r\nUpgrade: websocket\r\nConnection: Upgrade\r\nSec-WebSocket-Accept: ${accept_key(key)}\r\n"
     if strings.len(protocol) > 0 {
-        text = text + "Sec-WebSocket-Protocol: ${protocol}\r\n"
+        text += "Sec-WebSocket-Protocol: ${protocol}\r\n"
     }
-    text + "\r\n"
+    "${text}\r\n"
 }
 
 /// Check the server's reply against the key the client sent.

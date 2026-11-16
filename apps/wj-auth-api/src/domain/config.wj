@@ -256,7 +256,7 @@ fn auth_config_from_map(map: HashMap<string, string>) -> AuthConfig {
     }
 }
 
-/// Owned-string digit parse (avoids demoted `&str` + `.clone()` on HashMap get bindings).
+/// Parse a positive decimal integer; `None` for empty, non-digit or zero input.
 fn digits_to_int(text: string) -> Option<int> {
     match digits_to_int_allow_zero(text) {
         Some(n) => {

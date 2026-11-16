@@ -39,7 +39,7 @@ pub fn encode_command(args: Vec<string>) -> Vec<u8> {
     let mut out: Vec<u8> = utf8(header)
     for a in args {
         let body = utf8(a)
-        let prefix = "$" + "${body.len()}" + "\r\n"
+        let prefix = "\$${body.len()}\r\n"
         for b in utf8(prefix) {
             out.push(b)
         }
@@ -85,7 +85,7 @@ fn crlf(buf: Vec<u8>, from: int) -> int {
     let n = buf.len() as int
     let mut i = from
     while i + 1 < n {
-        if buf[i as usize] == 13 && buf[(i + 1) as usize] == 10 {
+        if buf[i] == 13 && buf[i + 1] == 10 {
             return i
         }
         i = i + 1
@@ -97,7 +97,7 @@ fn slice(buf: Vec<u8>, from: int, to: int) -> Vec<u8> {
     let mut out: Vec<u8> = Vec::new()
     let mut i = from
     while i < to {
-        out.push(buf[i as usize])
+        out.push(buf[i])
         i = i + 1
     }
     out
@@ -111,7 +111,7 @@ fn parse_at(buf: Vec<u8>, at: int, depth: int) -> Result<Option<Parsed>, string>
     if at >= buf.len() as int {
         return Ok(None)
     }
-    let tag = buf[at as usize] as int
+    let tag = buf[at] as int
     let end = crlf(buf, at + 1)
     if end < 0 {
         return Ok(None)
@@ -147,7 +147,7 @@ fn parse_at(buf: Vec<u8>, at: int, depth: int) -> Result<Option<Parsed>, string>
         }
         let term = after + len
         let term2 = term + 1
-        if buf[term as usize] != 13 || buf[term2 as usize] != 10 {
+        if buf[term] != 13 || buf[term2] != 10 {
             return Err("bulk string not terminated by CRLF")
         }
         let text = utf8_text(slice(buf, after, after + len))?
@@ -208,5 +208,5 @@ pub fn show(r: Reply) -> string {
     for item in r.items {
         parts.push(show(item))
     }
-    "[" + parts.join(", ") + "]"
+    "[${parts.join(", ")}]"
 }

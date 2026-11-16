@@ -240,28 +240,28 @@ pub fn constant_time_eq(a: string, b: string) -> bool {
 /// The `Set-Cookie` header value that carries the session id: `HttpOnly`, `SameSite=Lax`, `Path=/`, and `Secure`
 /// unless `secure` is false (local development over http). `max_age_s` of 0 omits Max-Age (a browser-session cookie).
 pub fn set_cookie_value(name: string, id: string, max_age_s: int, secure: bool) -> string {
-    let mut out = name + "=" + id + "; Path=/; HttpOnly; SameSite=Lax"
+    let mut out = "${name}=${id}; Path=/; HttpOnly; SameSite=Lax"
     if secure {
-        out = out + "; Secure"
+        out += "; Secure"
     }
     if max_age_s > 0 {
-        out = out + "; Max-Age=" + max_age_s.to_string()
+        out += "; Max-Age=${max_age_s}"
     }
     out
 }
 
 /// The `Set-Cookie` header value that tells the browser to forget the session cookie.
 pub fn clear_cookie_value(name: string, secure: bool) -> string {
-    let mut out = name + "=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0"
+    let mut out = "${name}=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0"
     if secure {
-        out = out + "; Secure"
+        out += "; Secure"
     }
     out
 }
 
 /// Find the session id in a request `Cookie` header (`a=1; sid=abc; b=2`).
 pub fn id_from_cookie_header(header: string, name: string) -> Option<string> {
-    let prefix = name + "="
+    let prefix = "${name}="
     for part in strings.split(header, ";") {
         let p = strings.trim(part)
         if strings.starts_with(p, prefix) {

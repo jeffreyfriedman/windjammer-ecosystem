@@ -26,7 +26,7 @@ pub fn split(token: string) -> Result<Parts, string> {
 
 fn text_field(v: json::Value, name: string) -> string {
     match json.get(v, name) {
-        Some(x) => json.as_str(x).unwrap_or(""),
+        Some(x) => json.as_str(x) ?? "",
         None => "",
     }
 }
@@ -142,7 +142,7 @@ pub fn validate_claims(payload_json: string, expect: Expect) -> Result<Claims, s
         },
         None => {},
     }
-    let iat = number_field(v, "iat").unwrap_or(0)
+    let iat = number_field(v, "iat") ?? 0
     if iat > expect.now + expect.leeway {
         return Err("token issued in the future")
     }

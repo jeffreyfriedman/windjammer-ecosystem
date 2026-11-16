@@ -1,6 +1,6 @@
 use std::strings
 use wj_cron::parse_cron
-use wj_cron::matches_cron
+use crate::domain::schedule::check_schedule
 use crate::domain::CivilTime
 
 /// Skip blank / comment lines; return trimmed expression otherwise.
@@ -44,20 +44,11 @@ pub fn parse_crontab(text: string) -> Result<Vec<string>, string> {
 
 /// Expressions that match `at`.
 pub fn due_schedules(exprs: Vec<string>, at: CivilTime) -> Result<Vec<string>, string> {
-    let mut due = Vec::new()
-    let mut i = 0
-    while i < exprs.len() {
-        // Call owned parse_cron directly (avoid demoted check_schedule + owned local).
-        match parse_cron(exprs[i]) {
-            Ok(cron) => {
-                let matched = matches_cron(cron, at.minute, at.hour, at.day, at.month, at.day_of_week)
-                if matched {
-                    due.push(exprs[i])
-                }
-            },
-            Err(e) => return Err(e),
+    let mut due = []
+    for expr in exprs {
+        if check_schedule(expr, at)? {
+            due.push(expr)
         }
-        i = i + 1
     }
     Ok(due)
 }

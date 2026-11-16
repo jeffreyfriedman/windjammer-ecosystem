@@ -15,7 +15,7 @@ pub struct Varint {
 }
 
 pub fn u16_at(d: Vec<u8>, at: int) -> int {
-    d[at as usize] as int * 256 + d[(at + 1) as usize] as int
+    d[at] as int * 256 + d[at + 1] as int
 }
 
 pub fn u32_at(d: Vec<u8>, at: int) -> int {
@@ -27,14 +27,14 @@ pub fn varint(d: Vec<u8>, at: int) -> Varint {
     let mut acc: u64 = 0
     let mut i = 0
     while i < 8 {
-        let b = d[(at + i) as usize] as u64
+        let b = d[at + i] as u64
         acc = (acc << 7) | (b & 127)
         if b < 128 {
             return Varint { value: acc as i64, len: i + 1 }
         }
         i = i + 1
     }
-    let last = d[(at + 8) as usize] as u64
+    let last = d[at + 8] as u64
     acc = (acc << 8) | last
     Varint { value: acc as i64, len: 9 }
 }
@@ -44,7 +44,7 @@ fn signed_be(d: Vec<u8>, at: int, n: int) -> int {
     let mut acc: u64 = 0
     let mut i = 0
     while i < n {
-        acc = (acc << 8) | (d[(at + i) as usize] as u64)
+        acc = (acc << 8) | (d[at + i] as u64)
         i = i + 1
     }
     if n == 8 {
@@ -90,7 +90,7 @@ pub fn real_be(d: Vec<u8>, at: int) -> float {
     let mut bits: u64 = 0
     let mut i = 0
     while i < 8 {
-        bits = (bits << 8) | (d[(at + i) as usize] as u64)
+        bits = (bits << 8) | (d[at + i] as u64)
         i = i + 1
     }
     let sign = if (bits >> 63) == 1 { -1.0 } else { 1.0 }
@@ -112,7 +112,7 @@ fn slice(d: Vec<u8>, from: int, to: int) -> Vec<u8> {
     let mut out: Vec<u8> = Vec::new()
     let mut i = from
     while i < to {
-        out.push(d[i as usize])
+        out.push(d[i])
         i = i + 1
     }
     out
@@ -150,7 +150,7 @@ pub fn decode_record(d: Vec<u8>) -> Result<Vec<Value>, string> {
             out.push(Value::Null)
         } else if t >= 1 && t <= 6 {
             let sizes = [0, 1, 2, 3, 4, 6, 8]
-            let n = sizes[t as usize]
+            let n = sizes[t]
             if pos + n > d.len() as int {
                 return Err("integer runs past the payload")
             }
@@ -192,6 +192,6 @@ pub fn show(v: Value) -> string {
         Value::Int(n) => "${n}",
         Value::Real(f) => "${f}",
         Value::Text(s) => s,
-        Value::Blob(b) => "x'" + encoding.hex_encode(b) + "'",
+        Value::Blob(b) => "x'${encoding.hex_encode(b)}'",
     }
 }

@@ -16,13 +16,7 @@ fn main() {
     let t0 = time.utc_now().timestamp_millis()
     let c = channel_sum_range(n_chan)
     let chan_ms = time.utc_now().timestamp_millis() - t0
-    println(
-        "wj_channel_sum n={} count={} sum={} elapsed_ms={}",
-        n_chan,
-        c.0,
-        c.1,
-        chan_ms,
-    )
+    println("wj_channel_sum n=${n_chan} count=${c.0} sum=${c.1} elapsed_ms=${chan_ms}")
 
     let n_shared = 1_000_000
     let t1 = time.utc_now().timestamp_millis()
@@ -33,12 +27,7 @@ fn main() {
         i = i + 1
     }
     let shared_ms = time.utc_now().timestamp_millis() - t1
-    println(
-        "wj_shared_incs n={} value={} elapsed_ms={}",
-        n_shared,
-        shared_int_get(s),
-        shared_ms,
-    )
+    println("wj_shared_incs n=${n_shared} value=${shared_int_get(s)} elapsed_ms=${shared_ms}")
 
     let n_counter = 10_000_000
     let t1b = time.utc_now().timestamp_millis()
@@ -49,22 +38,11 @@ fn main() {
         j = j + 1
     }
     let counter_ms = time.utc_now().timestamp_millis() - t1b
-    println(
-        "wj_counter_incs n={} value={} elapsed_ms={}",
-        n_counter,
-        counter_get(ctr),
-        counter_ms,
-    )
+    println("wj_counter_incs n=${n_counter} value=${counter_get(ctr)} elapsed_ms=${counter_ms}")
 
     let n_pool = 100_000
     let t2 = time.utc_now().timestamp_millis()
     let p = pool_shared_inbox_sum(4, n_pool)
     let pool_ms = time.utc_now().timestamp_millis() - t2
-    println(
-        "wj_pool_shared_inbox n={} count={} sum={} elapsed_ms={}",
-        n_pool,
-        p.0,
-        p.1,
-        pool_ms,
-    )
+    println("wj_pool_shared_inbox n=${n_pool} count=${p.0} sum=${p.1} elapsed_ms=${pool_ms}")
 }

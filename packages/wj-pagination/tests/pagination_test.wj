@@ -11,13 +11,20 @@ use crate::request_clamped
 use crate::slice_page
 use crate::strip_text
 
+fn must<T>(r: Result<T, string>) -> T {
+    match r {
+        Ok(v) => v,
+        Err(e) => panic("unexpected error: ${e}"),
+    }
+}
+
 fn req(page: int, per: int) -> PageRequest {
-    request(page, per, 1000).unwrap()
+    must(request(page, per, 1000))
 }
 
 @test
 fn test_request_accepts_valid_values() {
-    let r = request(2, 25, 100).unwrap()
+    let r = must(request(2, 25, 100))
     assert_eq(r.page, 2)
     assert_eq(r.per_page, 25)
 }

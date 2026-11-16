@@ -19,20 +19,20 @@ fn run_script(script: Vec<string>) -> string {
             c.put_ttl(key, f[2], ttl, now)
             got = ""
         } else if op == "get" {
-            got = c.get(key, now).unwrap_or("-")
+            got = c.get(key, now) ?? "-"
         } else if op == "peek" {
-            got = c.peek(key, now).unwrap_or("-")
+            got = c.peek(key, now) ?? "-"
         } else if op == "del" {
             got = if c.delete(key) { "1" } else { "0" }
         } else {
             got = "${c.purge_expired(now)}"
         }
         if got != want {
-            bad = bad + "op ${n} (${line}): got ${got}\n"
+            bad += "op ${n} (${line}): got ${got}\n"
         }
     }
     let st = c.stats()
-    bad + "stats:${st.hits},${st.misses},${st.evictions},${st.expirations} final:" + c.keys_lru().join(",")
+    "${bad}stats:${st.hits},${st.misses},${st.evictions},${st.expirations} final:${c.keys_lru().join(",")}"
 }
 
 @test

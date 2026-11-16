@@ -1,6 +1,3 @@
 # Known ecosystem health failures. Shrink-only: scripts/health_gate.wj fails on any failure missing here,
 # and also fails when an entry here has been fixed (delete the line in the same change that fixes it).
 # Format: dir | mode | reason | owner      (mode: interp, compiled, or drift = interpreted vs compiled disagree)
-apps/wj-auth-api | compiled | rustc E0308 in the generated glue: a package function that only reads its Vec parameter is emitted as `&Vec<String>`, the app's wrapper passes an owned `Vec<String>` | compiler: cross-package borrow inference (repro: findings/eco/cross_package_vec_param_passed_by_value.wj) | windjammer-compiler
-apps/wj-notes-api | compiled | same cross-package Vec borrow mismatch as apps/wj-auth-api | windjammer-compiler
-apps/wj-webhook | compiled | same cross-package Vec borrow mismatch as apps/wj-auth-api | windjammer-compiler

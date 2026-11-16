@@ -114,10 +114,11 @@ fn div_round(num: int, den: int, mode: Rounding) -> int {
 /// than the currency has is an error rather than a silent rounding.
 ///
 /// ```wj
+/// use crate::money
 /// use crate::parse
-/// assert_eq(parse("19.99", "USD").unwrap().minor, 1999)
-/// assert_eq(parse("1,234", "JPY").unwrap().minor, 1234)
-/// assert!(parse("1.005", "USD").is_err())
+/// assert_eq(parse("19.99", "USD"), Ok(money(1999, "USD")))
+/// assert_eq(parse("1,234", "JPY"), Ok(money(1234, "JPY")))
+/// assert(parse("1.005", "USD").is_err())
 /// ```
 pub fn parse(text: string, currency: string) -> Result<Money, string> {
     match exponent(currency) {
@@ -337,8 +338,8 @@ pub fn mul_int(a: Money, factor: int) -> Result<Money, string> {
 /// use crate::Rounding
 /// use crate::apply_bps
 /// use crate::money
-/// assert_eq(apply_bps(money(10000, "USD"), 825, Rounding::HalfUp).unwrap().minor, 825)
-/// assert_eq(apply_bps(money(199, "USD"), 1000, Rounding::HalfUp).unwrap().minor, 20)
+/// assert_eq(apply_bps(money(10000, "USD"), 825, Rounding::HalfUp), Ok(money(825, "USD")))
+/// assert_eq(apply_bps(money(199, "USD"), 1000, Rounding::HalfUp), Ok(money(20, "USD")))
 /// ```
 pub fn apply_bps(a: Money, bps: int, mode: Rounding) -> Result<Money, string> {
     if bps != 0 && abs_int(a.minor) > MAX / abs_int(bps) {
@@ -369,10 +370,7 @@ pub fn split(a: Money, parts: int) -> Result<Vec<Money>, string> {
 /// ```wj
 /// use crate::allocate
 /// use crate::money
-/// let shares = allocate(money(100, "USD"), [1, 1, 1]).unwrap()
-/// assert_eq(shares[0].minor, 34)
-/// assert_eq(shares[1].minor, 33)
-/// assert_eq(shares[2].minor, 33)
+/// assert_eq(allocate(money(100, "USD"), [1, 1, 1]), Ok([money(34, "USD"), money(33, "USD"), money(33, "USD")]))
 /// ```
 pub fn allocate(a: Money, ratios: Vec<int>) -> Result<Vec<Money>, string> {
     if ratios.len() == 0 {

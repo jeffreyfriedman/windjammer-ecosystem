@@ -6,7 +6,7 @@ use std::strings
 use std::time
 use std::uuid
 
-/// First-hour session card — tip-green std surfaces only.
+/// First-hour session card, built from std surfaces only.
 pub struct Card {
     pub id: string,
     pub created_at: string,
@@ -16,7 +16,7 @@ pub struct Card {
     pub port: string,
 }
 
-/// Assemble a card from tip-green std only.
+/// Assemble a card from std only.
 pub fn build_card(app_name: string, config_toml: string) -> Result<Card, string> {
     match config.parse_flat(config_toml, "toml") {
         Ok(flat) => {

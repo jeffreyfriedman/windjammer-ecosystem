@@ -2,7 +2,7 @@ use crate::style::Theme
 
 /// Control sequences (ECMA-48 CSI, xterm OSC). Every function returns the bytes to print; none of them print.
 pub fn csi(params: string, final_byte: string) -> string {
-    "\u{1b}[" + params + final_byte
+    "\u{1b}[${params}${final_byte}"
 }
 
 fn count(n: int) -> string {
@@ -75,7 +75,7 @@ pub fn leave_alt_screen() -> string {
 
 /// Window title (OSC 0), terminated with BEL.
 pub fn set_title(title: string) -> string {
-    "\u{1b}]0;" + title + "\u{7}"
+    "\u{1b}]0;${title}\u{7}"
 }
 
 pub fn bell() -> string {
@@ -87,12 +87,12 @@ pub fn hyperlink(theme: Theme, url: string, text: string) -> string {
     if !theme.enabled {
         return text
     }
-    "\u{1b}]8;;" + url + "\u{1b}\\" + text + "\u{1b}]8;;\u{1b}\\"
+    "\u{1b}]8;;${url}\u{1b}\\${text}\u{1b}]8;;\u{1b}\\"
 }
 
 /// Rewrite the line that was just printed: return to column 1, clear it, print `line`.
 pub fn rewrite_line(line: string) -> string {
-    "\r" + clear_line() + line
+    "\r${clear_line()}${line}"
 }
 
 /// Move up `lines` lines and clear each of them (to redraw a block such as a multi-line progress display).
@@ -103,5 +103,5 @@ pub fn clear_lines_above(lines: int) -> string {
         out = out + cursor_up(1) + clear_line()
         i = i + 1
     }
-    out + "\r"
+    "${out}\r"
 }

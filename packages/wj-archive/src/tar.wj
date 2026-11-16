@@ -20,11 +20,11 @@ fn octal(value: int, digits: int) -> Vec<u8> {
         text = "0"
     }
     while v > 0 {
-        text = "${v % 8}" + text
+        text = "${v % 8}${text}"
         v = v / 8
     }
     while strings.len(text) < digits {
-        text = "0" + text
+        text = "0${text}"
     }
     bytes::utf8(text)
 }
@@ -86,7 +86,7 @@ fn slice_strings(parts: Vec<string>, from: int, to: int) -> Vec<string> {
 }
 
 fn header(e: Entry) -> Result<Vec<u8>, string> {
-    let full = if e.is_dir && !strings.ends_with(e.name, "/") { e.name + "/" } else { e.name }
+    let full = if e.is_dir && !strings.ends_with(e.name, "/") { "${e.name}/" } else { e.name }
     let (prefix, name) = split_name(full)?
     let size = if e.is_dir { 0 } else { e.data.len() as int }
     if size > 8589934591 {
@@ -268,7 +268,7 @@ pub fn read_limited(data: Vec<u8>, max_total: int) -> Result<Vec<Entry>, string>
         }
         let prefix = field_text(block, 345, 155)?
         let short = field_text(block, 0, 100)?
-        let mut name = if strings.len(prefix) > 0 { prefix + "/" + short } else { short }
+        let mut name = if strings.len(prefix) > 0 { "${prefix}/${short}" } else { short }
         if strings.len(long_name) > 0 {
             name = long_name
         }

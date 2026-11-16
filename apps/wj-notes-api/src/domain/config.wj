@@ -122,8 +122,7 @@ fn map_dotenv_key(key: string) -> string {
     ""
 }
 
-/// Single-map reader (same shape as auth `auth_config_from_map`) — avoids owned
-/// HashMap helpers that cargo-bin injects mid-match defer-drop into.
+/// Single-map reader (same shape as auth `auth_config_from_map`): one pass over the map, no helper per key.
 fn notes_config_from_map(map: HashMap<string, string>) -> NotesConfig {
     let cors = match map.get("cors_origin") {
         Some(v) => "${v}",

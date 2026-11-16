@@ -24,9 +24,12 @@ pub struct Page {
 ///
 /// ```wj
 /// use crate::request
-/// let r = request(2, 25, 100).unwrap()
-/// assert_eq(r.page, 2)
-/// assert(request(0, 25, 100).is_err())
+/// fn main() -> Result<(), string> {
+///     let r = request(2, 25, 100)?
+///     assert_eq(r.page, 2)
+///     assert(request(0, 25, 100).is_err())
+///     Ok(())
+/// }
 /// ```
 pub fn request(page: int, per_page: int, max_per_page: int) -> Result<PageRequest, string> {
     if page < 1 {
@@ -77,11 +80,14 @@ pub fn offset_for(page: int, per_page: int) -> int {
 /// ```wj
 /// use crate::describe
 /// use crate::request
-/// let p = describe(request(3, 10, 50).unwrap(), 25)
-/// assert_eq(p.total_pages, 3)
-/// assert_eq(p.first_item, 21)
-/// assert_eq(p.last_item, 25)
-/// assert(!p.has_next)
+/// fn main() -> Result<(), string> {
+///     let p = describe(request(3, 10, 50)?, 25)
+///     assert_eq(p.total_pages, 3)
+///     assert_eq(p.first_item, 21)
+///     assert_eq(p.last_item, 25)
+///     assert(!p.has_next)
+///     Ok(())
+/// }
 /// ```
 pub fn describe(req: PageRequest, total_items: int) -> Page {
     let total = if total_items < 0 { 0 } else { total_items }
@@ -196,10 +202,13 @@ pub fn strip_text(strip: Vec<int>) -> string {
 /// use crate::describe
 /// use crate::link_header
 /// use crate::request
-/// let p = describe(request(2, 10, 50).unwrap(), 35)
-/// let h = link_header("/items?", p)
-/// assert(h.contains("rel=\"next\""))
-/// assert(h.contains("</items?page=4>; rel=\"last\""))
+/// fn main() -> Result<(), string> {
+///     let p = describe(request(2, 10, 50)?, 35)
+///     let h = link_header("/items?", p)
+///     assert(h.contains("rel=\"next\""))
+///     assert(h.contains("</items?page=4>; rel=\"last\""))
+///     Ok(())
+/// }
 /// ```
 pub fn link_header(base: string, p: Page) -> string {
     let mut out = ""

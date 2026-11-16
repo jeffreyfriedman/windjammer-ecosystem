@@ -67,7 +67,7 @@ pub fn write(entries: Vec<Entry>) -> Result<Vec<u8>, string> {
         if !entry::is_safe_path(e.name) {
             return Err("unsafe entry name '${e.name}'")
         }
-        let name = if e.is_dir && !strings.ends_with(e.name, "/") { e.name + "/" } else { e.name }
+        let name = if e.is_dir && !strings.ends_with(e.name, "/") { "${e.name}/" } else { e.name }
         let raw_name = bytes::utf8(name)
         let data = if e.is_dir { Vec::new() } else { e.data }
         if data.len() as int >= 4294967295 || out.len() as int >= 4294967295 {

@@ -6,7 +6,7 @@ use crate::domain::format_card
 fn main() {
     let toml = "app.name = \"first-hour\"\napp.port = \"8080\"\n"
     match build_card("first-hour", toml) {
-        Ok(card) => println!("{}", format_card(card)),
+        Ok(card) => println("${format_card(card)}"),
         Err(e) => {
             eprintln("wj-first-hour: ${e}")
         },

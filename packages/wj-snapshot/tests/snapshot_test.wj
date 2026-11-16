@@ -91,7 +91,7 @@ fn test_normalize_and_redact() {
 }
 
 fn scratch(name: string) -> string {
-    let dir = "/tmp/wj-snapshot-tests/" + name
+    let dir = "/tmp/wj-snapshot-tests/${name}"
     let _ = fs.remove_dir_all(dir)
     let _ = fs.create_dir_all(dir)
     dir
@@ -104,11 +104,11 @@ fn test_missing_snapshot_fails_unless_updating() {
     assert(!r.ok, "must fail")
     assert_eq(r.status, "missing")
     assert_str_contains(r.message, "WJ_UPDATE_SNAPSHOTS=1")
-    assert(!fs.exists(dir + "/greeting.snap"), "nothing was written")
+    assert(!fs.exists("${dir}/greeting.snap"), "nothing was written")
     let made = check(dir, "greeting", "hello\n", true)
     assert(made.ok, "created")
     assert_eq(made.status, "created")
-    assert_eq(fs.read_to_string(dir + "/greeting.snap").unwrap_or("?"), "hello\n")
+    assert_eq(fs.read_to_string("${dir}/greeting.snap") ?? "?", "hello\n")
 }
 
 @test
@@ -122,7 +122,7 @@ fn test_matching_changed_and_updated() {
     assert(!changed.ok, "different output fails")
     assert_eq(changed.status, "changed")
     assert_eq(changed.message, "--- page.snap (stored)\n+++ page.snap (actual)\n@@ -1,3 +1,3 @@\n title\n-body\n+BODY\n footer")
-    assert_eq(fs.read_to_string(dir + "/page.snap").unwrap_or("?"), "title\nbody\nfooter\n")
+    assert_eq(fs.read_to_string("${dir}/page.snap") ?? "?", "title\nbody\nfooter\n")
     let updated = check(dir, "page", "title\nBODY\nfooter\n", true)
     assert(updated.ok, "updating succeeds")
     assert_eq(updated.status, "updated")

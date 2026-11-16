@@ -20,7 +20,7 @@ pub struct Query {
 fn placeholder(d: Dialect, n: int) -> string {
     match d {
         Dialect::Question => "?",
-        Dialect::Dollar => "$" + n.to_string(),
+        Dialect::Dollar => "\$${n}",
     }
 }
 
@@ -62,16 +62,16 @@ pub fn quote_name(name: string) -> Result<string, string> {
         return Ok("*")
     }
     if !is_valid_name(name) {
-        return Err("invalid SQL name: " + name)
+        return Err("invalid SQL name: ${name}")
     }
     let parts = strings.split(name, ".")
     let mut out = ""
     let mut i = 0
     for p in parts {
         if i > 0 {
-            out = out + "."
+            out += "."
         }
-        out = out + "\"" + p + "\""
+        out += "\"${p}\""
         i = i + 1
     }
     Ok(out)
@@ -99,10 +99,10 @@ fn add_condition(c: Conditions, column: string, op: string, value: string) -> Co
         Err(e) => next.errors.push(e),
         Ok(q) => {
             if is_operator(op) {
-                next.sql.push(q + " " + op + " ?")
+                next.sql.push("${q} ${op} ?")
                 next.params.push(value)
             } else {
-                next.errors.push("invalid SQL operator: " + op)
+                next.errors.push("invalid SQL operator: ${op}")
             }
         },
     }
@@ -123,7 +123,7 @@ fn add_in(c: Conditions, column: string, values: Vec<string>) -> Conditions {
                     marks.push("?")
                     next.params.push(v)
                 }
-                next.sql.push(q + " IN (" + marks.join(", ") + ")")
+                next.sql.push("${q} IN (${marks.join(", ")})")
             }
         },
     }
@@ -158,7 +158,7 @@ fn where_clause(c: Conditions) -> string {
     if c.sql.len() == 0 {
         ""
     } else {
-        " WHERE " + c.sql.join(" AND ")
+        " WHERE ${c.sql.join(" AND ")}"
     }
 }
 
@@ -245,8 +245,8 @@ impl Select {
     pub fn join(self, other: string, left: string, right: string) -> Select {
         let mut s = self
         match (quote_name(other), quote_name(left), quote_name(right)) {
-            (Ok(o), Ok(l), Ok(r)) => s.joins.push(" JOIN " + o + " ON " + l + " = " + r),
-            _ => s.errors.push("invalid join: " + other + " ON " + left + " = " + right),
+            (Ok(o), Ok(l), Ok(r)) => s.joins.push(" JOIN ${o} ON ${l} = ${r}"),
+            _ => s.errors.push("invalid join: ${other} ON ${left} = ${right}"),
         }
         s
     }
@@ -288,19 +288,19 @@ impl Select {
             return Err(cerr)
         }
         let cols = if self.columns.len() == 0 { "*" } else { self.columns.join(", ") }
-        let mut sql = "SELECT " + cols + " FROM " + self.table
+        let mut sql = "SELECT ${cols} FROM ${self.table}"
         for j in self.joins {
             sql = sql + j
         }
         sql = sql + where_clause(self.conds)
         if self.order.len() > 0 {
-            sql = sql + " ORDER BY " + self.order.join(", ")
+            sql += " ORDER BY ${self.order.join(", ")}"
         }
         if self.limit >= 0 {
-            sql = sql + " LIMIT " + self.limit.to_string()
+            sql += " LIMIT ${self.limit}"
         }
         if self.offset >= 0 {
-            sql = sql + " OFFSET " + self.offset.to_string()
+            sql += " OFFSET ${self.offset}"
         }
         Ok(Query { sql: number_marks(sql, d, 1), params: self.conds.params })
     }
@@ -352,7 +352,7 @@ impl Insert {
         for c in self.columns {
             marks.push("?")
         }
-        let sql = "INSERT INTO " + self.table + " (" + self.columns.join(", ") + ") VALUES (" + marks.join(", ") + ")"
+        let sql = "INSERT INTO ${self.table} (${self.columns.join(", ")}) VALUES (${marks.join(", ")})"
         Ok(Query { sql: number_marks(sql, d, 1), params: self.values })
     }
 }
@@ -384,7 +384,7 @@ impl Update {
         let mut s = self
         match quote_name(column) {
             Ok(q) => {
-                s.sets.push(q + " = ?")
+                s.sets.push("${q} = ?")
                 s.set_params.push(value)
             },
             Err(e) => s.errors.push(e),
@@ -424,7 +424,7 @@ impl Update {
         if self.sets.len() == 0 {
             return Err("UPDATE needs at least one set")
         }
-        let sql = "UPDATE " + self.table + " SET " + self.sets.join(", ") + where_clause(self.conds)
+        let sql = "UPDATE ${self.table} SET ${self.sets.join(", ")}${where_clause(self.conds)}"
         let mut params = Vec::new()
         for p in self.set_params {
             params.push(p)
@@ -486,7 +486,7 @@ impl Delete {
         if strings.len(cerr) > 0 {
             return Err(cerr)
         }
-        let sql = "DELETE FROM " + self.table + where_clause(self.conds)
+        let sql = "DELETE FROM ${self.table}${where_clause(self.conds)}"
         Ok(Query { sql: number_marks(sql, d, 1), params: self.conds.params })
     }
 }

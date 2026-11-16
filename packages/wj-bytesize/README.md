@@ -10,9 +10,9 @@ use wj_bytesize::format_rate
 use wj_bytesize::format_si
 use wj_bytesize::parse
 
-fn main() {
+fn main() -> Result<(), string> {
     // a size limit from a config file or a CLI flag
-    let limit = parse("1.5 MiB").unwrap()
+    let limit = parse("1.5 MiB")?
     println("limit: ${limit} bytes")
 
     let upload = 1900000
@@ -23,6 +23,7 @@ fn main() {
     println("disk label: ${format_si(upload)}")
     println("speed: ${format_rate(upload, 250)}")
     println("bad input: ${parse("12 parsecs").unwrap_err()}")
+    Ok(())
 }
 ```
 

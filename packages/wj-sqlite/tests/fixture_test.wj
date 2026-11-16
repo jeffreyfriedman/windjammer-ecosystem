@@ -185,7 +185,7 @@ fn mismatches(table: string, expected: Vec<string>) -> string {
     while i < expected.len() {
         let specs = strings.split(expected[i], "\u{1f}")
         if !row_matches(rows[i].values, specs) {
-            bad = bad + "row ${i + 1} differs; "
+            bad += "row ${i + 1} differs; "
         }
         i = i + 1
     }

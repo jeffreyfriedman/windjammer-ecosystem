@@ -6,8 +6,7 @@ pub fn encode(text: string) -> string {
     encoding.base64_encode_string(text)
 }
 
-/// Alias of `encode` — prefer this name at app call sites (cargo-bin may
-/// over-borrow a bare `encode` into an owned formal).
+/// Alias of `encode`: the explicit name for call sites that also import another `encode`.
 pub fn encode_text(text: string) -> string {
     encode(text)
 }

@@ -72,8 +72,7 @@ pub fn join_url(base: string, relative: string) -> Result<string, string> {
 }
 
 /// First value for `key` in `a=1&b=2` query text (no leading `?`).
-/// Decodes `+` / `%HH` (form-urlencoded). Thin-wrap `wj-querystring` once
-/// cross-crate owned→`&str` demotion is tip-green.
+/// Decodes `+` / `%HH` (form-urlencoded).
 pub fn query_get(query: string, key: string) -> Option<string> {
     if strings.len(query) == 0 {
         return None

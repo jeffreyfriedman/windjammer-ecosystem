@@ -48,7 +48,7 @@ fn words(n: int) -> Vec<u8> {
     let mut i = 0
     while text.len() < n {
         if i > 0 {
-            text = text + " "
+            text += " "
         }
         text = text + list[(i * 5 + i / 3) % 12]
         i = i + 1

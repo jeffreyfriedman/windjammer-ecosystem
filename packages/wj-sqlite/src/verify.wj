@@ -21,7 +21,7 @@ pub fn verify_file(path: string) -> Result<Vec<Check>, string> {
     let conn = db.connect(path)?
     let mut out: Vec<Check> = Vec::new()
     for t in image.tables()? {
-        let counted = conn.query("select count(*) as n from \"" + t.name + "\"", [])?
+        let counted = conn.query("select count(*) as n from \"${t.name}\"", [])?
         let sqlite_rows = if counted.len() > 0 { counted[0].get_int("n").unwrap_or(0 - 1) } else { 0 - 1 }
         let found = image.rows(t.name)?
         out.push(Check { table: t.name, reader_rows: found.len() as int, sqlite_rows: sqlite_rows })

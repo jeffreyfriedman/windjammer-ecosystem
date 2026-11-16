@@ -60,7 +60,7 @@ pub fn memory_exporter() -> MemoryExporter {
 }
 
 impl Exporter for MemoryExporter {
-    fn export(&mut self, span: Span) {
+    fn export(self, span: Span) {
         self.spans.push(span)
     }
 }
@@ -183,7 +183,7 @@ impl Tracer {
     /// The `traceparent` header value for propagating this span to another service.
     pub fn traceparent(self, handle: int) -> string {
         let s = self.spans[handle]
-        "00-" + s.trace_id + "-" + s.span_id + (if s.sampled { "-01" } else { "-00" })
+        "00-${s.trace_id}-${s.span_id}${(if s.sampled { "-01" } else { "-00" })}"
     }
 
     pub fn finished_count(self) -> int {

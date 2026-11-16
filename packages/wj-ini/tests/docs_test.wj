@@ -7,6 +7,13 @@ use crate::write
 use std::fs
 use std::strings
 
+fn must<T>(r: Result<T, string>) -> T {
+    match r {
+        Ok(v) => v,
+        Err(e) => panic("unexpected error: ${e}"),
+    }
+}
+
 fn read(path: string) -> string {
     fs.read_to_string(path).unwrap_or("")
 }
@@ -36,9 +43,9 @@ fn test_readme_output_is_what_the_example_prints() {
         return
     }
     let text = "name = demo\n[server]\nport = 8080 ; default\nverbose = yes\ntitle = \"My App ; v2\"\n"
-    let ini = parse(text).unwrap()
-    let mut out = "port: ${get_int(ini, "server", "port").unwrap()}\n"
-    out = "${out}verbose: ${get_bool(ini, "server", "verbose").unwrap()}\n"
+    let ini = must(parse(text))
+    let mut out = "port: ${must(get_int(ini, "server", "port"))}\n"
+    out = "${out}verbose: ${must(get_bool(ini, "server", "verbose"))}\n"
     out = "${out}title: ${get_or(ini, "server", "title", "?")}\n"
     out = "${out}missing: ${get_or(ini, "server", "host", "localhost")}\n"
     out = "${out}${write(set(ini, "server", "port", "9090"))}"

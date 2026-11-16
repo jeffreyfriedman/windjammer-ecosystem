@@ -5,6 +5,13 @@ use crate::parse
 use std::fs
 use std::strings
 
+fn must<T>(r: Result<T, string>) -> T {
+    match r {
+        Ok(v) => v,
+        Err(e) => panic("unexpected error: ${e}"),
+    }
+}
+
 fn read(path: string) -> string {
     fs.read_to_string(path).unwrap_or("")
 }
@@ -33,7 +40,7 @@ fn test_readme_output_is_what_the_example_prints() {
     if !docs_present() {
         return
     }
-    let limit = parse("1.5 MiB").unwrap()
+    let limit = must(parse("1.5 MiB"))
     let upload = 1900000
     let mut out = "limit: ${limit} bytes\n"
     if upload > limit {

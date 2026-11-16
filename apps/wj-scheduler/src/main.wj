@@ -15,7 +15,7 @@ fn main() {
         Ok(cmd) => {
             if cmd.kind == "check" {
                 match run_check(cmd.expr, cmd.at) {
-                    Ok(msg) => println("{}", msg),
+                    Ok(msg) => println("${msg}"),
                     Err(e) => {
                         eprintln("wj-scheduler: ${e}")
                         process.exit(1)
@@ -23,7 +23,7 @@ fn main() {
                 }
             } else if cmd.kind == "next" {
                 match run_next(cmd.expr, cmd.at, cmd.max_minutes) {
-                    Ok(msg) => println("{}", msg),
+                    Ok(msg) => println("${msg}"),
                     Err(e) => {
                         eprintln("wj-scheduler: ${e}")
                         process.exit(1)
@@ -31,7 +31,7 @@ fn main() {
                 }
             } else if cmd.kind == "explain" {
                 match run_explain(cmd.expr) {
-                    Ok(msg) => println("{}", msg),
+                    Ok(msg) => println("${msg}"),
                     Err(e) => {
                         eprintln("wj-scheduler: ${e}")
                         process.exit(1)
@@ -39,7 +39,7 @@ fn main() {
                 }
             } else if cmd.kind == "list" {
                 match run_list(cmd.path) {
-                    Ok(msg) => println("{}", msg),
+                    Ok(msg) => println("${msg}"),
                     Err(e) => {
                         eprintln("wj-scheduler: ${e}")
                         process.exit(1)
@@ -47,7 +47,7 @@ fn main() {
                 }
             } else if cmd.kind == "due" {
                 match run_due(cmd.path, cmd.at) {
-                    Ok(msg) => println("{}", msg),
+                    Ok(msg) => println("${msg}"),
                     Err(e) => {
                         eprintln("wj-scheduler: ${e}")
                         process.exit(1)

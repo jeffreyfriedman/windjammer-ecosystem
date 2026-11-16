@@ -26,9 +26,9 @@ pub fn decode(text: string) -> Result<Vec<u8>, string> {
         return Err("invalid base64url length")
     }
     if rem == 2 {
-        std = std + "=="
+        std += "=="
     } else if rem == 3 {
-        std = std + "="
+        std += "="
     }
     match encoding.base64_decode(std) {
         Ok(b) => Ok(b),

@@ -6,6 +6,13 @@ use crate::format_si
 use crate::parse
 use crate::parse_or
 
+fn must<T>(r: Result<T, string>) -> T {
+    match r {
+        Ok(v) => v,
+        Err(e) => panic("unexpected error: ${e}"),
+    }
+}
+
 @test
 fn test_small_values_are_plain_bytes() {
     assert_eq(format_iec(0), "0 B")
@@ -75,21 +82,21 @@ fn test_rate() {
 
 @test
 fn test_parse_plain_and_units() {
-    assert_eq(parse("512").unwrap(), 512)
-    assert_eq(parse("512 B").unwrap(), 512)
-    assert_eq(parse("2 GiB").unwrap(), 2147483648)
-    assert_eq(parse("2GB").unwrap(), 2000000000)
-    assert_eq(parse("64k").unwrap(), 65536)
-    assert_eq(parse("  3 mib ").unwrap(), 3145728)
-    assert_eq(parse("1 PB").unwrap(), 1000000000000000)
+    assert_eq(must(parse("512")), 512)
+    assert_eq(must(parse("512 B")), 512)
+    assert_eq(must(parse("2 GiB")), 2147483648)
+    assert_eq(must(parse("2GB")), 2000000000)
+    assert_eq(must(parse("64k")), 65536)
+    assert_eq(must(parse("  3 mib ")), 3145728)
+    assert_eq(must(parse("1 PB")), 1000000000000000)
 }
 
 @test
 fn test_parse_fractions_are_exact() {
-    assert_eq(parse("1.5MB").unwrap(), 1500000)
-    assert_eq(parse("1.5 KiB").unwrap(), 1536)
-    assert_eq(parse("0.25 GiB").unwrap(), 268435456)
-    assert_eq(parse("0.001 kb").unwrap(), 1)
+    assert_eq(must(parse("1.5MB")), 1500000)
+    assert_eq(must(parse("1.5 KiB")), 1536)
+    assert_eq(must(parse("0.25 GiB")), 268435456)
+    assert_eq(must(parse("0.001 kb")), 1)
     assert_eq(parse("2.").is_err(), true)
 }
 
@@ -101,16 +108,16 @@ fn test_parse_errors() {
     assert_eq(parse("12 parsecs").unwrap_err(), "unknown unit 'parsecs'")
     assert_eq(parse("1.2345 MB").unwrap_err(), "at most 3 decimal places")
     assert_eq(parse("5 Mb").unwrap_err(), "'Mb' means bits; write MB or MiB")
-    assert_eq(parse("5 mb").unwrap(), 5000000)
+    assert_eq(must(parse("5 mb")), 5000000)
     assert_eq(parse("-5").unwrap_err(), "expected a number")
 }
 
 @test
 fn test_parse_overflow_is_an_error() {
-    assert_eq(parse("9223372036854775807").unwrap(), 9223372036854775807)
+    assert_eq(must(parse("9223372036854775807")), 9223372036854775807)
     assert_eq(parse("9223372036854775808").unwrap_err(), "size is too large")
     assert_eq(parse("9000 PiB").unwrap_err(), "size is too large")
-    assert_eq(parse("8000 PiB").unwrap(), 8000 * 1125899906842624)
+    assert_eq(must(parse("8000 PiB")), 8000 * 1125899906842624)
 }
 
 @test
@@ -127,10 +134,10 @@ fn test_property_format_never_loses_more_than_rounding() {
     while i < samples.len() {
         let x = samples[i]
         let text = format_places(x, Base::Iec, 3)
-        let back = parse(text).unwrap()
+        let back = must(parse(text))
         let diff = if back > x { back - x } else { x - back }
         // three decimals of the chosen unit: error below 0.05% of the value, plus one byte of slack
-        assert!(diff * 2000 <= x + 2000)
+        assert(diff * 2000 <= x + 2000)
         i = i + 1
     }
 }
@@ -151,7 +158,7 @@ fn test_property_format_is_monotonic_in_unit() {
             }
             r = r + 1
         }
-        assert!(rank >= last_rank)
+        assert(rank >= last_rank)
         last_rank = rank
         x = x * 3 + 1
     }

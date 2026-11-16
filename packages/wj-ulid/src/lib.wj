@@ -35,8 +35,7 @@ fn to_bytes(timestamp_ms: int, random_bytes: Vec<int>) -> Vec<int> {
 ///
 /// ```wj
 /// use crate::encode
-/// let id = encode(0, [0, 0, 0, 0, 0, 0, 0, 0, 0, 0]).unwrap()
-/// assert_eq(id, "00000000000000000000000000")
+/// assert_eq(encode(0, [0, 0, 0, 0, 0, 0, 0, 0, 0, 0]), Ok("00000000000000000000000000"))
 /// ```
 pub fn encode(timestamp_ms: int, random_bytes: Vec<int>) -> Result<string, string> {
     if timestamp_ms < 0 || timestamp_ms > MAX_TIMESTAMP {
@@ -117,8 +116,11 @@ pub fn is_valid(text: string) -> bool {
 /// ```wj
 /// use crate::encode
 /// use crate::timestamp_ms
-/// let id = encode(1700000000000, [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]).unwrap()
-/// assert_eq(timestamp_ms(id).unwrap(), 1700000000000)
+/// fn main() -> Result<(), string> {
+///     let id = encode(1700000000000, [1, 2, 3, 4, 5, 6, 7, 8, 9, 10])?
+///     assert_eq(timestamp_ms(id), Ok(1700000000000))
+///     Ok(())
+/// }
 /// ```
 pub fn timestamp_ms(text: string) -> Result<int, string> {
     match decode(text) {
@@ -158,9 +160,12 @@ pub fn random_bytes(text: string) -> Result<Vec<int>, string> {
 /// ```wj
 /// use crate::encode
 /// use crate::monotonic
-/// let a = encode(5, [0, 0, 0, 0, 0, 0, 0, 0, 0, 255]).unwrap()
-/// let b = monotonic(a, 5, [9, 9, 9, 9, 9, 9, 9, 9, 9, 9]).unwrap()
-/// assert(b > a)
+/// fn main() -> Result<(), string> {
+///     let a = encode(5, [0, 0, 0, 0, 0, 0, 0, 0, 0, 255])?
+///     let b = monotonic(a, 5, [9, 9, 9, 9, 9, 9, 9, 9, 9, 9])?
+///     assert(b > a)
+///     Ok(())
+/// }
 /// ```
 pub fn monotonic(previous: string, now_ms: int, fresh_random: Vec<int>) -> Result<string, string> {
     match timestamp_ms(previous) {

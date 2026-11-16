@@ -8,8 +8,7 @@ pub struct Part {
     pub body: string,
 }
 
-/// Owned parse input — prefer this at cross-crate call sites so tip does not demote
-/// `boundary: string` to `&str` while leaving `body` owned (E0308).
+/// Parse input: the boundary token and the request body.
 pub struct MultipartBody {
     pub boundary: string,
     pub body: string,
@@ -264,8 +263,7 @@ pub fn require_file(parts: Vec<Part>, name: string) -> Result<Part, string> {
         None => Err("missing file: ${name}"),
     }
 }
-/// Returns `(headers, body)` then builds a `Part` — kept as one owned pipeline
-/// so demoted `&str` helpers do not fight owned locals at call sites.
+/// Splits a chunk into headers and body, then builds the `Part`.
 fn parse_part_headers_body(chunk: string) -> Result<Part, string> {
     match split_once(chunk, "\n\n") {
         Some(hb) => {

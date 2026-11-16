@@ -35,7 +35,7 @@ fn put_octal(block: Vec<u8>, at: int, field: int, value: int) -> Vec<u8> {
     let digits = octal(value, field - 1)
     let mut i = 0
     while i < digits.len() {
-        b[(at + i) as usize] = digits[i]
+        b[(at + i) as usize] = digits[i] // wj-gap: int-index-cast
         i = i + 1
     }
     b
@@ -45,7 +45,7 @@ fn put_text(block: Vec<u8>, at: int, text: Vec<u8>) -> Vec<u8> {
     let mut b = block
     let mut i = 0
     while i < text.len() {
-        b[(at + i) as usize] = text[i]
+        b[(at + i) as usize] = text[i] // wj-gap: int-index-cast
         i = i + 1
     }
     b
@@ -79,7 +79,7 @@ fn slice_strings(parts: Vec<string>, from: int, to: int) -> Vec<string> {
     let mut out: Vec<string> = Vec::new()
     let mut i = from
     while i < to {
-        out.push(parts[i as usize])
+        out.push(parts[i as usize]) // wj-gap: int-index-cast
         i = i + 1
     }
     out
@@ -101,7 +101,7 @@ fn header(e: Entry) -> Result<Vec<u8>, string> {
     b = put_octal(b, 136, 12, e.mtime)
     let mut k = 148
     while k < 156 {
-        b[k as usize] = 32
+        b[k as usize] = 32 // wj-gap: int-index-cast
         k = k + 1
     }
     b[156] = if e.is_dir { 53 } else { 48 }
@@ -148,19 +148,19 @@ fn all_zero(block: Vec<u8>) -> bool {
 
 fn field_text(block: Vec<u8>, at: int, len: int) -> Result<string, string> {
     let mut end = at
-    while end < at + len && block[end as usize] != 0 {
+    while end < at + len && block[end as usize] != 0 { // wj-gap: int-index-cast
         end = end + 1
     }
     bytes::text(bytes::slice(block, at, end))
 }
 
 fn parse_octal(block: Vec<u8>, at: int, len: int) -> Result<int, string> {
-    if block[at as usize] >= 128 {
+    if block[at as usize] >= 128 { // wj-gap: int-index-cast
         // GNU base-256 for values that do not fit the octal field.
-        let mut v = (block[at as usize] as int) % 128
+        let mut v = (block[at as usize] as int) % 128 // wj-gap: int-index-cast
         let mut i = 1
         while i < len {
-            v = v * 256 + block[(at + i) as usize] as int
+            v = v * 256 + block[(at + i) as usize] as int // wj-gap: int-index-cast
             i = i + 1
         }
         return Ok(v)
@@ -169,7 +169,7 @@ fn parse_octal(block: Vec<u8>, at: int, len: int) -> Result<int, string> {
     let mut seen = false
     let mut i = 0
     while i < len {
-        let c = block[(at + i) as usize] as int
+        let c = block[(at + i) as usize] as int // wj-gap: int-index-cast
         if c >= 48 && c <= 55 {
             v = v * 8 + (c - 48)
             seen = true
@@ -228,7 +228,7 @@ pub fn read_limited(data: Vec<u8>, max_total: int) -> Result<Vec<Entry>, string>
         let mut sum = 0
         let mut i = 0
         while i < 512 {
-            sum = sum + (if i >= 148 && i < 156 { 32 } else { block[i as usize] as int })
+            sum = sum + (if i >= 148 && i < 156 { 32 } else { block[i as usize] as int }) // wj-gap: int-index-cast
             i = i + 1
         }
         if sum != stored {

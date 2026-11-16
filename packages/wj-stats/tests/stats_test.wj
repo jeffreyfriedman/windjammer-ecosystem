@@ -22,8 +22,8 @@ fn test_median_odd_even() {
 
 fn test_empty_samples_are_zero() {
     let none: Vec<f64> = Vec::new()
-    assert_eq(mean(none.clone()), 0.0)
-    assert_eq(median(none.clone()), 0.0)
+    assert_eq(mean(none.clone()), 0.0) // wj-gap: clone-moves-borrowed-field
+    assert_eq(median(none.clone()), 0.0) // wj-gap: clone-moves-borrowed-field
     assert_eq(pstdev(none), 0.0)
 }
 

@@ -164,12 +164,24 @@ fn run_program(wj: string, mode: string, name: string) -> string {
     match process.run_with_output("sh", ["-c", line]) {
         Ok(o) => {
             if o.status != 0 {
-                return "FAILED (exit ${o.status}): ${first_line(o.stderr)}"
+                return "FAILED (exit ${o.status}): ${error_lines(o.stderr)}"
             }
             o.stdout
         },
         Err(e) => "FAILED: ${e}",
     }
+}
+
+// The first few diagnostic lines (`error...` and the `-->` location after it) of a failed run.
+fn error_lines(text: string) -> string {
+    let mut keep: Vec<string> = []
+    for line in strings.split_lines(text) {
+        let t = strings.trim(line)
+        if (strings.starts_with(t, "error") || strings.starts_with(t, "--> ")) && keep.len() < 6 {
+            keep.push(t)
+        }
+    }
+    keep.join(" | ")
 }
 
 fn first_line(text: string) -> string {

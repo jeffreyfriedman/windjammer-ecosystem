@@ -29,7 +29,7 @@ struct Pat {
 
 fn patterns() -> Vec<Pat> {
     [
-        Pat { id: "clone", fix: true, what: "`.clone()` call", idiom: "pass the value; ownership inference clones only when needed" },
+        Pat { id: "clone", fix: true, what: "`.clone()` call", idiom: "pass the value; keep `.clone()` only where the build asks for it (moving a field out of a borrowed `self`)" },
         Pat { id: "ref-param", fix: true, what: "`&`, `&mut` or `&self` in a fn signature", idiom: "write `fn f(v: Vec<int>)` and `self`; borrows are inferred" },
         Pat { id: "cast-i64", fix: true, what: "`as i64`", idiom: "`int` is 64-bit; drop the cast" },
         Pat { id: "cast-usize", fix: true, what: "`as usize`", idiom: "index with an `int`; drop the cast" },

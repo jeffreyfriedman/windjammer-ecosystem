@@ -45,14 +45,14 @@ impl TaskStore {
             password_hash: password_hash,
         }
         self.next_user = self.next_user + 1
-        self.users.push(user.clone())
+        self.users.push(user.clone()) // wj-gap: clone-moves-borrowed-field
         Ok(user)
     }
 
     pub fn user(self, id: int) -> Option<User> {
         for u in self.users {
             if u.id == id {
-                return Some(u.clone())
+                return Some(u.clone()) // wj-gap: clone-moves-borrowed-field
             }
         }
         None
@@ -61,7 +61,7 @@ impl TaskStore {
     pub fn user_by_name(self, username: string) -> Option<User> {
         for u in self.users {
             if u.username == username {
-                return Some(u.clone())
+                return Some(u.clone()) // wj-gap: clone-moves-borrowed-field
             }
         }
         None
@@ -76,7 +76,7 @@ impl TaskStore {
             owner_id: owner_id,
         }
         self.next_project = self.next_project + 1
-        self.projects.push(project.clone())
+        self.projects.push(project.clone()) // wj-gap: clone-moves-borrowed-field
         self.set_member(project.id, owner_id, "owner")
         project
     }
@@ -84,7 +84,7 @@ impl TaskStore {
     pub fn project(self, id: int) -> Option<Project> {
         for p in self.projects {
             if p.id == id {
-                return Some(p.clone())
+                return Some(p.clone()) // wj-gap: clone-moves-borrowed-field
             }
         }
         None
@@ -94,7 +94,7 @@ impl TaskStore {
     pub fn role_in(self, project_id: int, user_id: int) -> string {
         for m in self.members {
             if m.project_id == project_id && m.user_id == user_id {
-                return m.role.clone()
+                return m.role.clone() // wj-gap: clone-moves-borrowed-field
             }
         }
         ""
@@ -104,7 +104,7 @@ impl TaskStore {
         let mut kept = Vec::new()
         for m in self.members {
             if !(m.project_id == project_id && m.user_id == user_id) {
-                kept.push(m.clone())
+                kept.push(m.clone()) // wj-gap: clone-moves-borrowed-field
             }
         }
         kept.push(Member {
@@ -119,7 +119,7 @@ impl TaskStore {
         let mut out = Vec::new()
         for m in self.members {
             if m.project_id == project_id {
-                out.push(m.clone())
+                out.push(m.clone()) // wj-gap: clone-moves-borrowed-field
             }
         }
         out
@@ -129,7 +129,7 @@ impl TaskStore {
         let mut out = Vec::new()
         for p in self.projects {
             if self.role_in(p.id, user_id) != "" {
-                out.push(p.clone())
+                out.push(p.clone()) // wj-gap: clone-moves-borrowed-field
             }
         }
         out
@@ -143,21 +143,21 @@ impl TaskStore {
         let mut projects = Vec::new()
         for p in self.projects {
             if p.id != id {
-                projects.push(p.clone())
+                projects.push(p.clone()) // wj-gap: clone-moves-borrowed-field
             }
         }
         self.projects = projects
         let mut members = Vec::new()
         for m in self.members {
             if m.project_id != id {
-                members.push(m.clone())
+                members.push(m.clone()) // wj-gap: clone-moves-borrowed-field
             }
         }
         self.members = members
         let mut tasks = Vec::new()
         for t in self.tasks {
             if t.project_id != id {
-                tasks.push(t.clone())
+                tasks.push(t.clone()) // wj-gap: clone-moves-borrowed-field
             }
         }
         self.tasks = tasks
@@ -176,14 +176,14 @@ impl TaskStore {
             created_by: created_by,
         }
         self.next_task = self.next_task + 1
-        self.tasks.push(task.clone())
+        self.tasks.push(task.clone()) // wj-gap: clone-moves-borrowed-field
         task
     }
 
     pub fn task(self, id: int) -> Option<Task> {
         for t in self.tasks {
             if t.id == id {
-                return Some(t.clone())
+                return Some(t.clone()) // wj-gap: clone-moves-borrowed-field
             }
         }
         None
@@ -211,7 +211,7 @@ impl TaskStore {
                     continue
                 }
             }
-            out.push(t.clone())
+            out.push(t.clone()) // wj-gap: clone-moves-borrowed-field
         }
         out
     }
@@ -220,7 +220,7 @@ impl TaskStore {
         let mut found = false
         let mut tasks = Vec::new()
         for t in self.tasks {
-            let mut next = t.clone()
+            let mut next = t.clone() // wj-gap: clone-moves-borrowed-field
             if t.id == task_id {
                 next.assigned_to = Some(user_id)
                 found = true
@@ -236,13 +236,13 @@ impl TaskStore {
         let mut updated = None
         let mut tasks = Vec::new()
         for t in self.tasks {
-            let mut next = t.clone()
+            let mut next = t.clone() // wj-gap: clone-moves-borrowed-field
             if t.id == id {
-                next.title = title.clone().unwrap_or(t.title.clone())
-                next.description = description.clone().unwrap_or(t.description.clone())
-                next.status = status.clone().unwrap_or(t.status.clone())
-                next.priority = priority.clone().unwrap_or(t.priority.clone())
-                updated = Some(next.clone())
+                next.title = title.clone().unwrap_or(t.title.clone()) // wj-gap: clone-moves-borrowed-field
+                next.description = description.clone().unwrap_or(t.description.clone()) // wj-gap: clone-moves-borrowed-field
+                next.status = status.clone().unwrap_or(t.status.clone()) // wj-gap: clone-moves-borrowed-field
+                next.priority = priority.clone().unwrap_or(t.priority.clone()) // wj-gap: clone-moves-borrowed-field
+                updated = Some(next.clone()) // wj-gap: clone-moves-borrowed-field
             }
             tasks.push(next)
         }
@@ -257,7 +257,7 @@ impl TaskStore {
             if t.id == id {
                 found = true
             } else {
-                tasks.push(t.clone())
+                tasks.push(t.clone()) // wj-gap: clone-moves-borrowed-field
             }
         }
         self.tasks = tasks

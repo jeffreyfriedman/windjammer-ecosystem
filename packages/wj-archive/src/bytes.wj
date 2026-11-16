@@ -30,7 +30,7 @@ pub fn slice(data: Vec<u8>, from: int, to: int) -> Vec<u8> {
     let mut out: Vec<u8> = Vec::new()
     let mut i = from
     while i < to {
-        out.push(data[i as usize])
+        out.push(data[i as usize]) // wj-gap: int-index-cast
         i = i + 1
     }
     out
@@ -61,7 +61,7 @@ pub fn put_u32(out: Vec<u8>, v: int) -> Vec<u8> {
 }
 
 pub fn get_u16(data: Vec<u8>, at: int) -> int {
-    data[at as usize] as int + data[(at + 1) as usize] as int * 256
+    data[at as usize] as int + data[(at + 1) as usize] as int * 256 // wj-gap: int-index-cast
 }
 
 pub fn get_u32(data: Vec<u8>, at: int) -> int {
@@ -93,7 +93,7 @@ pub fn crc32(data: Vec<u8>) -> int {
     let table = crc_table()
     let mut c = 4294967295
     for b in data {
-        c = table[((c ^ (b as int)) % 256) as usize] ^ (c / 256)
+        c = table[((c ^ (b as int)) % 256) as usize] ^ (c / 256) // wj-gap: int-index-cast
     }
     c ^ 4294967295
 }

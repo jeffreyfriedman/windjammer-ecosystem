@@ -237,7 +237,7 @@ impl Registry {
             m = self.meta_index(name)
         }
         let wanted = kind_name(kind)
-        let have = self.metas[m as usize].kind
+        let have = self.metas[m as usize].kind // wj-gap: int-index-cast
         if have != wanted {
             return Err("metric '${name}' is a ${have}, not a ${wanted}")
         }
@@ -248,7 +248,7 @@ impl Registry {
             return Ok(found)
         }
         let mut counts: Vec<int> = Vec::new()
-        for _b in self.metas[m as usize].buckets {
+        for _b in self.metas[m as usize].buckets { // wj-gap: int-index-cast
             counts.push(0)
         }
         self.series.push(Series { name: name, labels: sorted, key: key, value: 0.0, bucket_counts: counts, sum: 0.0, count: 0 })
@@ -261,7 +261,7 @@ impl Registry {
             return Err("a counter cannot decrease")
         }
         let at = self.slot(name, labels, Kind::Counter)?
-        self.series[at as usize].value = self.series[at as usize].value + by
+        self.series[at as usize].value = self.series[at as usize].value + by // wj-gap: int-index-cast
         Ok(())
     }
 
@@ -271,13 +271,13 @@ impl Registry {
 
     pub fn gauge_set(self, name: string, labels: Vec<(string, string)>, value: float) -> Result<(), string> {
         let at = self.slot(name, labels, Kind::Gauge)?
-        self.series[at as usize].value = value
+        self.series[at as usize].value = value // wj-gap: int-index-cast
         Ok(())
     }
 
     pub fn gauge_add(self, name: string, labels: Vec<(string, string)>, delta: float) -> Result<(), string> {
         let at = self.slot(name, labels, Kind::Gauge)?
-        self.series[at as usize].value = self.series[at as usize].value + delta
+        self.series[at as usize].value = self.series[at as usize].value + delta // wj-gap: int-index-cast
         Ok(())
     }
 
@@ -285,16 +285,16 @@ impl Registry {
     pub fn histogram_observe(self, name: string, labels: Vec<(string, string)>, value: float) -> Result<(), string> {
         let at = self.slot(name, labels, Kind::Histogram)?
         let m = self.meta_index(name)
-        let bounds = self.metas[m as usize].buckets
+        let bounds = self.metas[m as usize].buckets // wj-gap: int-index-cast
         let mut i = 0
         while i < bounds.len() {
             if value <= bounds[i] {
-                self.series[at as usize].bucket_counts[i] = self.series[at as usize].bucket_counts[i] + 1
+                self.series[at as usize].bucket_counts[i] = self.series[at as usize].bucket_counts[i] + 1 // wj-gap: int-index-cast
             }
             i = i + 1
         }
-        self.series[at as usize].sum = self.series[at as usize].sum + value
-        self.series[at as usize].count = self.series[at as usize].count + 1
+        self.series[at as usize].sum = self.series[at as usize].sum + value // wj-gap: int-index-cast
+        self.series[at as usize].count = self.series[at as usize].count + 1 // wj-gap: int-index-cast
         Ok(())
     }
 
@@ -305,7 +305,7 @@ impl Registry {
         if at < 0 {
             return None
         }
-        Some(self.series[at as usize].value)
+        Some(self.series[at as usize].value) // wj-gap: int-index-cast
     }
 
     /// The Prometheus text exposition format, families sorted by name, series by label text.
@@ -317,7 +317,7 @@ impl Registry {
         names.sort()
         let mut lines: Vec<string> = Vec::new()
         for name in names {
-            let m = self.metas[self.meta_index(name) as usize]
+            let m = self.metas[self.meta_index(name) as usize] // wj-gap: int-index-cast
             let mut keys: Vec<string> = Vec::new()
             for s in self.series {
                 if s.name == name {
@@ -333,7 +333,7 @@ impl Registry {
             }
             lines.push("# TYPE ${name} ${m.kind}")
             for key in keys {
-                let s = self.series[self.series_index(name, key) as usize]
+                let s = self.series[self.series_index(name, key) as usize] // wj-gap: int-index-cast
                 if m.kind == "histogram" {
                     let mut i = 0
                     while i < m.buckets.len() {
@@ -359,7 +359,7 @@ impl Registry {
     pub fn snapshot(self) -> Snapshot {
         let mut samples: Vec<Sample> = Vec::new()
         for s in self.series {
-            let kind = self.metas[self.meta_index(s.name) as usize].kind
+            let kind = self.metas[self.meta_index(s.name) as usize].kind // wj-gap: int-index-cast
             samples.push(Sample { name: s.name, kind: kind, labels: s.key, value: s.value, count: s.count, sum: s.sum })
         }
         Snapshot { samples: samples }

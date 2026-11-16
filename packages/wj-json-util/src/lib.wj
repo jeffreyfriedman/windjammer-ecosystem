@@ -329,7 +329,7 @@ fn walk_path(root: Value, path: string) -> Option<Value> {
 fn child_at(value: Value, segment: string) -> Option<Value> {
     match parse_nonneg_int(segment) {
         Some(index) => {
-            let idx: usize = index as usize
+            let idx: usize = index as usize // wj-gap: int-index-cast
             json.get_index(value, idx)
         },
         None => json.get(value, segment),

@@ -11,7 +11,7 @@ Scanned 433 files, 59680 lines in 87 packages and apps.
 | Pattern | Lines | Idiomatic form |
 |---|---:|---|
 | `cast-usize`: `as usize` | 110 | index with an `int`; drop the cast |
-| `clone`: `.clone()` call | 76 | pass the value; ownership inference clones only when needed |
+| `clone`: `.clone()` call | 76 | pass the value; keep `.clone()` only where the build asks for it (moving a field out of a borrowed `self`) |
 | `cast-i64`: `as i64` | 8 | `int` is 64-bit; drop the cast |
 | `rust-iter`: `.iter()`, `.iter_mut()`, `.into_iter()`, `.as_ref()`, `.as_mut()`, `.borrow()`, `.to_vec()` | 1 | `for x in v`, `v.map(..)` |
 | `empty-shim`: `+ ""` or `"" +` shim | 0 | interpolate or use the value directly |
@@ -40,7 +40,10 @@ Scanned 433 files, 59680 lines in 87 packages and apps.
 
 ## Open compiler gaps (`wj-gap`)
 
-No code is shaped around a compiler gap.
+| Gap id | Marked sites |
+|---|---:|
+| `clone-moves-borrowed-field` | 76 |
+| `int-index-cast` | 112 |
 
 ## Per package
 

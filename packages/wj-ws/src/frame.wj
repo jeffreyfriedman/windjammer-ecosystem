@@ -219,9 +219,9 @@ pub fn decode(buf: Vec<u8>, max_payload: int) -> Result<Option<Decoded>, string>
     let start = at + mask_len
     let mut i = 0
     while i < len {
-        let byte = buf[(start + i) as usize] as int
+        let byte = buf[(start + i) as usize] as int // wj-gap: int-index-cast
         if masked {
-            payload.push((byte ^ (buf[(at + i % 4) as usize] as int)) as u8)
+            payload.push((byte ^ (buf[(at + i % 4) as usize] as int)) as u8) // wj-gap: int-index-cast
         } else {
             payload.push(byte as u8)
         }

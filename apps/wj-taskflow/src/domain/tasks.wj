@@ -89,21 +89,21 @@ pub fn task_update(store: TaskStore, user: User, task_id: int, body: string) -> 
         Ok(value) => value,
         Err(_) => return error_reply(400, "invalid json"),
     }
-    match patch.title.clone() {
+    match patch.title.clone() { // wj-gap: clone-moves-borrowed-field
         Some(t) => match check_title(t) {
             Ok(_) => {},
             Err(e) => return error_reply(422, e),
         },
         None => {},
     }
-    match patch.status.clone() {
+    match patch.status.clone() { // wj-gap: clone-moves-borrowed-field
         Some(s) => match check_status(s) {
             Ok(_) => {},
             Err(e) => return error_reply(422, e),
         },
         None => {},
     }
-    match patch.priority.clone() {
+    match patch.priority.clone() { // wj-gap: clone-moves-borrowed-field
         Some(p) => match check_priority(p) {
             Ok(_) => {},
             Err(e) => return error_reply(422, e),

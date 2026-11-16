@@ -89,7 +89,7 @@ pub fn close<T>(tx: Sender<T>) {
 /// Clone an unbounded sender (fan-out producers).
 pub fn clone_sender<T>(tx: Sender<T>) -> (Sender<T>, Sender<T>) {
     let cloned = Sender {
-        tx: tx.tx.clone(),
+        tx: tx.tx.clone(), // wj-gap: clone-moves-borrowed-field
     }
     (tx, cloned)
 }

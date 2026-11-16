@@ -424,7 +424,7 @@ impl Parser {
             let mut next = Vec::new()
             for m in members {
                 if m.key == key {
-                    next.push(Member { key: key.clone(), value: v.clone() })
+                    next.push(Member { key: key.clone(), value: v.clone() }) // wj-gap: clone-moves-borrowed-field
                     replaced = true
                 } else {
                     next.push(m)
@@ -525,7 +525,7 @@ pub fn float_repr(x: f64) -> string {
     if point >= ndig {
         return "${sign}${digits}${repeat_text("0", point - ndig)}.0"
     }
-    let cut: usize = point as usize
+    let cut: usize = point as usize // wj-gap: int-index-cast
     "${sign}${digits.substring(0, cut)}.${digits.substring(cut, digits.len())}"
 }
 

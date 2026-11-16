@@ -119,7 +119,7 @@ fn test_below_is_uniform_and_matches_the_port_exactly() {
     let mut counts: Vec<int> = [0, 0, 0, 0, 0, 0]
     let mut i = 0
     while i < 6000 {
-        let k = r.below(6) as usize
+        let k = r.below(6) as usize // wj-gap: int-index-cast
         counts[k] = counts[k] + 1
         i = i + 1
     }

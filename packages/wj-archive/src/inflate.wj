@@ -49,7 +49,7 @@ impl Reader {
             if self.pos >= self.data.len() as int {
                 return Err("deflate stream ends early")
             }
-            val = val + self.data[self.pos as usize] as int * pow2(self.bitcnt)
+            val = val + self.data[self.pos as usize] as int * pow2(self.bitcnt) // wj-gap: int-index-cast
             self.pos = self.pos + 1
             self.bitcnt = self.bitcnt + 8
         }
@@ -68,12 +68,12 @@ fn build(lengths: Vec<int>) -> Result<Huffman, string> {
         i = i + 1
     }
     for l in lengths {
-        count[l as usize] = count[l as usize] + 1
+        count[l as usize] = count[l as usize] + 1 // wj-gap: int-index-cast
     }
     let mut left = 1
     let mut len = 1
     while len < 16 {
-        left = left * 2 - count[len as usize]
+        left = left * 2 - count[len as usize] // wj-gap: int-index-cast
         if left < 0 {
             return Err("over-subscribed Huffman code")
         }
@@ -84,7 +84,7 @@ fn build(lengths: Vec<int>) -> Result<Huffman, string> {
     offs.push(0)
     len = 1
     while len < 15 {
-        offs.push(offs[len as usize] + count[len as usize])
+        offs.push(offs[len as usize] + count[len as usize]) // wj-gap: int-index-cast
         len = len + 1
     }
     let mut symbol: Vec<int> = Vec::new()
@@ -95,10 +95,10 @@ fn build(lengths: Vec<int>) -> Result<Huffman, string> {
     }
     let mut sym = 0
     while sym < lengths.len() as int {
-        let l = lengths[sym as usize]
+        let l = lengths[sym as usize] // wj-gap: int-index-cast
         if l != 0 {
-            symbol[offs[l as usize] as usize] = sym
-            offs[l as usize] = offs[l as usize] + 1
+            symbol[offs[l as usize] as usize] = sym // wj-gap: int-index-cast
+            offs[l as usize] = offs[l as usize] + 1 // wj-gap: int-index-cast
         }
         sym = sym + 1
     }
@@ -112,9 +112,9 @@ fn decode_symbol(r: Reader, h: Huffman) -> Result<int, string> {
     let mut len = 1
     while len < 16 {
         code = code + r.bits(1)?
-        let count = h.count[len as usize]
+        let count = h.count[len as usize] // wj-gap: int-index-cast
         if code - count < first {
-            return Ok(h.symbol[(index + (code - first)) as usize])
+            return Ok(h.symbol[(index + (code - first)) as usize]) // wj-gap: int-index-cast
         }
         index = index + count
         first = (first + count) * 2
@@ -156,7 +156,7 @@ fn dynamic_tables(r: Reader) -> Result<(Huffman, Huffman), string> {
     }
     i = 0
     while i < ncode {
-        lengths[order[i as usize] as usize] = r.bits(3)?
+        lengths[order[i as usize] as usize] = r.bits(3)? // wj-gap: int-index-cast
         i = i + 1
     }
     let lencode = build(lengths)?
@@ -193,11 +193,11 @@ fn dynamic_tables(r: Reader) -> Result<(Huffman, Huffman), string> {
     let mut dl: Vec<int> = Vec::new()
     i = 0
     while i < nlen {
-        ll.push(all[i as usize])
+        ll.push(all[i as usize]) // wj-gap: int-index-cast
         i = i + 1
     }
     while i < nlen + ndist {
-        dl.push(all[i as usize])
+        dl.push(all[i as usize]) // wj-gap: int-index-cast
         i = i + 1
     }
     if ll[256] == 0 {
@@ -224,8 +224,8 @@ pub fn inflate(data: Vec<u8>, max_out: int) -> Result<Vec<u8>, string> {
             if r.pos + 4 > r.data.len() as int {
                 return Err("stored block header ends early")
             }
-            let len = r.data[r.pos as usize] as int + r.data[(r.pos + 1) as usize] as int * 256
-            let nlen = r.data[(r.pos + 2) as usize] as int + r.data[(r.pos + 3) as usize] as int * 256
+            let len = r.data[r.pos as usize] as int + r.data[(r.pos + 1) as usize] as int * 256 // wj-gap: int-index-cast
+            let nlen = r.data[(r.pos + 2) as usize] as int + r.data[(r.pos + 3) as usize] as int * 256 // wj-gap: int-index-cast
             if len + nlen != 65535 {
                 return Err("stored block length check failed")
             }
@@ -238,7 +238,7 @@ pub fn inflate(data: Vec<u8>, max_out: int) -> Result<Vec<u8>, string> {
             }
             let mut k = 0
             while k < len {
-                out.push(r.data[(r.pos + k) as usize])
+                out.push(r.data[(r.pos + k) as usize]) // wj-gap: int-index-cast
                 k = k + 1
             }
             r.pos = r.pos + len
@@ -261,12 +261,12 @@ pub fn inflate(data: Vec<u8>, max_out: int) -> Result<Vec<u8>, string> {
                     if s >= 29 {
                         return Err("invalid length symbol")
                     }
-                    let len = lbase[s as usize] + r.bits(lext[s as usize])?
+                    let len = lbase[s as usize] + r.bits(lext[s as usize])? // wj-gap: int-index-cast
                     let ds = decode_symbol(r, dist)?
                     if ds >= 30 {
                         return Err("invalid distance symbol")
                     }
-                    let d = dbase[ds as usize] + r.bits(dext[ds as usize])?
+                    let d = dbase[ds as usize] + r.bits(dext[ds as usize])? // wj-gap: int-index-cast
                     if d > out.len() as int {
                         return Err("distance reaches before the start of the output")
                     }
@@ -275,7 +275,7 @@ pub fn inflate(data: Vec<u8>, max_out: int) -> Result<Vec<u8>, string> {
                     }
                     let mut k = 0
                     while k < len {
-                        out.push(out[out.len() - d as usize])
+                        out.push(out[out.len() - d as usize]) // wj-gap: int-index-cast
                         k = k + 1
                     }
                 }

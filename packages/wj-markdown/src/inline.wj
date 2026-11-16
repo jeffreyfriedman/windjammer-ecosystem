@@ -29,7 +29,7 @@ fn slice(cs: Vec<char>, from: int, to: int) -> string {
     let mut out = ""
     let mut i = from
     while i < to {
-        out += "${cs[i as usize]}"
+        out += "${cs[i as usize]}" // wj-gap: int-index-cast
         i = i + 1
     }
     out
@@ -55,19 +55,19 @@ fn is_entity(cs: Vec<char>, i: int) -> int {
     // `&name;` or `&#123;` or `&#x1F;`: length of the entity, 0 when the `&` is plain text.
     let n = cs.len() as int
     let mut j = i + 1
-    if j < n && cs[j as usize] == '#' {
+    if j < n && cs[j as usize] == '#' { // wj-gap: int-index-cast
         j = j + 1
     }
     let start = j
     while j < n && j - start < 31 {
-        let c = cs[j as usize]
+        let c = cs[j as usize] // wj-gap: int-index-cast
         if (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9') {
             j = j + 1
         } else {
             break
         }
     }
-    if j > start && j < n && cs[j as usize] == ';' {
+    if j > start && j < n && cs[j as usize] == ';' { // wj-gap: int-index-cast
         return j - i + 1
     }
     0
@@ -79,22 +79,22 @@ fn find_close_bracket(cs: Vec<char>, open: int) -> int {
     let mut depth = 0
     let mut i = open
     while i < n {
-        let c = cs[i as usize]
+        let c = cs[i as usize] // wj-gap: int-index-cast
         if c == '\\' {
             i = i + 2
             continue
         }
         if c == '`' {
             let mut run = 0
-            while i + run < n && cs[(i + run) as usize] == '`' {
+            while i + run < n && cs[(i + run) as usize] == '`' { // wj-gap: int-index-cast
                 run = run + 1
             }
             let mut j = i + run
             let mut found = -1
             while j < n {
-                if cs[j as usize] == '`' {
+                if cs[j as usize] == '`' { // wj-gap: int-index-cast
                     let mut r2 = 0
-                    while j + r2 < n && cs[(j + r2) as usize] == '`' {
+                    while j + r2 < n && cs[(j + r2) as usize] == '`' { // wj-gap: int-index-cast
                         r2 = r2 + 1
                     }
                     if r2 == run {
@@ -154,17 +154,17 @@ fn parse_target(cs: Vec<char>, at: int) -> Target {
     let bad = Target { dest: "", title: "", has_title: false, end: -1 }
     let n = cs.len() as int
     let mut i = at + 1
-    while i < n && escape::is_space(cs[i as usize]) {
+    while i < n && escape::is_space(cs[i as usize]) { // wj-gap: int-index-cast
         i = i + 1
     }
     let mut dest = ""
-    if i < n && cs[i as usize] == '<' {
+    if i < n && cs[i as usize] == '<' { // wj-gap: int-index-cast
         i = i + 1
         let start = i
-        while i < n && cs[i as usize] != '>' && cs[i as usize] != '\n' && cs[i as usize] != '<' {
+        while i < n && cs[i as usize] != '>' && cs[i as usize] != '\n' && cs[i as usize] != '<' { // wj-gap: int-index-cast
             i = i + 1
         }
-        if i >= n || cs[i as usize] != '>' {
+        if i >= n || cs[i as usize] != '>' { // wj-gap: int-index-cast
             return bad
         }
         dest = slice(cs, start, i)
@@ -173,8 +173,8 @@ fn parse_target(cs: Vec<char>, at: int) -> Target {
         let start = i
         let mut depth = 0
         while i < n {
-            let c = cs[i as usize]
-            if c == '\\' && i + 1 < n && escape::is_ascii_punct(cs[(i + 1) as usize]) {
+            let c = cs[i as usize] // wj-gap: int-index-cast
+            if c == '\\' && i + 1 < n && escape::is_ascii_punct(cs[(i + 1) as usize]) { // wj-gap: int-index-cast
                 i = i + 2
                 continue
             }
@@ -197,18 +197,18 @@ fn parse_target(cs: Vec<char>, at: int) -> Target {
         dest = slice(cs, start, i)
     }
     let mut j = i
-    while j < n && escape::is_space(cs[j as usize]) {
+    while j < n && escape::is_space(cs[j as usize]) { // wj-gap: int-index-cast
         j = j + 1
     }
     let mut title = ""
     let mut has_title = false
-    if j > i && j < n && (cs[j as usize] == '"' || cs[j as usize] == '\'' || cs[j as usize] == '(') {
-        let open = cs[j as usize]
+    if j > i && j < n && (cs[j as usize] == '"' || cs[j as usize] == '\'' || cs[j as usize] == '(') { // wj-gap: int-index-cast
+        let open = cs[j as usize] // wj-gap: int-index-cast
         let close = if open == '(' { ')' } else { open }
         let tstart = j + 1
         let mut k = tstart
-        while k < n && cs[k as usize] != close {
-            if cs[k as usize] == '\\' {
+        while k < n && cs[k as usize] != close { // wj-gap: int-index-cast
+            if cs[k as usize] == '\\' { // wj-gap: int-index-cast
                 k = k + 1
             }
             k = k + 1
@@ -219,11 +219,11 @@ fn parse_target(cs: Vec<char>, at: int) -> Target {
         title = slice(cs, tstart, k)
         has_title = true
         j = k + 1
-        while j < n && escape::is_space(cs[j as usize]) {
+        while j < n && escape::is_space(cs[j as usize]) { // wj-gap: int-index-cast
             j = j + 1
         }
     }
-    if j >= n || cs[j as usize] != ')' {
+    if j >= n || cs[j as usize] != ')' { // wj-gap: int-index-cast
         return bad
     }
     Target { dest: unescape(dest), title: unescape(title), has_title: has_title, end: j + 1 }
@@ -239,8 +239,8 @@ fn autolink_end(cs: Vec<char>, at: int) -> int {
     let mut j = at + 1
     let mut colon = -1
     let mut at_sign = -1
-    while j < n && cs[j as usize] != '>' {
-        let c = cs[j as usize]
+    while j < n && cs[j as usize] != '>' { // wj-gap: int-index-cast
+        let c = cs[j as usize] // wj-gap: int-index-cast
         if c == '<' || escape::is_space(c) {
             return -1
         }
@@ -255,10 +255,10 @@ fn autolink_end(cs: Vec<char>, at: int) -> int {
     if j >= n {
         return -1
     }
-    if colon >= at + 3 && colon - at - 1 <= 32 && ((cs[(at + 1) as usize] >= 'a' && cs[(at + 1) as usize] <= 'z') || (cs[(at + 1) as usize] >= 'A' && cs[(at + 1) as usize] <= 'Z')) {
+    if colon >= at + 3 && colon - at - 1 <= 32 && ((cs[(at + 1) as usize] >= 'a' && cs[(at + 1) as usize] <= 'z') || (cs[(at + 1) as usize] >= 'A' && cs[(at + 1) as usize] <= 'Z')) { // wj-gap: int-index-cast
         let mut k = at + 1
         while k < colon {
-            if !is_scheme_char(cs[k as usize]) {
+            if !is_scheme_char(cs[k as usize]) { // wj-gap: int-index-cast
                 return -1
             }
             k = k + 1
@@ -281,7 +281,7 @@ fn autolink_href(cs: Vec<char>, a: int, b: int, is_mail: bool) -> string {
 fn run_length(cs: Vec<char>, i: int, ch: char) -> int {
     let n = cs.len() as int
     let mut r = 0
-    while i + r < n && cs[(i + r) as usize] == ch {
+    while i + r < n && cs[(i + r) as usize] == ch { // wj-gap: int-index-cast
         r = r + 1
     }
     r
@@ -291,12 +291,12 @@ fn process_emphasis(nodes: Vec<Node>) -> Vec<Node> {
     let mut ns = nodes
     let mut ci = 0
     while ci < ns.len() as int {
-        let c = ci as usize
+        let c = ci as usize // wj-gap: int-index-cast
         if ns[c].kind == 1 && ns[c].can_close && ns[c].count > 0 {
             let mut oi = ci - 1
             let mut found = -1
             while oi >= 0 {
-                let o = oi as usize
+                let o = oi as usize // wj-gap: int-index-cast
                 if ns[o].kind == 1 && ns[o].ch == ns[c].ch && ns[o].can_open && ns[o].count > 0 {
                     let odd = (ns[o].can_close || ns[c].can_open) && (ns[o].orig + ns[c].orig) % 3 == 0 && !(ns[o].orig % 3 == 0 && ns[c].orig % 3 == 0)
                     if !odd {
@@ -307,13 +307,13 @@ fn process_emphasis(nodes: Vec<Node>) -> Vec<Node> {
                 oi = oi - 1
             }
             if found >= 0 {
-                let o = found as usize
+                let o = found as usize // wj-gap: int-index-cast
                 let use_n = if ns[o].count >= 2 && ns[c].count >= 2 { 2 } else { 1 }
                 ns[o].count = ns[o].count - use_n
                 ns[c].count = ns[c].count - use_n
                 let mut k = found + 1
                 while k < ci {
-                    let kk = k as usize
+                    let kk = k as usize // wj-gap: int-index-cast
                     if ns[kk].kind == 1 {
                         ns[kk].text = repeat(ns[kk].ch, ns[kk].count)
                         ns[kk].kind = 0
@@ -327,7 +327,7 @@ fn process_emphasis(nodes: Vec<Node>) -> Vec<Node> {
                 ns.insert(c + 1, text_node(close_tag))
                 // The closer moved to ci + 2; look at it again if it still has delimiters.
                 ci = ci + 2
-                if ns[ci as usize].count > 0 {
+                if ns[ci as usize].count > 0 { // wj-gap: int-index-cast
                     continue
                 }
                 ci = ci + 1
@@ -371,17 +371,17 @@ pub fn render(text: string) -> string {
     let mut buf = ""
     let mut i = 0
     while i < n {
-        let c = cs[i as usize]
+        let c = cs[i as usize] // wj-gap: int-index-cast
         if c == '\\' {
-            if i + 1 < n && cs[(i + 1) as usize] == '\n' {
+            if i + 1 < n && cs[(i + 1) as usize] == '\n' { // wj-gap: int-index-cast
                 nodes.push(text_node("${buf}<br />\n"))
                 buf = ""
                 i = i + 2
-                while i < n && cs[i as usize] == ' ' {
+                while i < n && cs[i as usize] == ' ' { // wj-gap: int-index-cast
                     i = i + 1
                 }
-            } else if i + 1 < n && escape::is_ascii_punct(cs[(i + 1) as usize]) {
-                buf += escape::html("${cs[(i + 1) as usize]}")
+            } else if i + 1 < n && escape::is_ascii_punct(cs[(i + 1) as usize]) { // wj-gap: int-index-cast
+                buf += escape::html("${cs[(i + 1) as usize]}") // wj-gap: int-index-cast
                 i = i + 2
             } else {
                 buf = "${buf}\\"
@@ -394,7 +394,7 @@ pub fn render(text: string) -> string {
             let mut j = i + run
             let mut close = -1
             while j < n {
-                if cs[j as usize] == '`' {
+                if cs[j as usize] == '`' { // wj-gap: int-index-cast
                     let r2 = run_length(cs, j, '`')
                     if r2 == run {
                         close = j
@@ -422,8 +422,8 @@ pub fn render(text: string) -> string {
         }
         if c == '*' || c == '_' {
             let run = run_length(cs, i, c)
-            let before = if i > 0 { cs[(i - 1) as usize] } else { ' ' }
-            let after = if i + run < n { cs[(i + run) as usize] } else { ' ' }
+            let before = if i > 0 { cs[(i - 1) as usize] } else { ' ' } // wj-gap: int-index-cast
+            let after = if i + run < n { cs[(i + run) as usize] } else { ' ' } // wj-gap: int-index-cast
             let left = !escape::is_space(after) && (!escape::is_ascii_punct(after) || escape::is_space(before) || escape::is_ascii_punct(before))
             let right = !escape::is_space(before) && (!escape::is_ascii_punct(before) || escape::is_space(after) || escape::is_ascii_punct(after))
             let can_open = if c == '*' { left } else { left && (!right || escape::is_ascii_punct(before)) }
@@ -434,11 +434,11 @@ pub fn render(text: string) -> string {
             i = i + run
             continue
         }
-        if c == '[' || (c == '!' && i + 1 < n && cs[(i + 1) as usize] == '[') {
+        if c == '[' || (c == '!' && i + 1 < n && cs[(i + 1) as usize] == '[') { // wj-gap: int-index-cast
             let is_image = c == '!'
             let open = if is_image { i + 1 } else { i }
             let close = find_close_bracket(cs, open)
-            if close >= 0 && close + 1 < n && cs[(close + 1) as usize] == '(' {
+            if close >= 0 && close + 1 < n && cs[(close + 1) as usize] == '(' { // wj-gap: int-index-cast
                 let target = parse_target(cs, close + 1)
                 if target.end >= 0 && escape::is_safe_url(target.dest) {
                     let inner = render(slice(cs, open + 1, close))
@@ -494,7 +494,7 @@ pub fn render(text: string) -> string {
             buf = trim_trailing_spaces(buf)
             buf += (if hard { "<br />\n" } else { "\n" })
             i = i + 1
-            while i < n && cs[i as usize] == ' ' {
+            while i < n && cs[i as usize] == ' ' { // wj-gap: int-index-cast
                 i = i + 1
             }
             continue

@@ -200,7 +200,7 @@ fn marker_of(line: string) -> Marker {
     } else {
         return no_marker()
     }
-    if (width as usize) < cs.len() && cs[width as usize] != ' ' && cs[width as usize] != '\t' {
+    if (width as usize) < cs.len() && cs[width as usize] != ' ' && cs[width as usize] != '\t' { // wj-gap: int-index-cast
         return no_marker()
     }
     let after = escape::sub(t, width, strings.len(t))
@@ -295,29 +295,29 @@ fn join_trimmed_start(lines: Vec<string>) -> string {
 
 fn parse_list(lines: Vec<string>, at: int, tight_out: bool) -> (Block, int) {
     let n = lines.len() as int
-    let first = marker_of(lines[at as usize])
+    let first = marker_of(lines[at as usize]) // wj-gap: int-index-cast
     let mut items: Vec<Vec<string>> = Vec::new()
     let mut loose = false
     let mut i = at
     while i < n {
-        let m = marker_of(lines[i as usize])
+        let m = marker_of(lines[i as usize]) // wj-gap: int-index-cast
         if !m.ok || m.ordered != first.ordered || m.delim != first.delim {
             break
         }
         let mut content: Vec<string> = Vec::new()
-        let head = lines[i as usize]
+        let head = lines[i as usize] // wj-gap: int-index-cast
         content.push(escape::sub(head, if m.empty { strings.len(head) } else { m.offset }, strings.len(head)))
         i = i + 1
         let mut in_fence = fence_open(content[0])
         while i < n {
-            let line = lines[i as usize]
+            let line = lines[i as usize] // wj-gap: int-index-cast
             if is_blank(line) {
                 // Does the item continue after the blank run?
                 let mut j = i
-                while j < n && is_blank(lines[j as usize]) {
+                while j < n && is_blank(lines[j as usize]) { // wj-gap: int-index-cast
                     j = j + 1
                 }
-                if j < n && indent_of(lines[j as usize]) >= m.offset && !(content.len() == 1 && is_blank(content[0])) {
+                if j < n && indent_of(lines[j as usize]) >= m.offset && !(content.len() == 1 && is_blank(content[0])) { // wj-gap: int-index-cast
                     let mut k = i
                     while k < j {
                         content.push("")
@@ -345,11 +345,11 @@ fn parse_list(lines: Vec<string>, at: int, tight_out: bool) -> (Block, int) {
         items.push(content)
         // Blank lines between items make the list loose.
         let mut j = i
-        while j < n && is_blank(lines[j as usize]) {
+        while j < n && is_blank(lines[j as usize]) { // wj-gap: int-index-cast
             j = j + 1
         }
         if j < n && j > i {
-            let nm = marker_of(lines[j as usize])
+            let nm = marker_of(lines[j as usize]) // wj-gap: int-index-cast
             if nm.ok && nm.ordered == first.ordered && nm.delim == first.delim {
                 loose = true
                 i = j
@@ -433,7 +433,7 @@ fn parse_blocks(lines: Vec<string>) -> Vec<Block> {
     let mut out: Vec<Block> = Vec::new()
     let mut i = 0
     while i < n {
-        let line = lines[i as usize]
+        let line = lines[i as usize] // wj-gap: int-index-cast
         if is_blank(line) {
             i = i + 1
             continue
@@ -442,8 +442,8 @@ fn parse_blocks(lines: Vec<string>) -> Vec<Block> {
         if f.ok {
             let mut body: Vec<string> = Vec::new()
             i = i + 1
-            while i < n && !is_fence_close(lines[i as usize], f) {
-                body.push(drop_indent(lines[i as usize], f.indent))
+            while i < n && !is_fence_close(lines[i as usize], f) { // wj-gap: int-index-cast
+                body.push(drop_indent(lines[i as usize], f.indent)) // wj-gap: int-index-cast
                 i = i + 1
             }
             if i < n {
@@ -455,16 +455,16 @@ fn parse_blocks(lines: Vec<string>) -> Vec<Block> {
         if indent_of(line) >= 4 {
             let mut body: Vec<string> = Vec::new()
             while i < n {
-                let l = lines[i as usize]
+                let l = lines[i as usize] // wj-gap: int-index-cast
                 if is_blank(l) {
                     let mut j = i
-                    while j < n && is_blank(lines[j as usize]) {
+                    while j < n && is_blank(lines[j as usize]) { // wj-gap: int-index-cast
                         j = j + 1
                     }
-                    if j < n && indent_of(lines[j as usize]) >= 4 {
+                    if j < n && indent_of(lines[j as usize]) >= 4 { // wj-gap: int-index-cast
                         let mut k = i
                         while k < j {
-                            body.push(drop_indent(lines[k as usize], 4))
+                            body.push(drop_indent(lines[k as usize], 4)) // wj-gap: int-index-cast
                             k = k + 1
                         }
                         i = j
@@ -495,7 +495,7 @@ fn parse_blocks(lines: Vec<string>) -> Vec<Block> {
         if is_quote(line) {
             let mut inner: Vec<string> = Vec::new()
             while i < n {
-                let l = lines[i as usize]
+                let l = lines[i as usize] // wj-gap: int-index-cast
                 if is_quote(l) {
                     inner.push(strip_quote(l))
                     i = i + 1
@@ -524,7 +524,7 @@ fn parse_blocks(lines: Vec<string>) -> Vec<Block> {
         let mut para: Vec<string> = Vec::new()
         let mut heading = 0
         while i < n {
-            let l = lines[i as usize]
+            let l = lines[i as usize] // wj-gap: int-index-cast
             if para.len() > 0 {
                 let lvl = setext_level(l)
                 if lvl > 0 {

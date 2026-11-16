@@ -37,7 +37,7 @@ fn to_conn(out: Vec<Delivery>, conn: int) -> Vec<string> {
     let mut texts = Vec::new()
     for d in out {
         if d.conn == conn {
-            texts.push(d.text.clone())
+            texts.push(d.text.clone()) // wj-gap: clone-moves-borrowed-field
         }
     }
     texts
@@ -210,7 +210,7 @@ fn test_history_is_capped() {
         h.receive(ann, "{\"kind\":\"say\",\"room\":\"r\",\"text\":\"m${i}\"}", 2)
     }
     let out = h.receive(ann, "{\"kind\":\"history\",\"room\":\"r\"}", 3)
-    let body = to_conn(out, ann)[0].clone()
+    let body = to_conn(out, ann)[0].clone() // wj-gap: clone-moves-borrowed-field
     assert(body.contains("m9"), "newest kept")
     assert(body.contains("m7"), "third newest kept")
     assert(!body.contains("m6"), "older dropped")

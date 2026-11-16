@@ -92,7 +92,7 @@ pub fn parse_loads(text: string) -> Vec<f64> {
             let rest = text.substring(i, text.len())
             match rest.find(":") {
                 Some(c) => {
-                    let tail = strings.replace(strings.trim(rest.substring(c + (1 as usize), rest.len())), ",", " ")
+                    let tail = strings.replace(strings.trim(rest.substring(c + (1 as usize), rest.len())), ",", " ") // wj-gap: int-index-cast
                     for tok in strings.split_whitespace(tail) {
                         out.push(tok.parse::<f64>() ?? 0.0)
                     }
@@ -118,7 +118,7 @@ pub fn parse_load(text: string) -> f64 {
             let colon = rest.find(":")
             match colon {
                 Some(c) => {
-                    let tail = strings.trim(rest.substring(c + (1 as usize), rest.len()))
+                    let tail = strings.trim(rest.substring(c + (1 as usize), rest.len())) // wj-gap: int-index-cast
                     let cleaned = strings.replace(tail, ",", " ")
                     let parts = strings.split_whitespace(cleaned)
                     if parts.len() == 0 {

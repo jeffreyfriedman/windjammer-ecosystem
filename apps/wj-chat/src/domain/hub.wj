@@ -84,7 +84,7 @@ impl Hub {
     pub fn disconnect(self, conn: int) -> Vec<Delivery> {
         let mut out = Vec::new()
         let existing = match self.conns.get(conn) {
-            Some(c) => c.clone(),
+            Some(c) => c.clone(), // wj-gap: clone-moves-borrowed-field
             None => return out,
         }
         self.conns.remove(conn)
@@ -111,11 +111,11 @@ impl Hub {
     /// Handle one text frame from `conn` received at `now_ms`.
     pub fn receive(self, conn: int, text: string, now_ms: int) -> Vec<Delivery> {
         let mut me = match self.conns.get(conn) {
-            Some(c) => c.clone(),
+            Some(c) => c.clone(), // wj-gap: clone-moves-borrowed-field
             None => return Vec::new(),
         }
         me.last_seen_ms = now_ms
-        self.conns.insert(conn, me.clone())
+        self.conns.insert(conn, me.clone()) // wj-gap: clone-moves-borrowed-field
         let frame: InFrame = match json.parse_string(text) {
             Ok(f) => f,
             Err(_) => return error_to(conn, "invalid frame"),
@@ -129,10 +129,10 @@ impl Hub {
         if me.user == "" {
             return error_to(conn, "authenticate first")
         }
-        if !self.allow(me.user.clone(), now_ms) {
+        if !self.allow(me.user.clone(), now_ms) { // wj-gap: clone-moves-borrowed-field
             return error_to(conn, "rate limit exceeded")
         }
-        let room = frame.room.clone() ?? ""
+        let room = frame.room.clone() ?? "" // wj-gap: clone-moves-borrowed-field
         if frame.kind == "join" {
             return self.join(me, room)
         }
@@ -165,7 +165,7 @@ impl Hub {
         }
         let mut out = Vec::new()
         // One live session per user: a new sign-in replaces the old connection.
-        for (id, other) in self.conns.clone() {
+        for (id, other) in self.conns.clone() { // wj-gap: clone-moves-borrowed-field
             if other.user == claims.sub && id != conn {
                 for d in error_to(id, "signed in elsewhere") {
                     out.push(d)
@@ -176,7 +176,7 @@ impl Hub {
             }
         }
         let mut me = match self.conns.get(conn) {
-            Some(c) => c.clone(),
+            Some(c) => c.clone(), // wj-gap: clone-moves-borrowed-field
             None => return out,
         }
         me.user = claims.sub
@@ -190,7 +190,7 @@ impl Hub {
     // Members of `room` in connection-id order, so deliveries are reproducible.
     fn members(self, room: string) -> Vec<Conn> {
         let mut ids = Vec::new()
-        for (id, _c) in self.conns.clone() {
+        for (id, _c) in self.conns.clone() { // wj-gap: clone-moves-borrowed-field
             ids.push(id)
         }
         ids.sort()
@@ -199,7 +199,7 @@ impl Hub {
             match self.conns.get(id) {
                 Some(c) => {
                     if c.rooms.contains(room) {
-                        out.push(c.clone())
+                        out.push(c.clone()) // wj-gap: clone-moves-borrowed-field
                     }
                 },
                 None => {},
@@ -212,14 +212,14 @@ impl Hub {
         let members = self.members(room)
         let mut users = Vec::new()
         for m in members {
-            users.push(m.user.clone())
+            users.push(m.user.clone()) // wj-gap: clone-moves-borrowed-field
         }
         users.sort()
         let mut out = Vec::new()
         for m in members {
             let mut frame = blank_frame("presence")
             frame.room = room
-            frame.users = users.clone()
+            frame.users = users.clone() // wj-gap: clone-moves-borrowed-field
             out.push(Delivery { conn: m.id, text: encode(frame) })
         }
         out
@@ -229,20 +229,20 @@ impl Hub {
         if room == "" {
             return error_to(me.id, "room required")
         }
-        let mut updated = me.clone()
+        let mut updated = me.clone() // wj-gap: clone-moves-borrowed-field
         if !updated.rooms.contains(room) {
-            updated.rooms.push(room.clone())
+            updated.rooms.push(room.clone()) // wj-gap: clone-moves-borrowed-field
         }
         self.conns.insert(me.id, updated)
         self.presence(room)
     }
 
     fn leave(self, me: Conn, room: string) -> Vec<Delivery> {
-        let mut updated = me.clone()
+        let mut updated = me.clone() // wj-gap: clone-moves-borrowed-field
         let mut kept = Vec::new()
         for r in me.rooms {
             if r != room {
-                kept.push(r.clone())
+                kept.push(r.clone()) // wj-gap: clone-moves-borrowed-field
             }
         }
         updated.rooms = kept
@@ -258,18 +258,18 @@ impl Hub {
         if !me.rooms.contains(room) {
             return error_to(me.id, "not in room")
         }
-        match self.check_text(text.clone()) {
+        match self.check_text(text.clone()) { // wj-gap: clone-moves-borrowed-field
             Ok(_) => {},
             Err(e) => return error_to(me.id, e),
         }
-        self.history.push(Stored { room: room.clone(), from: me.user.clone(), text: text.clone(), ts: now_ms })
+        self.history.push(Stored { room: room.clone(), from: me.user.clone(), text: text.clone(), ts: now_ms }) // wj-gap: clone-moves-borrowed-field
         self.trim_history()
         let mut out = Vec::new()
-        for m in self.members(room.clone()) {
+        for m in self.members(room.clone()) { // wj-gap: clone-moves-borrowed-field
             let mut frame = blank_frame("message")
-            frame.room = room.clone()
-            frame.from = me.user.clone()
-            frame.text = text.clone()
+            frame.room = room.clone() // wj-gap: clone-moves-borrowed-field
+            frame.from = me.user.clone() // wj-gap: clone-moves-borrowed-field
+            frame.text = text.clone() // wj-gap: clone-moves-borrowed-field
             out.push(Delivery { conn: m.id, text: encode(frame) })
         }
         out
@@ -296,14 +296,14 @@ impl Hub {
             if skipped < drop_count {
                 skipped = skipped + 1
             } else {
-                kept.push(s.clone())
+                kept.push(s.clone()) // wj-gap: clone-moves-borrowed-field
             }
         }
         self.history = kept
     }
 
     fn direct(self, me: Conn, to: string, text: string) -> Vec<Delivery> {
-        match self.check_text(text.clone()) {
+        match self.check_text(text.clone()) { // wj-gap: clone-moves-borrowed-field
             Ok(_) => {},
             Err(e) => return error_to(me.id, e),
         }
@@ -317,7 +317,7 @@ impl Hub {
             return error_to(me.id, "user offline")
         }
         let mut frame = blank_frame("dm")
-        frame.from = me.user.clone()
+        frame.from = me.user.clone() // wj-gap: clone-moves-borrowed-field
         frame.text = text
         let mut out = single(target, frame)
         for d in single(me.id, blank_frame("ok")) {
@@ -333,7 +333,7 @@ impl Hub {
         let mut in_room = Vec::new()
         for s in self.history {
             if s.room == room {
-                in_room.push(s.clone())
+                in_room.push(s.clone()) // wj-gap: clone-moves-borrowed-field
             }
         }
         let skip = if in_room.len() > limit { in_room.len() - limit } else { 0 }
@@ -341,7 +341,7 @@ impl Hub {
         let mut seen = 0
         for s in in_room {
             if seen >= skip {
-                items.push(HistoryItem { from: s.from.clone(), text: s.text.clone(), ts: s.ts })
+                items.push(HistoryItem { from: s.from.clone(), text: s.text.clone(), ts: s.ts }) // wj-gap: clone-moves-borrowed-field
             }
             seen = seen + 1
         }

@@ -31,7 +31,7 @@ pub fn pool_run_double(pool: Pool, n: int) -> Vec<int> {
 
     let mut i: int = 0
     while i < n {
-        let tx = res_tx.clone()
+        let tx = res_tx.clone() // wj-gap: clone-moves-borrowed-field
         let v = i
         std::thread::spawn(|| {
             match tx.send(v * 2) {
@@ -73,7 +73,7 @@ pub fn pool_shared_inbox_sum(workers: int, n: int) -> (int, int) {
         let job_tx = jobs.0
         let job_rx = jobs.1
         job_txs.push(job_tx)
-        let tx = res_tx.clone()
+        let tx = res_tx.clone() // wj-gap: clone-moves-borrowed-field
         std::thread::spawn(move || {
             while true {
                 match job_rx.recv() {

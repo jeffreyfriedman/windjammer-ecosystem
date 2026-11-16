@@ -10,10 +10,10 @@ fn split_head(line: string) -> (string, string) {
         if first {
             first = false
         } else {
-            rest.push(w.clone())
+            rest.push(w.clone()) // wj-gap: clone-moves-borrowed-field
         }
     }
-    (words[0].clone(), rest.join(" "))
+    (words[0].clone(), rest.join(" ")) // wj-gap: clone-moves-borrowed-field
 }
 
 /// Run a scripted session against a fresh hub and return what the server would send.

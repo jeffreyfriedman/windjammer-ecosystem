@@ -62,8 +62,8 @@ fn search(args: Vec<string>) -> (string, int) {
 @test
 fn test_search_skips_ignored_and_hidden_files() {
     let root = fixture("skip")
-    let result = search(["--ignore-case", "needle", root.clone()])
-    done(fs.remove_dir_all(root.clone()))
+    let result = search(["--ignore-case", "needle", root.clone()]) // wj-gap: clone-moves-borrowed-field
+    done(fs.remove_dir_all(root.clone())) // wj-gap: clone-moves-borrowed-field
     assert_eq(result.1, 2)
     assert_eq(result.0, "${root}/src/a.txt:2:needle one\n${root}/src/deep/b.txt:1:NEEDLE two")
 }
@@ -71,8 +71,8 @@ fn test_search_skips_ignored_and_hidden_files() {
 @test
 fn test_case_sensitive_by_default() {
     let root = fixture("case")
-    let result = search(["needle", root.clone()])
-    done(fs.remove_dir_all(root.clone()))
+    let result = search(["needle", root.clone()]) // wj-gap: clone-moves-borrowed-field
+    done(fs.remove_dir_all(root.clone())) // wj-gap: clone-moves-borrowed-field
     assert_eq(result.1, 1)
     assert_eq(result.0, "${root}/src/a.txt:2:needle one")
 }
@@ -80,8 +80,8 @@ fn test_case_sensitive_by_default() {
 @test
 fn test_no_ignore_and_hidden_search_everything() {
     let root = fixture("all")
-    let result = search(["--ignore-case", "--no-ignore", "--hidden", "--count", "needle", root.clone()])
-    done(fs.remove_dir_all(root.clone()))
+    let result = search(["--ignore-case", "--no-ignore", "--hidden", "--count", "needle", root.clone()]) // wj-gap: clone-moves-borrowed-field
+    done(fs.remove_dir_all(root.clone())) // wj-gap: clone-moves-borrowed-field
     assert_eq(result.1, 5)
 }
 
@@ -89,7 +89,7 @@ fn test_no_ignore_and_hidden_search_everything() {
 fn test_context_and_line_numbers_from_files() {
     let root = fixture("ctx")
     let result = search(["--context=1", "needle", "${root}/src/a.txt"])
-    done(fs.remove_dir_all(root.clone()))
+    done(fs.remove_dir_all(root.clone())) // wj-gap: clone-moves-borrowed-field
     assert_eq(result.0, "${root}/src/a.txt-1-alpha\n${root}/src/a.txt:2:needle one\n${root}/src/a.txt-3-omega")
 }
 
@@ -97,13 +97,13 @@ fn test_context_and_line_numbers_from_files() {
 fn test_replace_previews_then_writes() {
     let root = fixture("replace")
     let target = "${root}/src/a.txt"
-    let preview = search(["--replace=pin", "needle", root.clone()])
+    let preview = search(["--replace=pin", "needle", root.clone()]) // wj-gap: clone-moves-borrowed-field
     assert_eq(preview.1, 1)
-    assert_eq(read(target.clone()), "alpha\nneedle one\nomega\n")
-    let written = search(["--replace=pin", "--write", "needle", root.clone()])
+    assert_eq(read(target.clone()), "alpha\nneedle one\nomega\n") // wj-gap: clone-moves-borrowed-field
+    let written = search(["--replace=pin", "--write", "needle", root.clone()]) // wj-gap: clone-moves-borrowed-field
     assert_eq(written.1, 1)
-    assert_eq(read(target.clone()), "alpha\npin one\nomega\n")
-    let after = search(["needle", root.clone()])
+    assert_eq(read(target.clone()), "alpha\npin one\nomega\n") // wj-gap: clone-moves-borrowed-field
+    let after = search(["needle", root.clone()]) // wj-gap: clone-moves-borrowed-field
     done(fs.remove_dir_all(root))
     assert_eq(after.1, 0)
 }
@@ -111,7 +111,7 @@ fn test_replace_previews_then_writes() {
 @test
 fn test_no_match_reports_zero_and_empty_output() {
     let root = fixture("none")
-    let result = search(["zzz-not-there", root.clone()])
+    let result = search(["zzz-not-there", root.clone()]) // wj-gap: clone-moves-borrowed-field
     done(fs.remove_dir_all(root))
     assert_eq(result.1, 0)
     assert_eq(result.0, "")
@@ -120,7 +120,7 @@ fn test_no_match_reports_zero_and_empty_output() {
 @test
 fn test_invalid_regex_is_an_error_from_run() {
     let root = fixture("badre")
-    let outcome = match parse_args(argv(["(unclosed", root.clone()])) {
+    let outcome = match parse_args(argv(["(unclosed", root.clone()])) { // wj-gap: clone-moves-borrowed-field
         Ok(cmd) => run(cmd),
         Err(e) => Err(e),
     }

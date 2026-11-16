@@ -1,0 +1,6 @@
+refused: insufficient funds: balance 380, requested 1000
+refused: deposit must be positive
+statement for Ada
+  deposit       500 ->    500
+  withdrawal    120 ->    380
+  deposit        75 ->    455

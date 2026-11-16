@@ -1,0 +1,7 @@
+press: refused (need 75 more)
+press: refused (need 25 more)
+press: dispensed
+credit left 25
+press: dispensed
+press: refused (sold out)
+refund 50, sales 150, stock 0

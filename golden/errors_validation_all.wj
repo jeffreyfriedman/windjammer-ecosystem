@@ -1,0 +1,43 @@
+// golden: collect every validation error
+// idiom: a Vec<string> of problems instead of stopping at the first; an empty Vec means valid
+struct Signup {
+    name: string,
+    email: string,
+    age: int,
+    password: string,
+}
+
+fn validate(s: Signup) -> Vec<string> {
+    let mut problems: Vec<string> = []
+    if s.name.len() < 2 {
+        problems.push("name is too short")
+    }
+    if !s.email.contains("@") || !s.email.contains(".") {
+        problems.push("email looks invalid")
+    }
+    if s.age < 13 || s.age > 120 {
+        problems.push("age ${s.age} is out of range")
+    }
+    if s.password.len() < 8 {
+        problems.push("password needs at least 8 characters")
+    }
+    problems
+}
+
+fn report(label: string, s: Signup) {
+    let problems = validate(s)
+    if problems.len() == 0 {
+        println("${label}: valid")
+    } else {
+        println("${label}: ${problems.len()} problem(s)")
+        for p in problems {
+            println("  - ${p}")
+        }
+    }
+}
+
+fn main() {
+    report("good", Signup { name: "Ada", email: "ada@example.com", age: 36, password: "correct horse" })
+    report("bad", Signup { name: "A", email: "nope", age: 7, password: "short" })
+    report("almost", Signup { name: "Bo", email: "bo@x.io", age: 200, password: "longenough" })
+}

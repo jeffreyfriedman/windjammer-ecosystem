@@ -1,0 +1,6 @@
+GET /search
+q = wind, page = 2
+host = example.org
+3 headers
+true
+true

@@ -1,0 +1,38 @@
+// golden: CSV rows into records
+// idiom: parse text into a Vec of structs; parse::<int>() returns a Result, so fall back with unwrap_or
+struct Row {
+    name: string,
+    qty: int,
+    price: int,
+}
+
+fn parse_row(line: string) -> Option<Row> {
+    let cells: Vec<string> = line.split(",").collect()
+    if cells.len() != 3 {
+        return None
+    }
+    Some(Row { name: cells[0], qty: cells[1].parse::<int>().unwrap_or(0), price: cells[2].parse::<int>().unwrap_or(0) })
+}
+
+fn total(rows: Vec<Row>) -> int {
+    let mut sum = 0
+    for row in rows {
+        sum += row.qty * row.price
+    }
+    sum
+}
+
+fn main() {
+    let text = "apple,3,50\npear,2,75\nbroken line\nplum,10,20"
+    let mut rows: Vec<Row> = []
+    for line in text.lines() {
+        match parse_row(line) {
+            Some(row) => {
+                println("${row.name}: ${row.qty} x ${row.price} = ${row.qty * row.price}")
+                rows.push(row)
+            },
+            None => println("skipped: ${line}"),
+        }
+    }
+    println("${rows.len()} rows, total ${total(rows)}")
+}

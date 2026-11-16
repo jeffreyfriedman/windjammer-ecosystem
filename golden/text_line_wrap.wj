@@ -1,0 +1,38 @@
+// golden: word wrap
+// idiom: split_whitespace and a running line; Vec<string> collects output lines, join builds the text
+use std::strings
+
+fn wrap(text: string, width: int) -> Vec<string> {
+    let mut lines: Vec<string> = []
+    let mut line = ""
+    for word in strings.split_whitespace(text) {
+        if line.len() == 0 {
+            line = word
+        } else if line.len() + 1 + word.len() <= width {
+            line = "${line} ${word}"
+        } else {
+            lines.push(line)
+            line = word
+        }
+    }
+    if line.len() > 0 {
+        lines.push(line)
+    }
+    lines
+}
+
+fn pad_right(text: string, width: int) -> string {
+    let missing = width - text.len()
+    if missing <= 0 { text } else { "${text}${strings.repeat(" ", missing)}" }
+}
+
+fn main() {
+    let text = "Windjammer infers ownership so the code you write stays short and readable"
+    for line in wrap(text, 24) {
+        println("|${pad_right(line, 24)}|")
+    }
+    let narrow = wrap(text, 12)
+    println("${narrow.len()} lines at width 12")
+    println(narrow.join(" / "))
+    println("${wrap("", 10).len()} lines for empty text")
+}

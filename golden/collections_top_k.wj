@@ -1,0 +1,40 @@
+// golden: top-k and dedupe
+// idiom: sort a copy, take the first k with take(); dedup after sort; fold-style sum with a loop
+fn top_k(items: Vec<int>, k: int) -> Vec<int> {
+    let mut sorted = items
+    sorted.sort()
+    sorted.reverse()
+    sorted.take(k).collect()
+}
+
+fn dedupe(items: Vec<int>) -> Vec<int> {
+    let mut sorted = items
+    sorted.sort()
+    let mut out: Vec<int> = []
+    for x in sorted {
+        if out.len() == 0 || out[out.len() - 1] != x {
+            out.push(x)
+        }
+    }
+    out
+}
+
+fn average(items: Vec<int>) -> float {
+    if items.len() == 0 {
+        return 0.0
+    }
+    let mut sum = 0
+    for x in items {
+        sum += x
+    }
+    sum as float / items.len() as float
+}
+
+fn main() {
+    let scores = [72, 91, 85, 91, 60, 85, 99, 72]
+    println("top 3: ${top_k(scores, 3):?}")
+    println("distinct: ${dedupe(scores):?}")
+    println("average: ${average(scores):.2}")
+    println("max ${scores.max() ?? 0} min ${scores.min() ?? 0}")
+    println("sum ${scores.sum()}")
+}

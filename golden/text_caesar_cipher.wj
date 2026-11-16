@@ -1,0 +1,36 @@
+// golden: Caesar cipher
+// idiom: chars() walks a string; `as int` turns a char into a number, `as u8` then `as char` turns a number back
+fn shift_char(c: char, key: int) -> char {
+    if c >= 'a' && c <= 'z' {
+        let offset = (c as int - 'a' as int + key + 26) % 26
+        return (('a' as int + offset) as u8) as char
+    }
+    if c >= 'A' && c <= 'Z' {
+        let offset = (c as int - 'A' as int + key + 26) % 26
+        return (('A' as int + offset) as u8) as char
+    }
+    c
+}
+
+fn encrypt(text: string, key: int) -> string {
+    let mut out = ""
+    for c in text.chars() {
+        out += "${shift_char(c, key)}"
+    }
+    out
+}
+
+fn rot13(text: string) -> string {
+    encrypt(text, 13)
+}
+
+fn main() {
+    let secret = encrypt("Hello, World!", 3)
+    println(secret)
+    println(encrypt(secret, -3))
+    println(rot13("Windjammer"))
+    println(rot13(rot13("Windjammer")))
+    for key in [1, 5, 25] {
+        println("key ${key}: ${encrypt("abc xyz", key)}")
+    }
+}

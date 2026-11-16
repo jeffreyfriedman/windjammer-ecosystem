@@ -1,0 +1,53 @@
+// golden: Game of Life
+// idiom: Vec<Vec<bool>> grid; neighbor counting with bounds checks on int coordinates; one pure step function
+fn alive_neighbors(grid: Vec<Vec<bool>>, row: int, col: int) -> int {
+    let mut count = 0
+    for dr in [-1, 0, 1] {
+        for dc in [-1, 0, 1] {
+            if dr == 0 && dc == 0 {
+                continue
+            }
+            let r = row + dr
+            let c = col + dc
+            if r >= 0 && r < grid.len() && c >= 0 && c < grid[0].len() && grid[r][c] {
+                count += 1
+            }
+        }
+    }
+    count
+}
+
+fn step(grid: Vec<Vec<bool>>) -> Vec<Vec<bool>> {
+    let mut next: Vec<Vec<bool>> = []
+    for r in 0..grid.len() {
+        let mut row: Vec<bool> = []
+        for c in 0..grid[0].len() {
+            let n = alive_neighbors(grid, r, c)
+            row.push(if grid[r][c] { n == 2 || n == 3 } else { n == 3 })
+        }
+        next.push(row)
+    }
+    next
+}
+
+fn show(grid: Vec<Vec<bool>>) {
+    for row in grid {
+        let cells: Vec<string> = row.map(|alive| if alive { "#" } else { "." }).collect()
+        println(cells.join(""))
+    }
+}
+
+fn main() {
+    let mut grid = [
+        [false, false, false, false, false],
+        [false, false, true, false, false],
+        [false, false, true, false, false],
+        [false, false, true, false, false],
+        [false, false, false, false, false],
+    ]
+    for generation in 0..3 {
+        println("generation ${generation}:")
+        show(grid)
+        grid = step(grid)
+    }
+}

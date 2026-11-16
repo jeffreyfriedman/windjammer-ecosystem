@@ -1,0 +1,45 @@
+// golden: state machine as an enum
+// idiom: an enum is the state, a function maps (state, event) to the next state with match; no mutable flags
+enum Light {
+    Red,
+    Green,
+    Yellow,
+    Flashing,
+}
+
+enum Event {
+    Timer,
+    Fault,
+    Repair,
+}
+
+fn next(state: Light, event: Event) -> Light {
+    match (state, event) {
+        (Light::Flashing, Event::Repair) => Light::Red,
+        (Light::Flashing, _) => Light::Flashing,
+        (_, Event::Fault) => Light::Flashing,
+        (Light::Red, Event::Timer) => Light::Green,
+        (Light::Green, Event::Timer) => Light::Yellow,
+        (Light::Yellow, Event::Timer) => Light::Red,
+        (s, Event::Repair) => s,
+    }
+}
+
+fn name(state: Light) -> string {
+    match state {
+        Light::Red => "red",
+        Light::Green => "green",
+        Light::Yellow => "yellow",
+        Light::Flashing => "flashing",
+    }
+}
+
+fn main() {
+    let events = [Event::Timer, Event::Timer, Event::Timer, Event::Timer, Event::Fault, Event::Timer, Event::Repair, Event::Timer]
+    let mut state = Light::Red
+    println("start: ${name(state)}")
+    for e in events {
+        state = next(state, e)
+        println("-> ${name(state)}")
+    }
+}

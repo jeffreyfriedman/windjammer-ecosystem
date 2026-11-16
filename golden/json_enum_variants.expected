@@ -1,0 +1,4 @@
+{"events":["Started",{"Message":"hello"},{"Moved":{"x":3,"y":-4}}]}
+started
+message: hello
+moved to (3, -4)

@@ -1,0 +1,39 @@
+// golden: stack and queue
+// idiom: Vec as a stack with push/pop (pop returns an Option); VecDeque for a queue
+use std::collections::VecDeque
+
+fn balanced(text: string) -> bool {
+    let mut stack: Vec<char> = []
+    for c in text.chars() {
+        if c == '(' || c == '[' || c == '{' {
+            stack.push(c)
+        } else if c == ')' || c == ']' || c == '}' {
+            match stack.pop() {
+                Some(open) => {
+                    let ok = (open == '(' && c == ')') || (open == '[' && c == ']') || (open == '{' && c == '}')
+                    if !ok {
+                        return false
+                    }
+                },
+                None => return false,
+            }
+        }
+    }
+    stack.len() == 0
+}
+
+fn main() {
+    for text in ["(a[b]{c})", "(]", "((", ""] {
+        println("\"${text}\" balanced: ${balanced(text)}")
+    }
+    let mut line: VecDeque<string> = VecDeque::new()
+    line.push_back("ann")
+    line.push_back("bob")
+    line.push_back("cy")
+    println("serving ${line.pop_front() ?? "nobody"}")
+    line.push_back("di")
+    println("next ${line.pop_front() ?? "nobody"}, waiting ${line.len()}")
+    let mut stack = [1, 2, 3]
+    stack.push(4)
+    println("top ${stack.pop() ?? 0}, size ${stack.len()}")
+}

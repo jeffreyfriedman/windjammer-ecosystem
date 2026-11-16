@@ -1,0 +1,36 @@
+// golden: palindrome check
+// idiom: filter and map over chars, compare mirrored positions with an index; small pure helper functions
+fn normalize(text: string) -> Vec<char> {
+    text.chars().filter(|c| c.is_alphanumeric()).map(|c| c.to_ascii_lowercase()).collect()
+}
+
+fn is_palindrome(text: string) -> bool {
+    let cs = normalize(text)
+    let mut i = 0
+    while i < cs.len() / 2 {
+        if cs[i] != cs[cs.len() - 1 - i] {
+            return false
+        }
+        i += 1
+    }
+    true
+}
+
+fn longest_palindromic_word(text: string) -> string {
+    let mut best = ""
+    for word in text.split(" ") {
+        if is_palindrome(word) && word.len() > best.len() {
+            best = word
+        }
+    }
+    best
+}
+
+fn main() {
+    let phrases = ["A man, a plan, a canal: Panama", "hello", "Was it a car or a cat I saw?", ""]
+    for phrase in phrases {
+        println("\"${phrase}\" -> ${is_palindrome(phrase)}")
+    }
+    println("longest: ${longest_palindromic_word("a level racecar noon kayak")}")
+    println("empty longest: \"${longest_palindromic_word("abc xyz")}\"")
+}

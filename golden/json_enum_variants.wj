@@ -1,0 +1,36 @@
+// golden: enums as JSON
+// idiom: a unit variant is a string, a variant with data is {"Variant": payload}; the same code reads and writes both
+use std::json
+
+enum Event {
+    Started,
+    Message(string),
+    Moved { x: int, y: int },
+}
+
+struct Log {
+    events: Vec<Event>,
+}
+
+fn describe(e: Event) -> string {
+    match e {
+        Event::Started => "started",
+        Event::Message(text) => "message: ${text}",
+        Event::Moved { x, y } => "moved to (${x}, ${y})",
+    }
+}
+
+fn main() {
+    let log = Log { events: [Event::Started, Event::Message("hello"), Event::Moved { x: 3, y: -4 }] }
+    let text = json.to_string(log) ?? ""
+    println(text)
+    let back: Result<Log, string> = json.parse_string(text)
+    match back {
+        Ok(l) => {
+            for e in l.events {
+                println(describe(e))
+            }
+        },
+        Err(e) => println("error: ${e}"),
+    }
+}

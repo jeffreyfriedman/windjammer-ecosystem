@@ -1,0 +1,3580 @@
+# Windjammer golden programs
+# 65 complete idiomatic programs. Each runs the same interpreted (wj run --interpret) and compiled (wj run --compiled).
+# Each program is followed by the exact output it prints.
+
+=== cli_exit_codes.wj ===
+// golden: exit status from main logic
+// idiom: compute an exit code in a pure function; main reports it and only then calls process::exit
+use std::process
+
+fn check(args: Vec<string>) -> int {
+    if args.len() == 0 {
+        println("error: no input given")
+        return 2
+    }
+    for a in args {
+        if a.parse::<int>().is_err() {
+            println("error: ${a} is not a number")
+            return 1
+        }
+    }
+    println("all ${args.len()} inputs are numbers")
+    0
+}
+
+fn label(code: int) -> string {
+    match code {
+        0 => "success",
+        1 => "bad input",
+        2 => "usage error",
+        _ => "unknown",
+    }
+}
+
+fn main() {
+    for args in [["1", "2", "3"], ["4", "x"], []] {
+        let code = check(args)
+        println("exit ${code} (${label(code)})")
+    }
+    let final_code = check(["7"])
+    if final_code != 0 {
+        process.exit(final_code)
+    }
+    println("finished cleanly")
+}
+--- output ---
+all 3 inputs are numbers
+exit 0 (success)
+error: x is not a number
+exit 1 (bad input)
+error: no input given
+exit 2 (usage error)
+all 1 inputs are numbers
+finished cleanly
+
+=== cli_flag_parser.wj ===
+// golden: command-line flag parsing
+// idiom: a struct of options with defaults; scan the argument Vec with an index; Result reports bad input
+struct Options {
+    name: string,
+    count: int,
+    verbose: bool,
+    files: Vec<string>,
+}
+
+fn parse(args: Vec<string>) -> Result<Options, string> {
+    let mut opts = Options { name: "world", count: 1, verbose: false, files: [] }
+    let mut i = 0
+    while i < args.len() {
+        let arg = args[i]
+        if arg == "--verbose" || arg == "-v" {
+            opts.verbose = true
+        } else if arg == "--name" || arg == "-n" {
+            i += 1
+            if i >= args.len() {
+                return Err("${arg} needs a value")
+            }
+            opts.name = args[i]
+        } else if arg == "--count" || arg == "-c" {
+            i += 1
+            if i >= args.len() {
+                return Err("${arg} needs a value")
+            }
+            opts.count = args[i].parse::<int>().map_err(|_| "bad count: ${args[i]}")?
+        } else if arg.starts_with("-") {
+            return Err("unknown flag: ${arg}")
+        } else {
+            opts.files.push(arg)
+        }
+        i += 1
+    }
+    Ok(opts)
+}
+
+fn run(args: Vec<string>) {
+    match parse(args) {
+        Ok(o) => {
+            for _ in 0..o.count {
+                println("hello, ${o.name}")
+            }
+            println("verbose=${o.verbose} files=${o.files:?}")
+        },
+        Err(e) => println("error: ${e}"),
+    }
+}
+
+fn main() {
+    run(["--name", "Ada", "-c", "2", "-v", "a.txt", "b.txt"])
+    run([])
+    run(["--count", "many"])
+    run(["--name"])
+    run(["--bogus"])
+}
+--- output ---
+hello, Ada
+hello, Ada
+verbose=true files=["a.txt", "b.txt"]
+hello, world
+verbose=false files=[]
+error: bad count: many
+error: --name needs a value
+error: unknown flag: --bogus
+
+=== cli_key_value_args.wj ===
+// golden: key=value arguments
+// idiom: split each argument once on "="; a HashMap holds the settings; get() returns an Option
+use std::collections::HashMap
+
+fn parse_settings(args: Vec<string>) -> HashMap<string, string> {
+    let mut settings: HashMap<string, string> = HashMap::new()
+    for arg in args {
+        if arg.contains("=") {
+            let pieces: Vec<string> = arg.split("=").collect()
+            settings.insert(pieces[0], pieces[1])
+        }
+    }
+    settings
+}
+
+fn lookup(settings: HashMap<string, string>, key: string, fallback: string) -> string {
+    settings.get(key) ?? fallback
+}
+
+fn main() {
+    let args = ["port=9000", "debug=true", "ignored", "name=svc"]
+    let settings = parse_settings(args)
+    println("port: ${lookup(settings, "port", "8080")}")
+    println("host: ${lookup(settings, "host", "localhost")}")
+    println("name: ${lookup(settings, "name", "unnamed")}")
+    let debug = lookup(settings, "debug", "false") == "true"
+    println("debug: ${debug}")
+    let mut keys: Vec<string> = settings.keys().collect()
+    keys.sort()
+    println("keys: ${keys.join(", ")}")
+    println("count: ${settings.len()}")
+}
+--- output ---
+port: 9000
+host: localhost
+name: svc
+debug: true
+keys: debug, name, port
+count: 3
+
+=== cli_subcommands.wj ===
+// golden: subcommand dispatch
+// idiom: match on the first argument string; each command is a function; usage text for the fallback
+fn usage() -> string {
+    "usage: tool <add|mul|neg|help> [numbers...]"
+}
+
+fn numbers(args: Vec<string>) -> Result<Vec<int>, string> {
+    let mut out: Vec<int> = []
+    for a in args {
+        out.push(a.parse::<int>().map_err(|_| "not a number: ${a}")?)
+    }
+    Ok(out)
+}
+
+fn add(nums: Vec<int>) -> int {
+    let mut total = 0
+    for n in nums {
+        total += n
+    }
+    total
+}
+
+fn mul(nums: Vec<int>) -> int {
+    let mut total = 1
+    for n in nums {
+        total *= n
+    }
+    total
+}
+
+fn dispatch(args: Vec<string>) -> string {
+    if args.len() == 0 {
+        return usage()
+    }
+    let rest: Vec<string> = args.skip(1).collect()
+    match args[0] {
+        "add" => match numbers(rest) {
+            Ok(n) => "sum = ${add(n)}",
+            Err(e) => "error: ${e}",
+        },
+        "mul" => match numbers(rest) {
+            Ok(n) => "product = ${mul(n)}",
+            Err(e) => "error: ${e}",
+        },
+        "neg" => match numbers(rest) {
+            Ok(n) => "negated = ${n.map(|x| 0 - x).collect():?}",
+            Err(e) => "error: ${e}",
+        },
+        "help" => usage(),
+        other => "unknown command '${other}'; ${usage()}",
+    }
+}
+
+fn main() {
+    println(dispatch(["add", "1", "2", "3"]))
+    println(dispatch(["mul", "4", "5"]))
+    println(dispatch(["neg", "1", "-2"]))
+    println(dispatch(["add", "1", "x"]))
+    println(dispatch(["frobnicate"]))
+    println(dispatch([]))
+}
+--- output ---
+sum = 6
+product = 20
+negated = [-1, 2]
+error: not a number: x
+unknown command 'frobnicate'; usage: tool <add|mul|neg|help> [numbers...]
+usage: tool <add|mul|neg|help> [numbers...]
+
+=== cli_usage_table.wj ===
+// golden: help text from a table
+// idiom: a Vec of structs describes the flags once; help and parsing both read it; padding aligns the columns
+use std::strings
+
+struct Flag {
+    short: string,
+    long: string,
+    help: string,
+}
+
+fn flags() -> Vec<Flag> {
+    [
+        Flag { short: "-h", long: "--help", help: "show this message" },
+        Flag { short: "-v", long: "--verbose", help: "print more detail" },
+        Flag { short: "-o", long: "--output", help: "write results to a file" },
+        Flag { short: "-q", long: "--quiet", help: "print nothing but errors" },
+    ]
+}
+
+fn pad(text: string, width: int) -> string {
+    let missing = width - text.len()
+    if missing <= 0 { text } else { "${text}${strings.repeat(" ", missing)}" }
+}
+
+fn help() -> string {
+    let mut longest = 0
+    for f in flags() {
+        if f.long.len() > longest {
+            longest = f.long.len()
+        }
+    }
+    let mut out = "options:"
+    for f in flags() {
+        out += "\n  ${f.short}, ${pad(f.long, longest)}  ${f.help}"
+    }
+    out
+}
+
+fn is_known(arg: string) -> bool {
+    for f in flags() {
+        if arg == f.short || arg == f.long {
+            return true
+        }
+    }
+    false
+}
+
+fn main() {
+    println(help())
+    for arg in ["-v", "--output", "--nope"] {
+        println("${arg} known: ${is_known(arg)}")
+    }
+}
+--- output ---
+options:
+  -h, --help     show this message
+  -v, --verbose  print more detail
+  -o, --output   write results to a file
+  -q, --quiet    print nothing but errors
+-v known: true
+--output known: true
+--nope known: false
+
+=== collections_binary_search.wj ===
+// golden: binary search
+// idiom: integer midpoint arithmetic on a sorted Vec; return Option<int> for "maybe found"
+fn find(items: Vec<int>, target: int) -> Option<int> {
+    if items.len() == 0 {
+        return None
+    }
+    let mut low = 0
+    let mut high = items.len() - 1
+    while low <= high {
+        let mid = low + (high - low) / 2
+        if items[mid] == target {
+            return Some(mid)
+        }
+        if items[mid] < target {
+            low = mid + 1
+        } else {
+            if mid == 0 {
+                return None
+            }
+            high = mid - 1
+        }
+    }
+    None
+}
+
+fn describe(items: Vec<int>, target: int) -> string {
+    match find(items, target) {
+        Some(i) => "${target} is at index ${i}",
+        None => "${target} is not present",
+    }
+}
+
+fn main() {
+    let items = [2, 3, 5, 7, 11, 13, 17, 19, 23]
+    for target in [7, 2, 23, 4, 30] {
+        println(describe(items, target))
+    }
+    let empty: Vec<int> = []
+    println(describe(empty, 1))
+}
+--- output ---
+7 is at index 3
+2 is at index 0
+23 is at index 8
+4 is not present
+30 is not present
+1 is not present
+
+=== collections_group_by.wj ===
+// golden: group records by key
+// idiom: HashMap<K, Vec<V>> with entry().or_insert([]).push(); sort keys for deterministic output
+use std::collections::HashMap
+
+struct Employee {
+    name: string,
+    dept: string,
+    salary: int,
+}
+
+fn by_dept(staff: Vec<Employee>) -> HashMap<string, Vec<Employee>> {
+    let mut groups: HashMap<string, Vec<Employee>> = HashMap::new()
+    for e in staff {
+        groups.entry(e.dept).or_insert([]).push(e)
+    }
+    groups
+}
+
+fn payroll(staff: Vec<Employee>) -> int {
+    let mut sum = 0
+    for e in staff {
+        sum += e.salary
+    }
+    sum
+}
+
+fn main() {
+    let staff = [
+        Employee { name: "Ada", dept: "eng", salary: 120 },
+        Employee { name: "Linus", dept: "eng", salary: 110 },
+        Employee { name: "Grace", dept: "ops", salary: 100 },
+        Employee { name: "Ken", dept: "ops", salary: 95 },
+        Employee { name: "Barbara", dept: "research", salary: 130 },
+    ]
+    let groups = by_dept(staff)
+    let mut depts: Vec<string> = groups.keys().collect()
+    depts.sort()
+    for dept in depts {
+        let members = groups[dept]
+        let names: Vec<string> = members.map(|e| e.name).collect()
+        println("${dept}: ${names.join(", ")} (payroll ${payroll(members)})")
+    }
+}
+--- output ---
+eng: Ada, Linus (payroll 230)
+ops: Grace, Ken (payroll 195)
+research: Barbara (payroll 130)
+
+=== collections_matrix.wj ===
+// golden: matrix multiply and transpose
+// idiom: Vec<Vec<int>> indexed with m[i][j]; nested for ranges; build rows with push
+fn multiply(a: Vec<Vec<int>>, b: Vec<Vec<int>>) -> Vec<Vec<int>> {
+    let mut out: Vec<Vec<int>> = []
+    for i in 0..a.len() {
+        let mut row: Vec<int> = []
+        for j in 0..b[0].len() {
+            let mut sum = 0
+            for k in 0..b.len() {
+                sum += a[i][k] * b[k][j]
+            }
+            row.push(sum)
+        }
+        out.push(row)
+    }
+    out
+}
+
+fn transpose(m: Vec<Vec<int>>) -> Vec<Vec<int>> {
+    let mut out: Vec<Vec<int>> = []
+    for j in 0..m[0].len() {
+        let mut row: Vec<int> = []
+        for i in 0..m.len() {
+            row.push(m[i][j])
+        }
+        out.push(row)
+    }
+    out
+}
+
+fn show(m: Vec<Vec<int>>) {
+    for row in m {
+        let cells: Vec<string> = row.map(|x| "${x:>4}").collect()
+        println(cells.join(""))
+    }
+}
+
+fn main() {
+    let a = [[1, 2, 3], [4, 5, 6]]
+    let b = [[7, 8], [9, 10], [11, 12]]
+    println("a x b:")
+    show(multiply(a, b))
+    println("transpose of a:")
+    show(transpose(a))
+}
+--- output ---
+a x b:
+  58  64
+ 139 154
+transpose of a:
+   1   4
+   2   5
+   3   6
+
+=== collections_set_operations.wj ===
+// golden: set operations
+// idiom: HashSet for membership and uniqueness; collect a sorted Vec before printing
+use std::collections::HashSet
+
+fn to_set(items: Vec<int>) -> HashSet<int> {
+    let mut set: HashSet<int> = HashSet::new()
+    for x in items {
+        set.insert(x)
+    }
+    set
+}
+
+fn sorted(set: HashSet<int>) -> Vec<int> {
+    let mut items: Vec<int> = []
+    for x in set {
+        items.push(x)
+    }
+    items.sort()
+    items
+}
+
+fn union(a: HashSet<int>, b: HashSet<int>) -> HashSet<int> {
+    let mut out = a
+    for x in b {
+        out.insert(x)
+    }
+    out
+}
+
+fn intersection(a: HashSet<int>, b: HashSet<int>) -> HashSet<int> {
+    let mut out: HashSet<int> = HashSet::new()
+    for x in a {
+        if b.contains(x) {
+            out.insert(x)
+        }
+    }
+    out
+}
+
+fn main() {
+    let a = to_set([1, 2, 3, 4, 4, 5])
+    let b = to_set([4, 5, 6, 7])
+    println("a = ${sorted(a):?}")
+    println("b = ${sorted(b):?}")
+    println("union = ${sorted(union(a, b)):?}")
+    println("intersection = ${sorted(intersection(a, b)):?}")
+    println("a has 3: ${a.contains(3)}, b has 3: ${b.contains(3)}")
+    println("unique count: ${a.len()}")
+}
+--- output ---
+a = [1, 2, 3, 4, 5]
+b = [4, 5, 6, 7]
+union = [1, 2, 3, 4, 5, 6, 7]
+intersection = [4, 5]
+a has 3: true, b has 3: false
+unique count: 5
+
+=== collections_sort_records.wj ===
+// golden: sort records by several keys
+// idiom: sort_by with a comparison closure; cmp() and then() chain keys, b.cmp(a) reverses
+struct Player {
+    name: string,
+    score: int,
+    age: int,
+}
+
+fn show(players: Vec<Player>) {
+    for p in players {
+        println("${p.name} score=${p.score} age=${p.age}")
+    }
+}
+
+fn main() {
+    let mut players = [
+        Player { name: "Mia", score: 90, age: 31 },
+        Player { name: "Noah", score: 85, age: 24 },
+        Player { name: "Zoe", score: 90, age: 22 },
+        Player { name: "Eli", score: 85, age: 24 },
+    ]
+    println("by score descending, then name:")
+    players.sort_by(|a, b| b.score.cmp(a.score).then(a.name.cmp(b.name)))
+    show(players)
+    println("by age ascending, then name:")
+    players.sort_by(|a, b| a.age.cmp(b.age).then(a.name.cmp(b.name)))
+    show(players)
+    let mut scores: Vec<int> = players.map(|p| p.score).collect()
+    scores.sort()
+    scores.reverse()
+    println("scores ${scores:?}")
+}
+--- output ---
+by score descending, then name:
+Mia score=90 age=31
+Zoe score=90 age=22
+Eli score=85 age=24
+Noah score=85 age=24
+by age ascending, then name:
+Zoe score=90 age=22
+Eli score=85 age=24
+Noah score=85 age=24
+Mia score=90 age=31
+scores [90, 90, 85, 85]
+
+=== collections_stack_queue.wj ===
+// golden: stack and queue
+// idiom: Vec as a stack with push/pop (pop returns an Option); VecDeque for a queue
+use std::collections::VecDeque
+
+fn balanced(text: string) -> bool {
+    let mut stack: Vec<char> = []
+    for c in text.chars() {
+        if c == '(' || c == '[' || c == '{' {
+            stack.push(c)
+        } else if c == ')' || c == ']' || c == '}' {
+            match stack.pop() {
+                Some(open) => {
+                    let ok = (open == '(' && c == ')') || (open == '[' && c == ']') || (open == '{' && c == '}')
+                    if !ok {
+                        return false
+                    }
+                },
+                None => return false,
+            }
+        }
+    }
+    stack.len() == 0
+}
+
+fn main() {
+    for text in ["(a[b]{c})", "(]", "((", ""] {
+        println("\"${text}\" balanced: ${balanced(text)}")
+    }
+    let mut line: VecDeque<string> = VecDeque::new()
+    line.push_back("ann")
+    line.push_back("bob")
+    line.push_back("cy")
+    println("serving ${line.pop_front() ?? "nobody"}")
+    line.push_back("di")
+    println("next ${line.pop_front() ?? "nobody"}, waiting ${line.len()}")
+    let mut stack = [1, 2, 3]
+    stack.push(4)
+    println("top ${stack.pop() ?? 0}, size ${stack.len()}")
+}
+--- output ---
+"(a[b]{c})" balanced: true
+"(]" balanced: false
+"((" balanced: false
+"" balanced: true
+serving ann
+next bob, waiting 2
+top 4, size 3
+
+=== collections_top_k.wj ===
+// golden: top-k and dedupe
+// idiom: sort a copy, take the first k with take(); dedup after sort; fold-style sum with a loop
+fn top_k(items: Vec<int>, k: int) -> Vec<int> {
+    let mut sorted = items
+    sorted.sort()
+    sorted.reverse()
+    sorted.take(k).collect()
+}
+
+fn dedupe(items: Vec<int>) -> Vec<int> {
+    let mut sorted = items
+    sorted.sort()
+    let mut out: Vec<int> = []
+    for x in sorted {
+        if out.len() == 0 || out[out.len() - 1] != x {
+            out.push(x)
+        }
+    }
+    out
+}
+
+fn average(items: Vec<int>) -> float {
+    if items.len() == 0 {
+        return 0.0
+    }
+    let mut sum = 0
+    for x in items {
+        sum += x
+    }
+    sum as float / items.len() as float
+}
+
+fn main() {
+    let scores = [72, 91, 85, 91, 60, 85, 99, 72]
+    println("top 3: ${top_k(scores, 3):?}")
+    println("distinct: ${dedupe(scores):?}")
+    println("average: ${average(scores):.2}")
+    println("max ${scores.max() ?? 0} min ${scores.min() ?? 0}")
+    println("sum ${scores.sum()}")
+}
+--- output ---
+top 3: [99, 91, 91]
+distinct: [60, 72, 85, 91, 99]
+average: 81.88
+max 99 min 60
+sum 655
+
+=== errors_custom_enum.wj ===
+// golden: custom error enum
+// idiom: an enum names every failure; a message method turns it into text; match handles each case
+enum BankError {
+    Insufficient(int, int),
+    UnknownAccount(string),
+    Frozen,
+}
+
+fn message(e: BankError) -> string {
+    match e {
+        BankError::Insufficient(have, need) => "insufficient funds: have ${have}, need ${need}",
+        BankError::UnknownAccount(name) => "no such account: ${name}",
+        BankError::Frozen => "account is frozen",
+    }
+}
+
+struct Account {
+    name: string,
+    balance: int,
+    frozen: bool,
+}
+
+fn withdraw(acct: Account, amount: int) -> Result<Account, BankError> {
+    if acct.frozen {
+        return Err(BankError::Frozen)
+    }
+    if acct.balance < amount {
+        return Err(BankError::Insufficient(acct.balance, amount))
+    }
+    Ok(Account { name: acct.name, balance: acct.balance - amount, frozen: false })
+}
+
+fn lookup(accounts: Vec<Account>, name: string) -> Result<Account, BankError> {
+    for a in accounts {
+        if a.name == name {
+            return Ok(a)
+        }
+    }
+    Err(BankError::UnknownAccount(name))
+}
+
+fn main() {
+    let accounts = [
+        Account { name: "ann", balance: 100, frozen: false },
+        Account { name: "bob", balance: 20, frozen: false },
+        Account { name: "cy", balance: 500, frozen: true },
+    ]
+    for (name, amount) in [("ann", 30), ("bob", 50), ("cy", 10), ("dee", 5)] {
+        let result = lookup(accounts, name).and_then(|a| withdraw(a, amount))
+        match result {
+            Ok(a) => println("${name}: ok, balance now ${a.balance}"),
+            Err(e) => println("${name}: ${message(e)}"),
+        }
+    }
+}
+--- output ---
+ann: ok, balance now 70
+bob: insufficient funds: have 20, need 50
+cy: account is frozen
+dee: no such account: dee
+
+=== errors_option_ok_or.wj ===
+// golden: Option to Result with ok_or
+// idiom: ok_or turns a missing value into an error; chain lookups with `?` inside a function returning Result
+use std::collections::HashMap
+
+struct Config {
+    values: HashMap<string, string>,
+}
+
+impl Config {
+    fn get(self, key: string) -> Result<string, string> {
+        self.values.get(key).ok_or("missing key: ${key}")
+    }
+
+    fn get_int(self, key: string) -> Result<int, string> {
+        let text = self.get(key)?
+        text.parse::<int>().map_err(|_| "key ${key} is not a number: ${text}")
+    }
+}
+
+fn describe(cfg: Config) -> Result<string, string> {
+    let host = cfg.get("host")?
+    let port = cfg.get_int("port")?
+    let workers = cfg.get_int("workers")?
+    Ok("${host}:${port} with ${workers} workers")
+}
+
+fn main() {
+    let mut values: HashMap<string, string> = HashMap::new()
+    values.insert("host", "localhost")
+    values.insert("port", "8080")
+    let partial = Config { values: values }
+    println("${describe(partial):?}")
+    let mut more: HashMap<string, string> = HashMap::new()
+    more.insert("host", "example.org")
+    more.insert("port", "80")
+    more.insert("workers", "4")
+    println("${describe(Config { values: more }):?}")
+    let mut bad: HashMap<string, string> = HashMap::new()
+    bad.insert("host", "h")
+    bad.insert("port", "eighty")
+    println("${describe(Config { values: bad }):?}")
+}
+--- output ---
+Err("missing key: workers")
+Ok("example.org:80 with 4 workers")
+Err("key port is not a number: eighty")
+
+=== errors_result_question_mark.wj ===
+// golden: Result and the ? operator
+// idiom: return Result<T, string>; `?` returns early on Err; map_err gives parse errors a readable message
+fn parse_int(text: string) -> Result<int, string> {
+    text.parse::<int>().map_err(|_| "not a number: ${text}")
+}
+
+fn parse_pair(text: string) -> Result<(int, int), string> {
+    let parts: Vec<string> = text.split(",").collect()
+    if parts.len() != 2 {
+        return Err("expected two numbers separated by a comma: ${text}")
+    }
+    let a = parse_int(parts[0])?
+    let b = parse_int(parts[1])?
+    Ok((a, b))
+}
+
+fn divide(text: string) -> Result<int, string> {
+    let pair = parse_pair(text)?
+    if pair.1 == 0 {
+        return Err("division by zero in ${text}")
+    }
+    Ok(pair.0 / pair.1)
+}
+
+fn main() {
+    let inputs = ["84,2", "7,0", "x,3", "1;2", "100,7"]
+    for input in inputs {
+        match divide(input) {
+            Ok(n) => println("${input} -> ${n}"),
+            Err(e) => println("${input} -> error: ${e}"),
+        }
+    }
+    let total = divide("10,2").unwrap_or(0) + divide("oops").unwrap_or(-1)
+    println("total ${total}")
+}
+--- output ---
+84,2 -> 42
+7,0 -> error: division by zero in 7,0
+x,3 -> error: not a number: x
+1;2 -> error: expected two numbers separated by a comma: 1;2
+100,7 -> 14
+total 4
+
+=== errors_retry.wj ===
+// golden: retry with a counter
+// idiom: loop with an attempt counter; a Result-returning step is retried until Ok or the budget runs out
+fn flaky(attempt: int) -> Result<string, string> {
+    if attempt < 3 {
+        Err("timeout on attempt ${attempt}")
+    } else {
+        Ok("connected on attempt ${attempt}")
+    }
+}
+
+fn with_retries(max_attempts: int) -> Result<string, string> {
+    let mut attempt = 1
+    let mut last_error = "never tried"
+    while attempt <= max_attempts {
+        match flaky(attempt) {
+            Ok(msg) => return Ok(msg),
+            Err(e) => {
+                println("  retrying after: ${e}")
+                last_error = e
+            },
+        }
+        attempt += 1
+    }
+    Err("gave up after ${max_attempts} attempts, last error: ${last_error}")
+}
+
+fn backoff_ms(attempt: int) -> int {
+    let mut delay = 100
+    for _ in 1..attempt {
+        delay *= 2
+    }
+    delay
+}
+
+fn main() {
+    println("budget 5:")
+    println("${with_retries(5):?}")
+    println("budget 2:")
+    println("${with_retries(2):?}")
+    for n in 1..=5 {
+        println("attempt ${n} waits ${backoff_ms(n)}ms")
+    }
+}
+--- output ---
+budget 5:
+  retrying after: timeout on attempt 1
+  retrying after: timeout on attempt 2
+Ok("connected on attempt 3")
+budget 2:
+  retrying after: timeout on attempt 1
+  retrying after: timeout on attempt 2
+Err("gave up after 2 attempts, last error: timeout on attempt 2")
+attempt 1 waits 100ms
+attempt 2 waits 200ms
+attempt 3 waits 400ms
+attempt 4 waits 800ms
+attempt 5 waits 1600ms
+
+=== errors_safe_parse.wj ===
+// golden: parse input without panicking
+// idiom: parse::<T>() returns a Result; match it, or use unwrap_or / unwrap_or_default for a fallback
+fn describe(text: string) -> string {
+    match text.parse::<int>() {
+        Ok(n) => "int ${n}",
+        Err(_) => match text.parse::<float>() {
+            Ok(f) => "float ${f:.2}",
+            Err(_) => "text '${text}'",
+        },
+    }
+}
+
+fn sum_or_skip(items: Vec<string>) -> int {
+    let mut total = 0
+    for item in items {
+        total += item.parse::<int>().unwrap_or(0)
+    }
+    total
+}
+
+fn parse_bool(text: string) -> Option<bool> {
+    match text {
+        "yes" | "true" | "1" => Some(true),
+        "no" | "false" | "0" => Some(false),
+        _ => None,
+    }
+}
+
+fn main() {
+    for text in ["42", "-7", "3.14159", "abc", "", "12abc"] {
+        println("\"${text}\" -> ${describe(text)}")
+    }
+    println("sum ${sum_or_skip(["1", "2", "three", "4"])}")
+    for text in ["yes", "0", "maybe"] {
+        println("${text} -> ${parse_bool(text) ?? false}")
+    }
+}
+--- output ---
+"42" -> int 42
+"-7" -> int -7
+"3.14159" -> float 3.14
+"abc" -> text 'abc'
+"" -> text ''
+"12abc" -> text '12abc'
+sum 7
+yes -> true
+0 -> false
+maybe -> false
+
+=== errors_validation_all.wj ===
+// golden: collect every validation error
+// idiom: a Vec<string> of problems instead of stopping at the first; an empty Vec means valid
+struct Signup {
+    name: string,
+    email: string,
+    age: int,
+    password: string,
+}
+
+fn validate(s: Signup) -> Vec<string> {
+    let mut problems: Vec<string> = []
+    if s.name.len() < 2 {
+        problems.push("name is too short")
+    }
+    if !s.email.contains("@") || !s.email.contains(".") {
+        problems.push("email looks invalid")
+    }
+    if s.age < 13 || s.age > 120 {
+        problems.push("age ${s.age} is out of range")
+    }
+    if s.password.len() < 8 {
+        problems.push("password needs at least 8 characters")
+    }
+    problems
+}
+
+fn report(label: string, s: Signup) {
+    let problems = validate(s)
+    if problems.len() == 0 {
+        println("${label}: valid")
+    } else {
+        println("${label}: ${problems.len()} problem(s)")
+        for p in problems {
+            println("  - ${p}")
+        }
+    }
+}
+
+fn main() {
+    report("good", Signup { name: "Ada", email: "ada@example.com", age: 36, password: "correct horse" })
+    report("bad", Signup { name: "A", email: "nope", age: 7, password: "short" })
+    report("almost", Signup { name: "Bo", email: "bo@x.io", age: 200, password: "longenough" })
+}
+--- output ---
+good: valid
+bad: 4 problem(s)
+  - name is too short
+  - email looks invalid
+  - age 7 is out of range
+  - password needs at least 8 characters
+almost: 1 problem(s)
+  - age 200 is out of range
+
+=== fileio_append_log.wj ===
+// golden: append to a log file
+// idiom: fs.append adds to the end; read the whole file back and process it line by line
+use std::fs
+use std::env
+
+fn log_path() -> string {
+    "${env::temp_dir()}/wj-golden-app.log"
+}
+
+fn log(level: string, message: string) {
+    let line = "[${level}] ${message}\n"
+    match fs.append(log_path(), line) {
+        Ok(_) => {},
+        Err(e) => println("could not write log: ${e}"),
+    }
+}
+
+fn count_level(text: string, level: string) -> int {
+    let mut n = 0
+    for line in text.lines() {
+        if line.starts_with("[${level}]") {
+            n += 1
+        }
+    }
+    n
+}
+
+fn main() {
+    let _ = fs.remove_file(log_path())
+    log("INFO", "service started")
+    log("WARN", "disk at 91%")
+    log("INFO", "request handled")
+    log("ERROR", "upstream timed out")
+    log("INFO", "request handled")
+    let text = fs.read_to_string(log_path()) ?? ""
+    println("${text.lines().count()} lines logged")
+    for level in ["INFO", "WARN", "ERROR"] {
+        println("${level}: ${count_level(text, level)}")
+    }
+    let _ = fs.remove_file(log_path())
+}
+--- output ---
+5 lines logged
+INFO: 3
+WARN: 1
+ERROR: 1
+
+=== fileio_directory_listing.wj ===
+// golden: create and list a directory
+// idiom: create_dir_all, write files, read_dir returns entries with name(); sort names for stable output
+use std::fs
+use std::env
+
+fn main() {
+    let dir = "${env::temp_dir()}/wj-golden-dir"
+    let _ = fs.remove_dir_all(dir)
+    match fs.create_dir_all("${dir}/notes") {
+        Ok(_) => println("created ${fs.is_dir(dir)}"),
+        Err(e) => println("create failed: ${e}"),
+    }
+    let files = [("a.txt", "one"), ("b.txt", "two words"), ("c.md", "# title")]
+    for (name, body) in files {
+        let _ = fs.write("${dir}/${name}", body)
+    }
+    let _ = fs.write("${dir}/notes/todo.txt", "write more tests")
+    let mut names: Vec<string> = []
+    for entry in fs.read_dir(dir) ?? [] {
+        let kind = if entry.is_dir() { "dir" } else { "file" }
+        names.push("${entry.name()} (${kind})")
+    }
+    names.sort()
+    for n in names {
+        println(n)
+    }
+    let mut total = 0
+    for name in ["a.txt", "b.txt", "c.md"] {
+        let text = fs.read_to_string("${dir}/${name}") ?? ""
+        total += text.len()
+    }
+    println("${total} bytes in top-level files")
+    let _ = fs.remove_dir_all(dir)
+    println("cleaned up: ${!fs.exists(dir)}")
+}
+--- output ---
+created true
+a.txt (file)
+b.txt (file)
+c.md (file)
+notes (dir)
+19 bytes in top-level files
+cleaned up: true
+
+=== fileio_line_stats.wj ===
+// golden: line and word statistics for a file
+// idiom: read the file once, derive lines and words from the text; return a struct of results
+use std::fs
+use std::env
+use std::strings
+
+struct Stats {
+    lines: int,
+    words: int,
+    chars: int,
+    longest: string,
+}
+
+fn analyze(text: string) -> Stats {
+    let mut words = 0
+    let mut longest = ""
+    for line in text.lines() {
+        for word in strings.split_whitespace(line) {
+            words += 1
+            if word.len() > longest.len() {
+                longest = word
+            }
+        }
+    }
+    Stats { lines: text.lines().count(), words: words, chars: text.len(), longest: longest }
+}
+
+fn main() {
+    let path = "${env::temp_dir()}/wj-golden-stats.txt"
+    let body = "Windjammer keeps ownership out of sight.\nThe compiler decides borrows.\n\nShort lines read well."
+    let _ = fs.write(path, body)
+    match fs.read_to_string(path) {
+        Ok(text) => {
+            let s = analyze(text)
+            println("lines: ${s.lines}")
+            println("words: ${s.words}")
+            println("chars: ${s.chars}")
+            println("longest word: ${s.longest}")
+        },
+        Err(e) => println("cannot read: ${e}"),
+    }
+    let _ = fs.remove_file(path)
+}
+--- output ---
+lines: 4
+words: 14
+chars: 94
+longest word: Windjammer
+
+=== fileio_write_read_lines.wj ===
+// golden: write a file and read it back
+// idiom: fs.write / fs.read_to_string return Result; match them; temp files live under env::temp_dir()
+use std::fs
+use std::env
+
+fn scratch(name: string) -> string {
+    "${env::temp_dir()}/wj-golden-${name}"
+}
+
+fn save(path: string, lines: Vec<string>) -> Result<(), string> {
+    fs.write(path, "${lines.join("\n")}\n")
+}
+
+fn load(path: string) -> Result<Vec<string>, string> {
+    let text = fs.read_to_string(path)?
+    let mut lines: Vec<string> = []
+    for line in text.lines() {
+        lines.push(line)
+    }
+    Ok(lines)
+}
+
+fn main() {
+    let path = scratch("lines.txt")
+    match save(path, ["alpha", "beta", "gamma"]) {
+        Ok(_) => println("saved"),
+        Err(e) => println("save failed: ${e}"),
+    }
+    match load(path) {
+        Ok(lines) => {
+            println("read ${lines.len()} lines")
+            for (i, line) in lines.enumerate() {
+                println("${i + 1}: ${line}")
+            }
+        },
+        Err(e) => println("load failed: ${e}"),
+    }
+    println("exists: ${fs.exists(path)}")
+    let _ = fs.remove_file(path)
+    println("exists after remove: ${fs.exists(path)}")
+    match load(path) {
+        Ok(_) => println("unexpected"),
+        Err(_) => println("reading a missing file is an Err, not a crash"),
+    }
+}
+--- output ---
+saved
+read 3 lines
+1: alpha
+2: beta
+3: gamma
+exists: true
+exists after remove: false
+reading a missing file is an Err, not a crash
+
+=== graph_bfs_shortest_path.wj ===
+// golden: breadth-first search on a grid
+// idiom: VecDeque as the frontier; a HashMap of distances doubles as the visited set; neighbors from a direction list
+use std::collections::VecDeque
+use std::collections::HashMap
+
+fn solve(maze: Vec<string>) -> Option<int> {
+    let rows = maze.len()
+    let cols = maze[0].len()
+    let mut dist: HashMap<int, int> = HashMap::new()
+    let mut queue: VecDeque<(int, int)> = VecDeque::new()
+    queue.push_back((0, 0))
+    dist.insert(0, 0)
+    let steps = [(1, 0), (-1, 0), (0, 1), (0, -1)]
+    while let Some((r, c)) = queue.pop_front() {
+        let here = dist[r * cols + c]
+        if r == rows - 1 && c == cols - 1 {
+            return Some(here)
+        }
+        for (dr, dc) in steps {
+            let nr = r + dr
+            let nc = c + dc
+            if nr < 0 || nr >= rows || nc < 0 || nc >= cols {
+                continue
+            }
+            let wall = maze[nr][nc..nc + 1] == "#"
+            if !wall && !dist.contains_key(nr * cols + nc) {
+                dist.insert(nr * cols + nc, here + 1)
+                queue.push_back((nr, nc))
+            }
+        }
+    }
+    None
+}
+
+fn main() {
+    let open = ["..#.", "..#.", "....", "#..."]
+    let blocked = ["..#.", "###.", "....", "...."]
+    match solve(open) {
+        Some(n) => println("open maze: ${n} steps"),
+        None => println("open maze: no path"),
+    }
+    match solve(blocked) {
+        Some(n) => println("blocked maze: ${n} steps"),
+        None => println("blocked maze: no path"),
+    }
+}
+--- output ---
+open maze: 6 steps
+blocked maze: no path
+
+=== graph_dfs_components.wj ===
+// golden: connected components with depth-first search
+// idiom: adjacency list as Vec<Vec<int>>; an explicit stack instead of recursion; a visited Vec<bool>
+fn build(n: int, edges: Vec<(int, int)>) -> Vec<Vec<int>> {
+    let mut adj: Vec<Vec<int>> = []
+    for _ in 0..n {
+        adj.push([])
+    }
+    for (a, b) in edges {
+        adj[a].push(b)
+        adj[b].push(a)
+    }
+    adj
+}
+
+fn components(adj: Vec<Vec<int>>) -> Vec<Vec<int>> {
+    let mut seen: Vec<bool> = []
+    for _ in 0..adj.len() {
+        seen.push(false)
+    }
+    let mut groups: Vec<Vec<int>> = []
+    for start in 0..adj.len() {
+        if seen[start] {
+            continue
+        }
+        let mut group: Vec<int> = []
+        let mut stack = [start]
+        seen[start] = true
+        while stack.len() > 0 {
+            let node = stack.pop() ?? 0
+            group.push(node)
+            for next in adj[node] {
+                if !seen[next] {
+                    seen[next] = true
+                    stack.push(next)
+                }
+            }
+        }
+        group.sort()
+        groups.push(group)
+    }
+    groups
+}
+
+fn main() {
+    let adj = build(8, [(0, 1), (1, 2), (3, 4), (5, 6), (6, 7), (7, 5)])
+    let groups = components(adj)
+    println("${groups.len()} components")
+    for g in groups {
+        println("  ${g:?}")
+    }
+}
+--- output ---
+3 components
+  [0, 1, 2]
+  [3, 4]
+  [5, 6, 7]
+
+=== graph_dijkstra.wj ===
+// golden: shortest paths with Dijkstra
+// idiom: edges as (to, weight) tuples per node; a simple "pick the closest unvisited node" loop, no priority queue needed at this size
+fn dijkstra(graph: Vec<Vec<(int, int)>>, start: int) -> Vec<int> {
+    let infinity = 1000000000
+    let mut dist: Vec<int> = []
+    let mut done: Vec<bool> = []
+    for _ in 0..graph.len() {
+        dist.push(infinity)
+        done.push(false)
+    }
+    dist[start] = 0
+    for _ in 0..graph.len() {
+        let mut best = -1
+        for i in 0..graph.len() {
+            if !done[i] && dist[i] < infinity && (best == -1 || dist[i] < dist[best]) {
+                best = i
+            }
+        }
+        if best == -1 {
+            break
+        }
+        done[best] = true
+        for (to, weight) in graph[best] {
+            if dist[best] + weight < dist[to] {
+                dist[to] = dist[best] + weight
+            }
+        }
+    }
+    dist
+}
+
+fn main() {
+    let graph = [
+        [(1, 7), (2, 9), (5, 14)],
+        [(0, 7), (2, 10), (3, 15)],
+        [(0, 9), (1, 10), (3, 11), (5, 2)],
+        [(1, 15), (2, 11), (4, 6)],
+        [(3, 6), (5, 9)],
+        [(0, 14), (2, 2), (4, 9)],
+        [],
+    ]
+    let dist = dijkstra(graph, 0)
+    for i in 0..dist.len() {
+        if dist[i] == 1000000000 {
+            println("node ${i}: unreachable")
+        } else {
+            println("node ${i}: ${dist[i]}")
+        }
+    }
+}
+--- output ---
+node 0: 0
+node 1: 7
+node 2: 9
+node 3: 20
+node 4: 20
+node 5: 11
+node 6: unreachable
+
+=== graph_friend_distance.wj ===
+// golden: degrees of separation
+// idiom: HashMap<string, Vec<string>> as the social graph; breadth-first levels using two Vecs (current and next)
+use std::collections::HashMap
+use std::collections::HashSet
+
+fn friends_of(graph: HashMap<string, Vec<string>>, name: string) -> Vec<string> {
+    graph.get(name) ?? []
+}
+
+fn distance(graph: HashMap<string, Vec<string>>, from: string, to: string) -> Option<int> {
+    if from == to {
+        return Some(0)
+    }
+    let mut seen: HashSet<string> = HashSet::new()
+    seen.insert(from)
+    let mut current = [from]
+    let mut level = 0
+    while current.len() > 0 {
+        level += 1
+        let mut next: Vec<string> = []
+        for person in current {
+            for friend in friends_of(graph, person) {
+                if friend == to {
+                    return Some(level)
+                }
+                if !seen.contains(friend) {
+                    seen.insert(friend)
+                    next.push(friend)
+                }
+            }
+        }
+        current = next
+    }
+    None
+}
+
+fn main() {
+    let mut graph: HashMap<string, Vec<string>> = HashMap::new()
+    let links = [("ann", "bob"), ("bob", "cy"), ("cy", "di"), ("ann", "eve"), ("zed", "yan")]
+    for (a, b) in links {
+        graph.entry(a).or_insert([]).push(b)
+        graph.entry(b).or_insert([]).push(a)
+    }
+    for (a, b) in [("ann", "di"), ("ann", "ann"), ("eve", "cy"), ("ann", "zed")] {
+        match distance(graph, a, b) {
+            Some(d) => println("${a} to ${b}: ${d}"),
+            None => println("${a} to ${b}: not connected"),
+        }
+    }
+}
+--- output ---
+ann to di: 3
+ann to ann: 0
+eve to cy: 3
+ann to zed: not connected
+
+=== graph_topological_sort.wj ===
+// golden: topological sort of tasks
+// idiom: count incoming edges (Kahn's algorithm); a Vec as the ready list; report a cycle when not every node is placed
+use std::collections::HashMap
+
+fn order(tasks: Vec<string>, needs: Vec<(string, string)>) -> Result<Vec<string>, string> {
+    let mut incoming: HashMap<string, int> = HashMap::new()
+    let mut after: HashMap<string, Vec<string>> = HashMap::new()
+    for t in tasks {
+        incoming.insert(t, 0)
+        after.insert(t, [])
+    }
+    for (first, then) in needs {
+        incoming.insert(then, incoming[then] + 1)
+        after.entry(first).or_insert([]).push(then)
+    }
+    let mut ready: Vec<string> = []
+    for t in tasks {
+        if incoming[t] == 0 {
+            ready.push(t)
+        }
+    }
+    let mut result: Vec<string> = []
+    while ready.len() > 0 {
+        ready.sort()
+        let next = ready.remove(0)
+        result.push(next)
+        for follower in after[next] {
+            incoming.insert(follower, incoming[follower] - 1)
+            if incoming[follower] == 0 {
+                ready.push(follower)
+            }
+        }
+    }
+    if result.len() != tasks.len() {
+        return Err("dependency cycle detected")
+    }
+    Ok(result)
+}
+
+fn main() {
+    let tasks = ["compile", "link", "test", "package", "lint"]
+    let needs = [("compile", "link"), ("link", "test"), ("link", "package"), ("lint", "test")]
+    match order(tasks, needs) {
+        Ok(steps) => println("order: ${steps.join(" -> ")}"),
+        Err(e) => println("error: ${e}"),
+    }
+    let cyclic = [("compile", "link"), ("link", "compile")]
+    match order(["compile", "link"], cyclic) {
+        Ok(steps) => println("order: ${steps.join(" -> ")}"),
+        Err(e) => println("error: ${e}"),
+    }
+}
+--- output ---
+order: compile -> link -> lint -> package -> test
+error: dependency cycle detected
+
+=== http_query_and_url.wj ===
+// golden: URL parts and percent-decoding
+// idiom: split a URL into scheme, host and path with plain string methods; decode %XX by hand over chars
+fn hex_value(c: char) -> int {
+    if c >= '0' && c <= '9' {
+        return c as int - '0' as int
+    }
+    if c >= 'a' && c <= 'f' {
+        return c as int - 'a' as int + 10
+    }
+    if c >= 'A' && c <= 'F' {
+        return c as int - 'A' as int + 10
+    }
+    -1
+}
+
+fn decode(text: string) -> string {
+    let cs: Vec<char> = text.chars().collect()
+    let mut out = ""
+    let mut i = 0
+    while i < cs.len() {
+        if cs[i] == '%' && i + 2 < cs.len() + 0 && hex_value(cs[i + 1]) >= 0 && hex_value(cs[i + 2]) >= 0 {
+            let code = hex_value(cs[i + 1]) * 16 + hex_value(cs[i + 2])
+            out += "${(code as u8) as char}"
+            i += 3
+        } else if cs[i] == '+' {
+            out = "${out} "
+            i += 1
+        } else {
+            out += "${cs[i]}"
+            i += 1
+        }
+    }
+    out
+}
+
+fn host_of(url: string) -> string {
+    let after: Vec<string> = url.split("://").collect()
+    if after.len() < 2 {
+        return ""
+    }
+    let rest: Vec<string> = after[1].split("/").collect()
+    rest[0]
+}
+
+fn main() {
+    println(decode("hello%20world"))
+    println(decode("a+b%2Bc"))
+    println(decode("100%25 sure"))
+    println(decode("%41%42%43"))
+    println("host: ${host_of("https://example.org/a/b?x=1")}")
+    println("host: [${host_of("no-scheme")}]")
+}
+--- output ---
+hello world
+a b+c
+100% sure
+cafÃ©
+host: example.org
+host: []
+
+=== http_request_parser.wj ===
+// golden: parse a raw HTTP request
+// idiom: split the text into lines, then the request line into parts; a struct holds the result and Result reports malformed input
+use std::collections::HashMap
+
+struct Request {
+    method: string,
+    path: string,
+    query: HashMap<string, string>,
+    headers: HashMap<string, string>,
+}
+
+fn parse_query(text: string) -> HashMap<string, string> {
+    let mut query: HashMap<string, string> = HashMap::new()
+    for pair in text.split("&") {
+        let kv: Vec<string> = pair.split("=").collect()
+        if kv.len() == 2 {
+            query.insert(kv[0], kv[1])
+        }
+    }
+    query
+}
+
+fn parse(raw: string) -> Result<Request, string> {
+    let lines: Vec<string> = raw.lines().collect()
+    if lines.len() == 0 {
+        return Err("empty request")
+    }
+    let first: Vec<string> = lines[0].split(" ").collect()
+    if first.len() != 3 {
+        return Err("bad request line: ${lines[0]}")
+    }
+    let target: Vec<string> = first[1].split("?").collect()
+    let query = if target.len() == 2 { parse_query(target[1]) } else { HashMap::new() }
+    let mut headers: HashMap<string, string> = HashMap::new()
+    for line in lines.skip(1) {
+        if line.contains(": ") {
+            let hv: Vec<string> = line.split(": ").collect()
+            headers.insert(hv[0].to_lowercase(), hv[1])
+        }
+    }
+    Ok(Request { method: first[0], path: target[0], query: query, headers: headers })
+}
+
+fn main() {
+    let raw = "GET /search?q=wind&page=2 HTTP/1.1\nHost: example.org\nAccept: text/html\nX-Trace: abc"
+    match parse(raw) {
+        Ok(r) => {
+            println("${r.method} ${r.path}")
+            println("q = ${r.query["q"]}, page = ${r.query["page"]}")
+            println("host = ${r.headers["host"]}")
+            println("${r.headers.len()} headers")
+        },
+        Err(e) => println("error: ${e}"),
+    }
+    println("${parse("nonsense").is_err()}")
+    println("${parse("").is_err()}")
+}
+--- output ---
+GET /search
+q = wind, page = 2
+host = example.org
+3 headers
+true
+true
+
+=== http_response_builder.wj ===
+// golden: build an HTTP response
+// idiom: join header lines with a blank line before the body; one function per concern, all pure
+use std::strings
+
+struct Response {
+    status: int,
+    headers: Vec<(string, string)>,
+    body: string,
+}
+
+fn reason(status: int) -> string {
+    match status {
+        200 => "OK",
+        201 => "Created",
+        404 => "Not Found",
+        500 => "Internal Server Error",
+        _ => "Unknown",
+    }
+}
+
+fn with_header(r: Response, name: string, value: string) -> Response {
+    let mut headers = r.headers
+    headers.push((name, value))
+    Response { status: r.status, headers: headers, body: r.body }
+}
+
+fn render(r: Response) -> string {
+    let mut lines = ["HTTP/1.1 ${r.status} ${reason(r.status)}"]
+    for (name, value) in r.headers {
+        lines.push("${name}: ${value}")
+    }
+    lines.push("Content-Length: ${r.body.len()}")
+    "${lines.join("\r\n")}\r\n\r\n${r.body}"
+}
+
+fn main() {
+    let base = Response { status: 200, headers: [], body: "hello" }
+    let json = with_header(base, "Content-Type", "application/json")
+    println(strings.replace(render(json), "\r\n", "|"))
+    let missing = Response { status: 404, headers: [("X-Reason", "no such page")], body: "" }
+    println(strings.replace(render(missing), "\r\n", "|"))
+    println("${reason(418)}")
+}
+--- output ---
+HTTP/1.1 200 OK|Content-Type: application/json|Content-Length: 5||hello
+HTTP/1.1 404 Not Found|X-Reason: no such page|Content-Length: 0||
+Unknown
+
+=== http_router.wj ===
+// golden: route a request to a handler
+// idiom: match on (method, path) tuples; handlers are plain functions returning a Response struct
+struct Response {
+    status: int,
+    body: string,
+}
+
+fn ok(body: string) -> Response {
+    Response { status: 200, body: body }
+}
+
+fn not_found(path: string) -> Response {
+    Response { status: 404, body: "no route for ${path}" }
+}
+
+fn user_page(id: string) -> Response {
+    match id.parse::<int>() {
+        Ok(n) => ok("user #${n}"),
+        Err(_) => Response { status: 400, body: "bad user id: ${id}" },
+    }
+}
+
+fn route(method: string, path: string) -> Response {
+    let parts: Vec<string> = path.split("/").collect()
+    match (method, path) {
+        ("GET", "/") => ok("home"),
+        ("GET", "/health") => ok("ok"),
+        ("POST", "/orders") => Response { status: 201, body: "order created" },
+        ("GET", _) => {
+            if parts.len() == 3 && parts[1] == "users" {
+                user_page(parts[2])
+            } else {
+                not_found(path)
+            }
+        },
+        _ => Response { status: 405, body: "method not allowed" },
+    }
+}
+
+fn main() {
+    let calls = [("GET", "/"), ("GET", "/health"), ("POST", "/orders"), ("GET", "/users/42"), ("GET", "/users/abc"), ("GET", "/nowhere"), ("DELETE", "/")]
+    for (method, path) in calls {
+        let r = route(method, path)
+        println("${method} ${path} -> ${r.status} ${r.body}")
+    }
+}
+--- output ---
+GET / -> 200 home
+GET /health -> 200 ok
+POST /orders -> 201 order created
+GET /users/42 -> 200 user #42
+GET /users/abc -> 400 bad user id: abc
+GET /nowhere -> 404 no route for /nowhere
+DELETE / -> 405 method not allowed
+
+=== json_enum_variants.wj ===
+// golden: enums as JSON
+// idiom: a unit variant is a string, a variant with data is {"Variant": payload}; the same code reads and writes both
+use std::json
+
+enum Event {
+    Started,
+    Message(string),
+    Moved { x: int, y: int },
+}
+
+struct Log {
+    events: Vec<Event>,
+}
+
+fn describe(e: Event) -> string {
+    match e {
+        Event::Started => "started",
+        Event::Message(text) => "message: ${text}",
+        Event::Moved { x, y } => "moved to (${x}, ${y})",
+    }
+}
+
+fn main() {
+    let log = Log { events: [Event::Started, Event::Message("hello"), Event::Moved { x: 3, y: -4 }] }
+    let text = json.to_string(log) ?? ""
+    println(text)
+    let back: Result<Log, string> = json.parse_string(text)
+    match back {
+        Ok(l) => {
+            for e in l.events {
+                println(describe(e))
+            }
+        },
+        Err(e) => println("error: ${e}"),
+    }
+}
+--- output ---
+{"events":["Started",{"Message":"hello"},{"Moved":{"x":3,"y":-4}}]}
+started
+message: hello
+moved to (3, -4)
+
+=== json_nested_documents.wj ===
+// golden: nested JSON documents
+// idiom: structs nest and Vec<Struct> becomes an array; one parse call reads the whole document
+use std::json
+
+struct Address {
+    city: string,
+    zip: string,
+}
+
+struct Customer {
+    name: string,
+    address: Address,
+    orders: Vec<Order>,
+}
+
+struct Order {
+    id: int,
+    total: float,
+}
+
+fn revenue(c: Customer) -> float {
+    let mut sum = 0.0
+    for o in c.orders {
+        sum += o.total
+    }
+    sum
+}
+
+fn main() {
+    let text = "{\"name\":\"Acme\",\"address\":{\"city\":\"Lisbon\",\"zip\":\"1000\"},\"orders\":[{\"id\":1,\"total\":19.5},{\"id\":2,\"total\":80.5},{\"id\":3,\"total\":5.0}]}"
+    let parsed: Result<Customer, string> = json.parse_string(text)
+    match parsed {
+        Ok(c) => {
+            println("${c.name} in ${c.address.city} ${c.address.zip}")
+            println("${c.orders.len()} orders, revenue ${revenue(c):.2}")
+            let ids: Vec<string> = c.orders.map(|o| "${o.id}").collect()
+            println("order ids: ${ids.join(",")}")
+            println(json.to_string(c.address) ?? "")
+        },
+        Err(e) => println("error: ${e}"),
+    }
+}
+--- output ---
+Acme in Lisbon 1000
+3 orders, revenue 105.00
+order ids: 1,2,3
+{"city":"Lisbon","zip":"1000"}
+
+=== json_optional_fields.wj ===
+// golden: optional and renamed JSON fields
+// idiom: Option<T> fields may be missing or null; @json(rename = ...) maps a wire name to a field
+use std::json
+
+struct Profile {
+    @json(rename = "userName")
+    name: string,
+    nickname: Option<string>,
+    age: Option<int>,
+}
+
+fn describe(p: Profile) -> string {
+    let nick = p.nickname ?? "(none)"
+    let age = match p.age {
+        Some(a) => "${a}",
+        None => "unknown",
+    }
+    "${p.name} aka ${nick}, age ${age}"
+}
+
+fn show(text: string) {
+    let parsed: Result<Profile, string> = json.parse_string(text)
+    match parsed {
+        Ok(p) => println(describe(p)),
+        Err(e) => println("error: ${e}"),
+    }
+}
+
+fn main() {
+    show("{\"userName\":\"ada\",\"nickname\":\"countess\",\"age\":36}")
+    show("{\"userName\":\"grace\"}")
+    show("{\"userName\":\"linus\",\"nickname\":null,\"age\":null}")
+    show("{\"name\":\"wrong key\"}")
+    let out = Profile { name: "ken", nickname: None, age: Some(80) }
+    println(json.to_string(out) ?? "")
+}
+--- output ---
+ada aka countess, age 36
+grace aka (none), age unknown
+linus aka (none), age unknown
+error: $.name: unknown field `name`, expected one of `userName`, `nickname`, `age` at line 1 column 7
+{"userName":"ken","nickname":null,"age":80}
+
+=== json_struct_round_trip.wj ===
+// golden: JSON round trip for a struct
+// idiom: any struct converts with json.to_string and json.parse_string::<T>; no derive, no glue code
+use std::json
+
+struct Book {
+    title: string,
+    year: int,
+    tags: Vec<string>,
+    rating: float,
+}
+
+fn describe(b: Book) -> string {
+    "${b.title} (${b.year}) tags=${b.tags.join("/")} rating=${b.rating}"
+}
+
+fn read(text: string) -> string {
+    let parsed: Result<Book, string> = json.parse_string(text)
+    match parsed {
+        Ok(b) => describe(b),
+        Err(e) => "parse error: ${e}",
+    }
+}
+
+fn main() {
+    let book = Book { title: "Dune", year: 1965, tags: ["scifi", "classic"], rating: 4.5 }
+    let text = json.to_string(book) ?? ""
+    println(text)
+    println(read(text))
+    println(read("{\"title\":\"X\",\"year\":\"soon\",\"tags\":[],\"rating\":1.0}"))
+    println(read("{\"title\":\"Y\"}"))
+    println(read("not json at all"))
+    let shelf = [Book { title: "A", year: 1, tags: [], rating: 1.0 }, Book { title: "B", year: 2, tags: ["x"], rating: 2.5 }]
+    println(json.to_string(shelf) ?? "")
+}
+--- output ---
+{"title":"Dune","year":1965,"tags":["scifi","classic"],"rating":4.5}
+Dune (1965) tags=scifi/classic rating=4.5
+parse error: $.year: invalid type: string "soon", expected i64 at line 1 column 26
+parse error: $: missing field `year` at line 1 column 13
+parse error: $: expected ident at line 1 column 2
+[{"title":"A","year":1,"tags":[],"rating":1.0},{"title":"B","year":2,"tags":["x"],"rating":2.5}]
+
+=== ledger_account_history.wj ===
+// golden: account with a transaction history
+// idiom: a struct holds balance and a Vec of entries; every change goes through one method that validates and records it
+struct Entry {
+    kind: string,
+    amount: int,
+    balance_after: int,
+}
+
+struct Account {
+    owner: string,
+    balance: int,
+    history: Vec<Entry>,
+}
+
+impl Account {
+    fn deposit(self, amount: int) -> Result<int, string> {
+        if amount <= 0 {
+            return Err("deposit must be positive")
+        }
+        self.balance += amount
+        self.history.push(Entry { kind: "deposit", amount: amount, balance_after: self.balance })
+        Ok(self.balance)
+    }
+
+    fn withdraw(self, amount: int) -> Result<int, string> {
+        if amount <= 0 {
+            return Err("withdrawal must be positive")
+        }
+        if amount > self.balance {
+            return Err("insufficient funds: balance ${self.balance}, requested ${amount}")
+        }
+        self.balance -= amount
+        self.history.push(Entry { kind: "withdrawal", amount: amount, balance_after: self.balance })
+        Ok(self.balance)
+    }
+
+    fn statement(self) {
+        println("statement for ${self.owner}")
+        for e in self.history {
+            println("  ${e.kind:<10} ${e.amount:>6} -> ${e.balance_after:>6}")
+        }
+    }
+}
+
+fn main() {
+    let mut acct = Account { owner: "Ada", balance: 0, history: [] }
+    let _ = acct.deposit(500)
+    let _ = acct.withdraw(120)
+    match acct.withdraw(1000) {
+        Ok(b) => println("balance ${b}"),
+        Err(e) => println("refused: ${e}"),
+    }
+    let _ = acct.deposit(75)
+    match acct.deposit(-5) {
+        Ok(b) => println("balance ${b}"),
+        Err(e) => println("refused: ${e}"),
+    }
+    acct.statement()
+}
+--- output ---
+refused: insufficient funds: balance 380, requested 1000
+refused: deposit must be positive
+statement for Ada
+  deposit       500 ->    500
+  withdrawal    120 ->    380
+  deposit        75 ->    455
+
+=== ledger_double_entry.wj ===
+// golden: double-entry bookkeeping
+// idiom: every transaction is a list of postings that must sum to zero; a HashMap keeps the total per account
+use std::collections::HashMap
+
+struct Posting {
+    account: string,
+    amount: int,
+}
+
+fn balanced(postings: Vec<Posting>) -> bool {
+    let mut sum = 0
+    for p in postings {
+        sum += p.amount
+    }
+    sum == 0
+}
+
+fn post(books: HashMap<string, int>, postings: Vec<Posting>) -> Result<HashMap<string, int>, string> {
+    if !balanced(postings) {
+        return Err("postings do not sum to zero")
+    }
+    let mut next = books
+    for p in postings {
+        let current = next.get(p.account) ?? 0
+        next.insert(p.account, current + p.amount)
+    }
+    Ok(next)
+}
+
+fn main() {
+    let mut books: HashMap<string, int> = HashMap::new()
+    let entries = [
+        [Posting { account: "cash", amount: 1000 }, Posting { account: "equity", amount: -1000 }],
+        [Posting { account: "inventory", amount: 400 }, Posting { account: "cash", amount: -400 }],
+        [Posting { account: "cash", amount: 150 }, Posting { account: "sales", amount: -100 }],
+        [Posting { account: "cash", amount: 90 }, Posting { account: "sales", amount: -90 }],
+    ]
+    for postings in entries {
+        match post(books, postings) {
+            Ok(next) => books = next,
+            Err(e) => println("rejected: ${e}"),
+        }
+    }
+    let mut names: Vec<string> = books.keys().collect()
+    names.sort()
+    let mut total = 0
+    for name in names {
+        println("${name:<10} ${books[name]:>6}")
+        total += books[name]
+    }
+    println("books balance: ${total == 0}")
+}
+--- output ---
+rejected: postings do not sum to zero
+cash          690
+equity      -1000
+inventory     400
+sales         -90
+books balance: true
+
+=== ledger_inventory.wj ===
+// golden: inventory with restock and orders
+// idiom: HashMap<string, int> of stock levels; get() ?? 0 for a missing item; Result for orders that cannot be filled
+use std::collections::HashMap
+
+struct Warehouse {
+    stock: HashMap<string, int>,
+}
+
+impl Warehouse {
+    fn restock(self, item: string, qty: int) {
+        let current = self.stock.get(item) ?? 0
+        self.stock.insert(item, current + qty)
+    }
+
+    fn fulfil(self, item: string, qty: int) -> Result<int, string> {
+        let have = self.stock.get(item) ?? 0
+        if have < qty {
+            return Err("only ${have} of ${item} in stock, ${qty} requested")
+        }
+        self.stock.insert(item, have - qty)
+        Ok(have - qty)
+    }
+
+    fn report(self) {
+        let mut names: Vec<string> = self.stock.keys().collect()
+        names.sort()
+        for name in names {
+            println("  ${name}: ${self.stock[name]}")
+        }
+    }
+}
+
+fn main() {
+    let mut w = Warehouse { stock: HashMap::new() }
+    w.restock("bolt", 100)
+    w.restock("nut", 80)
+    w.restock("washer", 25)
+    for (item, qty) in [("bolt", 30), ("nut", 100), ("washer", 25), ("gear", 1)] {
+        match w.fulfil(item, qty) {
+            Ok(left) => println("filled ${qty} ${item}, ${left} left"),
+            Err(e) => println("cannot fill: ${e}"),
+        }
+    }
+    w.restock("nut", 50)
+    println("stock now:")
+    w.report()
+}
+--- output ---
+filled 30 bolt, 70 left
+cannot fill: only 80 of nut in stock, 100 requested
+filled 25 washer, 0 left
+cannot fill: only 0 of gear in stock, 1 requested
+stock now:
+  bolt: 70
+  nut: 130
+  washer: 0
+
+=== ledger_invoice_totals.wj ===
+// golden: invoice totals in integer cents
+// idiom: money as integer cents avoids float drift; a line struct; one helper formats cents as dollars
+struct Line {
+    description: string,
+    qty: int,
+    unit_cents: int,
+}
+
+fn dollars(cents: int) -> string {
+    let sign = if cents < 0 { "-" } else { "" }
+    let abs = if cents < 0 { 0 - cents } else { cents }
+    let rem = abs % 100
+    let pad = if rem < 10 { "0" } else { "" }
+    "${sign}\$${abs / 100}.${pad}${rem}"
+}
+
+fn subtotal(lines: Vec<Line>) -> int {
+    let mut sum = 0
+    for l in lines {
+        sum += l.qty * l.unit_cents
+    }
+    sum
+}
+
+fn tax(amount: int, basis_points: int) -> int {
+    (amount * basis_points + 5000) / 10000
+}
+
+fn main() {
+    let lines = [
+        Line { description: "Widget", qty: 3, unit_cents: 1999 },
+        Line { description: "Gadget", qty: 1, unit_cents: 4950 },
+        Line { description: "Cable", qty: 12, unit_cents: 325 },
+    ]
+    for l in lines {
+        println("${l.description:<8} ${l.qty:>3} x ${dollars(l.unit_cents):>8} = ${dollars(l.qty * l.unit_cents):>9}")
+    }
+    let sub = subtotal(lines)
+    let vat = tax(sub, 825)
+    println("subtotal ${dollars(sub)}")
+    println("tax 8.25% ${dollars(vat)}")
+    println("total ${dollars(sub + vat)}")
+    println("refund ${dollars(0 - 1250)}")
+}
+--- output ---
+Widget     3 x   $19.99 =    $59.97
+Gadget     1 x   $49.50 =    $49.50
+Cable     12 x    $3.25 =    $39.00
+subtotal $148.47
+tax 8.25% $12.25
+total $160.72
+refund -$12.50
+
+=== parse_calculator.wj ===
+// golden: recursive descent calculator
+// idiom: a tokenizer produces a Vec of tokens; a parser struct walks them with an index and one method per grammar rule
+enum Token {
+    Num(int),
+    Op(char),
+}
+
+fn tokenize(text: string) -> Result<Vec<Token>, string> {
+    let mut tokens: Vec<Token> = []
+    let cs: Vec<char> = text.chars().collect()
+    let mut i = 0
+    while i < cs.len() {
+        let c = cs[i]
+        if c == ' ' {
+            i += 1
+        } else if c.is_ascii_digit() {
+            let mut n = 0
+            while i < cs.len() && cs[i].is_ascii_digit() {
+                n = n * 10 + (cs[i] as int - '0' as int)
+                i += 1
+            }
+            tokens.push(Token::Num(n))
+        } else if "+-*/()".contains("${c}") {
+            tokens.push(Token::Op(c))
+            i += 1
+        } else {
+            return Err("unexpected character '${c}'")
+        }
+    }
+    Ok(tokens)
+}
+
+struct Parser {
+    tokens: Vec<Token>,
+    pos: int,
+}
+
+impl Parser {
+    fn peek_op(self) -> char {
+        if self.pos < self.tokens.len() {
+            match self.tokens[self.pos] {
+                Token::Op(c) => c,
+                Token::Num(_) => ' ',
+            }
+        } else {
+            ' '
+        }
+    }
+
+    fn expr(self) -> Result<int, string> {
+        let mut value = self.term()?
+        while self.peek_op() == '+' || self.peek_op() == '-' {
+            let op = self.peek_op()
+            self.pos += 1
+            let rhs = self.term()?
+            value = if op == '+' { value + rhs } else { value - rhs }
+        }
+        Ok(value)
+    }
+
+    fn term(self) -> Result<int, string> {
+        let mut value = self.factor()?
+        while self.peek_op() == '*' || self.peek_op() == '/' {
+            let op = self.peek_op()
+            self.pos += 1
+            let rhs = self.factor()?
+            if op == '/' && rhs == 0 {
+                return Err("division by zero")
+            }
+            value = if op == '*' { value * rhs } else { value / rhs }
+        }
+        Ok(value)
+    }
+
+    fn factor(self) -> Result<int, string> {
+        if self.pos >= self.tokens.len() {
+            return Err("unexpected end of input")
+        }
+        match self.tokens[self.pos] {
+            Token::Num(n) => {
+                self.pos += 1
+                Ok(n)
+            },
+            Token::Op('(') => {
+                self.pos += 1
+                let v = self.expr()?
+                if self.peek_op() != ')' {
+                    return Err("missing )")
+                }
+                self.pos += 1
+                Ok(v)
+            },
+            Token::Op(c) => Err("unexpected '${c}'"),
+        }
+    }
+}
+
+fn calc(text: string) -> Result<int, string> {
+    let mut p = Parser { tokens: tokenize(text)?, pos: 0 }
+    let v = p.expr()?
+    if p.pos < p.tokens.len() {
+        return Err("trailing input")
+    }
+    Ok(v)
+}
+
+fn main() {
+    for text in ["1 + 2 * 3", "(1 + 2) * 3", "10 / (5 - 5)", "2 * (3 + 4) - 5", "2 $ 3", "(1 + 2", "4 +"] {
+        match calc(text) {
+            Ok(v) => println("${text} = ${v}"),
+            Err(e) => println("${text} -> error: ${e}"),
+        }
+    }
+}
+--- output ---
+1 + 2 * 3 = 7
+(1 + 2) * 3 = 9
+10 / (5 - 5) -> error: division by zero
+2 * (3 + 4) - 5 = 9
+2 $ 3 -> error: unexpected character '$'
+(1 + 2 -> error: missing )
+4 + -> error: unexpected end of input
+
+=== parse_ini_sections.wj ===
+// golden: INI-style config parser
+// idiom: one pass over lines with a "current section" variable; entries are structs; strings.trim returns an owned string
+use std::strings
+
+struct Entry {
+    section: string,
+    key: string,
+    value: string,
+}
+
+fn parse(text: string) -> Result<Vec<Entry>, string> {
+    let mut entries: Vec<Entry> = []
+    let mut section = "global"
+    let mut number = 0
+    for raw in text.lines() {
+        number += 1
+        let line = strings.trim(raw)
+        if line.len() == 0 || line.starts_with("#") {
+            continue
+        }
+        if line.starts_with("[") {
+            if !line.ends_with("]") {
+                return Err("line ${number}: unterminated section header")
+            }
+            section = line[1..line.len() - 1]
+        } else if line.contains("=") {
+            let kv: Vec<string> = line.split("=").collect()
+            entries.push(Entry { section: section, key: strings.trim(kv[0]), value: strings.trim(kv[1]) })
+        } else {
+            return Err("line ${number}: expected key = value")
+        }
+    }
+    Ok(entries)
+}
+
+fn get(entries: Vec<Entry>, section: string, key: string) -> Option<string> {
+    for e in entries {
+        if e.section == section && e.key == key {
+            return Some(e.value)
+        }
+    }
+    None
+}
+
+fn main() {
+    let text = "name = demo\n# a comment\n[server]\nhost = localhost\nport = 8080\n\n[db]\nurl = sqlite://data.db"
+    match parse(text) {
+        Ok(entries) => {
+            println("${entries.len()} entries")
+            println("server.port = ${get(entries, "server", "port") ?? "unset"}")
+            println("db.url = ${get(entries, "db", "url") ?? "unset"}")
+            println("global.name = ${get(entries, "global", "name") ?? "unset"}")
+            println("db.user = ${get(entries, "db", "user") ?? "unset"}")
+        },
+        Err(e) => println("error: ${e}"),
+    }
+    println("${parse("[oops").is_err()} ${parse("nonsense").is_err()}")
+}
+--- output ---
+4 entries
+server.port = 8080
+db.url = sqlite://data.db
+global.name = demo
+db.user = unset
+true true
+
+=== parse_roman_numerals.wj ===
+// golden: Roman numerals both ways
+// idiom: a table of (value, symbol) pairs drives both directions; greedy subtraction and a left-to-right scan
+fn table() -> Vec<(int, string)> {
+    [(1000, "M"), (900, "CM"), (500, "D"), (400, "CD"), (100, "C"), (90, "XC"), (50, "L"), (40, "XL"), (10, "X"), (9, "IX"), (5, "V"), (4, "IV"), (1, "I")]
+}
+
+fn to_roman(n: int) -> string {
+    let mut left = n
+    let mut out = ""
+    for (value, symbol) in table() {
+        while left >= value {
+            out += symbol
+            left -= value
+        }
+    }
+    out
+}
+
+fn symbol_value(c: char) -> int {
+    match c {
+        'I' => 1,
+        'V' => 5,
+        'X' => 10,
+        'L' => 50,
+        'C' => 100,
+        'D' => 500,
+        'M' => 1000,
+        _ => 0,
+    }
+}
+
+fn from_roman(text: string) -> int {
+    let cs: Vec<char> = text.chars().collect()
+    let mut total = 0
+    let mut i = 0
+    while i < cs.len() {
+        let v = symbol_value(cs[i])
+        if i + 1 < cs.len() && v < symbol_value(cs[i + 1]) {
+            total -= v
+        } else {
+            total += v
+        }
+        i += 1
+    }
+    total
+}
+
+fn main() {
+    for n in [1, 4, 9, 14, 40, 90, 400, 1994, 2024, 3999] {
+        let r = to_roman(n)
+        println("${n} -> ${r} -> ${from_roman(r)}")
+    }
+}
+--- output ---
+1 -> I -> 1
+4 -> IV -> 4
+9 -> IX -> 9
+14 -> XIV -> 14
+40 -> XL -> 40
+90 -> XC -> 90
+400 -> CD -> 400
+1994 -> MCMXCIV -> 1994
+2024 -> MMXXIV -> 2024
+3999 -> MMMCMXCIX -> 3999
+
+=== parse_tokenizer.wj ===
+// golden: tokenizer for a tiny expression language
+// idiom: classify characters with is_alphabetic / is_ascii_digit; a Vec of token structs carries kind and text
+struct Token {
+    kind: string,
+    text: string,
+}
+
+fn tokenize(source: string) -> Vec<Token> {
+    let cs: Vec<char> = source.chars().collect()
+    let mut tokens: Vec<Token> = []
+    let mut i = 0
+    while i < cs.len() {
+        let c = cs[i]
+        if c.is_whitespace() {
+            i += 1
+        } else if c.is_alphabetic() || c == '_' {
+            let mut word = ""
+            while i < cs.len() && (cs[i].is_alphanumeric() || cs[i] == '_') {
+                word += "${cs[i]}"
+                i += 1
+            }
+            let kind = if word == "let" || word == "if" || word == "else" { "keyword" } else { "ident" }
+            tokens.push(Token { kind: kind, text: word })
+        } else if c.is_ascii_digit() {
+            let mut num = ""
+            while i < cs.len() && cs[i].is_ascii_digit() {
+                num += "${cs[i]}"
+                i += 1
+            }
+            tokens.push(Token { kind: "number", text: num })
+        } else {
+            tokens.push(Token { kind: "symbol", text: "${c}" })
+            i += 1
+        }
+    }
+    tokens
+}
+
+fn main() {
+    let tokens = tokenize("let total_1 = price * 12 + tax")
+    for t in tokens {
+        println("${t.kind}: ${t.text}")
+    }
+    let counts = tokenize("if x { y } else { z }")
+    println("${counts.len()} tokens")
+}
+--- output ---
+keyword: let
+ident: total_1
+symbol: =
+ident: price
+symbol: *
+number: 12
+symbol: +
+ident: tax
+9 tokens
+
+=== sim_bank_queue.wj ===
+// golden: deterministic queue simulation
+// idiom: a linear congruential generator keeps "random" arrivals reproducible; a loop advances simulated minutes
+struct Rng {
+    state: int,
+}
+
+impl Rng {
+    fn next(self) -> int {
+        self.state = (self.state * 1103515245 + 12345) % 2147483648
+        self.state
+    }
+
+    fn below(self, n: int) -> int {
+        self.next() / 65536 % n
+    }
+}
+
+fn main() {
+    let mut rng = Rng { state: 42 }
+    let mut waiting = 0
+    let mut served = 0
+    let mut longest = 0
+    let mut busy_until = 0
+    for minute in 0..30 {
+        if rng.below(3) == 0 {
+            waiting += 1
+        }
+        if minute >= busy_until && waiting > 0 {
+            waiting -= 1
+            served += 1
+            busy_until = minute + 1 + rng.below(3)
+        }
+        if waiting > longest {
+            longest = waiting
+        }
+        if minute % 10 == 9 {
+            println("minute ${minute + 1}: ${waiting} waiting, ${served} served")
+        }
+    }
+    println("longest line ${longest}")
+}
+--- output ---
+minute 10: 0 waiting, 3 served
+minute 20: 1 waiting, 8 served
+minute 30: 0 waiting, 12 served
+longest line 2
+
+=== sim_game_of_life.wj ===
+// golden: Game of Life
+// idiom: Vec<Vec<bool>> grid; neighbor counting with bounds checks on int coordinates; one pure step function
+fn alive_neighbors(grid: Vec<Vec<bool>>, row: int, col: int) -> int {
+    let mut count = 0
+    for dr in [-1, 0, 1] {
+        for dc in [-1, 0, 1] {
+            if dr == 0 && dc == 0 {
+                continue
+            }
+            let r = row + dr
+            let c = col + dc
+            if r >= 0 && r < grid.len() && c >= 0 && c < grid[0].len() && grid[r][c] {
+                count += 1
+            }
+        }
+    }
+    count
+}
+
+fn step(grid: Vec<Vec<bool>>) -> Vec<Vec<bool>> {
+    let mut next: Vec<Vec<bool>> = []
+    for r in 0..grid.len() {
+        let mut row: Vec<bool> = []
+        for c in 0..grid[0].len() {
+            let n = alive_neighbors(grid, r, c)
+            row.push(if grid[r][c] { n == 2 || n == 3 } else { n == 3 })
+        }
+        next.push(row)
+    }
+    next
+}
+
+fn show(grid: Vec<Vec<bool>>) {
+    for row in grid {
+        let cells: Vec<string> = row.map(|alive| if alive { "#" } else { "." }).collect()
+        println(cells.join(""))
+    }
+}
+
+fn main() {
+    let mut grid = [
+        [false, false, false, false, false],
+        [false, false, true, false, false],
+        [false, false, true, false, false],
+        [false, false, true, false, false],
+        [false, false, false, false, false],
+    ]
+    for generation in 0..3 {
+        println("generation ${generation}:")
+        show(grid)
+        grid = step(grid)
+    }
+}
+--- output ---
+generation 0:
+.....
+..#..
+..#..
+..#..
+.....
+generation 1:
+.....
+.....
+.###.
+.....
+.....
+generation 2:
+.....
+..#..
+..#..
+..#..
+.....
+
+=== sim_random_walk.wj ===
+// golden: seeded random walk
+// idiom: a small struct owns the generator state; methods mutate it; results are fully deterministic
+struct Walker {
+    seed: int,
+    x: int,
+    y: int,
+    steps: int,
+}
+
+impl Walker {
+    fn roll(self) -> int {
+        self.seed = (self.seed * 1103515245 + 12345) % 2147483648
+        self.seed / 65536 % 4
+    }
+
+    fn step(self) {
+        let dir = self.roll()
+        match dir {
+            0 => { self.x += 1 },
+            1 => { self.x -= 1 },
+            2 => { self.y += 1 },
+            _ => { self.y -= 1 },
+        }
+        self.steps += 1
+    }
+
+    fn distance(self) -> int {
+        let dx = if self.x < 0 { 0 - self.x } else { self.x }
+        let dy = if self.y < 0 { 0 - self.y } else { self.y }
+        dx + dy
+    }
+}
+
+fn main() {
+    let mut w = Walker { seed: 7, x: 0, y: 0, steps: 0 }
+    let mut farthest = 0
+    for i in 0..50 {
+        w.step()
+        if w.distance() > farthest {
+            farthest = w.distance()
+        }
+        if (i + 1) % 10 == 0 {
+            println("after ${w.steps} steps at (${w.x}, ${w.y}), distance ${w.distance()}")
+        }
+    }
+    println("farthest distance ${farthest}")
+}
+--- output ---
+after 10 steps at (-1, 3), distance 4
+after 20 steps at (-3, 7), distance 10
+after 30 steps at (-3, 7), distance 10
+after 40 steps at (0, 8), distance 8
+after 50 steps at (0, 12), distance 12
+farthest distance 14
+
+=== state_order_lifecycle.wj ===
+// golden: order lifecycle with allowed transitions
+// idiom: list the legal transitions in one match; illegal ones return Err with both state names
+enum Status {
+    Draft,
+    Paid,
+    Shipped,
+    Delivered,
+    Cancelled,
+}
+
+fn name(s: Status) -> string {
+    match s {
+        Status::Draft => "draft",
+        Status::Paid => "paid",
+        Status::Shipped => "shipped",
+        Status::Delivered => "delivered",
+        Status::Cancelled => "cancelled",
+    }
+}
+
+fn advance(from: Status, to: Status) -> Result<Status, string> {
+    match (from, to) {
+        (Status::Draft, Status::Paid) => Ok(Status::Paid),
+        (Status::Paid, Status::Shipped) => Ok(Status::Shipped),
+        (Status::Shipped, Status::Delivered) => Ok(Status::Delivered),
+        (Status::Draft, Status::Cancelled) => Ok(Status::Cancelled),
+        (Status::Paid, Status::Cancelled) => Ok(Status::Cancelled),
+        (a, b) => Err("cannot go from ${name(a)} to ${name(b)}"),
+    }
+}
+
+fn run(steps: Vec<Status>) {
+    let mut current = Status::Draft
+    for target in steps {
+        match advance(current, target) {
+            Ok(next) => {
+                println("${name(current)} -> ${name(next)}")
+                current = next
+            },
+            Err(e) => {
+                println("stop: ${e}")
+                return
+            },
+        }
+    }
+    println("finished in ${name(current)}")
+}
+
+fn main() {
+    run([Status::Paid, Status::Shipped, Status::Delivered])
+    run([Status::Paid, Status::Cancelled])
+    run([Status::Shipped])
+    run([Status::Cancelled, Status::Paid])
+}
+--- output ---
+draft -> paid
+paid -> shipped
+shipped -> delivered
+finished in delivered
+draft -> paid
+paid -> cancelled
+finished in cancelled
+stop: cannot go from draft to shipped
+draft -> cancelled
+stop: cannot go from cancelled to paid
+
+=== state_traffic_light.wj ===
+// golden: state machine as an enum
+// idiom: an enum is the state, a function maps (state, event) to the next state with match; no mutable flags
+enum Light {
+    Red,
+    Green,
+    Yellow,
+    Flashing,
+}
+
+enum Event {
+    Timer,
+    Fault,
+    Repair,
+}
+
+fn next(state: Light, event: Event) -> Light {
+    match (state, event) {
+        (Light::Flashing, Event::Repair) => Light::Red,
+        (Light::Flashing, _) => Light::Flashing,
+        (_, Event::Fault) => Light::Flashing,
+        (Light::Red, Event::Timer) => Light::Green,
+        (Light::Green, Event::Timer) => Light::Yellow,
+        (Light::Yellow, Event::Timer) => Light::Red,
+        (s, Event::Repair) => s,
+    }
+}
+
+fn name(state: Light) -> string {
+    match state {
+        Light::Red => "red",
+        Light::Green => "green",
+        Light::Yellow => "yellow",
+        Light::Flashing => "flashing",
+    }
+}
+
+fn main() {
+    let events = [Event::Timer, Event::Timer, Event::Timer, Event::Timer, Event::Fault, Event::Timer, Event::Repair, Event::Timer]
+    let mut state = Light::Red
+    println("start: ${name(state)}")
+    for e in events {
+        state = next(state, e)
+        println("-> ${name(state)}")
+    }
+}
+--- output ---
+start: red
+-> green
+-> yellow
+-> red
+-> green
+-> flashing
+-> flashing
+-> red
+-> green
+
+=== state_vending_machine.wj ===
+// golden: vending machine with money state
+// idiom: a struct holds the state; methods validate and update it; Result carries the refusal reason
+struct Machine {
+    credit: int,
+    stock: int,
+    price: int,
+    sales: int,
+}
+
+impl Machine {
+    fn insert(self, coins: int) {
+        self.credit += coins
+    }
+
+    fn press(self) -> Result<string, string> {
+        if self.stock == 0 {
+            return Err("sold out")
+        }
+        if self.credit < self.price {
+            return Err("need ${self.price - self.credit} more")
+        }
+        self.credit -= self.price
+        self.stock -= 1
+        self.sales += self.price
+        Ok("dispensed")
+    }
+
+    fn refund(self) -> int {
+        let back = self.credit
+        self.credit = 0
+        back
+    }
+}
+
+fn attempt(m: Machine) {
+    match m.press() {
+        Ok(msg) => println("press: ${msg}"),
+        Err(e) => println("press: refused (${e})"),
+    }
+}
+
+fn main() {
+    let mut m = Machine { credit: 0, stock: 2, price: 75, sales: 0 }
+    attempt(m)
+    m.insert(50)
+    attempt(m)
+    m.insert(50)
+    attempt(m)
+    println("credit left ${m.credit}")
+    m.insert(100)
+    attempt(m)
+    attempt(m)
+    println("refund ${m.refund()}, sales ${m.sales}, stock ${m.stock}")
+}
+--- output ---
+press: refused (need 75 more)
+press: refused (need 25 more)
+press: dispensed
+credit left 25
+press: dispensed
+press: refused (sold out)
+refund 50, sales 150, stock 0
+
+=== text_anagram_groups.wj ===
+// golden: group anagrams
+// idiom: HashMap<string, Vec<string>> with entry().or_insert([]), sorted keys for stable output
+use std::collections::HashMap
+
+fn signature(word: string) -> string {
+    let mut cs: Vec<char> = word.chars().collect()
+    cs.sort()
+    let mut out = ""
+    for c in cs {
+        out += "${c}"
+    }
+    out
+}
+
+fn group(words: Vec<string>) -> HashMap<string, Vec<string>> {
+    let mut groups: HashMap<string, Vec<string>> = HashMap::new()
+    for word in words {
+        groups.entry(signature(word)).or_insert([]).push(word)
+    }
+    groups
+}
+
+fn main() {
+    let words = ["listen", "silent", "enlist", "google", "gogole", "cat", "act", "dog"]
+    let groups = group(words)
+    let mut keys: Vec<string> = groups.keys().collect()
+    keys.sort()
+    for key in keys {
+        println("${key}: ${groups[key].join(", ")}")
+    }
+    let mut multi = 0
+    for key in keys {
+        if groups[key].len() > 1 {
+            multi += 1
+        }
+    }
+    println("${multi} groups with more than one word")
+}
+--- output ---
+act: cat, act
+dgo: dog
+eggloo: google, gogole
+eilnst: listen, silent, enlist
+3 groups with more than one word
+
+=== text_caesar_cipher.wj ===
+// golden: Caesar cipher
+// idiom: chars() walks a string; `as int` turns a char into a number, `as u8` then `as char` turns a number back
+fn shift_char(c: char, key: int) -> char {
+    if c >= 'a' && c <= 'z' {
+        let offset = (c as int - 'a' as int + key + 26) % 26
+        return (('a' as int + offset) as u8) as char
+    }
+    if c >= 'A' && c <= 'Z' {
+        let offset = (c as int - 'A' as int + key + 26) % 26
+        return (('A' as int + offset) as u8) as char
+    }
+    c
+}
+
+fn encrypt(text: string, key: int) -> string {
+    let mut out = ""
+    for c in text.chars() {
+        out += "${shift_char(c, key)}"
+    }
+    out
+}
+
+fn rot13(text: string) -> string {
+    encrypt(text, 13)
+}
+
+fn main() {
+    let secret = encrypt("Hello, World!", 3)
+    println(secret)
+    println(encrypt(secret, -3))
+    println(rot13("Windjammer"))
+    println(rot13(rot13("Windjammer")))
+    for key in [1, 5, 25] {
+        println("key ${key}: ${encrypt("abc xyz", key)}")
+    }
+}
+--- output ---
+Khoor, Zruog!
+Hello, World!
+Jvaqwnzzre
+Windjammer
+key 1: bcd yza
+key 5: fgh cde
+key 25: zab wxy
+
+=== text_csv_rows.wj ===
+// golden: CSV rows into records
+// idiom: parse text into a Vec of structs; parse::<int>() returns a Result, so fall back with unwrap_or
+struct Row {
+    name: string,
+    qty: int,
+    price: int,
+}
+
+fn parse_row(line: string) -> Option<Row> {
+    let cells: Vec<string> = line.split(",").collect()
+    if cells.len() != 3 {
+        return None
+    }
+    Some(Row { name: cells[0], qty: cells[1].parse::<int>().unwrap_or(0), price: cells[2].parse::<int>().unwrap_or(0) })
+}
+
+fn total(rows: Vec<Row>) -> int {
+    let mut sum = 0
+    for row in rows {
+        sum += row.qty * row.price
+    }
+    sum
+}
+
+fn main() {
+    let text = "apple,3,50\npear,2,75\nbroken line\nplum,10,20"
+    let mut rows: Vec<Row> = []
+    for line in text.lines() {
+        match parse_row(line) {
+            Some(row) => {
+                println("${row.name}: ${row.qty} x ${row.price} = ${row.qty * row.price}")
+                rows.push(row)
+            },
+            None => println("skipped: ${line}"),
+        }
+    }
+    println("${rows.len()} rows, total ${total(rows)}")
+}
+--- output ---
+apple: 3 x 50 = 150
+pear: 2 x 75 = 150
+skipped: broken line
+plum: 10 x 20 = 200
+3 rows, total 500
+
+=== text_line_wrap.wj ===
+// golden: word wrap
+// idiom: split_whitespace and a running line; Vec<string> collects output lines, join builds the text
+use std::strings
+
+fn wrap(text: string, width: int) -> Vec<string> {
+    let mut lines: Vec<string> = []
+    let mut line = ""
+    for word in strings.split_whitespace(text) {
+        if line.len() == 0 {
+            line = word
+        } else if line.len() + 1 + word.len() <= width {
+            line = "${line} ${word}"
+        } else {
+            lines.push(line)
+            line = word
+        }
+    }
+    if line.len() > 0 {
+        lines.push(line)
+    }
+    lines
+}
+
+fn pad_right(text: string, width: int) -> string {
+    let missing = width - text.len()
+    if missing <= 0 { text } else { "${text}${strings.repeat(" ", missing)}" }
+}
+
+fn main() {
+    let text = "Windjammer infers ownership so the code you write stays short and readable"
+    for line in wrap(text, 24) {
+        println("|${pad_right(line, 24)}|")
+    }
+    let narrow = wrap(text, 12)
+    println("${narrow.len()} lines at width 12")
+    println(narrow.join(" / "))
+    println("${wrap("", 10).len()} lines for empty text")
+}
+--- output ---
+|Windjammer infers       |
+|ownership so the code   |
+|you write stays short   |
+|and readable            |
+7 lines at width 12
+Windjammer / infers / ownership so / the code you / write stays / short and / readable
+0 lines for empty text
+
+=== text_palindromes.wj ===
+// golden: palindrome check
+// idiom: filter and map over chars, compare mirrored positions with an index; small pure helper functions
+fn normalize(text: string) -> Vec<char> {
+    text.chars().filter(|c| c.is_alphanumeric()).map(|c| c.to_ascii_lowercase()).collect()
+}
+
+fn is_palindrome(text: string) -> bool {
+    let cs = normalize(text)
+    let mut i = 0
+    while i < cs.len() / 2 {
+        if cs[i] != cs[cs.len() - 1 - i] {
+            return false
+        }
+        i += 1
+    }
+    true
+}
+
+fn longest_palindromic_word(text: string) -> string {
+    let mut best = ""
+    for word in text.split(" ") {
+        if is_palindrome(word) && word.len() > best.len() {
+            best = word
+        }
+    }
+    best
+}
+
+fn main() {
+    let phrases = ["A man, a plan, a canal: Panama", "hello", "Was it a car or a cat I saw?", ""]
+    for phrase in phrases {
+        println("\"${phrase}\" -> ${is_palindrome(phrase)}")
+    }
+    println("longest: ${longest_palindromic_word("a level racecar noon kayak")}")
+    println("empty longest: \"${longest_palindromic_word("abc xyz")}\"")
+}
+--- output ---
+"A man, a plan, a canal: Panama" -> true
+"hello" -> false
+"Was it a car or a cat I saw?" -> true
+"" -> true
+longest: racecar
+empty longest: ""
+
+=== text_run_length.wj ===
+// golden: run-length encoding
+// idiom: walk a Vec<char> with a while loop and an index; build output by appending interpolated pieces
+fn encode(text: string) -> string {
+    let cs: Vec<char> = text.chars().collect()
+    let mut out = ""
+    let mut i = 0
+    while i < cs.len() {
+        let c = cs[i]
+        let mut run = 1
+        while i + run < cs.len() && cs[i + run] == c {
+            run += 1
+        }
+        out += "${run}${c}"
+        i += run
+    }
+    out
+}
+
+fn decode(text: string) -> string {
+    let mut out = ""
+    let mut count = 0
+    for c in text.chars() {
+        if c.is_ascii_digit() {
+            count = count * 10 + (c as int - '0' as int)
+        } else {
+            for _ in 0..count {
+                out += "${c}"
+            }
+            count = 0
+        }
+    }
+    out
+}
+
+fn main() {
+    let samples = ["aaabccddddd", "abc", "zzzzzzzzzzzz", ""]
+    for s in samples {
+        let packed = encode(s)
+        let ok = decode(packed) == s
+        println("\"${s}\" -> \"${packed}\" round trip ${ok}")
+    }
+}
+--- output ---
+"aaabccddddd" -> "3a1b2c5d" round trip true
+"abc" -> "1a1b1c" round trip true
+"zzzzzzzzzzzz" -> "12z" round trip true
+"" -> "" round trip true
+
+=== text_template_fill.wj ===
+// golden: template substitution
+// idiom: a Vec of (key, value) tuples destructures in the for loop; strings.replace builds the result
+use std::strings
+
+fn render(template: string, values: Vec<(string, string)>) -> string {
+    let mut out = template
+    for (key, value) in values {
+        out = strings.replace(out, "{{${key}}}", value)
+    }
+    out
+}
+
+fn placeholders(template: string) -> Vec<string> {
+    let mut found: Vec<string> = []
+    for part in template.split("{{") {
+        if part.contains("}}") {
+            let pieces: Vec<string> = part.split("}}").collect()
+            found.push(pieces[0])
+        }
+    }
+    found
+}
+
+fn main() {
+    let template = "Dear {{name}}, your order {{order}} ships on {{day}}."
+    let values = [("name", "Ada"), ("order", "#1042"), ("day", "Friday")]
+    println(render(template, values))
+    println("placeholders: ${placeholders(template).join(", ")}")
+    let partial = render(template, [("name", "Grace")])
+    println(partial)
+    println("unfilled: ${placeholders(partial).len()}")
+    let banner = render("{{a}}{{b}}{{a}}", [("a", "-"), ("b", "=")])
+    println(banner)
+    println("rendered ${values.len()} values")
+}
+--- output ---
+Dear Ada, your order #1042 ships on Friday.
+placeholders: name, order, day
+Dear Grace, your order {{order}} ships on {{day}}.
+unfilled: 2
+-=-
+rendered 3 values
+
+=== text_title_case.wj ===
+// golden: title case and slug
+// idiom: string methods chain on the value; slicing uses [a..b] ranges, no & and no as_str
+use std::strings
+
+fn capitalize(word: string) -> string {
+    if word.len() == 0 {
+        return word
+    }
+    "${word[0..1].to_uppercase()}${word[1..word.len()].to_lowercase()}"
+}
+
+fn title_case(text: string) -> string {
+    let words: Vec<string> = strings.split_whitespace(text).map(|w| capitalize(w)).collect()
+    words.join(" ")
+}
+
+fn slug(text: string) -> string {
+    let words: Vec<string> = strings.split_whitespace(text).map(|w| w.to_lowercase()).collect()
+    words.join("-")
+}
+
+fn acronym(text: string) -> string {
+    let mut out = ""
+    for word in strings.split_whitespace(text) {
+        out += word[0..1].to_uppercase()
+    }
+    out
+}
+
+fn main() {
+    println(title_case("the QUICK brown fox"))
+    println(slug("Hello Windjammer World"))
+    println(acronym("portable network graphics"))
+    println(title_case("a"))
+    println("[${title_case("")}]")
+    let titles = ["rust in action", "THE PRAGMATIC PROGRAMMER", "clean code"]
+    for t in titles {
+        println("${slug(t)} => ${title_case(t)}")
+    }
+}
+--- output ---
+The Quick Brown Fox
+hello-windjammer-world
+PNG
+A
+[]
+rust-in-action => Rust In Action
+the-pragmatic-programmer => The Pragmatic Programmer
+clean-code => Clean Code
+
+=== text_word_frequency.wj ===
+// golden: word frequency
+// idiom: HashMap counting with entry().and_modify().or_insert(), then sort the keys before printing (map order is unspecified)
+use std::collections::HashMap
+
+fn count_words(text: string) -> HashMap<string, int> {
+    let mut counts: HashMap<string, int> = HashMap::new()
+    for word in text.split(" ") {
+        counts.entry(word).and_modify(|c| *c += 1).or_insert(1)
+    }
+    counts
+}
+
+fn sorted_keys(counts: HashMap<string, int>) -> Vec<string> {
+    let mut words: Vec<string> = counts.keys().collect()
+    words.sort()
+    words
+}
+
+fn most_common(counts: HashMap<string, int>) -> string {
+    let mut best = ""
+    let mut best_count = 0
+    for word in sorted_keys(counts) {
+        if counts[word] > best_count {
+            best = word
+            best_count = counts[word]
+        }
+    }
+    best
+}
+
+fn main() {
+    let text = "the cat and the dog and the bird"
+    let counts = count_words(text)
+    for word in sorted_keys(counts) {
+        println("${word}: ${counts[word]}")
+    }
+    println("most common: ${most_common(counts)}")
+    println("distinct words: ${counts.len()}")
+}
+--- output ---
+and: 2
+bird: 1
+cat: 1
+dog: 1
+the: 3
+most common: the
+distinct words: 5
+
+=== types_builder_pattern.wj ===
+// golden: builder with chained setters
+// idiom: setters take self and return Self by value; build up a config with a method chain
+struct Request {
+    method: string,
+    path: string,
+    headers: Vec<string>,
+    body: string,
+    retries: int,
+}
+
+impl Request {
+    fn new(path: string) -> Request {
+        Request { method: "GET", path: path, headers: [], body: "", retries: 0 }
+    }
+
+    fn with_method(self, m: string) -> Request {
+        Request { method: m, path: self.path, headers: self.headers, body: self.body, retries: self.retries }
+    }
+
+    fn with_header(self, h: string) -> Request {
+        let mut headers = self.headers
+        headers.push(h)
+        Request { method: self.method, path: self.path, headers: headers, body: self.body, retries: self.retries }
+    }
+
+    fn with_body(self, b: string) -> Request {
+        Request { method: self.method, path: self.path, headers: self.headers, body: b, retries: self.retries }
+    }
+
+    fn with_retries(self, n: int) -> Request {
+        Request { method: self.method, path: self.path, headers: self.headers, body: self.body, retries: n }
+    }
+
+    fn show(self) -> string {
+        let mut out = "${self.method} ${self.path}"
+        for h in self.headers {
+            out += "\n  ${h}"
+        }
+        if self.body.len() > 0 {
+            out += "\n  body: ${self.body}"
+        }
+        "${out}\n  retries: ${self.retries}"
+    }
+}
+
+fn main() {
+    let simple = Request::new("/health")
+    println(simple.show())
+    let post = Request::new("/orders").with_method("POST").with_header("Content-Type: json").with_header("X-Trace: 7").with_body("{\"id\":1}").with_retries(3)
+    println(post.show())
+}
+--- output ---
+GET /health
+  retries: 0
+POST /orders
+  Content-Type: json
+  X-Trace: 7
+  body: {"id":1}
+  retries: 3
+
+=== types_enum_shapes.wj ===
+// golden: enum with data and match
+// idiom: variants carry data; match is exhaustive; arms are expressions; struct variants name their fields
+enum Shape {
+    Circle(float),
+    Rect(float, float),
+    Triangle { base: float, height: float },
+}
+
+fn area(s: Shape) -> float {
+    match s {
+        Shape::Circle(r) => 3.14159 * r * r,
+        Shape::Rect(w, h) => w * h,
+        Shape::Triangle { base, height } => 0.5 * base * height,
+    }
+}
+
+fn name(s: Shape) -> string {
+    match s {
+        Shape::Circle(_) => "circle",
+        Shape::Rect(w, h) => if w == h { "square" } else { "rectangle" },
+        Shape::Triangle { .. } => "triangle",
+    }
+}
+
+fn describe(s: Shape) -> string {
+    "${name(s)} with area ${area(s):.2}"
+}
+
+fn main() {
+    let shapes = [
+        Shape::Circle(2.0),
+        Shape::Rect(3.0, 4.0),
+        Shape::Rect(5.0, 5.0),
+        Shape::Triangle { base: 6.0, height: 2.5 },
+    ]
+    let mut total = 0.0
+    for s in shapes {
+        println(describe(s))
+        total += area(s)
+    }
+    println("total area ${total:.2}")
+}
+--- output ---
+circle with area 12.57
+rectangle with area 12.00
+square with area 25.00
+triangle with area 7.50
+total area 57.07
+
+=== types_generic_container.wj ===
+// golden: generic container
+// idiom: struct Stack<T> with generic methods; the compiler infers T from usage, no turbofish needed
+struct Stack<T> {
+    items: Vec<T>,
+}
+
+impl<T> Stack<T> {
+    fn new() -> Stack<T> {
+        Stack { items: [] }
+    }
+
+    fn push(self, item: T) {
+        self.items.push(item)
+    }
+
+    fn pop(self) -> Option<T> {
+        self.items.pop()
+    }
+
+    fn peek(self) -> Option<T> {
+        if self.items.len() == 0 {
+            return None
+        }
+        Some(self.items[self.items.len() - 1])
+    }
+
+    fn size(self) -> int {
+        self.items.len()
+    }
+
+    fn is_empty(self) -> bool {
+        self.items.len() == 0
+    }
+}
+
+fn main() {
+    let mut numbers: Stack<int> = Stack::new()
+    numbers.push(10)
+    numbers.push(20)
+    numbers.push(30)
+    println("size ${numbers.size()}, top ${numbers.peek() ?? -1}")
+    println("popped ${numbers.pop() ?? -1}")
+    println("size ${numbers.size()}, empty ${numbers.is_empty()}")
+    let mut words: Stack<string> = Stack::new()
+    words.push("alpha")
+    words.push("beta")
+    println("words top ${words.peek() ?? "none"}")
+    let mut empty: Stack<string> = Stack::new()
+    println("empty pop ${empty.pop() ?? "nothing"}")
+}
+--- output ---
+size 3, top 30
+popped 30
+size 2, empty false
+words top beta
+empty pop nothing
+
+=== types_newtype_units.wj ===
+// golden: small structs as units
+// idiom: wrap a number in a struct so meters and seconds cannot mix; derive-free equality and ordering by field
+struct Meters {
+    value: float,
+}
+
+struct Seconds {
+    value: float,
+}
+
+struct Speed {
+    mps: float,
+}
+
+fn speed(distance: Meters, time: Seconds) -> Speed {
+    Speed { mps: distance.value / time.value }
+}
+
+fn kmh(s: Speed) -> float {
+    s.mps * 3.6
+}
+
+fn faster(a: Speed, b: Speed) -> Speed {
+    if a.mps >= b.mps { a } else { b }
+}
+
+fn main() {
+    let sprint = speed(Meters { value: 100.0 }, Seconds { value: 9.58 })
+    let marathon = speed(Meters { value: 42195.0 }, Seconds { value: 7299.0 })
+    println("sprint ${sprint.mps:.2} m/s = ${kmh(sprint):.1} km/h")
+    println("marathon ${marathon.mps:.2} m/s = ${kmh(marathon):.1} km/h")
+    let winner = faster(sprint, marathon)
+    println("faster: ${winner.mps:.2} m/s")
+    let same = Meters { value: 5.0 } == Meters { value: 5.0 }
+    println("equal values compare equal: ${same}")
+}
+--- output ---
+sprint 10.44 m/s = 37.6 km/h
+marathon 5.78 m/s = 20.8 km/h
+faster: 10.44 m/s
+equal values compare equal: true
+
+=== types_option_chaining.wj ===
+// golden: Option handling
+// idiom: match, if let, `??` default, map and and_then chain Option values without unwrap
+struct User {
+    name: string,
+    email: Option<string>,
+    age: Option<int>,
+}
+
+fn domain(email: string) -> Option<string> {
+    let parts: Vec<string> = email.split("@").collect()
+    if parts.len() == 2 { Some(parts[1]) } else { None }
+}
+
+fn email_domain(u: User) -> Option<string> {
+    u.email.and_then(|e| domain(e))
+}
+
+fn age_group(u: User) -> string {
+    match u.age {
+        Some(a) if a < 18 => "minor",
+        Some(a) if a < 65 => "adult",
+        Some(_) => "senior",
+        None => "unknown",
+    }
+}
+
+fn main() {
+    let users = [
+        User { name: "ann", email: Some("ann@example.com"), age: Some(34) },
+        User { name: "bob", email: None, age: Some(15) },
+        User { name: "cy", email: Some("not-an-email"), age: None },
+        User { name: "di", email: Some("di@wj.dev"), age: Some(70) },
+    ]
+    for u in users {
+        let who = u.name
+        let shown = email_domain(u) ?? "no domain"
+        println("${who}: ${shown}, ${age_group(u)}")
+        if let Some(a) = u.age {
+            println("  next year ${a + 1}")
+        }
+    }
+    let doubled = Some(21).map(|x| x * 2)
+    println("doubled ${doubled ?? 0}")
+}
+--- output ---
+ann: example.com, adult
+  next year 35
+bob: no domain, minor
+  next year 16
+cy: no domain, unknown
+di: wj.dev, senior
+  next year 71
+doubled 42
+
+=== types_struct_methods.wj ===
+// golden: struct with methods
+// idiom: methods take plain self; the compiler infers read, mutate or consume; mutation needs a `let mut` owner
+struct Counter {
+    name: string,
+    count: int,
+    step: int,
+}
+
+impl Counter {
+    fn new(name: string, step: int) -> Counter {
+        Counter { name: name, count: 0, step: step }
+    }
+
+    fn tick(self) {
+        self.count += self.step
+    }
+
+    fn reset(self) {
+        self.count = 0
+    }
+
+    fn describe(self) -> string {
+        "${self.name}=${self.count}"
+    }
+
+    fn is_past(self, limit: int) -> bool {
+        self.count > limit
+    }
+}
+
+fn main() {
+    let mut a = Counter::new("a", 1)
+    let mut b = Counter::new("b", 5)
+    for _ in 0..3 {
+        a.tick()
+        b.tick()
+    }
+    println(a.describe())
+    println(b.describe())
+    println("b past 10: ${b.is_past(10)}")
+    b.reset()
+    println("after reset: ${b.describe()}")
+    println("a past 10: ${a.is_past(10)}")
+}
+--- output ---
+a=3
+b=15
+b past 10: true
+after reset: b=0
+a past 10: false
+
+=== types_trait_shapes.wj ===
+// golden: traits and implementations
+// idiom: a trait lists method signatures with plain self; each type implements it; generics accept any implementor
+trait Describe {
+    fn describe(&self) -> string
+}
+
+struct Dog {
+    name: string,
+    age: int,
+}
+
+struct Robot {
+    model: string,
+    battery: int,
+}
+
+impl Describe for Dog {
+    fn describe(self) -> string {
+        "${self.name} the dog, ${self.age} years old"
+    }
+}
+
+impl Describe for Robot {
+    fn describe(self) -> string {
+        "robot ${self.model} at ${self.battery}% battery"
+    }
+}
+
+fn announce<T: Describe>(item: T) {
+    println("-> ${item.describe()}")
+}
+
+fn longest<T: Describe>(a: T, b: T) -> string {
+    let da = a.describe()
+    let db = b.describe()
+    if da.len() >= db.len() { da } else { db }
+}
+
+fn main() {
+    let rex = Dog { name: "Rex", age: 4 }
+    let bolt = Dog { name: "Bolt", age: 11 }
+    let r2 = Robot { model: "R2", battery: 80 }
+    announce(rex)
+    announce(r2)
+    println(longest(rex, bolt))
+    println("done")
+}
+--- output ---
+-> Rex the dog, 4 years old
+-> robot R2 at 80% battery
+Bolt the dog, 11 years old
+done
+

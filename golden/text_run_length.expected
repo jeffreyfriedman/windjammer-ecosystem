@@ -1,0 +1,4 @@
+"aaabccddddd" -> "3a1b2c5d" round trip true
+"abc" -> "1a1b1c" round trip true
+"zzzzzzzzzzzz" -> "12z" round trip true
+"" -> "" round trip true

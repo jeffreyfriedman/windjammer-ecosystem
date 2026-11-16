@@ -1,0 +1,54 @@
+// golden: order lifecycle with allowed transitions
+// idiom: list the legal transitions in one match; illegal ones return Err with both state names
+enum Status {
+    Draft,
+    Paid,
+    Shipped,
+    Delivered,
+    Cancelled,
+}
+
+fn name(s: Status) -> string {
+    match s {
+        Status::Draft => "draft",
+        Status::Paid => "paid",
+        Status::Shipped => "shipped",
+        Status::Delivered => "delivered",
+        Status::Cancelled => "cancelled",
+    }
+}
+
+fn advance(from: Status, to: Status) -> Result<Status, string> {
+    match (from, to) {
+        (Status::Draft, Status::Paid) => Ok(Status::Paid),
+        (Status::Paid, Status::Shipped) => Ok(Status::Shipped),
+        (Status::Shipped, Status::Delivered) => Ok(Status::Delivered),
+        (Status::Draft, Status::Cancelled) => Ok(Status::Cancelled),
+        (Status::Paid, Status::Cancelled) => Ok(Status::Cancelled),
+        (a, b) => Err("cannot go from ${name(a)} to ${name(b)}"),
+    }
+}
+
+fn run(steps: Vec<Status>) {
+    let mut current = Status::Draft
+    for target in steps {
+        match advance(current, target) {
+            Ok(next) => {
+                println("${name(current)} -> ${name(next)}")
+                current = next
+            },
+            Err(e) => {
+                println("stop: ${e}")
+                return
+            },
+        }
+    }
+    println("finished in ${name(current)}")
+}
+
+fn main() {
+    run([Status::Paid, Status::Shipped, Status::Delivered])
+    run([Status::Paid, Status::Cancelled])
+    run([Status::Shipped])
+    run([Status::Cancelled, Status::Paid])
+}

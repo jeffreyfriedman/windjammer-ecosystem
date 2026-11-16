@@ -1,0 +1,35 @@
+// golden: create and list a directory
+// idiom: create_dir_all, write files, read_dir returns entries with name(); sort names for stable output
+use std::fs
+use std::env
+
+fn main() {
+    let dir = "${env::temp_dir()}/wj-golden-dir"
+    let _ = fs.remove_dir_all(dir)
+    match fs.create_dir_all("${dir}/notes") {
+        Ok(_) => println("created ${fs.is_dir(dir)}"),
+        Err(e) => println("create failed: ${e}"),
+    }
+    let files = [("a.txt", "one"), ("b.txt", "two words"), ("c.md", "# title")]
+    for (name, body) in files {
+        let _ = fs.write("${dir}/${name}", body)
+    }
+    let _ = fs.write("${dir}/notes/todo.txt", "write more tests")
+    let mut names: Vec<string> = []
+    for entry in fs.read_dir(dir) ?? [] {
+        let kind = if entry.is_dir() { "dir" } else { "file" }
+        names.push("${entry.name()} (${kind})")
+    }
+    names.sort()
+    for n in names {
+        println(n)
+    }
+    let mut total = 0
+    for name in ["a.txt", "b.txt", "c.md"] {
+        let text = fs.read_to_string("${dir}/${name}") ?? ""
+        total += text.len()
+    }
+    println("${total} bytes in top-level files")
+    let _ = fs.remove_dir_all(dir)
+    println("cleaned up: ${!fs.exists(dir)}")
+}

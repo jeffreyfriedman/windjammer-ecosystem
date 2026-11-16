@@ -1,0 +1,8 @@
+good: valid
+bad: 4 problem(s)
+  - name is too short
+  - email looks invalid
+  - age 7 is out of range
+  - password needs at least 8 characters
+almost: 1 problem(s)
+  - age 200 is out of range

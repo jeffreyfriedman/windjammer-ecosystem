@@ -1,0 +1,50 @@
+// golden: generic container
+// idiom: struct Stack<T> with generic methods; the compiler infers T from usage, no turbofish needed
+struct Stack<T> {
+    items: Vec<T>,
+}
+
+impl<T> Stack<T> {
+    fn new() -> Stack<T> {
+        Stack { items: [] }
+    }
+
+    fn push(self, item: T) {
+        self.items.push(item)
+    }
+
+    fn pop(self) -> Option<T> {
+        self.items.pop()
+    }
+
+    fn peek(self) -> Option<T> {
+        if self.items.len() == 0 {
+            return None
+        }
+        Some(self.items[self.items.len() - 1])
+    }
+
+    fn size(self) -> int {
+        self.items.len()
+    }
+
+    fn is_empty(self) -> bool {
+        self.items.len() == 0
+    }
+}
+
+fn main() {
+    let mut numbers: Stack<int> = Stack::new()
+    numbers.push(10)
+    numbers.push(20)
+    numbers.push(30)
+    println("size ${numbers.size()}, top ${numbers.peek() ?? -1}")
+    println("popped ${numbers.pop() ?? -1}")
+    println("size ${numbers.size()}, empty ${numbers.is_empty()}")
+    let mut words: Stack<string> = Stack::new()
+    words.push("alpha")
+    words.push("beta")
+    println("words top ${words.peek() ?? "none"}")
+    let mut empty: Stack<string> = Stack::new()
+    println("empty pop ${empty.pop() ?? "nothing"}")
+}

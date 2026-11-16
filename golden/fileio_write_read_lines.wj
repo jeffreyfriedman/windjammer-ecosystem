@@ -1,0 +1,45 @@
+// golden: write a file and read it back
+// idiom: fs.write / fs.read_to_string return Result; match them; temp files live under env::temp_dir()
+use std::fs
+use std::env
+
+fn scratch(name: string) -> string {
+    "${env::temp_dir()}/wj-golden-${name}"
+}
+
+fn save(path: string, lines: Vec<string>) -> Result<(), string> {
+    fs.write(path, "${lines.join("\n")}\n")
+}
+
+fn load(path: string) -> Result<Vec<string>, string> {
+    let text = fs.read_to_string(path)?
+    let mut lines: Vec<string> = []
+    for line in text.lines() {
+        lines.push(line)
+    }
+    Ok(lines)
+}
+
+fn main() {
+    let path = scratch("lines.txt")
+    match save(path, ["alpha", "beta", "gamma"]) {
+        Ok(_) => println("saved"),
+        Err(e) => println("save failed: ${e}"),
+    }
+    match load(path) {
+        Ok(lines) => {
+            println("read ${lines.len()} lines")
+            for (i, line) in lines.enumerate() {
+                println("${i + 1}: ${line}")
+            }
+        },
+        Err(e) => println("load failed: ${e}"),
+    }
+    println("exists: ${fs.exists(path)}")
+    let _ = fs.remove_file(path)
+    println("exists after remove: ${fs.exists(path)}")
+    match load(path) {
+        Ok(_) => println("unexpected"),
+        Err(_) => println("reading a missing file is an Err, not a crash"),
+    }
+}

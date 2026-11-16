@@ -1,0 +1,59 @@
+// golden: account with a transaction history
+// idiom: a struct holds balance and a Vec of entries; every change goes through one method that validates and records it
+struct Entry {
+    kind: string,
+    amount: int,
+    balance_after: int,
+}
+
+struct Account {
+    owner: string,
+    balance: int,
+    history: Vec<Entry>,
+}
+
+impl Account {
+    fn deposit(self, amount: int) -> Result<int, string> {
+        if amount <= 0 {
+            return Err("deposit must be positive")
+        }
+        self.balance += amount
+        self.history.push(Entry { kind: "deposit", amount: amount, balance_after: self.balance })
+        Ok(self.balance)
+    }
+
+    fn withdraw(self, amount: int) -> Result<int, string> {
+        if amount <= 0 {
+            return Err("withdrawal must be positive")
+        }
+        if amount > self.balance {
+            return Err("insufficient funds: balance ${self.balance}, requested ${amount}")
+        }
+        self.balance -= amount
+        self.history.push(Entry { kind: "withdrawal", amount: amount, balance_after: self.balance })
+        Ok(self.balance)
+    }
+
+    fn statement(self) {
+        println("statement for ${self.owner}")
+        for e in self.history {
+            println("  ${e.kind:<10} ${e.amount:>6} -> ${e.balance_after:>6}")
+        }
+    }
+}
+
+fn main() {
+    let mut acct = Account { owner: "Ada", balance: 0, history: [] }
+    let _ = acct.deposit(500)
+    let _ = acct.withdraw(120)
+    match acct.withdraw(1000) {
+        Ok(b) => println("balance ${b}"),
+        Err(e) => println("refused: ${e}"),
+    }
+    let _ = acct.deposit(75)
+    match acct.deposit(-5) {
+        Ok(b) => println("balance ${b}"),
+        Err(e) => println("refused: ${e}"),
+    }
+    acct.statement()
+}

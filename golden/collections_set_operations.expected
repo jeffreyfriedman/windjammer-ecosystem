@@ -1,0 +1,6 @@
+a = [1, 2, 3, 4, 5]
+b = [4, 5, 6, 7]
+union = [1, 2, 3, 4, 5, 6, 7]
+intersection = [4, 5]
+a has 3: true, b has 3: false
+unique count: 5

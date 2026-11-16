@@ -1,0 +1,54 @@
+// golden: vending machine with money state
+// idiom: a struct holds the state; methods validate and update it; Result carries the refusal reason
+struct Machine {
+    credit: int,
+    stock: int,
+    price: int,
+    sales: int,
+}
+
+impl Machine {
+    fn insert(self, coins: int) {
+        self.credit += coins
+    }
+
+    fn press(self) -> Result<string, string> {
+        if self.stock == 0 {
+            return Err("sold out")
+        }
+        if self.credit < self.price {
+            return Err("need ${self.price - self.credit} more")
+        }
+        self.credit -= self.price
+        self.stock -= 1
+        self.sales += self.price
+        Ok("dispensed")
+    }
+
+    fn refund(self) -> int {
+        let back = self.credit
+        self.credit = 0
+        back
+    }
+}
+
+fn attempt(m: Machine) {
+    match m.press() {
+        Ok(msg) => println("press: ${msg}"),
+        Err(e) => println("press: refused (${e})"),
+    }
+}
+
+fn main() {
+    let mut m = Machine { credit: 0, stock: 2, price: 75, sales: 0 }
+    attempt(m)
+    m.insert(50)
+    attempt(m)
+    m.insert(50)
+    attempt(m)
+    println("credit left ${m.credit}")
+    m.insert(100)
+    attempt(m)
+    attempt(m)
+    println("refund ${m.refund()}, sales ${m.sales}, stock ${m.stock}")
+}

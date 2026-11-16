@@ -1,0 +1,50 @@
+// golden: shortest paths with Dijkstra
+// idiom: edges as (to, weight) tuples per node; a simple "pick the closest unvisited node" loop, no priority queue needed at this size
+fn dijkstra(graph: Vec<Vec<(int, int)>>, start: int) -> Vec<int> {
+    let infinity = 1000000000
+    let mut dist: Vec<int> = []
+    let mut done: Vec<bool> = []
+    for _ in 0..graph.len() {
+        dist.push(infinity)
+        done.push(false)
+    }
+    dist[start] = 0
+    for _ in 0..graph.len() {
+        let mut best = -1
+        for i in 0..graph.len() {
+            if !done[i] && dist[i] < infinity && (best == -1 || dist[i] < dist[best]) {
+                best = i
+            }
+        }
+        if best == -1 {
+            break
+        }
+        done[best] = true
+        for (to, weight) in graph[best] {
+            if dist[best] + weight < dist[to] {
+                dist[to] = dist[best] + weight
+            }
+        }
+    }
+    dist
+}
+
+fn main() {
+    let graph = [
+        [(1, 7), (2, 9), (5, 14)],
+        [(0, 7), (2, 10), (3, 15)],
+        [(0, 9), (1, 10), (3, 11), (5, 2)],
+        [(1, 15), (2, 11), (4, 6)],
+        [(3, 6), (5, 9)],
+        [(0, 14), (2, 2), (4, 9)],
+        [],
+    ]
+    let dist = dijkstra(graph, 0)
+    for i in 0..dist.len() {
+        if dist[i] == 1000000000 {
+            println("node ${i}: unreachable")
+        } else {
+            println("node ${i}: ${dist[i]}")
+        }
+    }
+}

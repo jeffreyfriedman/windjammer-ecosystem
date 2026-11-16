@@ -1,0 +1,5 @@
+a=3
+b=15
+b past 10: true
+after reset: b=0
+a past 10: false

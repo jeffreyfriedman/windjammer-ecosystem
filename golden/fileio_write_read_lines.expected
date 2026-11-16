@@ -1,0 +1,8 @@
+saved
+read 3 lines
+1: alpha
+2: beta
+3: gamma
+exists: true
+exists after remove: false
+reading a missing file is an Err, not a crash

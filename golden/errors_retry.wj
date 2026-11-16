@@ -1,0 +1,43 @@
+// golden: retry with a counter
+// idiom: loop with an attempt counter; a Result-returning step is retried until Ok or the budget runs out
+fn flaky(attempt: int) -> Result<string, string> {
+    if attempt < 3 {
+        Err("timeout on attempt ${attempt}")
+    } else {
+        Ok("connected on attempt ${attempt}")
+    }
+}
+
+fn with_retries(max_attempts: int) -> Result<string, string> {
+    let mut attempt = 1
+    let mut last_error = "never tried"
+    while attempt <= max_attempts {
+        match flaky(attempt) {
+            Ok(msg) => return Ok(msg),
+            Err(e) => {
+                println("  retrying after: ${e}")
+                last_error = e
+            },
+        }
+        attempt += 1
+    }
+    Err("gave up after ${max_attempts} attempts, last error: ${last_error}")
+}
+
+fn backoff_ms(attempt: int) -> int {
+    let mut delay = 100
+    for _ in 1..attempt {
+        delay *= 2
+    }
+    delay
+}
+
+fn main() {
+    println("budget 5:")
+    println("${with_retries(5):?}")
+    println("budget 2:")
+    println("${with_retries(2):?}")
+    for n in 1..=5 {
+        println("attempt ${n} waits ${backoff_ms(n)}ms")
+    }
+}

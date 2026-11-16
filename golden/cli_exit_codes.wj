@@ -1,0 +1,39 @@
+// golden: exit status from main logic
+// idiom: compute an exit code in a pure function; main reports it and only then calls process::exit
+use std::process
+
+fn check(args: Vec<string>) -> int {
+    if args.len() == 0 {
+        println("error: no input given")
+        return 2
+    }
+    for a in args {
+        if a.parse::<int>().is_err() {
+            println("error: ${a} is not a number")
+            return 1
+        }
+    }
+    println("all ${args.len()} inputs are numbers")
+    0
+}
+
+fn label(code: int) -> string {
+    match code {
+        0 => "success",
+        1 => "bad input",
+        2 => "usage error",
+        _ => "unknown",
+    }
+}
+
+fn main() {
+    for args in [["1", "2", "3"], ["4", "x"], []] {
+        let code = check(args)
+        println("exit ${code} (${label(code)})")
+    }
+    let final_code = check(["7"])
+    if final_code != 0 {
+        process.exit(final_code)
+    }
+    println("finished cleanly")
+}

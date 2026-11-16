@@ -1,0 +1,42 @@
+// golden: run-length encoding
+// idiom: walk a Vec<char> with a while loop and an index; build output by appending interpolated pieces
+fn encode(text: string) -> string {
+    let cs: Vec<char> = text.chars().collect()
+    let mut out = ""
+    let mut i = 0
+    while i < cs.len() {
+        let c = cs[i]
+        let mut run = 1
+        while i + run < cs.len() && cs[i + run] == c {
+            run += 1
+        }
+        out += "${run}${c}"
+        i += run
+    }
+    out
+}
+
+fn decode(text: string) -> string {
+    let mut out = ""
+    let mut count = 0
+    for c in text.chars() {
+        if c.is_ascii_digit() {
+            count = count * 10 + (c as int - '0' as int)
+        } else {
+            for _ in 0..count {
+                out += "${c}"
+            }
+            count = 0
+        }
+    }
+    out
+}
+
+fn main() {
+    let samples = ["aaabccddddd", "abc", "zzzzzzzzzzzz", ""]
+    for s in samples {
+        let packed = encode(s)
+        let ok = decode(packed) == s
+        println("\"${s}\" -> \"${packed}\" round trip ${ok}")
+    }
+}

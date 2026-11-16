@@ -1,0 +1,47 @@
+// golden: seeded random walk
+// idiom: a small struct owns the generator state; methods mutate it; results are fully deterministic
+struct Walker {
+    seed: int,
+    x: int,
+    y: int,
+    steps: int,
+}
+
+impl Walker {
+    fn roll(self) -> int {
+        self.seed = (self.seed * 1103515245 + 12345) % 2147483648
+        self.seed / 65536 % 4
+    }
+
+    fn step(self) {
+        let dir = self.roll()
+        match dir {
+            0 => { self.x += 1 },
+            1 => { self.x -= 1 },
+            2 => { self.y += 1 },
+            _ => { self.y -= 1 },
+        }
+        self.steps += 1
+    }
+
+    fn distance(self) -> int {
+        let dx = if self.x < 0 { 0 - self.x } else { self.x }
+        let dy = if self.y < 0 { 0 - self.y } else { self.y }
+        dx + dy
+    }
+}
+
+fn main() {
+    let mut w = Walker { seed: 7, x: 0, y: 0, steps: 0 }
+    let mut farthest = 0
+    for i in 0..50 {
+        w.step()
+        if w.distance() > farthest {
+            farthest = w.distance()
+        }
+        if (i + 1) % 10 == 0 {
+            println("after ${w.steps} steps at (${w.x}, ${w.y}), distance ${w.distance()}")
+        }
+    }
+    println("farthest distance ${farthest}")
+}

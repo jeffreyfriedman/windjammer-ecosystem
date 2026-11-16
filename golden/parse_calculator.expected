@@ -1,0 +1,7 @@
+1 + 2 * 3 = 7
+(1 + 2) * 3 = 9
+10 / (5 - 5) -> error: division by zero
+2 * (3 + 4) - 5 = 9
+2 $ 3 -> error: unexpected character '$'
+(1 + 2 -> error: missing )
+4 + -> error: unexpected end of input

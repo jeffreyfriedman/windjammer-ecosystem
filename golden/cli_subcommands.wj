@@ -1,0 +1,61 @@
+// golden: subcommand dispatch
+// idiom: match on the first argument string; each command is a function; usage text for the fallback
+fn usage() -> string {
+    "usage: tool <add|mul|neg|help> [numbers...]"
+}
+
+fn numbers(args: Vec<string>) -> Result<Vec<int>, string> {
+    let mut out: Vec<int> = []
+    for a in args {
+        out.push(a.parse::<int>().map_err(|_| "not a number: ${a}")?)
+    }
+    Ok(out)
+}
+
+fn add(nums: Vec<int>) -> int {
+    let mut total = 0
+    for n in nums {
+        total += n
+    }
+    total
+}
+
+fn mul(nums: Vec<int>) -> int {
+    let mut total = 1
+    for n in nums {
+        total *= n
+    }
+    total
+}
+
+fn dispatch(args: Vec<string>) -> string {
+    if args.len() == 0 {
+        return usage()
+    }
+    let rest: Vec<string> = args.skip(1).collect()
+    match args[0] {
+        "add" => match numbers(rest) {
+            Ok(n) => "sum = ${add(n)}",
+            Err(e) => "error: ${e}",
+        },
+        "mul" => match numbers(rest) {
+            Ok(n) => "product = ${mul(n)}",
+            Err(e) => "error: ${e}",
+        },
+        "neg" => match numbers(rest) {
+            Ok(n) => "negated = ${n.map(|x| 0 - x).collect():?}",
+            Err(e) => "error: ${e}",
+        },
+        "help" => usage(),
+        other => "unknown command '${other}'; ${usage()}",
+    }
+}
+
+fn main() {
+    println(dispatch(["add", "1", "2", "3"]))
+    println(dispatch(["mul", "4", "5"]))
+    println(dispatch(["neg", "1", "-2"]))
+    println(dispatch(["add", "1", "x"]))
+    println(dispatch(["frobnicate"]))
+    println(dispatch([]))
+}

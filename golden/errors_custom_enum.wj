@@ -1,0 +1,55 @@
+// golden: custom error enum
+// idiom: an enum names every failure; a message method turns it into text; match handles each case
+enum BankError {
+    Insufficient(int, int),
+    UnknownAccount(string),
+    Frozen,
+}
+
+fn message(e: BankError) -> string {
+    match e {
+        BankError::Insufficient(have, need) => "insufficient funds: have ${have}, need ${need}",
+        BankError::UnknownAccount(name) => "no such account: ${name}",
+        BankError::Frozen => "account is frozen",
+    }
+}
+
+struct Account {
+    name: string,
+    balance: int,
+    frozen: bool,
+}
+
+fn withdraw(acct: Account, amount: int) -> Result<Account, BankError> {
+    if acct.frozen {
+        return Err(BankError::Frozen)
+    }
+    if acct.balance < amount {
+        return Err(BankError::Insufficient(acct.balance, amount))
+    }
+    Ok(Account { name: acct.name, balance: acct.balance - amount, frozen: false })
+}
+
+fn lookup(accounts: Vec<Account>, name: string) -> Result<Account, BankError> {
+    for a in accounts {
+        if a.name == name {
+            return Ok(a)
+        }
+    }
+    Err(BankError::UnknownAccount(name))
+}
+
+fn main() {
+    let accounts = [
+        Account { name: "ann", balance: 100, frozen: false },
+        Account { name: "bob", balance: 20, frozen: false },
+        Account { name: "cy", balance: 500, frozen: true },
+    ]
+    for (name, amount) in [("ann", 30), ("bob", 50), ("cy", 10), ("dee", 5)] {
+        let result = lookup(accounts, name).and_then(|a| withdraw(a, amount))
+        match result {
+            Ok(a) => println("${name}: ok, balance now ${a.balance}"),
+            Err(e) => println("${name}: ${message(e)}"),
+        }
+    }
+}

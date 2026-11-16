@@ -1,0 +1,8 @@
+hello, Ada
+hello, Ada
+verbose=true files=["a.txt", "b.txt"]
+hello, world
+verbose=false files=[]
+error: bad count: many
+error: --name needs a value
+error: unknown flag: --bogus

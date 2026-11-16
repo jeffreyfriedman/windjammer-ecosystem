@@ -1,0 +1,44 @@
+// golden: Option handling
+// idiom: match, if let, `??` default, map and and_then chain Option values without unwrap
+struct User {
+    name: string,
+    email: Option<string>,
+    age: Option<int>,
+}
+
+fn domain(email: string) -> Option<string> {
+    let parts: Vec<string> = email.split("@").collect()
+    if parts.len() == 2 { Some(parts[1]) } else { None }
+}
+
+fn email_domain(u: User) -> Option<string> {
+    u.email.and_then(|e| domain(e))
+}
+
+fn age_group(u: User) -> string {
+    match u.age {
+        Some(a) if a < 18 => "minor",
+        Some(a) if a < 65 => "adult",
+        Some(_) => "senior",
+        None => "unknown",
+    }
+}
+
+fn main() {
+    let users = [
+        User { name: "ann", email: Some("ann@example.com"), age: Some(34) },
+        User { name: "bob", email: None, age: Some(15) },
+        User { name: "cy", email: Some("not-an-email"), age: None },
+        User { name: "di", email: Some("di@wj.dev"), age: Some(70) },
+    ]
+    for u in users {
+        let who = u.name
+        let shown = email_domain(u) ?? "no domain"
+        println("${who}: ${shown}, ${age_group(u)}")
+        if let Some(a) = u.age {
+            println("  next year ${a + 1}")
+        }
+    }
+    let doubled = Some(21).map(|x| x * 2)
+    println("doubled ${doubled ?? 0}")
+}

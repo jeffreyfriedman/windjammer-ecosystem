@@ -1,0 +1,52 @@
+// golden: double-entry bookkeeping
+// idiom: every transaction is a list of postings that must sum to zero; a HashMap keeps the total per account
+use std::collections::HashMap
+
+struct Posting {
+    account: string,
+    amount: int,
+}
+
+fn balanced(postings: Vec<Posting>) -> bool {
+    let mut sum = 0
+    for p in postings {
+        sum += p.amount
+    }
+    sum == 0
+}
+
+fn post(books: HashMap<string, int>, postings: Vec<Posting>) -> Result<HashMap<string, int>, string> {
+    if !balanced(postings) {
+        return Err("postings do not sum to zero")
+    }
+    let mut next = books
+    for p in postings {
+        let current = next.get(p.account) ?? 0
+        next.insert(p.account, current + p.amount)
+    }
+    Ok(next)
+}
+
+fn main() {
+    let mut books: HashMap<string, int> = HashMap::new()
+    let entries = [
+        [Posting { account: "cash", amount: 1000 }, Posting { account: "equity", amount: -1000 }],
+        [Posting { account: "inventory", amount: 400 }, Posting { account: "cash", amount: -400 }],
+        [Posting { account: "cash", amount: 150 }, Posting { account: "sales", amount: -100 }],
+        [Posting { account: "cash", amount: 90 }, Posting { account: "sales", amount: -90 }],
+    ]
+    for postings in entries {
+        match post(books, postings) {
+            Ok(next) => books = next,
+            Err(e) => println("rejected: ${e}"),
+        }
+    }
+    let mut names: Vec<string> = books.keys().collect()
+    names.sort()
+    let mut total = 0
+    for name in names {
+        println("${name:<10} ${books[name]:>6}")
+        total += books[name]
+    }
+    println("books balance: ${total == 0}")
+}

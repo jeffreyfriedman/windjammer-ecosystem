@@ -1,0 +1,7 @@
+"(a[b]{c})" balanced: true
+"(]" balanced: false
+"((" balanced: false
+"" balanced: true
+serving ann
+next bob, waiting 2
+top 4, size 3

@@ -1,0 +1,36 @@
+// golden: optional and renamed JSON fields
+// idiom: Option<T> fields may be missing or null; @json(rename = ...) maps a wire name to a field
+use std::json
+
+struct Profile {
+    @json(rename = "userName")
+    name: string,
+    nickname: Option<string>,
+    age: Option<int>,
+}
+
+fn describe(p: Profile) -> string {
+    let nick = p.nickname ?? "(none)"
+    let age = match p.age {
+        Some(a) => "${a}",
+        None => "unknown",
+    }
+    "${p.name} aka ${nick}, age ${age}"
+}
+
+fn show(text: string) {
+    let parsed: Result<Profile, string> = json.parse_string(text)
+    match parsed {
+        Ok(p) => println(describe(p)),
+        Err(e) => println("error: ${e}"),
+    }
+}
+
+fn main() {
+    show("{\"userName\":\"ada\",\"nickname\":\"countess\",\"age\":36}")
+    show("{\"userName\":\"grace\"}")
+    show("{\"userName\":\"linus\",\"nickname\":null,\"age\":null}")
+    show("{\"name\":\"wrong key\"}")
+    let out = Profile { name: "ken", nickname: None, age: Some(80) }
+    println(json.to_string(out) ?? "")
+}

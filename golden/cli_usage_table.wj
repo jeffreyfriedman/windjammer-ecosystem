@@ -1,0 +1,53 @@
+// golden: help text from a table
+// idiom: a Vec of structs describes the flags once; help and parsing both read it; padding aligns the columns
+use std::strings
+
+struct Flag {
+    short: string,
+    long: string,
+    help: string,
+}
+
+fn flags() -> Vec<Flag> {
+    [
+        Flag { short: "-h", long: "--help", help: "show this message" },
+        Flag { short: "-v", long: "--verbose", help: "print more detail" },
+        Flag { short: "-o", long: "--output", help: "write results to a file" },
+        Flag { short: "-q", long: "--quiet", help: "print nothing but errors" },
+    ]
+}
+
+fn pad(text: string, width: int) -> string {
+    let missing = width - text.len()
+    if missing <= 0 { text } else { "${text}${strings.repeat(" ", missing)}" }
+}
+
+fn help() -> string {
+    let mut longest = 0
+    for f in flags() {
+        if f.long.len() > longest {
+            longest = f.long.len()
+        }
+    }
+    let mut out = "options:"
+    for f in flags() {
+        out += "\n  ${f.short}, ${pad(f.long, longest)}  ${f.help}"
+    }
+    out
+}
+
+fn is_known(arg: string) -> bool {
+    for f in flags() {
+        if arg == f.short || arg == f.long {
+            return true
+        }
+    }
+    false
+}
+
+fn main() {
+    println(help())
+    for arg in ["-v", "--output", "--nope"] {
+        println("${arg} known: ${is_known(arg)}")
+    }
+}

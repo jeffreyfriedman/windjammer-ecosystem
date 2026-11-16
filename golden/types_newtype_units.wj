@@ -1,0 +1,36 @@
+// golden: small structs as units
+// idiom: wrap a number in a struct so meters and seconds cannot mix; derive-free equality and ordering by field
+struct Meters {
+    value: float,
+}
+
+struct Seconds {
+    value: float,
+}
+
+struct Speed {
+    mps: float,
+}
+
+fn speed(distance: Meters, time: Seconds) -> Speed {
+    Speed { mps: distance.value / time.value }
+}
+
+fn kmh(s: Speed) -> float {
+    s.mps * 3.6
+}
+
+fn faster(a: Speed, b: Speed) -> Speed {
+    if a.mps >= b.mps { a } else { b }
+}
+
+fn main() {
+    let sprint = speed(Meters { value: 100.0 }, Seconds { value: 9.58 })
+    let marathon = speed(Meters { value: 42195.0 }, Seconds { value: 7299.0 })
+    println("sprint ${sprint.mps:.2} m/s = ${kmh(sprint):.1} km/h")
+    println("marathon ${marathon.mps:.2} m/s = ${kmh(marathon):.1} km/h")
+    let winner = faster(sprint, marathon)
+    println("faster: ${winner.mps:.2} m/s")
+    let same = Meters { value: 5.0 } == Meters { value: 5.0 }
+    println("equal values compare equal: ${same}")
+}

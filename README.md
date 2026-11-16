@@ -42,6 +42,13 @@ Not present, and what real services need next:
 - Email (SMTP, templates)
 - i18n / message catalogs
 
+## Idiomatic Windjammer
+
+[golden/INDEX.md](golden/INDEX.md) lists small complete programs (CLI parsing, text processing, collections, traits,
+error handling, files, JSON, HTTP shapes, state machines, parsers, simulations, graphs, ledgers) that print the same
+output interpreted and compiled. `llms-golden.txt` concatenates them with their output for use as in-context examples.
+[docs/IDIOM_AUDIT.md](docs/IDIOM_AUDIT.md) counts, per package, the forms idiomatic code does not need.
+
 ## Known debt
 
 [docs/COMPILER_WORKAROUNDS.md](docs/COMPILER_WORKAROUNDS.md) lists code shaped around compiler
@@ -53,7 +60,8 @@ limitations and cross-package `wj.toml` paths that point at generated `build/` d
 ```
 apps/        # Binaries
 packages/    # Libraries
-docs/        # Roadmap, stdlib coverage, progress
+golden/      # 60+ small idiomatic programs, each run interpreted and compiled (llms-golden.txt has them all)
+docs/        # Roadmap, stdlib coverage, progress, IDIOM_AUDIT.md
 ```
 
 ## Building

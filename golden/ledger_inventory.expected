@@ -1,0 +1,8 @@
+filled 30 bolt, 70 left
+cannot fill: only 80 of nut in stock, 100 requested
+filled 25 washer, 0 left
+cannot fill: only 0 of gear in stock, 1 requested
+stock now:
+  bolt: 70
+  nut: 130
+  washer: 0

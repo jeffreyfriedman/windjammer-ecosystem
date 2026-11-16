@@ -1,0 +1,10 @@
+"42" -> int 42
+"-7" -> int -7
+"3.14159" -> float 3.14
+"abc" -> text 'abc'
+"" -> text ''
+"12abc" -> text '12abc'
+sum 7
+yes -> true
+0 -> false
+maybe -> false

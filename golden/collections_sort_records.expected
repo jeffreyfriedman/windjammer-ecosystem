@@ -1,0 +1,11 @@
+by score descending, then name:
+Mia score=90 age=31
+Zoe score=90 age=22
+Eli score=85 age=24
+Noah score=85 age=24
+by age ascending, then name:
+Zoe score=90 age=22
+Eli score=85 age=24
+Noah score=85 age=24
+Mia score=90 age=31
+scores [90, 90, 85, 85]

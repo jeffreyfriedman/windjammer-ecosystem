@@ -1,0 +1,114 @@
+// golden: recursive descent calculator
+// idiom: a tokenizer produces a Vec of tokens; a parser struct walks them with an index and one method per grammar rule
+enum Token {
+    Num(int),
+    Op(char),
+}
+
+fn tokenize(text: string) -> Result<Vec<Token>, string> {
+    let mut tokens: Vec<Token> = []
+    let cs: Vec<char> = text.chars().collect()
+    let mut i = 0
+    while i < cs.len() {
+        let c = cs[i]
+        if c == ' ' {
+            i += 1
+        } else if c.is_ascii_digit() {
+            let mut n = 0
+            while i < cs.len() && cs[i].is_ascii_digit() {
+                n = n * 10 + (cs[i] as int - '0' as int)
+                i += 1
+            }
+            tokens.push(Token::Num(n))
+        } else if "+-*/()".contains("${c}") {
+            tokens.push(Token::Op(c))
+            i += 1
+        } else {
+            return Err("unexpected character '${c}'")
+        }
+    }
+    Ok(tokens)
+}
+
+struct Parser {
+    tokens: Vec<Token>,
+    pos: int,
+}
+
+impl Parser {
+    fn peek_op(self) -> char {
+        if self.pos < self.tokens.len() {
+            match self.tokens[self.pos] {
+                Token::Op(c) => c,
+                Token::Num(_) => ' ',
+            }
+        } else {
+            ' '
+        }
+    }
+
+    fn expr(self) -> Result<int, string> {
+        let mut value = self.term()?
+        while self.peek_op() == '+' || self.peek_op() == '-' {
+            let op = self.peek_op()
+            self.pos += 1
+            let rhs = self.term()?
+            value = if op == '+' { value + rhs } else { value - rhs }
+        }
+        Ok(value)
+    }
+
+    fn term(self) -> Result<int, string> {
+        let mut value = self.factor()?
+        while self.peek_op() == '*' || self.peek_op() == '/' {
+            let op = self.peek_op()
+            self.pos += 1
+            let rhs = self.factor()?
+            if op == '/' && rhs == 0 {
+                return Err("division by zero")
+            }
+            value = if op == '*' { value * rhs } else { value / rhs }
+        }
+        Ok(value)
+    }
+
+    fn factor(self) -> Result<int, string> {
+        if self.pos >= self.tokens.len() {
+            return Err("unexpected end of input")
+        }
+        match self.tokens[self.pos] {
+            Token::Num(n) => {
+                self.pos += 1
+                Ok(n)
+            },
+            Token::Op('(') => {
+                self.pos += 1
+                let v = self.expr()?
+                if self.peek_op() != ')' {
+                    return Err("missing )")
+                }
+                self.pos += 1
+                Ok(v)
+            },
+            Token::Op(c) => Err("unexpected '${c}'"),
+        }
+    }
+}
+
+fn calc(text: string) -> Result<int, string> {
+    let mut p = Parser { tokens: tokenize(text)?, pos: 0 }
+    let v = p.expr()?
+    if p.pos < p.tokens.len() {
+        return Err("trailing input")
+    }
+    Ok(v)
+}
+
+fn main() {
+    for text in ["1 + 2 * 3", "(1 + 2) * 3", "10 / (5 - 5)", "2 * (3 + 4) - 5", "2 $ 3", "(1 + 2", "4 +"] {
+        match calc(text) {
+            Ok(v) => println("${text} = ${v}"),
+            Err(e) => println("${text} -> error: ${e}"),
+        }
+    }
+}

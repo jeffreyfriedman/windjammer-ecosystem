@@ -1,0 +1,46 @@
+// golden: route a request to a handler
+// idiom: match on (method, path) tuples; handlers are plain functions returning a Response struct
+struct Response {
+    status: int,
+    body: string,
+}
+
+fn ok(body: string) -> Response {
+    Response { status: 200, body: body }
+}
+
+fn not_found(path: string) -> Response {
+    Response { status: 404, body: "no route for ${path}" }
+}
+
+fn user_page(id: string) -> Response {
+    match id.parse::<int>() {
+        Ok(n) => ok("user #${n}"),
+        Err(_) => Response { status: 400, body: "bad user id: ${id}" },
+    }
+}
+
+fn route(method: string, path: string) -> Response {
+    let parts: Vec<string> = path.split("/").collect()
+    match (method, path) {
+        ("GET", "/") => ok("home"),
+        ("GET", "/health") => ok("ok"),
+        ("POST", "/orders") => Response { status: 201, body: "order created" },
+        ("GET", _) => {
+            if parts.len() == 3 && parts[1] == "users" {
+                user_page(parts[2])
+            } else {
+                not_found(path)
+            }
+        },
+        _ => Response { status: 405, body: "method not allowed" },
+    }
+}
+
+fn main() {
+    let calls = [("GET", "/"), ("GET", "/health"), ("POST", "/orders"), ("GET", "/users/42"), ("GET", "/users/abc"), ("GET", "/nowhere"), ("DELETE", "/")]
+    for (method, path) in calls {
+        let r = route(method, path)
+        println("${method} ${path} -> ${r.status} ${r.body}")
+    }
+}

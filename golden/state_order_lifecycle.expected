@@ -1,0 +1,10 @@
+draft -> paid
+paid -> shipped
+shipped -> delivered
+finished in delivered
+draft -> paid
+paid -> cancelled
+finished in cancelled
+stop: cannot go from draft to shipped
+draft -> cancelled
+stop: cannot go from cancelled to paid

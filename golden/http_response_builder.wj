@@ -1,0 +1,43 @@
+// golden: build an HTTP response
+// idiom: join header lines with a blank line before the body; one function per concern, all pure
+use std::strings
+
+struct Response {
+    status: int,
+    headers: Vec<(string, string)>,
+    body: string,
+}
+
+fn reason(status: int) -> string {
+    match status {
+        200 => "OK",
+        201 => "Created",
+        404 => "Not Found",
+        500 => "Internal Server Error",
+        _ => "Unknown",
+    }
+}
+
+fn with_header(r: Response, name: string, value: string) -> Response {
+    let mut headers = r.headers
+    headers.push((name, value))
+    Response { status: r.status, headers: headers, body: r.body }
+}
+
+fn render(r: Response) -> string {
+    let mut lines = ["HTTP/1.1 ${r.status} ${reason(r.status)}"]
+    for (name, value) in r.headers {
+        lines.push("${name}: ${value}")
+    }
+    lines.push("Content-Length: ${r.body.len()}")
+    "${lines.join("\r\n")}\r\n\r\n${r.body}"
+}
+
+fn main() {
+    let base = Response { status: 200, headers: [], body: "hello" }
+    let json = with_header(base, "Content-Type", "application/json")
+    println(strings.replace(render(json), "\r\n", "|"))
+    let missing = Response { status: 404, headers: [("X-Reason", "no such page")], body: "" }
+    println(strings.replace(render(missing), "\r\n", "|"))
+    println("${reason(418)}")
+}

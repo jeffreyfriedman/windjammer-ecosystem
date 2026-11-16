@@ -1,0 +1,7 @@
+GET /health
+  retries: 0
+POST /orders
+  Content-Type: json
+  X-Trace: 7
+  body: {"id":1}
+  retries: 3

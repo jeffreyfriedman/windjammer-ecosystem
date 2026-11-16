@@ -1,0 +1,6 @@
+"A man, a plan, a canal: Panama" -> true
+"hello" -> false
+"Was it a car or a cat I saw?" -> true
+"" -> true
+longest: racecar
+empty longest: ""

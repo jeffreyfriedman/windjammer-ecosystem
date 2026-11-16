@@ -1,0 +1,6 @@
+84,2 -> 42
+7,0 -> error: division by zero in 7,0
+x,3 -> error: not a number: x
+1;2 -> error: expected two numbers separated by a comma: 1;2
+100,7 -> 14
+total 4

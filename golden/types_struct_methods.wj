@@ -1,0 +1,44 @@
+// golden: struct with methods
+// idiom: methods take plain self; the compiler infers read, mutate or consume; mutation needs a `let mut` owner
+struct Counter {
+    name: string,
+    count: int,
+    step: int,
+}
+
+impl Counter {
+    fn new(name: string, step: int) -> Counter {
+        Counter { name: name, count: 0, step: step }
+    }
+
+    fn tick(self) {
+        self.count += self.step
+    }
+
+    fn reset(self) {
+        self.count = 0
+    }
+
+    fn describe(self) -> string {
+        "${self.name}=${self.count}"
+    }
+
+    fn is_past(self, limit: int) -> bool {
+        self.count > limit
+    }
+}
+
+fn main() {
+    let mut a = Counter::new("a", 1)
+    let mut b = Counter::new("b", 5)
+    for _ in 0..3 {
+        a.tick()
+        b.tick()
+    }
+    println(a.describe())
+    println(b.describe())
+    println("b past 10: ${b.is_past(10)}")
+    b.reset()
+    println("after reset: ${b.describe()}")
+    println("a past 10: ${a.is_past(10)}")
+}

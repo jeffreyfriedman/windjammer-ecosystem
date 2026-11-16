@@ -1,0 +1,46 @@
+// golden: breadth-first search on a grid
+// idiom: VecDeque as the frontier; a HashMap of distances doubles as the visited set; neighbors from a direction list
+use std::collections::VecDeque
+use std::collections::HashMap
+
+fn solve(maze: Vec<string>) -> Option<int> {
+    let rows = maze.len()
+    let cols = maze[0].len()
+    let mut dist: HashMap<int, int> = HashMap::new()
+    let mut queue: VecDeque<(int, int)> = VecDeque::new()
+    queue.push_back((0, 0))
+    dist.insert(0, 0)
+    let steps = [(1, 0), (-1, 0), (0, 1), (0, -1)]
+    while let Some((r, c)) = queue.pop_front() {
+        let here = dist[r * cols + c]
+        if r == rows - 1 && c == cols - 1 {
+            return Some(here)
+        }
+        for (dr, dc) in steps {
+            let nr = r + dr
+            let nc = c + dc
+            if nr < 0 || nr >= rows || nc < 0 || nc >= cols {
+                continue
+            }
+            let wall = maze[nr][nc..nc + 1] == "#"
+            if !wall && !dist.contains_key(nr * cols + nc) {
+                dist.insert(nr * cols + nc, here + 1)
+                queue.push_back((nr, nc))
+            }
+        }
+    }
+    None
+}
+
+fn main() {
+    let open = ["..#.", "..#.", "....", "#..."]
+    let blocked = ["..#.", "###.", "....", "...."]
+    match solve(open) {
+        Some(n) => println("open maze: ${n} steps"),
+        None => println("open maze: no path"),
+    }
+    match solve(blocked) {
+        Some(n) => println("blocked maze: ${n} steps"),
+        None => println("blocked maze: no path"),
+    }
+}

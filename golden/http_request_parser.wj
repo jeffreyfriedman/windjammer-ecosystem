@@ -1,0 +1,57 @@
+// golden: parse a raw HTTP request
+// idiom: split the text into lines, then the request line into parts; a struct holds the result and Result reports malformed input
+use std::collections::HashMap
+
+struct Request {
+    method: string,
+    path: string,
+    query: HashMap<string, string>,
+    headers: HashMap<string, string>,
+}
+
+fn parse_query(text: string) -> HashMap<string, string> {
+    let mut query: HashMap<string, string> = HashMap::new()
+    for pair in text.split("&") {
+        let kv: Vec<string> = pair.split("=").collect()
+        if kv.len() == 2 {
+            query.insert(kv[0], kv[1])
+        }
+    }
+    query
+}
+
+fn parse(raw: string) -> Result<Request, string> {
+    let lines: Vec<string> = raw.lines().collect()
+    if lines.len() == 0 {
+        return Err("empty request")
+    }
+    let first: Vec<string> = lines[0].split(" ").collect()
+    if first.len() != 3 {
+        return Err("bad request line: ${lines[0]}")
+    }
+    let target: Vec<string> = first[1].split("?").collect()
+    let query = if target.len() == 2 { parse_query(target[1]) } else { HashMap::new() }
+    let mut headers: HashMap<string, string> = HashMap::new()
+    for line in lines.skip(1) {
+        if line.contains(": ") {
+            let hv: Vec<string> = line.split(": ").collect()
+            headers.insert(hv[0].to_lowercase(), hv[1])
+        }
+    }
+    Ok(Request { method: first[0], path: target[0], query: query, headers: headers })
+}
+
+fn main() {
+    let raw = "GET /search?q=wind&page=2 HTTP/1.1\nHost: example.org\nAccept: text/html\nX-Trace: abc"
+    match parse(raw) {
+        Ok(r) => {
+            println("${r.method} ${r.path}")
+            println("q = ${r.query["q"]}, page = ${r.query["page"]}")
+            println("host = ${r.headers["host"]}")
+            println("${r.headers.len()} headers")
+        },
+        Err(e) => println("error: ${e}"),
+    }
+    println("${parse("nonsense").is_err()}")
+    println("${parse("").is_err()}")
+}

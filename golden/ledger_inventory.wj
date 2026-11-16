@@ -1,0 +1,47 @@
+// golden: inventory with restock and orders
+// idiom: HashMap<string, int> of stock levels; get() ?? 0 for a missing item; Result for orders that cannot be filled
+use std::collections::HashMap
+
+struct Warehouse {
+    stock: HashMap<string, int>,
+}
+
+impl Warehouse {
+    fn restock(self, item: string, qty: int) {
+        let current = self.stock.get(item) ?? 0
+        self.stock.insert(item, current + qty)
+    }
+
+    fn fulfil(self, item: string, qty: int) -> Result<int, string> {
+        let have = self.stock.get(item) ?? 0
+        if have < qty {
+            return Err("only ${have} of ${item} in stock, ${qty} requested")
+        }
+        self.stock.insert(item, have - qty)
+        Ok(have - qty)
+    }
+
+    fn report(self) {
+        let mut names: Vec<string> = self.stock.keys().collect()
+        names.sort()
+        for name in names {
+            println("  ${name}: ${self.stock[name]}")
+        }
+    }
+}
+
+fn main() {
+    let mut w = Warehouse { stock: HashMap::new() }
+    w.restock("bolt", 100)
+    w.restock("nut", 80)
+    w.restock("washer", 25)
+    for (item, qty) in [("bolt", 30), ("nut", 100), ("washer", 25), ("gear", 1)] {
+        match w.fulfil(item, qty) {
+            Ok(left) => println("filled ${qty} ${item}, ${left} left"),
+            Err(e) => println("cannot fill: ${e}"),
+        }
+    }
+    w.restock("nut", 50)
+    println("stock now:")
+    w.report()
+}

@@ -162,6 +162,16 @@ jobs:
           "$W" run --interpret --allow process --allow fs.read --allow fs.write --allow env.read --allow console \
             scripts/health_gate.wj --self-test "$W" "$RUNNER_TEMP/health-selftest"
 
+      - name: Golden programs (self-test, static rules, interpreted output)
+        working-directory: windjammer-ecosystem
+        run: |
+          W="${{ github.workspace }}/windjammer/target/release/wj"
+          A="--interpret --allow process --allow fs.read --allow fs.write --allow env.read --allow console"
+          "$W" run $A scripts/golden_gate.wj --self-test
+          "$W" run $A scripts/golden_gate.wj --check
+          "$W" run $A scripts/idiom_audit.wj --golden
+          "$W" run $A scripts/golden_gate.wj --interp "$W"
+
       - name: Sweep every package and app, interpreted
         working-directory: windjammer-ecosystem
         env:
@@ -207,6 +217,14 @@ jobs:
         run: |
           unset CARGO_TARGET_DIR
           cargo build --release -p windjammer --bin wj
+
+      - name: Golden programs, compiled output must equal interpreted
+        working-directory: windjammer-ecosystem
+        run: |
+          unset CARGO_TARGET_DIR
+          W="${{ github.workspace }}/windjammer/target/release/wj"
+          "$W" run --interpret --allow process --allow fs.read --allow fs.write --allow env.read --allow console \
+            scripts/golden_gate.wj --compiled "$W"
 
       - name: Sweep every package and app, interpreted and compiled
         working-directory: windjammer-ecosystem

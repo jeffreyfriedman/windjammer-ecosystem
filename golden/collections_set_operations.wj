@@ -1,0 +1,49 @@
+// golden: set operations
+// idiom: HashSet for membership and uniqueness; collect a sorted Vec before printing
+use std::collections::HashSet
+
+fn to_set(items: Vec<int>) -> HashSet<int> {
+    let mut set: HashSet<int> = HashSet::new()
+    for x in items {
+        set.insert(x)
+    }
+    set
+}
+
+fn sorted(set: HashSet<int>) -> Vec<int> {
+    let mut items: Vec<int> = []
+    for x in set {
+        items.push(x)
+    }
+    items.sort()
+    items
+}
+
+fn union(a: HashSet<int>, b: HashSet<int>) -> HashSet<int> {
+    let mut out = a
+    for x in b {
+        out.insert(x)
+    }
+    out
+}
+
+fn intersection(a: HashSet<int>, b: HashSet<int>) -> HashSet<int> {
+    let mut out: HashSet<int> = HashSet::new()
+    for x in a {
+        if b.contains(x) {
+            out.insert(x)
+        }
+    }
+    out
+}
+
+fn main() {
+    let a = to_set([1, 2, 3, 4, 4, 5])
+    let b = to_set([4, 5, 6, 7])
+    println("a = ${sorted(a):?}")
+    println("b = ${sorted(b):?}")
+    println("union = ${sorted(union(a, b)):?}")
+    println("intersection = ${sorted(intersection(a, b)):?}")
+    println("a has 3: ${a.contains(3)}, b has 3: ${b.contains(3)}")
+    println("unique count: ${a.len()}")
+}

@@ -25,7 +25,7 @@ impl<T> Stack<T> {
     }
 
     fn size(self) -> int {
-        self.items.len()
+        self.items.len() as int
     }
 
     fn is_empty(self) -> bool {

@@ -18,15 +18,16 @@ fn flags() -> Vec<Flag> {
 }
 
 fn pad(text: string, width: int) -> string {
-    let missing = width - text.len()
+    let missing = width - text.len() as int
     if missing <= 0 { text } else { "${text}${strings.repeat(" ", missing)}" }
 }
 
 fn help() -> string {
-    let mut longest = 0
+    let mut longest: int = 0
     for f in flags() {
-        if f.long.len() > longest {
-            longest = f.long.len()
+        let n: int = f.long.len() as int
+        if n > longest {
+            longest = n
         }
     }
     let mut out = "options:"

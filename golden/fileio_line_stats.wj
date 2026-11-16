@@ -22,7 +22,7 @@ fn analyze(text: string) -> Stats {
             }
         }
     }
-    Stats { lines: text.lines().count(), words: words, chars: text.len(), longest: longest }
+    Stats { lines: text.lines().count() as int, words: words, chars: text.len() as int, longest: longest }
 }
 
 fn main() {

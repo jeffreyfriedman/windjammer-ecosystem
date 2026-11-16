@@ -4,8 +4,8 @@ use std::collections::VecDeque
 use std::collections::HashMap
 
 fn solve(maze: Vec<string>) -> Option<int> {
-    let rows = maze.len()
-    let cols = maze[0].len()
+    let rows: int = maze.len() as int
+    let cols: int = maze[0].len() as int
     let mut dist: HashMap<int, int> = HashMap::new()
     let mut queue: VecDeque<(int, int)> = VecDeque::new()
     queue.push_back((0, 0))

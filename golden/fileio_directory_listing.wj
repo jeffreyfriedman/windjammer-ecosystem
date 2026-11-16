@@ -24,10 +24,10 @@ fn main() {
     for n in names {
         println(n)
     }
-    let mut total = 0
+    let mut total: int = 0
     for name in ["a.txt", "b.txt", "c.md"] {
         let text = fs.read_to_string("${dir}/${name}") ?? ""
-        total += text.len()
+        total += text.len() as int
     }
     println("${total} bytes in top-level files")
     let _ = fs.remove_dir_all(dir)

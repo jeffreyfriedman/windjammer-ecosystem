@@ -24,6 +24,7 @@ fn placeholders(template: string) -> Vec<string> {
 fn main() {
     let template = "Dear {{name}}, your order {{order}} ships on {{day}}."
     let values = [("name", "Ada"), ("order", "#1042"), ("day", "Friday")]
+    println("rendering ${values.len()} values")
     println(render(template, values))
     println("placeholders: ${placeholders(template).join(", ")}")
     let partial = render(template, [("name", "Grace")])
@@ -31,5 +32,4 @@ fn main() {
     println("unfilled: ${placeholders(partial).len()}")
     let banner = render("{{a}}{{b}}{{a}}", [("a", "-"), ("b", "=")])
     println(banner)
-    println("rendered ${values.len()} values")
 }

@@ -9,7 +9,7 @@ fn alive_neighbors(grid: Vec<Vec<bool>>, row: int, col: int) -> int {
             }
             let r = row + dr
             let c = col + dc
-            if r >= 0 && r < grid.len() && c >= 0 && c < grid[0].len() && grid[r][c] {
+            if r >= 0 && r < grid.len() as int && c >= 0 && c < grid[0].len() as int && grid[r][c] {
                 count += 1
             }
         }

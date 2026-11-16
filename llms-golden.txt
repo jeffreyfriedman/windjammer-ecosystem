@@ -252,15 +252,16 @@ fn flags() -> Vec<Flag> {
 }
 
 fn pad(text: string, width: int) -> string {
-    let missing = width - text.len()
+    let missing = width - text.len() as int
     if missing <= 0 { text } else { "${text}${strings.repeat(" ", missing)}" }
 }
 
 fn help() -> string {
-    let mut longest = 0
+    let mut longest: int = 0
     for f in flags() {
-        if f.long.len() > longest {
-            longest = f.long.len()
+        let n: int = f.long.len() as int
+        if n > longest {
+            longest = n
         }
     }
     let mut out = "options:"
@@ -302,8 +303,8 @@ fn find(items: Vec<int>, target: int) -> Option<int> {
     if items.len() == 0 {
         return None
     }
-    let mut low = 0
-    let mut high = items.len() - 1
+    let mut low: int = 0
+    let mut high: int = items.len() as int - 1
     while low <= high {
         let mid = low + (high - low) / 2
         if items[mid] == target {
@@ -603,12 +604,19 @@ top 4, size 3
 
 === collections_top_k.wj ===
 // golden: top-k and dedupe
-// idiom: sort a copy, take the first k with take(); dedup after sort; fold-style sum with a loop
+// idiom: copy into a new Vec before sorting; sort then reverse for descending; plain loops for max, min and the average
 fn top_k(items: Vec<int>, k: int) -> Vec<int> {
-    let mut sorted = items
+    let mut sorted: Vec<int> = []
+    for x in items {
+        sorted.push(x)
+    }
     sorted.sort()
     sorted.reverse()
-    sorted.take(k).collect()
+    let mut out: Vec<int> = []
+    for i in 0..k {
+        out.push(sorted[i])
+    }
+    out
 }
 
 fn dedupe(items: Vec<int>) -> Vec<int> {
@@ -634,20 +642,38 @@ fn average(items: Vec<int>) -> float {
     sum as float / items.len() as float
 }
 
+fn largest(items: Vec<int>) -> int {
+    let mut best = items[0]
+    for x in items {
+        if x > best {
+            best = x
+        }
+    }
+    best
+}
+
+fn smallest(items: Vec<int>) -> int {
+    let mut best = items[0]
+    for x in items {
+        if x < best {
+            best = x
+        }
+    }
+    best
+}
+
 fn main() {
     let scores = [72, 91, 85, 91, 60, 85, 99, 72]
     println("top 3: ${top_k(scores, 3):?}")
     println("distinct: ${dedupe(scores):?}")
     println("average: ${average(scores):.2}")
-    println("max ${scores.max() ?? 0} min ${scores.min() ?? 0}")
-    println("sum ${scores.sum()}")
+    println("max ${largest(scores)} min ${smallest(scores)}")
 }
 --- output ---
 top 3: [99, 91, 91]
 distinct: [60, 72, 85, 91, 99]
 average: 81.88
 max 99 min 60
-sum 655
 
 === errors_custom_enum.wj ===
 // golden: custom error enum
@@ -1041,10 +1067,10 @@ fn main() {
     for n in names {
         println(n)
     }
-    let mut total = 0
+    let mut total: int = 0
     for name in ["a.txt", "b.txt", "c.md"] {
         let text = fs.read_to_string("${dir}/${name}") ?? ""
-        total += text.len()
+        total += text.len() as int
     }
     println("${total} bytes in top-level files")
     let _ = fs.remove_dir_all(dir)
@@ -1084,7 +1110,7 @@ fn analyze(text: string) -> Stats {
             }
         }
     }
-    Stats { lines: text.lines().count(), words: words, chars: text.len(), longest: longest }
+    Stats { lines: text.lines().count() as int, words: words, chars: text.len() as int, longest: longest }
 }
 
 fn main() {
@@ -1172,8 +1198,8 @@ use std::collections::VecDeque
 use std::collections::HashMap
 
 fn solve(maze: Vec<string>) -> Option<int> {
-    let rows = maze.len()
-    let cols = maze[0].len()
+    let rows: int = maze.len() as int
+    let cols: int = maze[0].len() as int
     let mut dist: HashMap<int, int> = HashMap::new()
     let mut queue: VecDeque<(int, int)> = VecDeque::new()
     queue.push_back((0, 0))
@@ -2475,7 +2501,7 @@ fn alive_neighbors(grid: Vec<Vec<bool>>, row: int, col: int) -> int {
             }
             let r = row + dr
             let c = col + dc
-            if r >= 0 && r < grid.len() && c >= 0 && c < grid[0].len() && grid[r][c] {
+            if r >= 0 && r < grid.len() as int && c >= 0 && c < grid[0].len() as int && grid[r][c] {
                 count += 1
             }
         }
@@ -2930,7 +2956,7 @@ fn wrap(text: string, width: int) -> Vec<string> {
     for word in strings.split_whitespace(text) {
         if line.len() == 0 {
             line = word
-        } else if line.len() + 1 + word.len() <= width {
+        } else if line.len() as int + 1 + word.len() as int <= width {
             line = "${line} ${word}"
         } else {
             lines.push(line)
@@ -2944,7 +2970,7 @@ fn wrap(text: string, width: int) -> Vec<string> {
 }
 
 fn pad_right(text: string, width: int) -> string {
-    let missing = width - text.len()
+    let missing = width - text.len() as int
     if missing <= 0 { text } else { "${text}${strings.repeat(" ", missing)}" }
 }
 
@@ -3088,6 +3114,7 @@ fn placeholders(template: string) -> Vec<string> {
 fn main() {
     let template = "Dear {{name}}, your order {{order}} ships on {{day}}."
     let values = [("name", "Ada"), ("order", "#1042"), ("day", "Friday")]
+    println("rendering ${values.len()} values")
     println(render(template, values))
     println("placeholders: ${placeholders(template).join(", ")}")
     let partial = render(template, [("name", "Grace")])
@@ -3095,15 +3122,14 @@ fn main() {
     println("unfilled: ${placeholders(partial).len()}")
     let banner = render("{{a}}{{b}}{{a}}", [("a", "-"), ("b", "=")])
     println(banner)
-    println("rendered ${values.len()} values")
 }
 --- output ---
+rendering 3 values
 Dear Ada, your order #1042 ships on Friday.
 placeholders: name, order, day
 Dear Grace, your order {{order}} ships on {{day}}.
 unfilled: 2
 -=-
-rendered 3 values
 
 === text_title_case.wj ===
 // golden: title case and slug
@@ -3344,7 +3370,7 @@ impl<T> Stack<T> {
     }
 
     fn size(self) -> int {
-        self.items.len()
+        self.items.len() as int
     }
 
     fn is_empty(self) -> bool {

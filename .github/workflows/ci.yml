@@ -85,6 +85,14 @@ jobs:
           "$W" run --interpret --allow process --allow fs.read --allow env.read --allow console scripts/public_hygiene.wj --self-test
           "$W" run --interpret --allow process --allow fs.read --allow env.read --allow console scripts/public_hygiene.wj
 
+      - name: Idiom audit (self-test, fresh report, gap ledger)
+        working-directory: windjammer-ecosystem
+        run: |
+          W="${{ github.workspace }}/windjammer/target/release/wj"
+          A="--interpret --allow process --allow fs.read --allow env.read --allow console"
+          "$W" run $A scripts/idiom_audit.wj --self-test
+          "$W" run $A scripts/idiom_audit.wj --check
+
       - name: Every package defines at least one test (wj test --list when supported)
         env:
           WJ: ${{ github.workspace }}/windjammer/target/release/wj

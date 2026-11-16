@@ -34,6 +34,15 @@ is why the assertion script exists; it stays useful afterward.
 `wj run --interpret --allow process --allow fs.read --allow env.read --allow console scripts/public_hygiene.wj`,
 with `--self-test` to prove the matcher fires on planted terms. CI runs both in job `build-apps`.
 
+## Idiom audit
+
+`scripts/idiom_audit.wj` counts, per package and app, the forms that idiomatic Windjammer does not need (explicit
+clones and borrows, width casts, `.unwrap()`, `+` string building, Rust-style types and macros, workaround comments)
+and writes the ranked report [IDIOM_AUDIT.md](IDIOM_AUDIT.md). `--write` regenerates it, `--check` fails when it is
+stale, `--self-test` plants each pattern. Code that must stay shaped around an open compiler gap carries a
+`// wj-gap: <id>` comment; the shrink-only ledger `scripts/idiom-gap-ledger.txt` caps the marked sites per id. CI
+runs the self-test and `--check` in job `build-apps`.
+
 ## Health gate: every package and app, interpreted (and compiled)
 
 The interpreter is a first-class way to run Windjammer, so the whole ecosystem is proven to work in it on every push.

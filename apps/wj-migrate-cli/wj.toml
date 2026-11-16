@@ -16,6 +16,7 @@ lto = true
 # tests write scratch files under the system temp directory
 fs.read = ["./**", "/tmp/**"]
 fs.write = ["./**", "/tmp/**"]
+env.read = ["MIGRATE_URL", "DATABASE_URL", "MIGRATIONS_DIR"]
 
 [capabilities.dependencies.wj_migrate]
 fs.read = ["./**", "/tmp/**"]

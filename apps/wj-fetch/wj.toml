@@ -17,3 +17,9 @@ lto = true
 [capabilities]
 # a request to a reserved host name that cannot resolve (the failure path of the fetch loop)
 net.connect = ["example.invalid.test"]
+# `--output` writes the response body to a user-chosen path; tests use the system temp directory
+fs.write = ["./**", "/tmp/**"]
+env.read = ["FETCH_FAIL_ON_ERROR", "FETCH_MAX_RETRIES", "FETCH_TIMEOUT_SECS"]
+
+[capabilities.dependencies.wj_http_client]
+net.connect = ["example.invalid.test"]

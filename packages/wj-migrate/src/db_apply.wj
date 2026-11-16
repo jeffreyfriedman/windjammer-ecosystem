@@ -65,6 +65,7 @@ pub fn read_applied_versions(conn: db::Connection) -> Result<Vec<int>, string> {
     Ok(applied)
 }
 
+/// wj-taint: trusted(migration files are the application's own schema code)
 fn apply_conn(conn: db::Connection, migrations_dir: string) -> Result<ApplyReport, string> {
     let empty_params = Vec::new()
     match conn.execute(schema_table_sql(), empty_params) {

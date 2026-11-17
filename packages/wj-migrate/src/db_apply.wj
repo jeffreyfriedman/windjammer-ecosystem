@@ -65,7 +65,6 @@ pub fn read_applied_versions(conn: db::Connection) -> Result<Vec<int>, string> {
     Ok(applied)
 }
 
-/// wj-taint: trusted(migration files are the application's own schema code)
 fn apply_conn(conn: db::Connection, migrations_dir: string) -> Result<ApplyReport, string> {
     let empty_params = Vec::new()
     match conn.execute(schema_table_sql(), empty_params) {
@@ -98,16 +97,11 @@ fn apply_conn(conn: db::Connection, migrations_dir: string) -> Result<ApplyRepor
         }
         let m = item.migration
         let path = item.path
-        let sql_body = match fs.read_to_string(path) {
-            Ok(text) => text,
-            Err(e) => return Err(e),
-        }
-        let stamp = time.utc_now().to_rfc3339()
-        let exec_params = Vec::new()
-        match conn.execute(sql_body, exec_params) {
+        match run_migration_file(conn, path) {
             Ok(_) => {},
             Err(e) => return Err(e),
         }
+        let stamp = time.utc_now().to_rfc3339()
         let record = record_applied_sql(m, stamp)
         let record_params = Vec::new()
         match conn.execute(record, record_params) {
@@ -121,6 +115,21 @@ fn apply_conn(conn: db::Connection, migrations_dir: string) -> Result<ApplyRepor
         applied_count: applied_count,
         applied_versions: applied_versions,
     })
+}
+
+/// Read one migration file from the migrations directory and execute it. This is the module's deliberate trust boundary:
+/// the files are the application's own schema code, found by `discover_migration_paths`, so their text is trusted SQL.
+/// wj-taint: trusted(migration files are the application's own schema code)
+fn run_migration_file(conn: db::Connection, path: string) -> Result<(), string> {
+    let sql_body = match fs.read_to_string(path) {
+        Ok(text) => text,
+        Err(e) => return Err(e),
+    }
+    let exec_params = Vec::new()
+    match conn.execute(sql_body, exec_params) {
+        Ok(_) => Ok(()),
+        Err(e) => Err(e),
+    }
 }
 
 fn discover_migration_paths(dir: string) -> Result<Vec<LocatedMigration>, string> {

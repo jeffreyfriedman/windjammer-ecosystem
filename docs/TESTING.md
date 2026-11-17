@@ -78,6 +78,15 @@ Environment knobs: `HEALTH_TIMEOUT` (seconds per package and mode, default 600),
 default 2), `SLOT_CMD` (a command prefix that wraps each compiled `wj test`, such as a shared build-slot wrapper; empty by
 default), `HEALTH_LEDGER` (default `scripts/health-known-failures.txt`).
 
+### Build order
+
+Every package and app is a directory with its own `wj.toml`. The gate reads the `path = "..."` dependencies of each manifest
+and runs the directories in waves: a directory starts only after every directory it points at has finished, so an app is
+never built before (or while) the package whose generated `build/` crate it depends on. The directories of one wave run
+together (`HEALTH_JOBS`). In compiled mode a directory whose dependency did not pass is reported once as `blocked`
+(`dependency failed: <dir>`), not as a second failure or as interpreted-versus-compiled drift; the failed dependency is the one violation.
+The self-test builds a one-package, one-app fixture and fails if the app is ever scheduled with or before its package.
+
 ### What the numbers mean
 
 `<outdir>/results.json` has one entry per directory and mode: `status` (`pass`, `fail`, `timeout`, `skip`), the

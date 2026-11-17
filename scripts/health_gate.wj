@@ -176,7 +176,7 @@ fn drift_of(rows: Vec<Row>, dir: string) -> string {
         Some(r) => r,
         None => return "",
     }
-    if i.status == "skip" || c.status == "skip" {
+    if i.status == "skip" || c.status == "skip" || i.status == "blocked" || c.status == "blocked" {
         return ""
     }
     if i.status != c.status {
@@ -340,24 +340,124 @@ fn write_job(wj: string, outdir: string, dir: string, mode: string, timeout: int
     path
 }
 
+// `dir` joined with the relative `rel`, with `.` and `..` resolved and a trailing `build` component dropped (a path
+// dependency points at the generated crate of a package: `../../packages/wj-x/build` names the directory `packages/wj-x`).
+fn resolve_path(dir: string, rel: string) -> string {
+    let mut stack: Vec<string> = Vec::new()
+    for part in strings.split(dir + "/" + rel, "/") {
+        if part == "" || part == "." {
+            continue
+        }
+        if part == ".." {
+            if stack.len() > 0 {
+                stack.pop()
+            }
+        } else {
+            stack.push(part)
+        }
+    }
+    if stack.len() > 0 && stack[stack.len() - 1] == "build" {
+        stack.pop()
+    }
+    let joined = strings.join(stack, "/")
+    if strings.starts_with(dir, "/") { "/" + joined } else { joined }
+}
+
+// The directories in `all` that `dir` depends on by `path = "..."` in its wj.toml.
+fn path_deps(dir: string, all: Vec<string>) -> Vec<string> {
+    let mut out: Vec<string> = Vec::new()
+    let text = fs.read_to_string(dir + "/wj.toml").unwrap_or("")
+    for line in strings.split_lines(text) {
+        let parts = strings.split(line, "path = \"")
+        if parts.len() < 2 {
+            continue
+        }
+        let rel = strings.split(parts[1], "\"")[0]
+        let target = resolve_path(dir, rel)
+        if target != dir && all.contains(&target) && !out.contains(&target) {
+            out.push(target)
+        }
+    }
+    out
+}
+
+// Build waves: a directory runs only after every directory it depends on by path has finished, so an app is never built
+// before (or while) the package it points at is. A dependency cycle runs as one last wave rather than hanging.
+fn waves(dirs: Vec<string>) -> Vec<Vec<string>> {
+    let mut all: Vec<string> = Vec::new()
+    for d in dirs {
+        if fs.exists(d + "/wj.toml") {
+            all.push(d)
+        }
+    }
+    let mut remaining = all
+    let mut out: Vec<Vec<string>> = Vec::new()
+    while remaining.len() > 0 {
+        let mut ready: Vec<string> = Vec::new()
+        let mut later: Vec<string> = Vec::new()
+        for d in remaining {
+            if path_deps(d, remaining).len() > 0 { later.push(d) } else { ready.push(d) }
+        }
+        if ready.len() == 0 {
+            ready = later
+            later = Vec::new()
+        }
+        out.push(ready)
+        remaining = later
+    }
+    out
+}
+
+// The first dependency of `dir` (among `dirs`) whose row for `mode` is not a pass, or "".
+fn failed_dependency(rows: Vec<Row>, dir: string, dirs: Vec<string>, mode: string) -> string {
+    for dep in path_deps(dir, dirs) {
+        match find_row(rows, dep, mode) {
+            Some(r) => {
+                if r.status != "pass" {
+                    return dep
+                }
+            },
+            None => {},
+        }
+    }
+    ""
+}
+
 fn run_jobs(wj: string, outdir: string, dirs: Vec<string>, modes: Vec<string>, timeout: int, jobs: int, slot: string) -> Vec<Row> {
     let _ = process.run("mkdir -p " + sh_quote(outdir + "/jobs"))
     let _ = process.run("rm -f " + sh_quote(outdir) + "/jobs/*.sh")
     let mut rows: Vec<Row> = Vec::new()
     for mode in modes {
-        let mut paths: Vec<string> = Vec::new()
         let mut n = 0
-        for d in dirs {
-            if fs.exists(d + "/wj.toml") {
-                paths.push(write_job(wj, outdir, d, mode, timeout, slot, n))
-                n = n + 1
+        let mut wave_no = 0
+        for wave in waves(dirs) {
+            let mut paths: Vec<string> = Vec::new()
+            for d in wave {
+                // compiled builds need the dependency's crate: a dependent of a failed dependency is reported as blocked, once
+                let dep = if mode == "compiled" { failed_dependency(rows, d, dirs, mode) } else { "" }
+                if dep.len() > 0 {
+                    rows.push(Row { dir: d, mode: mode, status: "blocked", passed: 0, failed: 0, secs: 0, result: "dependency failed: " + dep })
+                } else {
+                    paths.push(write_job(wj, outdir, d, mode, timeout, slot, n))
+                    n = n + 1
+                }
             }
+            if paths.len() > 0 {
+                let list = outdir + "/jobs/" + mode + "-wave" + wave_no.to_string() + ".list"
+                let _ = fs.write(list, strings.join(paths, "\n") + "\n")
+                let _ = process.run("xargs -n 1 -P " + jobs.to_string() + " sh < " + sh_quote(list))
+            }
+            for d in wave {
+                if find_row(rows, d, mode).is_none() {
+                    rows.push(read_row(outdir, d, mode))
+                }
+            }
+            wave_no = wave_no + 1
         }
-        let list = outdir + "/jobs/" + mode + ".list"
-        let _ = fs.write(list, strings.join(paths, "\n") + "\n")
-        let _ = process.run("xargs -n 1 -P " + jobs.to_string() + " sh < " + sh_quote(list))
         for d in dirs {
-            rows.push(read_row(outdir, d, mode))
+            if !fs.exists(d + "/wj.toml") {
+                rows.push(read_row(outdir, d, mode))
+            }
         }
     }
     rows
@@ -470,6 +570,33 @@ fn self_test(wj: string, scratch: string) -> int {
     bad = bad + expect("fixed drift still in the ledger fails the gate", violations(good, drift_led).len() == 1)
     bad = bad + expect("malformed ledger line fails the gate", violations(good, parse_ledger("p/a only\n")).len() == 1)
     bad = bad + expect("interp-only run does not invent drift", violations([row("p/a", "interp", "pass", 5, 0)], none).len() == 0)
+
+    println("dependency order (fixture: one package, one app that depends on it by path)")
+    let eco = scratch + "/eco"
+    let _ = process.run("rm -rf " + sh_quote(eco))
+    let _ = process.run("mkdir -p " + sh_quote(eco + "/packages/fixlib/src") + " " + sh_quote(eco + "/apps/fixapp/src"))
+    let _ = fs.write(eco + "/packages/fixlib/wj.toml", "[package]\nname = \"fixlib\"\nversion = \"0.1.0\"\nedition = \"2025\"\n\n[lib]\n\n[dependencies]\n")
+    let _ = fs.write(eco + "/apps/fixapp/wj.toml", "[package]\nname = \"fixapp\"\nversion = \"0.1.0\"\nedition = \"2025\"\n\n[dependencies]\nfixlib = { path = \"../../packages/fixlib/build\" }\n")
+    let lib_dir = eco + "/packages/fixlib"
+    let app_dir = eco + "/apps/fixapp"
+    bad = bad + expect("a path dependency resolves to its package directory", path_deps(app_dir, [app_dir, lib_dir]) == [lib_dir])
+    for order in [[app_dir, lib_dir], [lib_dir, app_dir]] {
+        let w = waves(order)
+        bad = bad + expect("the package is built in an earlier wave than the app, whatever the listing order", w.len() == 2 && w[0] == [lib_dir] && w[1] == [app_dir])
+    }
+    let broken = [row(lib_dir, "compiled", "fail", 0, 0)]
+    bad = bad + expect("an app whose package failed is reported blocked on it", failed_dependency(broken, app_dir, [app_dir, lib_dir], "compiled") == lib_dir)
+    bad = bad + expect("an app whose package passed is not blocked", failed_dependency([row(lib_dir, "compiled", "pass", 1, 0)], app_dir, [app_dir, lib_dir], "compiled") == "")
+    let blocked = [row(lib_dir, "interp", "pass", 1, 0), row(lib_dir, "compiled", "fail", 0, 0), row(app_dir, "interp", "pass", 1, 0), Row { dir: app_dir, mode: "compiled", status: "blocked", passed: 0, failed: 0, secs: 0, result: "dependency failed" }]
+    let mut mentions_app = 0
+    for v in violations(blocked, none) {
+        if strings.contains(v, app_dir) {
+            mentions_app = mentions_app + 1
+        }
+    }
+    bad = bad + expect("a blocked dependent is never reported as a failure or as drift of its own", mentions_app == 0)
+    bad = bad + expect("the failed package is still reported", violations(blocked, none).len() >= 1)
+    let _ = process.run("rm -rf " + sh_quote(eco))
 
     println("end-to-end (real wj runs on planted packages, interpreted)")
     let root = scratch + "/planted"

@@ -10,10 +10,10 @@
 # The commit must exist on `repo` before CI can fetch it.
 #
 # Pin policy:
-# - `wj` is a full 40-char SHA, never a branch or `tip`.
-# - `.github/workflows/ci.yml` (`WINDJAMMER_REF`) must equal `wj`; the `pin-check` job fails if not.
+# - `wj` is the compiler's source key (the ten hex digits of `wj --version` after `+`; `wj doctor --pin` prints the line). It names the sources by content, so it survives history rewrites, copies and checkouts. Never a branch or `tip`.
+# - `.github/workflows/ci.yml` (`WINDJAMMER_REF`) names the commit CI builds; the build jobs fail if the built wj does not carry the pinned key.
 # - Bump it only in a commit that shows the ecosystem CI loop green with the new compiler. One bump per commit.
 
 [toolchain]
-wj = "88d4cea796fd846e0318bd2ac3f740c28eecdf66"
+wj = "7dc9161a75"
 repo = "https://github.com/jeffreyfriedman/windjammer.git"

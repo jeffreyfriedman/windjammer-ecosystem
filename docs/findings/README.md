@@ -4,7 +4,7 @@ Found by running every package and app test suite interpreted (`wj test --interp
 (`wj test`) with `scripts/health_sweep.wj`. Each open finding has a generic repro under `repros/`; the
 packages keep their idiomatic shape and carry no shim for them.
 
-Current sweep: `wj` 0.50.0, commit `88d4cea796fd` (the pinned integration head; overflow checks on, raw TCP/UDP in `std::net`).
+Current sweep: `wj` 0.50.0, source key `7dc9161a75` (the pinned integration head; overflow checks on, raw TCP/UDP in `std::net`).
 
 Fixed since the previous sweep (repros retired): `strings.substring` with a computed `int` local, the counter inferred
 `usize` in a tuple return, and `strings.split_lines` with a trailing CRLF. `wj check` now reports compiled-width problems

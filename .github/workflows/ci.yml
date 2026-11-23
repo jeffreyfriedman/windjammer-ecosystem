@@ -11,8 +11,8 @@ on:
 
 env:
   CARGO_TERM_COLOR: always
-  # Pinned to the [toolchain] table in wj.toml (full SHA; must exist on the remote). Bump both together, deliberately.
-  WINDJAMMER_REF: 88d4cea796fd846e0318bd2ac3f740c28eecdf66
+  # The compiler commit CI builds (full SHA; must exist on the remote). wj.toml pins the same compiler by its source key (survives history rewrites); the build jobs check it against the built wj. Bump both together, deliberately.
+  WINDJAMMER_REF: fafbfc4e23b73ec4cdd4e3374c348cc48dde2bb9
 
 jobs:
   pin-check:
@@ -22,7 +22,11 @@ jobs:
       - uses: actions/checkout@v4
       - run: |
           pin=$(grep -E '^wj *= *"' wj.toml | head -1 | cut -d'"' -f2)
-          [ "$pin" = "$WINDJAMMER_REF" ] || { echo "::error::wj.toml pin ($pin) != WINDJAMMER_REF ($WINDJAMMER_REF)"; exit 1; }
+          case "$pin" in
+            [0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f])
+              echo "source-key pin $pin: the build jobs compare it with the built wj (wj doctor --pin)";;
+            *) [ "$pin" = "$WINDJAMMER_REF" ] || { echo "::error::wj.toml pin ($pin) != WINDJAMMER_REF ($WINDJAMMER_REF)"; exit 1; };;
+          esac
 
   orphan-tests:
     name: Orphan test check

@@ -12,7 +12,7 @@ on:
 env:
   CARGO_TERM_COLOR: always
   # The compiler commit CI builds (full SHA; must exist on the remote). wj.toml pins the same compiler by its source key (survives history rewrites); the build jobs check it against the built wj. Bump both together, deliberately.
-  WINDJAMMER_REF: fafbfc4e23b73ec4cdd4e3374c348cc48dde2bb9
+  WINDJAMMER_REF: b7e2082bf07bafdd821cf2425105757bc17bfc49
 
 jobs:
   pin-check:

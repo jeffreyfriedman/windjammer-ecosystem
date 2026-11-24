@@ -60,13 +60,7 @@ fn main() {
 }
 ```
 
-`examples/serve.wj` is a runnable version with `--port`, `--site` and `--data` flags. From this folder:
-
-```bash
-wj run --interpret --allow-network --allow fs.read --allow console examples/serve.wj --port 8080
-```
-
-The interpreter cannot import a module named `lib` from a program outside the test runner, so `examples/static_server.wj` is a symlink to `src/lib.wj` and the examples import `crate::static_server`. A compiled project imports `wj_static_server` instead.
+A compiled project imports the package as `wj_static_server`.
 
 ## Tests
 
@@ -76,11 +70,7 @@ Handler-level tests (no socket) run against the checked-in tree `tests/fixtures/
 wj test --interpret
 ```
 
-`wj test` has no network grant, so the socket test is a program, `examples/e2e.wj`. It starts `examples/serve.wj` as a child on a free loopback port, fetches the fixture files, compares status, headers and body, stops the child, and prints `e2e: ok`:
-
-```bash
-wj run --interpret --allow-network --allow process --allow fs.read --allow console examples/e2e.wj
-```
+`wj test` has no network grant yet, so a socket-level check is not part of this package's tests; `handle` is pure over the `std::http` types, which is what the tests exercise.
 
 ## Limits
 
@@ -93,9 +83,6 @@ wj run --interpret --allow-network --allow process --allow fs.read --allow conso
 src/lib.wj
 tests/static_server_test.wj
 tests/fixtures/tree/
-examples/serve.wj
-examples/e2e.wj
-examples/static_server.wj   (symlink to src/lib.wj)
 ```
 
 ## License

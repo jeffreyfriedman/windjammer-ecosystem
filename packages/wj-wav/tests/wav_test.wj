@@ -10,7 +10,6 @@ use crate::quantize
 use crate::duration_seconds
 use crate::describe
 use std::encoding
-use std::crypto
 use std::math
 
 // Golden bytes for a mono 8000 Hz PCM16 file of 800 frames (0.1 s of a 440 Hz sine at amplitude 0.5), worked out by hand:
@@ -117,10 +116,6 @@ fn hex_range(b: Vec<u8>, from: int, to: int) -> string {
     encoding.hex_encode(part)
 }
 
-fn sha_hex(b: Vec<u8>) -> string {
-    encoding.hex_encode(crypto.sha256_bytes(b))
-}
-
 fn pcm16_file(samples: Vec<int>, channels: int, rate: int) -> Vec<u8> {
     let mut data: Vec<u8> = []
     for s in samples {
@@ -224,7 +219,7 @@ fn test_encode_rejects_bad_rate_and_channels() {
 fn test_encode_is_deterministic() {
     let a = encode_f32(tone(8000, 440.0, 800, 0.5), 1, 8000) ?? []
     let b = encode_f32(tone(8000, 440.0, 800, 0.5), 1, 8000) ?? []
-    assert_eq(sha_hex(a), sha_hex(b))
+    assert_eq(a, b)
     assert_eq(a.len() as int, 1644)
 }
 

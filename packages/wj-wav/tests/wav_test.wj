@@ -16,7 +16,7 @@ use std::math
 // Golden bytes for a mono 8000 Hz PCM16 file of 800 frames (0.1 s of a 440 Hz sine at amplitude 0.5), worked out by hand:
 // RIFF size = 36 + 1600 = 0x0664, byte rate = 16000 = 0x3E80, data size = 1600 = 0x0640. The first eight samples are
 // round(0.5 * sin(2 * pi * 440 * n / 8000) * 32768) as little-endian 16-bit values.
-const GOLDEN_HEADER: string = "524946466406000057415645666d74201000000001000100401f0000803e00000200100064617461" + "40060000"
+const GOLDEN_HEADER: string = "524946466406000057415645666d74201000000001000100401f0000803e0000020010006461746140060000"
 const GOLDEN_FIRST_SAMPLES: string = "0000ae15cc281637de3e363f1538532a"
 
 fn put_u16(out: Vec<u8>, v: int) -> Vec<u8> {

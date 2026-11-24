@@ -1495,7 +1495,7 @@ fn decode(text: string) -> string {
     let mut out = ""
     let mut i = 0
     while i < cs.len() {
-        if cs[i] == '%' && i + 2 < cs.len() + 0 && hex_value(cs[i + 1]) >= 0 && hex_value(cs[i + 2]) >= 0 {
+        if cs[i] == '%' && i + 2 < cs.len() && hex_value(cs[i + 1]) >= 0 && hex_value(cs[i + 2]) >= 0 {
             let code = hex_value(cs[i + 1]) * 16 + hex_value(cs[i + 2])
             out += "${(code as u8) as char}"
             i += 3
@@ -1531,7 +1531,7 @@ fn main() {
 hello world
 a b+c
 100% sure
-cafÃ©
+ABC
 host: example.org
 host: []
 

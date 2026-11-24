@@ -115,6 +115,9 @@ jobs:
             if [[ -f "$dir/wj.toml" ]]; then
               found=1
               echo "==> $dir"
+              # A test run records a temporary runtime path in each dependency's generated build/ directory;
+              # start every project from clean generated output so a release build never reuses it.
+              rm -rf windjammer-ecosystem/apps/*/build windjammer-ecosystem/packages/*/build
               if [[ -d "$dir/src" ]]; then
                 (cd "$dir" && "$WJ" build --release src)
               elif [[ -f "$dir/src/main.wj" ]]; then

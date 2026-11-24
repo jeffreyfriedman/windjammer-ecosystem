@@ -12,7 +12,7 @@ Scanned 433 files, 59694 lines in 87 packages and apps.
 |---|---:|---|
 | `cast-usize`: `as usize` | 110 | index with an `int`; drop the cast |
 | `clone`: `.clone()` call | 76 | pass the value; keep `.clone()` only where the build asks for it (moving a field out of a borrowed `self`) |
-| `cast-i64`: `as i64` | 8 | `int` is 64-bit; drop the cast |
+| `cast-i64`: `as i64` | 2 | `int` is 64-bit; drop the cast |
 | `rust-iter`: `.iter()`, `.iter_mut()`, `.into_iter()`, `.as_ref()`, `.as_mut()`, `.borrow()`, `.to_vec()` | 1 | `for x in v`, `v.map(..)` |
 | `empty-shim`: `+ ""` or `"" +` shim | 0 | interpolate or use the value directly |
 | `lifetime`: lifetime annotation | 0 | lifetimes are inferred |
@@ -25,14 +25,14 @@ Scanned 433 files, 59694 lines in 87 packages and apps.
 | `to-string-call`: `x.to_string()` on a value | 0 | `"${x}"` |
 | `unwrap`: `.unwrap()` / `.expect(..)` | 0 | `x ?? fallback`, `x?`, `match` or `if let` |
 | `workaround-comment`: comment that describes a workaround, compiler bug or ownership demotion | 0 | fix the compiler or record a `wj-gap` |
-| **total** | **195** | |
+| **total** | **189** | |
 
 ## Forms reported for context
 
 | Pattern | Lines | Note |
 |---|---:|---|
 | `typed-let-other`: `let x: Vec<..> = ..` style annotation | 273 | right when it picks the element type |
-| `cast-int`: `as int` / `as float` | 187 | needed to turn a `usize` length into `int` |
+| `cast-int`: `as int` / `as float` | 193 | needed to turn a `usize` length into `int` |
 | `cast-narrow`: `as u8`, `as u32`, `as u64`, `as i32`, `as f32` ... | 45 | right for binary formats and hashing |
 | `typed-let-scalar`: `let x: int = 0` style annotation on a literal | 41 | keeps a counter 64-bit where a bare literal can default to 32 bits in compiled builds |
 | `collect`: `.collect()` | 15 | right after `split`, `map`, `filter` and `keys`, which return iterators |
@@ -57,7 +57,6 @@ Packages and apps with at least one line to remove, most first. Columns are the 
 | `apps/wj-taskflow` | 26 |  | 26 |  |  |
 | `apps/wj-grep` | 14 |  | 14 |  |  |
 | `packages/wj-metrics` | 13 | 13 |  |  |  |
-| `packages/wj-sqlite` | 6 |  |  | 6 |  |
 | `packages/wj-json-doc` | 4 | 1 | 1 | 2 |  |
 | `packages/wj-sync` | 3 |  | 3 |  |  |
 | `packages/wj-proc` | 2 | 2 |  |  |  |

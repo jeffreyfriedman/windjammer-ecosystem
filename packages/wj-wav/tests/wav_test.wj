@@ -38,12 +38,16 @@ fn put_tag(out: Vec<u8>, tag: string) -> Vec<u8> {
     o
 }
 
+fn tone_sample(rate: int, hz: f64, n: int, amplitude: f64) -> f64 {
+    let phase = 2.0 * math.PI * hz * (n as f64) / (rate as f64)
+    amplitude * phase.sin()
+}
+
 fn tone(rate: int, hz: f64, frames: int, amplitude: f64) -> Vec<f32> {
     let mut out: Vec<f32> = []
     let mut n = 0
     while n < frames {
-        let phase = 2.0 * math.PI * hz * (n as f64) / (rate as f64)
-        out.push((amplitude * phase.sin()) as f32)
+        out.push(tone_sample(rate, hz, n, amplitude) as f32)
         n = n + 1
     }
     out

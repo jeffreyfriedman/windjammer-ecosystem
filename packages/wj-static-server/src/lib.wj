@@ -1,0 +1,282 @@
+//! A read-only static file server core. `handle` maps a request to a response without a socket, over the
+//! `std::http` types, so it is testable without a network. Folders are mounted under URL prefixes; every path is
+//! resolved to a real file and confined to its mount (no `..`, encoded traversal, backslashes, NUL bytes or symlinks
+//! that leave the folder). Directories are never listed. `serve` runs the handler on 127.0.0.1 only.
+use std::encoding
+use std::fs
+use std::http
+
+/// The content security policy sent by default: everything from the same origin, images also from `data:` URLs,
+/// no plugins.
+pub const STRICT_LOCAL_CSP: string = "default-src 'self'; img-src 'self' data:; media-src 'self'; object-src 'none'"
+
+/// Number of leading bytes inspected to tell text from binary when the extension is unknown.
+const SNIFF_LEN: int = 512
+
+/// One folder served under a URL prefix such as `/` or `/data`.
+pub struct Mount {
+    pub prefix: string,
+    pub folder: string,
+}
+
+/// The mount table. After `StaticServer::new` every folder is an absolute path with symlinks resolved.
+pub struct Roots {
+    pub mounts: Vec<Mount>,
+}
+
+/// A mount table plus the policy headers added to every file response.
+pub struct StaticServer {
+    pub roots: Roots,
+    pub csp: string,
+    pub cache_control: string,
+}
+
+/// Names a folder to serve under a URL prefix. Nothing is checked until `StaticServer::new`.
+pub fn mount(prefix: string, folder: string) -> Mount {
+    Mount { prefix: prefix, folder: folder }
+}
+
+/// The default content security policy, `STRICT_LOCAL_CSP`.
+pub fn strict_local() -> string {
+    STRICT_LOCAL_CSP
+}
+
+/// `strict_local()` plus a `connect-src` directive that allows same-origin requests and the listed origins.
+/// An empty list returns `strict_local()` unchanged.
+pub fn strict_local_with_connect(origins: Vec<string>) -> string {
+    if origins.len() == 0 {
+        return STRICT_LOCAL_CSP
+    }
+    "${STRICT_LOCAL_CSP}; connect-src 'self' ${origins.join(" ")}"
+}
+
+fn resolve_folder(path: string) -> Result<string, string> {
+    let real = fs::canonicalize(path).map_err(|_| "${path} is not a folder")?
+    let meta = fs::metadata(real).map_err(|_| "${path} is not a folder")?
+    if !meta.is_dir() {
+        return Err("${path} is not a folder")
+    }
+    Ok(real)
+}
+
+fn check_prefix(prefix: string) -> Result<string, string> {
+    if !prefix.starts_with("/") || prefix.contains("\\") || prefix.contains("\u{0}") {
+        return Err("mount prefix ${prefix} must start with / and hold no backslash or NUL")
+    }
+    if prefix != "/" && prefix.ends_with("/") {
+        return Err("mount prefix ${prefix} must not end with /")
+    }
+    for seg in prefix.split("/") {
+        if seg == ".." || seg == "." {
+            return Err("mount prefix ${prefix} must not hold . or .. segments")
+        }
+    }
+    Ok(prefix)
+}
+
+impl StaticServer {
+    /// Validates the mounts and resolves each folder. Errors: no mounts, a malformed or duplicate prefix, a folder
+    /// that is missing or is not a directory (`<folder> is not a folder`).
+    pub fn new(mounts: Vec<Mount>) -> Result<StaticServer, string> {
+        if mounts.len() == 0 {
+            return Err("no mounts")
+        }
+        let mut resolved: Vec<Mount> = Vec::new()
+        for m in mounts {
+            let prefix = check_prefix(m.prefix)?
+            for seen in resolved {
+                if seen.prefix == prefix {
+                    return Err("duplicate mount prefix ${prefix}")
+                }
+            }
+            let folder = resolve_folder(m.folder)?
+            resolved.push(Mount { prefix: prefix, folder: folder })
+        }
+        Ok(StaticServer {
+            roots: Roots { mounts: resolved },
+            csp: STRICT_LOCAL_CSP,
+            cache_control: "no-store",
+        })
+    }
+}
+
+/// Replaces the content security policy sent with file responses.
+pub fn with_csp(server: StaticServer, csp: string) -> StaticServer {
+    StaticServer { roots: server.roots, csp: csp, cache_control: server.cache_control }
+}
+
+/// Replaces the `Cache-Control` value sent with file responses (default `no-store`).
+pub fn with_cache_control(server: StaticServer, value: string) -> StaticServer {
+    StaticServer { roots: server.roots, csp: server.csp, cache_control: value }
+}
+
+// Lexical clean of an absolute URL path: drops empty and "." segments and the trailing slash.
+fn clean(url_path: string) -> string {
+    let mut kept: Vec<string> = Vec::new()
+    for seg in url_path.split("/") {
+        if seg != "" && seg != "." {
+            kept.push(seg)
+        }
+    }
+    "/${kept.join("/")}"
+}
+
+// The mount a cleaned path falls under (longest prefix wins) and the path relative to it, or None.
+fn pick_mount(roots: Roots, rel: string) -> Option<Mount> {
+    let mut best: Option<Mount> = None
+    let mut best_len = 0
+    for m in roots.mounts {
+        let hit = m.prefix == "/" || rel == m.prefix || rel.starts_with("${m.prefix}/")
+        if hit && m.prefix.len() >= best_len {
+            best_len = m.prefix.len()
+            best = Some(m)
+        }
+    }
+    best
+}
+
+/// Maps a decoded URL path to the real path of a regular file under one mount, or None. This is the only place a
+/// path is trusted: it rejects relative paths, backslashes, NUL bytes and `..` segments, resolves the result with
+/// symlinks evaluated, and re-checks that it is still inside the mount folder. A directory has no listing; only the
+/// root of a mount maps to its `index.html`.
+pub fn resolve(server: StaticServer, url_path: string) -> Option<string> {
+    if url_path.contains("\\") || url_path.contains("\u{0}") || !url_path.starts_with("/") {
+        return None
+    }
+    for seg in url_path.split("/") {
+        if seg == ".." {
+            return None
+        }
+    }
+    let cleaned = clean(url_path)
+    let m = pick_mount(server.roots, cleaned)?
+    let mut rel = cleaned
+    if m.prefix != "/" {
+        rel = cleaned.strip_prefix(m.prefix).unwrap_or(cleaned)
+    }
+    if rel == "" || rel == "/" {
+        rel = "/index.html"
+    }
+    let real = fs::canonicalize("${m.folder}${rel}").ok()?
+    if real != m.folder && !real.starts_with("${m.folder}/") {
+        return None
+    }
+    let meta = fs::metadata(real).ok()?
+    if !meta.is_file() {
+        return None
+    }
+    Some(real)
+}
+
+/// Content-Type for a served file: an explicit table keyed by extension, and for any other extension a text or
+/// binary decision from the first 512 bytes (`text/plain` when they hold no binary control byte).
+pub fn content_type(file: string, bytes: Vec<u8>) -> string {
+    let name = file.split("/").last().unwrap_or(file)
+    let ext = match name.rfind(".") {
+        Some(i) => name.substring(i + 1, name.len()).to_lowercase(),
+        None => "",
+    }
+    match ext {
+        "html" | "htm" => "text/html; charset=utf-8",
+        "css" => "text/css; charset=utf-8",
+        "js" | "mjs" => "text/javascript; charset=utf-8",
+        "json" => "application/json; charset=utf-8",
+        "xml" => "text/xml; charset=utf-8",
+        "txt" => "text/plain; charset=utf-8",
+        "svg" => "image/svg+xml",
+        "png" => "image/png",
+        "jpg" | "jpeg" => "image/jpeg",
+        "gif" => "image/gif",
+        "webp" => "image/webp",
+        "avif" => "image/avif",
+        "ico" => "image/x-icon",
+        "wasm" => "application/wasm",
+        "pdf" => "application/pdf",
+        "woff" => "font/woff",
+        "woff2" => "font/woff2",
+        "mp3" => "audio/mpeg",
+        "ogg" => "audio/ogg",
+        "wav" => "audio/wav",
+        "mp4" => "video/mp4",
+        "webm" => "video/webm",
+        _ => if looks_like_text(bytes) { "text/plain; charset=utf-8" } else { "application/octet-stream" },
+    }
+}
+
+/// True when the first 512 bytes hold no binary control byte (tab, newline, form feed, return and escape pass).
+pub fn looks_like_text(bytes: Vec<u8>) -> bool {
+    let mut i = 0
+    while i < bytes.len() && i < SNIFF_LEN {
+        let b = bytes[i]
+        if b < 9 || (b > 13 && b < 27) || (b > 27 && b < 32) {
+            return false
+        }
+        i += 1
+    }
+    true
+}
+
+fn text_response(status: int, body: string, allow: Option<string>) -> ServerResponse {
+    let mut r = ServerResponse::new(status, body)
+    r.headers.insert("Content-Type", "text/plain; charset=utf-8")
+    r.headers.insert("X-Content-Type-Options", "nosniff")
+    if let Some(a) = allow {
+        r.headers.insert("Allow", a)
+    }
+    r
+}
+
+fn not_found() -> ServerResponse {
+    text_response(404, "404 page not found\n", None)
+}
+
+fn with_policy(server: StaticServer, r: ServerResponse) -> ServerResponse {
+    r.with_header("Cache-Control", server.cache_control)
+        .with_header("X-Content-Type-Options", "nosniff")
+        .with_header("Content-Security-Policy", server.csp)
+}
+
+/// Answers one request. GET and HEAD serve files with `Cache-Control`, `X-Content-Type-Options: nosniff`,
+/// `Content-Security-Policy` and `Content-Type`; any other method is a 405 with `Allow: GET, HEAD`; a path that does
+/// not resolve (missing, a directory, outside its mount, undecodable) is a 404; a path ending in `/index.html` is a
+/// 301 to `./`.
+pub fn handle(server: StaticServer, req: ServerRequest) -> ServerResponse {
+    match req.method {
+        HttpMethod::GET | HttpMethod::HEAD => {},
+        _ => return text_response(405, "read-only\n", Some("GET, HEAD")),
+    }
+    let url_path = match encoding::url_decode(req.path) {
+        Ok(p) => p,
+        Err(_) => return not_found(),
+    }
+    let file = match resolve(server, url_path) {
+        Some(f) => f,
+        None => return not_found(),
+    }
+    if url_path.ends_with("/index.html") {
+        return with_policy(server, ServerResponse::new(301, "")).with_header("Location", "./")
+    }
+    let bytes = match fs::read(file) {
+        Ok(b) => b,
+        Err(_) => return not_found(),
+    }
+    let kind = content_type(file, bytes)
+    with_policy(server, ServerResponse::binary(200, bytes)).with_header("Content-Type", kind)
+}
+
+/// Serves `server` on 127.0.0.1 at `port` until the process ends.
+pub fn serve(server: StaticServer, port: int) -> Result<(), string> {
+    serve_on(server, "127.0.0.1", port)
+}
+
+/// Like `serve` for an explicit host. Only `127.0.0.1` is accepted; any other host is an error and nothing is bound.
+pub fn serve_on(server: StaticServer, host: string, port: int) -> Result<(), string> {
+    if host != "127.0.0.1" {
+        return Err("refusing to bind ${host}: only 127.0.0.1 is allowed")
+    }
+    if port < 0 || port > 65535 {
+        return Err("port ${port} is out of range")
+    }
+    let listener = Server::new(host, port)
+    listener.serve(|req| handle(server, req))
+}

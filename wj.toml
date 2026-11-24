@@ -15,5 +15,5 @@
 # - Bump it only in a commit that shows the ecosystem CI loop green with the new compiler. One bump per commit.
 
 [toolchain]
-wj = "7dc9161a75"
+wj = "bc3b2abce5"
 repo = "https://github.com/jeffreyfriedman/windjammer.git"

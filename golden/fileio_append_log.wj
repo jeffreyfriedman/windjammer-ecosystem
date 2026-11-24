@@ -1,0 +1,41 @@
+// golden: append to a log file
+// idiom: fs.append adds to the end; read the whole file back and process it line by line
+use std::fs
+use std::env
+
+fn log_path() -> string {
+    "${env::temp_dir()}/wj-golden-app.log"
+}
+
+fn log(level: string, message: string) {
+    let line = "[${level}] ${message}\n"
+    match fs.append(log_path(), line) {
+        Ok(_) => {},
+        Err(e) => println("could not write log: ${e}"),
+    }
+}
+
+fn count_level(text: string, level: string) -> int {
+    let mut n = 0
+    for line in text.lines() {
+        if line.starts_with("[${level}]") {
+            n += 1
+        }
+    }
+    n
+}
+
+fn main() {
+    let _ = fs.remove_file(log_path())
+    log("INFO", "service started")
+    log("WARN", "disk at 91%")
+    log("INFO", "request handled")
+    log("ERROR", "upstream timed out")
+    log("INFO", "request handled")
+    let text = fs.read_to_string(log_path()) ?? ""
+    println("${text.lines().count()} lines logged")
+    for level in ["INFO", "WARN", "ERROR"] {
+        println("${level}: ${count_level(text, level)}")
+    }
+    let _ = fs.remove_file(log_path())
+}

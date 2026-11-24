@@ -1,0 +1,40 @@
+// golden: title case and slug
+// idiom: string methods chain on the value; slicing uses [a..b] ranges, no & and no as_str
+use std::strings
+
+fn capitalize(word: string) -> string {
+    if word.len() == 0 {
+        return word
+    }
+    "${word[0..1].to_uppercase()}${word[1..word.len()].to_lowercase()}"
+}
+
+fn title_case(text: string) -> string {
+    let words: Vec<string> = strings.split_whitespace(text).map(|w| capitalize(w)).collect()
+    words.join(" ")
+}
+
+fn slug(text: string) -> string {
+    let words: Vec<string> = strings.split_whitespace(text).map(|w| w.to_lowercase()).collect()
+    words.join("-")
+}
+
+fn acronym(text: string) -> string {
+    let mut out = ""
+    for word in strings.split_whitespace(text) {
+        out += word[0..1].to_uppercase()
+    }
+    out
+}
+
+fn main() {
+    println(title_case("the QUICK brown fox"))
+    println(slug("Hello Windjammer World"))
+    println(acronym("portable network graphics"))
+    println(title_case("a"))
+    println("[${title_case("")}]")
+    let titles = ["rust in action", "THE PRAGMATIC PROGRAMMER", "clean code"]
+    for t in titles {
+        println("${slug(t)} => ${title_case(t)}")
+    }
+}

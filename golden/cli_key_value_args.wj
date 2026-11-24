@@ -1,0 +1,32 @@
+// golden: key=value arguments
+// idiom: split each argument once on "="; a HashMap holds the settings; get() returns an Option
+use std::collections::HashMap
+
+fn parse_settings(args: Vec<string>) -> HashMap<string, string> {
+    let mut settings: HashMap<string, string> = HashMap::new()
+    for arg in args {
+        if arg.contains("=") {
+            let pieces: Vec<string> = arg.split("=").collect()
+            settings.insert(pieces[0], pieces[1])
+        }
+    }
+    settings
+}
+
+fn lookup(settings: HashMap<string, string>, key: string, fallback: string) -> string {
+    settings.get(key) ?? fallback
+}
+
+fn main() {
+    let args = ["port=9000", "debug=true", "ignored", "name=svc"]
+    let settings = parse_settings(args)
+    println("port: ${lookup(settings, "port", "8080")}")
+    println("host: ${lookup(settings, "host", "localhost")}")
+    println("name: ${lookup(settings, "name", "unnamed")}")
+    let debug = lookup(settings, "debug", "false") == "true"
+    println("debug: ${debug}")
+    let mut keys: Vec<string> = settings.keys().collect()
+    keys.sort()
+    println("keys: ${keys.join(", ")}")
+    println("count: ${settings.len()}")
+}

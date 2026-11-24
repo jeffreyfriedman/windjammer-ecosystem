@@ -1,0 +1,212 @@
+use std::encoding
+use std::strings
+
+/// One decoded reply. `kind` is `simple`, `error`, `integer`, `bulk`, `null` or `array`.
+pub struct Reply {
+    pub kind: string,
+    pub text: string,
+    pub number: int,
+    pub items: Vec<Reply>,
+}
+
+/// A reply and how many input bytes it used.
+pub struct Parsed {
+    pub reply: Reply,
+    pub used: int,
+}
+
+fn utf8(text: string) -> Vec<u8> {
+    match encoding.base64_decode(encoding.base64_encode_string(text)) {
+        Ok(b) => b,
+        Err(_) => Vec::new(),
+    }
+}
+
+fn utf8_text(bytes: Vec<u8>) -> Result<string, string> {
+    match encoding.base64_decode_string(encoding.base64_encode(bytes)) {
+        Ok(t) => Ok(t),
+        Err(_) => Err("bulk string is not valid UTF-8"),
+    }
+}
+
+fn empty(kind: string) -> Reply {
+    Reply { kind: kind, text: "", number: 0, items: Vec::new() }
+}
+
+/// A command as the Redis wire format: an array of bulk strings, lengths counted in bytes.
+pub fn encode_command(args: Vec<string>) -> Vec<u8> {
+    let header = "*${args.len()}\r\n"
+    let mut out: Vec<u8> = utf8(header)
+    for a in args {
+        let body = utf8(a)
+        let prefix = "\$${body.len()}\r\n"
+        for b in utf8(prefix) {
+            out.push(b)
+        }
+        for b in body {
+            out.push(b)
+        }
+        out.push(13)
+        out.push(10)
+    }
+    out
+}
+
+/// Commands people reach for, as argument lists for `encode_command`.
+pub fn cmd_set(key: string, value: string) -> Vec<string> {
+    ["SET", key, value]
+}
+
+pub fn cmd_set_ex(key: string, value: string, seconds: int) -> Vec<string> {
+    ["SET", key, value, "EX", "${seconds}"]
+}
+
+pub fn cmd_get(key: string) -> Vec<string> {
+    ["GET", key]
+}
+
+pub fn cmd_del(key: string) -> Vec<string> {
+    ["DEL", key]
+}
+
+pub fn cmd_incr(key: string) -> Vec<string> {
+    ["INCR", key]
+}
+
+pub fn cmd_auth(user: string, password: string) -> Vec<string> {
+    if strings.len(user) == 0 {
+        return ["AUTH", password]
+    }
+    ["AUTH", user, password]
+}
+
+/// Index of the next CRLF at or after `from`, or -1.
+fn crlf(buf: Vec<u8>, from: int) -> int {
+    let n = buf.len() as int
+    let mut i = from
+    while i + 1 < n {
+        if buf[i] == 13 && buf[i + 1] == 10 {
+            return i
+        }
+        i = i + 1
+    }
+    -1
+}
+
+fn slice(buf: Vec<u8>, from: int, to: int) -> Vec<u8> {
+    let mut out: Vec<u8> = Vec::new()
+    let mut i = from
+    while i < to {
+        out.push(buf[i])
+        i = i + 1
+    }
+    out
+}
+
+/// Decode one reply from `buf[at..]`. `Ok(None)` means more bytes are needed.
+fn parse_at(buf: Vec<u8>, at: int, depth: int) -> Result<Option<Parsed>, string> {
+    if depth > 32 {
+        return Err("reply nested too deeply")
+    }
+    if at >= buf.len() as int {
+        return Ok(None)
+    }
+    let tag = buf[at] as int
+    let end = crlf(buf, at + 1)
+    if end < 0 {
+        return Ok(None)
+    }
+    let line = utf8_text(slice(buf, at + 1, end))?
+    let after = end + 2
+    if tag == 43 {
+        return Ok(Some(Parsed { reply: Reply { kind: "simple", text: line, number: 0, items: Vec::new() }, used: after - at }))
+    }
+    if tag == 45 {
+        return Ok(Some(Parsed { reply: Reply { kind: "error", text: line, number: 0, items: Vec::new() }, used: after - at }))
+    }
+    if tag == 58 {
+        let n = match line.parse::<int>() {
+            Ok(v) => v,
+            Err(_) => return Err("bad integer reply '${line}'"),
+        }
+        return Ok(Some(Parsed { reply: Reply { kind: "integer", text: "", number: n, items: Vec::new() }, used: after - at }))
+    }
+    if tag == 36 {
+        let len = match line.parse::<int>() {
+            Ok(v) => v,
+            Err(_) => return Err("bad bulk length '${line}'"),
+        }
+        if len == -1 {
+            return Ok(Some(Parsed { reply: empty("null"), used: after - at }))
+        }
+        if len < 0 || len > 536870912 {
+            return Err("bulk length out of range")
+        }
+        if (buf.len() as int) < after + len + 2 {
+            return Ok(None)
+        }
+        let term = after + len
+        let term2 = term + 1
+        if buf[term] != 13 || buf[term2] != 10 {
+            return Err("bulk string not terminated by CRLF")
+        }
+        let text = utf8_text(slice(buf, after, after + len))?
+        return Ok(Some(Parsed { reply: Reply { kind: "bulk", text: text, number: len, items: Vec::new() }, used: after + len + 2 - at }))
+    }
+    if tag == 42 {
+        let count = match line.parse::<int>() {
+            Ok(v) => v,
+            Err(_) => return Err("bad array length '${line}'"),
+        }
+        if count == -1 {
+            return Ok(Some(Parsed { reply: empty("null"), used: after - at }))
+        }
+        if count < 0 || count > 1048576 {
+            return Err("array length out of range")
+        }
+        let mut items: Vec<Reply> = Vec::new()
+        let mut pos = after
+        let mut k = 0
+        while k < count {
+            match parse_at(buf, pos, depth + 1)? {
+                Some(p) => {
+                    items.push(p.reply)
+                    pos = pos + p.used
+                },
+                None => return Ok(None),
+            }
+            k = k + 1
+        }
+        return Ok(Some(Parsed { reply: Reply { kind: "array", text: "", number: count, items: items }, used: pos - at }))
+    }
+    Err("unknown reply type byte ${tag}")
+}
+
+/// Decode one reply from the front of `buf`; `Ok(None)` when it is incomplete.
+pub fn parse_reply(buf: Vec<u8>) -> Result<Option<Parsed>, string> {
+    parse_at(buf, 0, 0)
+}
+
+/// Debug text for a reply: `+OK`, `-ERR x`, `:5`, `"bulk"`, `(nil)`, `[a, b]`.
+pub fn show(r: Reply) -> string {
+    if r.kind == "simple" {
+        return "+${r.text}"
+    }
+    if r.kind == "error" {
+        return "-${r.text}"
+    }
+    if r.kind == "integer" {
+        return ":${r.number}"
+    }
+    if r.kind == "bulk" {
+        return "\"${r.text}\""
+    }
+    if r.kind == "null" {
+        return "(nil)"
+    }
+    let mut parts: Vec<string> = Vec::new()
+    for item in r.items {
+        parts.push(show(item))
+    }
+    "[${parts.join(", ")}]"
+}

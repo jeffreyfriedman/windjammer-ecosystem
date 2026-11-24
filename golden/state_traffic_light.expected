@@ -1,0 +1,9 @@
+start: red
+-> green
+-> yellow
+-> red
+-> green
+-> flashing
+-> flashing
+-> red
+-> green

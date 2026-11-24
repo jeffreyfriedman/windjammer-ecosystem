@@ -1,4 +1,15 @@
 use std::strings
+use std::time
+
+/// Current UTC time as RFC3339 text (thin-wraps `std::time.utc_now().to_rfc3339`).
+pub fn now_rfc3339() -> string {
+    time.utc_now().to_rfc3339()
+}
+
+/// Current UTC Unix epoch seconds (thin-wraps `std::time.utc_now().timestamp`).
+pub fn now_epoch_secs() -> int {
+    time.utc_now().timestamp() as int
+}
 
 /// RFC3339 timestamp with timezone offset.
 pub struct Rfc3339 {
@@ -117,6 +128,72 @@ pub fn is_before(a: Rfc3339, b: Rfc3339) -> bool {
 
 pub fn is_after(a: Rfc3339, b: Rfc3339) -> bool {
     compare(a, b) > 0
+}
+
+pub fn is_equal(a: Rfc3339, b: Rfc3339) -> bool {
+    compare(a, b) == 0
+}
+
+/// `Ok(a)` when `a` and `b` are the same instant, otherwise `Err`.
+pub fn require_equal(a: Rfc3339, b: Rfc3339) -> Result<Rfc3339, string> {
+    if is_equal(a, b) {
+        return Ok(a)
+    }
+    Err("expected equal")
+}
+
+/// Shift `t` by `delta` seconds (UTC epoch arithmetic).
+pub fn add_secs(t: Rfc3339, delta: int) -> Rfc3339 {
+    from_epoch_secs(to_epoch_secs(t) + delta)
+}
+
+/// Subtract `delta` seconds from `t` (UTC epoch arithmetic).
+pub fn sub_secs(t: Rfc3339, delta: int) -> Rfc3339 {
+    add_secs(t, 0 - delta)
+}
+
+/// `to_epoch_secs(a) - to_epoch_secs(b)` (seconds; may be negative).
+pub fn diff_secs(a: Rfc3339, b: Rfc3339) -> int {
+    to_epoch_secs(a) - to_epoch_secs(b)
+}
+
+/// True when `a` and `b` share the same UTC calendar year/month/day.
+pub fn is_same_day(a: Rfc3339, b: Rfc3339) -> bool {
+    a.year == b.year && a.month == b.month && a.day == b.day
+}
+
+/// True when `a` and `b` share the same UTC calendar year/month.
+pub fn is_same_month(a: Rfc3339, b: Rfc3339) -> bool {
+    a.year == b.year && a.month == b.month
+}
+
+pub fn year_of(t: Rfc3339) -> int {
+    t.year
+}
+
+pub fn month_of(t: Rfc3339) -> int {
+    t.month
+}
+
+pub fn day_of(t: Rfc3339) -> int {
+    t.day
+}
+
+pub fn hour_of(t: Rfc3339) -> int {
+    t.hour
+}
+
+pub fn minute_of(t: Rfc3339) -> int {
+    t.minute
+}
+
+pub fn second_of(t: Rfc3339) -> int {
+    t.second
+}
+
+/// True when the clock is 00:00:00 (offset ignored).
+pub fn is_midnight(t: Rfc3339) -> bool {
+    t.hour == 0 && t.minute == 0 && t.second == 0
 }
 
 pub fn is_leap_year(year: int) -> bool {

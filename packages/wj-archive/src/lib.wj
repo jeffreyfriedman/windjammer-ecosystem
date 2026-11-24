@@ -1,0 +1,7 @@
+//! Tar (ustar) and zip archives read and written as byte vectors, with no files or processes involved.
+//! Reading is safe by default: entry names that escape the extraction root are rejected and declared sizes are capped.
+pub mod bytes
+pub mod entry
+pub mod inflate
+pub mod tar
+pub mod zip

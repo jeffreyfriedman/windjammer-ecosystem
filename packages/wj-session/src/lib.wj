@@ -1,0 +1,275 @@
+//! Server-side sessions: an in-memory store with idle and absolute timeouts, per-session data, id rotation
+//! (session-fixation defence), a CSRF token per session, and the cookie header helpers.
+//! Time is an argument (milliseconds). Ids come from the caller (use a v4 UUID or 32 random bytes in hex), so the
+//! store stays pure and tests stay deterministic.
+use std::collections::HashMap
+use std::strings
+
+struct Session {
+    id: string,
+    data: HashMap<string, string>,
+    created_at: int,
+    last_seen: int,
+    csrf: string,
+}
+
+/// How long sessions live: `idle_ms` since the last use, `absolute_ms` since creation (0 disables a limit).
+pub struct Policy {
+    pub idle_ms: int,
+    pub absolute_ms: int,
+}
+
+/// Why a lookup found no session.
+pub enum Miss {
+    Unknown,
+    IdleTimeout,
+    AbsoluteTimeout,
+}
+
+pub struct Store {
+    policy: Policy,
+    sessions: HashMap<string, Session>,
+}
+
+pub fn new_store(policy: Policy) -> Store {
+    Store { policy: policy, sessions: HashMap::new() }
+}
+
+/// 30 minutes idle, 12 hours absolute.
+pub fn default_policy() -> Policy {
+    Policy { idle_ms: 1800000, absolute_ms: 43200000 }
+}
+
+fn verdict(p: Policy, s: Session, now: int) -> Option<Miss> {
+    if p.absolute_ms > 0 && now - s.created_at >= p.absolute_ms {
+        return Some(Miss::AbsoluteTimeout)
+    }
+    if p.idle_ms > 0 && now - s.last_seen >= p.idle_ms {
+        return Some(Miss::IdleTimeout)
+    }
+    None
+}
+
+impl Store {
+    /// Start a session under `id` with a CSRF token `csrf`. An existing session with that id is replaced.
+    pub fn create(self, id: string, csrf: string, now: int) {
+        self.sessions.insert(id, Session {
+            id: id,
+            data: HashMap::new(),
+            created_at: now,
+            last_seen: now,
+            csrf: csrf,
+        })
+    }
+
+    /// Check that `id` names a live session. A hit slides the idle timeout; a miss removes the stale session and
+    /// says why.
+    pub fn touch(self, id: string, now: int) -> Result<bool, Miss> {
+        match self.sessions.get(id) {
+            None => Err(Miss::Unknown),
+            Some(s) => {
+                match verdict(self.policy, s, now) {
+                    Some(why) => {
+                        self.sessions.remove(id)
+                        Err(why)
+                    },
+                    None => {
+                        self.sessions.insert(id, Session {
+                            id: s.id,
+                            data: s.data,
+                            created_at: s.created_at,
+                            last_seen: now,
+                            csrf: s.csrf,
+                        })
+                        Ok(true)
+                    },
+                }
+            },
+        }
+    }
+
+    /// Store a value in a live session. False when the session is unknown or expired.
+    pub fn set(self, id: string, key: string, value: string, now: int) -> bool {
+        match self.touch(id, now) {
+            Err(_) => false,
+            Ok(_) => {
+                match self.sessions.get(id) {
+                    None => false,
+                    Some(s) => {
+                        let mut data = s.data
+                        data.insert(key, value)
+                        self.sessions.insert(id, Session {
+                            id: s.id,
+                            data: data,
+                            created_at: s.created_at,
+                            last_seen: s.last_seen,
+                            csrf: s.csrf,
+                        })
+                        true
+                    },
+                }
+            },
+        }
+    }
+
+    /// Read a value from a live session (this counts as use).
+    pub fn get(self, id: string, key: string, now: int) -> Option<string> {
+        match self.touch(id, now) {
+            Err(_) => None,
+            Ok(_) => {
+                match self.sessions.get(id) {
+                    None => None,
+                    Some(s) => match s.data.get(key) {
+                        Some(v) => Some(v),
+                        None => None,
+                    },
+                }
+            },
+        }
+    }
+
+    /// Remove a value. False when the session is unknown or expired.
+    pub fn remove(self, id: string, key: string, now: int) -> bool {
+        match self.touch(id, now) {
+            Err(_) => false,
+            Ok(_) => {
+                match self.sessions.get(id) {
+                    None => false,
+                    Some(s) => {
+                        let mut data = s.data
+                        data.remove(key)
+                        self.sessions.insert(id, Session {
+                            id: s.id,
+                            data: data,
+                            created_at: s.created_at,
+                            last_seen: s.last_seen,
+                            csrf: s.csrf,
+                        })
+                        true
+                    },
+                }
+            },
+        }
+    }
+
+    /// Move a live session to a new id, keeping its data. Call this at login so an id planted before
+    /// authentication is worthless afterwards. The old id stops working at once.
+    pub fn rotate(self, old_id: string, new_id: string, now: int) -> Result<bool, Miss> {
+        self.touch(old_id, now)?
+        match self.sessions.get(old_id) {
+            None => Err(Miss::Unknown),
+            Some(s) => {
+                self.sessions.remove(old_id)
+                self.sessions.insert(new_id, Session {
+                    id: new_id,
+                    data: s.data,
+                    created_at: s.created_at,
+                    last_seen: now,
+                    csrf: s.csrf,
+                })
+                Ok(true)
+            },
+        }
+    }
+
+    /// The CSRF token of a live session.
+    pub fn csrf_token(self, id: string, now: int) -> Option<string> {
+        match self.touch(id, now) {
+            Err(_) => None,
+            Ok(_) => {
+                match self.sessions.get(id) {
+                    None => None,
+                    Some(s) => Some(s.csrf),
+                }
+            },
+        }
+    }
+
+    /// True when `token` is the session's CSRF token (compared in constant time).
+    pub fn csrf_valid(self, id: string, token: string, now: int) -> bool {
+        match self.csrf_token(id, now) {
+            None => false,
+            Some(expected) => constant_time_eq(expected, token),
+        }
+    }
+
+    /// End a session (logout). False when it did not exist.
+    pub fn destroy(self, id: string) -> bool {
+        match self.sessions.remove(id) {
+            Some(_) => true,
+            None => false,
+        }
+    }
+
+    /// Drop every expired session; returns how many went.
+    pub fn purge_expired(self, now: int) -> int {
+        let mut dead: Vec<string> = Vec::new()
+        for (id, s) in self.sessions {
+            match verdict(self.policy, s, now) {
+                Some(_) => dead.push("${id}"),
+                None => {},
+            }
+        }
+        for id in dead {
+            self.sessions.remove(id)
+        }
+        dead.len() as int
+    }
+
+    pub fn len(self) -> int {
+        self.sessions.len() as int
+    }
+}
+
+/// Compare two strings without stopping at the first difference.
+pub fn constant_time_eq(a: string, b: string) -> bool {
+    let ab = a.as_bytes()
+    let bb = b.as_bytes()
+    if ab.len() != bb.len() {
+        return false
+    }
+    let mut diff = 0
+    let mut i = 0
+    while i < ab.len() {
+        diff = diff | ((ab[i] as int) ^ (bb[i] as int))
+        i = i + 1
+    }
+    diff == 0
+}
+
+/// The `Set-Cookie` header value that carries the session id: `HttpOnly`, `SameSite=Lax`, `Path=/`, and `Secure`
+/// unless `secure` is false (local development over http). `max_age_s` of 0 omits Max-Age (a browser-session cookie).
+pub fn set_cookie_value(name: string, id: string, max_age_s: int, secure: bool) -> string {
+    let mut out = "${name}=${id}; Path=/; HttpOnly; SameSite=Lax"
+    if secure {
+        out += "; Secure"
+    }
+    if max_age_s > 0 {
+        out += "; Max-Age=${max_age_s}"
+    }
+    out
+}
+
+/// The `Set-Cookie` header value that tells the browser to forget the session cookie.
+pub fn clear_cookie_value(name: string, secure: bool) -> string {
+    let mut out = "${name}=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0"
+    if secure {
+        out += "; Secure"
+    }
+    out
+}
+
+/// Find the session id in a request `Cookie` header (`a=1; sid=abc; b=2`).
+pub fn id_from_cookie_header(header: string, name: string) -> Option<string> {
+    let prefix = "${name}="
+    for part in strings.split(header, ";") {
+        let p = strings.trim(part)
+        if strings.starts_with(p, prefix) {
+            let v = strings.substring(p, strings.len(prefix), strings.len(p))
+            if strings.len(v) > 0 {
+                return Some(v)
+            }
+        }
+    }
+    None
+}

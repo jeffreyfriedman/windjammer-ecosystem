@@ -1,0 +1,6 @@
+{"title":"Dune","year":1965,"tags":["scifi","classic"],"rating":4.5}
+Dune (1965) tags=scifi/classic rating=4.5
+parse error: $.year: invalid type: string "soon", expected i64 at line 1 column 26
+parse error: $: missing field `year` at line 1 column 13
+parse error: $: expected ident at line 1 column 2
+[{"title":"A","year":1,"tags":[],"rating":1.0},{"title":"B","year":2,"tags":["x"],"rating":2.5}]

@@ -1,0 +1,6 @@
+port: 9000
+host: localhost
+name: svc
+debug: true
+keys: debug, name, port
+count: 3

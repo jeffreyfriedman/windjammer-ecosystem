@@ -1,0 +1,6 @@
+use std::env
+
+/// `env.temp_dir()` is declared in std and works interpreted; the compiled runtime's env module has no `temp_dir` (E0425).
+pub fn scratch(name: string) -> string {
+    env.temp_dir() + "/" + name
+}

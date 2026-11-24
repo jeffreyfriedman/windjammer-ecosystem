@@ -1,0 +1,4 @@
+//! Snapshot testing: compare output with a stored file, show a unified diff when it changed, and rewrite the file
+//! when `WJ_UPDATE_SNAPSHOTS=1`. A missing snapshot is an error unless you are updating, so CI never writes files.
+pub mod diff
+pub mod store

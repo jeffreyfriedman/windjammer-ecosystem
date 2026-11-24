@@ -1,0 +1,134 @@
+use std::strings
+use crate::encode
+
+/// A mailbox: optional display name plus the address.
+pub struct Address {
+    pub name: string,
+    pub email: string,
+}
+
+pub fn address(name: string, email: string) -> Address {
+    Address { name: name, email: email }
+}
+
+fn atext(ch: char) -> bool {
+    (ch >= 'a' && ch <= 'z') || (ch >= 'A' && ch <= 'Z') || (ch >= '0' && ch <= '9') || strings.contains("!#$%&'*+-/=?^_`{|}~", "${ch}")
+}
+
+fn dot_atom(part: string) -> bool {
+    if strings.len(part) == 0 {
+        return false
+    }
+    for piece in strings.split(part, ".") {
+        if strings.len(piece) == 0 {
+            return false
+        }
+        for ch in strings.chars(piece) {
+            if !atext(ch) {
+                return false
+            }
+        }
+    }
+    true
+}
+
+fn domain_ok(domain: string) -> bool {
+    if strings.len(domain) == 0 || strings.len(domain) > 253 {
+        return false
+    }
+    for label in strings.split(domain, ".") {
+        if strings.len(label) == 0 || strings.len(label) > 63 || strings.starts_with(label, "-") || strings.ends_with(label, "-") {
+            return false
+        }
+        for ch in strings.chars(label) {
+            if !((ch >= 'a' && ch <= 'z') || (ch >= 'A' && ch <= 'Z') || (ch >= '0' && ch <= '9') || ch == '-') {
+                return false
+            }
+        }
+    }
+    true
+}
+
+/// A practical check of `local@domain`: dot-atom local part, DNS-style domain, no line breaks.
+pub fn is_valid_email(email: string) -> bool {
+    let parts = strings.split(email, "@")
+    if parts.len() != 2 || strings.len(parts[0]) > 64 {
+        return false
+    }
+    dot_atom(parts[0]) && domain_ok(parts[1])
+}
+
+fn quote_name(name: string) -> string {
+    let mut out = "\""
+    for ch in strings.chars(name) {
+        if ch == '"' || ch == '\\' {
+            out += "\\"
+        }
+        out += "${ch}"
+    }
+    "${out}\""
+}
+
+fn needs_quotes(name: string) -> bool {
+    for ch in strings.chars(name) {
+        if !((ch >= 'a' && ch <= 'z') || (ch >= 'A' && ch <= 'Z') || (ch >= '0' && ch <= '9') || ch == ' ' || ch == '!' || ch == '#' || ch == '$' || ch == '%' || ch == '&' || ch == '\'' || ch == '*' || ch == '+' || ch == '-' || ch == '/' || ch == '=' || ch == '?' || ch == '^' || ch == '_' || ch == '`' || ch == '{' || ch == '|' || ch == '}' || ch == '~') {
+            return true
+        }
+    }
+    false
+}
+
+/// The header form: `Name <a@b>`, quoted when the name has specials, RFC 2047 encoded when it is not ASCII.
+pub fn format_address(a: Address) -> Result<string, string> {
+    if encode::has_line_break(a.name) || encode::has_line_break(a.email) {
+        return Err("line break in address")
+    }
+    if !is_valid_email(a.email) {
+        return Err("invalid address '${a.email}'")
+    }
+    if strings.len(a.name) == 0 {
+        return Ok(a.email)
+    }
+    let encoded = encode::encoded_words(a.name)
+    let shown = if encoded != a.name {
+        encoded
+    } else if needs_quotes(a.name) {
+        quote_name(a.name)
+    } else {
+        a.name
+    }
+    Ok("${shown} <${a.email}>")
+}
+
+/// Parse `Name <a@b>`, `"Quoted, Name" <a@b>` or a bare `a@b`.
+pub fn parse_address(text: string) -> Result<Address, string> {
+    let t = strings.trim(text)
+    if encode::has_line_break(t) {
+        return Err("line break in address")
+    }
+    if strings.ends_with(t, ">") {
+        let parts = strings.split(t, "<")
+        if parts.len() < 2 {
+            return Err("unbalanced '<' in '${t}'")
+        }
+        let email = strings.trim(strings.replace(parts[parts.len() - 1], ">", ""))
+        let mut name_parts: Vec<string> = Vec::new()
+        let mut i = 0
+        while i < parts.len() - 1 {
+            name_parts.push(parts[i])
+            i = i + 1
+        }
+        let mut name = strings.trim(name_parts.join("<"))
+        if strings.starts_with(name, "\"") && strings.ends_with(name, "\"") && strings.len(name) >= 2 {
+            name = strings.replace(strings.replace(strings.substring(name, 1, strings.len(name) - 1), "\\\"", "\""), "\\\\", "\\")
+        }
+        if !is_valid_email(email) {
+            return Err("invalid address '${email}'")
+        }
+        return Ok(Address { name: name, email: email })
+    }
+    if !is_valid_email(t) {
+        return Err("invalid address '${t}'")
+    }
+    Ok(Address { name: "", email: t })
+}

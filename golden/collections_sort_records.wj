@@ -1,0 +1,32 @@
+// golden: sort records by several keys
+// idiom: sort_by with a comparison closure; cmp() and then() chain keys, b.cmp(a) reverses
+struct Player {
+    name: string,
+    score: int,
+    age: int,
+}
+
+fn show(players: Vec<Player>) {
+    for p in players {
+        println("${p.name} score=${p.score} age=${p.age}")
+    }
+}
+
+fn main() {
+    let mut players = [
+        Player { name: "Mia", score: 90, age: 31 },
+        Player { name: "Noah", score: 85, age: 24 },
+        Player { name: "Zoe", score: 90, age: 22 },
+        Player { name: "Eli", score: 85, age: 24 },
+    ]
+    println("by score descending, then name:")
+    players.sort_by(|a, b| b.score.cmp(a.score).then(a.name.cmp(b.name)))
+    show(players)
+    println("by age ascending, then name:")
+    players.sort_by(|a, b| a.age.cmp(b.age).then(a.name.cmp(b.name)))
+    show(players)
+    let mut scores: Vec<int> = players.map(|p| p.score).collect()
+    scores.sort()
+    scores.reverse()
+    println("scores ${scores:?}")
+}

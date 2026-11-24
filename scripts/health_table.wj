@@ -1,0 +1,70 @@
+// Render health_sweep.wj output as the markdown table in docs/STDLIB_GRADUATION.md.
+// Usage: wj run --allow fs.read=<files> scripts/health_table.wj <sweep.tsv> <notes.tsv>
+// sweep.tsv rows: dir, mode, PASS|FAIL, result line.  notes.tsv rows: dir, note.
+use std::fs
+use std::env
+use std::strings
+
+fn count_of(result: string) -> string {
+    // "test result: ok. 11 passed; ..." (interpreted) or "✓ 11 passed" (compiled)
+    for word_pair in strings.split(result, "passed") {
+        let words = strings.split_whitespace(word_pair)
+        if words.len() > 0 {
+            let last = words[words.len() - 1]
+            if last.parse::<int>().is_ok() {
+                return last
+            }
+        }
+        break
+    }
+    "?"
+}
+
+fn cell(tag: string, result: string) -> string {
+    if tag == "PASS" {
+        return "pass (" + count_of(result) + ")"
+    }
+    let n = count_of(result)
+    if n == "?" || n == "0" {
+        return "**FAIL** (build)"
+    }
+    "**FAIL** (" + n + " pass)"
+}
+
+fn main() {
+    let args = env::args()
+    let sweep = fs.read_to_string(args[1]).unwrap_or("")
+    let notes_text = fs.read_to_string(args[2]).unwrap_or("")
+    let mut dirs: Vec<string> = Vec::new()
+    let mut interp = HashMap::new()
+    let mut compiled = HashMap::new()
+    for line in strings.split_lines(sweep) {
+        let f = strings.split(line, "\t")
+        if f.len() < 4 {
+            continue
+        }
+        if !dirs.contains(f[0]) {
+            dirs.push(f[0])
+        }
+        if f[1] == "interp" {
+            interp.insert(f[0], cell(f[2], f[3]))
+        } else {
+            compiled.insert(f[0], cell(f[2], f[3]))
+        }
+    }
+    let mut notes = HashMap::new()
+    for line in strings.split_lines(notes_text) {
+        let f = strings.split(line, "\t")
+        if f.len() >= 2 {
+            notes.insert(f[0], f[1])
+        }
+    }
+    println("| Package | Interpreted | Compiled | Notes |")
+    println("|---|---|---|---|")
+    for dir in dirs {
+        let i = interp.get(dir).unwrap_or("-")
+        let c = compiled.get(dir).unwrap_or("-")
+        let n = notes.get(dir).unwrap_or("")
+        println("| `" + dir + "` | " + i + " | " + c + " | " + n + " |")
+    }
+}

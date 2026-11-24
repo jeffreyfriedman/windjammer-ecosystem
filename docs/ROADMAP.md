@@ -15,6 +15,8 @@ Catalog of seed apps and packages for common Windjammer application work.
 | Name | Kind | Use case | Dependencies |
 |---|---|---|---|
 | `wj-hello` | app | Build-path smoke test | std only |
+| `wj-first-hour` | app | Std-only first-hour card (uuid/time/path/config/encoding) | tip-green std |
+| `wj-form-parse` | app | Multipart field parse dogfood | `wj-multipart` |
 | `wj-dotenv` | package | `.env` / `KEY=VALUE` loading | `std::fs`, `std::strings` |
 | `wj-fetch` | app | CLI HTTP GET + JSON | `std::http` / `std::cli` / `std::json`, or clap + ureq later |
 | `wj-notes-api` | app | Small CRUD REST API | HTTP std + in-memory; optional `std::db` |
@@ -125,6 +127,50 @@ Full top-100 distillation, scorecard, and priority queue: [CROSS_ECOSYSTEM_TOP10
 | P2 | `wj-regex` ✅ | re / regexp / java.util.regex | Thin wrappers over `std::regex` |
 | P2 | `wj-cron` ✅ | node-cron / croniter / robfig/cron | Five-field parse/match + aliases + range/step + `next_run` |
 | Skip here | React, Spring, Rails, boto3, numpy, webpack, eslint | — | Other repos / cloud / science / tooling |
+
+## Coverage survey: what an application usually needs (November 2026)
+
+Measured against the packages in `packages/` (87 after the third pass). "Added" marks packages the growth passes brought in; "Next" marks the leading candidates for the pass after.
+
+| Need | Package(s) | State |
+|---|---|---|
+| HTTP client | `wj-http-client`, `wj-headers`, `wj-url`, `wj-querystring`, `wj-retry` | covered (status and body helpers over `std::http`; no streaming) |
+| HTTP server and routing | `wj-router`, `wj-cors`, `wj-cookie`, `wj-multipart`, `wj-compress`, `wj-ws`, `std::http` | routing covered; **`wj-middleware` (added)**: layer pipeline with early responses (closure-field form waits on a compiler fix) |
+| JSON, CSV, YAML, TOML | `wj-json-util`, `wj-json-doc`, `wj-csv`, `wj-yaml`, `wj-toml` | covered |
+| SQL helpers and migrations | `wj-migrate`, `wj-sqlite` (reader), **`wj-sql` (added)** | covered: parameterised builder for select, insert, update, delete |
+| Auth, JWT, sessions | `wj-jwt`, `wj-oauth`, `wj-hash`, `wj-cookie`, **`wj-session` (added)** | covered: store, timeouts, rotation, CSRF |
+| Configuration | `wj-config`, `wj-dotenv`, **`wj-ini` (added)** | covered: INI with typed getters and a round-tripping writer |
+| Logging and tracing | `wj-log`, `wj-metrics`, **`wj-trace` (added)** | covered: spans, sampling, `traceparent`, exporter trait; an OTLP exporter adapter: Next |
+| CLI parsing and output | `wj-cli-args`, `wj-cli-ui`, `wj-table` | covered |
+| Templating | `wj-template`, `wj-markdown` | covered |
+| Rate limiting | `wj-rate-limit`, **`wj-token-bucket` (added)** | covered: fixed window, token bucket, sliding window |
+| Caching | `wj-cache`, `wj-redis` | covered (LRU, TTL, Redis client) |
+| Scheduling and cron | `wj-cron`, `wj-duration`, `wj-timefmt` | covered |
+| Validation | `wj-validate` | covered |
+| Pagination | **`wj-pagination` (added)** | covered: offset and keyset, page strips, `Link` headers |
+| Identifiers | `wj-uuid`, **`wj-ulid` (added)** | covered: UUID v1 to v7, time-sortable ULIDs with monotonic generation |
+| Money | `wj-decimal`, **`wj-money` (added)** | covered: minor units, basis points, exact allocation |
+| Human-readable sizes | **`wj-bytesize` (added)** | covered: IEC and SI, exact parse and format |
+| Suggestions and fuzzy search | **`wj-fuzzy` (added)** | covered: edit distance, did-you-mean, picker scoring |
+| Retry and backoff | `wj-retry`, **`wj-circuit-breaker` (added)** | covered: backoff policy and breaker compose through `retry_in` |
+| Queues and background jobs | **`wj-queue` (added)**, `wj-event` | covered in process; durable (SQLite- or Redis-backed) queue: Next |
+| Metrics | `wj-metrics` | covered (Prometheus text) |
+| Email | `wj-smtp` | covered (MIME and SMTP planning) |
+| Testing | `wj-prop`, `wj-snapshot` | covered |
+
+Second pass: `wj-token-bucket`, `wj-circuit-breaker`, `wj-trace` and `wj-middleware` close the resilience and
+observability rows (limit, break, trace) and give HTTP servers a middleware stack. All four are pure Windjammer with an
+empty capability list.
+
+Third pass: `wj-pagination`, `wj-ini`, `wj-ulid`, `wj-bytesize`, `wj-fuzzy` and `wj-money` cover the small pieces every
+application needs and an LLM tends to invent badly: page arithmetic, config files, sortable ids, readable sizes, typo
+hints and cent-exact money. Each is pure Windjammer, has a runnable example whose README snippet and output a test checks,
+and declares no capability beyond reading its own README in that test.
+
+Why the first three: every typical web service needs a data layer that cannot be talked into injection, a session story,
+and somewhere to put work that should not block a request, and each of them composes the packages already here
+(`wj-cookie`, `wj-migrate`, `wj-retry` and `wj-cron` in spirit). All three are pure Windjammer with an empty capability
+list, so they run the same interpreted, compiled and under `--simulate`.
 
 ## Wave 3 (rust-interop allowlist)
 

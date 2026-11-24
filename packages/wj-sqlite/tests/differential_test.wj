@@ -1,0 +1,120 @@
+// SQLite itself is the oracle: std::db writes a database (page size 512, 400 rows, so the table b-tree has interior pages),
+// the connection closes, and the reader must return every cell the way SQLite's own query does.
+use crate::database::open
+use crate::database::read_file
+use crate::verify::verify_file
+use crate::format::Value
+use crate::format::show
+use std::db
+use std::fs
+
+fn lcg(seed: int) -> int {
+    (seed * 1103515245 + 12345) % 2147483648
+}
+
+fn word(n: int) -> string {
+    let parts = ["alpha", "caf\u{e9}", "\u{65e5}\u{672c}", "x", "", "with space", "quote'd", "\u{2713} done"]
+    parts[n % 8]
+}
+
+fn build(path: string) -> Result<int, string> {
+    let _ = fs.remove_file(path)
+    let conn = db.connect("${path}?mode=rwc")?
+    let _ = conn.query("pragma journal_mode=delete", [])
+    let _ = conn.query("pragma page_size=512", [])
+    conn.execute("create table t (id integer primary key, a integer, b real, c text, d)", [])?
+    let mut seed = 7
+    let mut i = 1
+    while i <= 400 {
+        seed = lcg(seed)
+        let a = seed % 2000001 - 1000000
+        seed = lcg(seed)
+        let quarter = (seed % 4001 - 2000)
+        let b = "${quarter / 4}.${(quarter % 4 * 25 + 100) % 100:02}"
+        seed = lcg(seed)
+        let c = "${word(seed)} ${word(seed / 8)} #${i}"
+        conn.execute("insert into t (a, b, c, d) values (?, ?, ?, ?)", ["${a}", b, c, "${seed}"])?
+        i = i + 1
+    }
+    conn.close()
+    Ok(400)
+}
+
+fn cell(v: Value) -> string {
+    match v {
+        Value::Real(f) => "${f}",
+        _ => show(v),
+    }
+}
+
+@test
+fn test_reader_agrees_with_sqlite_on_400_rows() {
+    let path = "/tmp/wj-sqlite-differential.db"
+    match build(path) {
+        Ok(_) => {},
+        Err(e) => return assert(false, "building the database: ${e}"),
+    }
+    let image = match read_file(path) {
+        Ok(d) => d,
+        Err(e) => return assert(false, e),
+    }
+    assert(image.page_count() > 10, "the table needs several pages, got ${image.page_count()}")
+    let rows = match image.rows("t") {
+        Ok(r) => r,
+        Err(e) => return assert(false, e),
+    }
+    assert_eq(rows.len(), 400)
+    let conn = match db.connect("${path}?mode=rwc") {
+        Ok(c) => c,
+        Err(e) => return assert(false, e),
+    }
+    let want = match conn.query("select id, a, c, d from t order by id", []) {
+        Ok(r) => r,
+        Err(e) => return assert(false, e),
+    }
+    assert_eq(want.len(), 400)
+    let mut bad = ""
+    let mut i = 0
+    while i < 400 {
+        let w = want[i]
+        let r = rows[i]
+        let id = w.get_int("id") ?? 0 - 1
+        let a = w.get_int("a") ?? 0 - 1
+        if id != r.rowid || show(r.values[0]) != "${id}" || cell(r.values[1]) != "${a}" || cell(r.values[3]) != w.get_string("c").unwrap_or("?") || cell(r.values[4]) != w.get_string("d").unwrap_or("?") {
+            bad += "row ${i + 1}: ${cell(r.values[1])} ${cell(r.values[3])}; "
+        }
+        i = i + 1
+    }
+    assert_eq(bad, "")
+}
+
+@test
+fn test_verify_file_agrees_with_sqlite_row_counts() {
+    let path = "/tmp/wj-sqlite-verify.db"
+    match build(path) {
+        Ok(_) => {},
+        Err(e) => return assert(false, "building the database: ${e}"),
+    }
+    match verify_file(path) {
+        Ok(checks) => {
+            assert_eq(checks.len(), 1)
+            assert_eq(checks[0].table, "t")
+            assert_eq(checks[0].reader_rows, 400)
+            assert(checks[0].agrees(), "reader and SQLite count the same rows")
+        },
+        Err(e) => assert(false, e),
+    }
+}
+
+@test
+fn test_bad_files_are_rejected() {
+    assert(open(Vec::new()).is_err(), "empty")
+    let mut junk: Vec<u8> = Vec::new()
+    let mut i = 0
+    while i < 200 {
+        junk.push(7)
+        i = i + 1
+    }
+    assert(open(junk).is_err(), "not SQLite")
+    assert(read_file("/tmp/definitely-missing.db").is_err(), "missing file")
+}

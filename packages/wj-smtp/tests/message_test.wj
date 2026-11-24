@@ -1,0 +1,130 @@
+// The golden message below was parsed back with Python's email package (policy.default): headers, both bodies and the
+// attachment bytes match the inputs and the parser reports no defects.
+use crate::address::Address
+use crate::address::address
+use crate::message::Attachment
+use crate::message::build
+use crate::message::new_message
+use crate::smtp::Reply
+use crate::smtp::plan
+use crate::smtp::step_succeeded
+use crate::smtp::parse_reply
+
+fn pattern(n: int) -> Vec<u8> {
+    let mut data: Vec<u8> = Vec::new()
+    let mut i = 0
+    while i < n {
+        data.push(((i * 7 + 3) % 256) as u8)
+        i = i + 1
+    }
+    data
+}
+
+fn built(r: Result<string, string>) -> string {
+    match r {
+        Ok(t) => t,
+        Err(e) => "error: ${e}",
+    }
+}
+
+@test
+fn test_full_message_matches_the_golden_text() {
+    let from = address("Ada Lovelace", "ada@example.com")
+    let mut m = new_message(from, [address("Jos\u{e9} \u{c1}lvarez", "jose@example.org"), address("", "bob@example.net")], "Caf\u{e9} menu: week 10", "Hello,\nthe = sign and caf\u{e9} need quoting.\n")
+    m.date_secs = 1709647629
+    m.message_id = "20240305.1@example.com"
+    m.html = "<p>Hello, <b>caf\u{e9}</b></p>\n"
+    m.cc = [address("Carol", "carol@example.com")]
+    m.attachments = [Attachment { filename: "report.bin", content_type: "application/octet-stream", data: pattern(100) }]
+    assert_eq(built(build(m)), "Date: Tue, 05 Mar 2024 14:07:09 +0000\r\nFrom: Ada Lovelace <ada@example.com>\r\nTo: =?utf-8?b?Sm9zw6kgw4FsdmFyZXo=?= <jose@example.org>, bob@example.net\r\nCc: Carol <carol@example.com>\r\nSubject: =?utf-8?b?Q2Fmw6kgbWVudTogd2VlayAxMA==?=\r\nMessage-ID: <20240305.1@example.com>\r\nMIME-Version: 1.0\r\nContent-Type: multipart/mixed; boundary=\"=_mix_f3258d32e914dba1aac8136b\"\r\n\r\n--=_mix_f3258d32e914dba1aac8136b\r\nContent-Type: multipart/alternative; boundary=\"=_alt_f3258d32e914dba1aac8136b\"\r\n\r\n--=_alt_f3258d32e914dba1aac8136b\r\nContent-Type: text/plain; charset=\"utf-8\"\r\nContent-Transfer-Encoding: quoted-printable\r\n\r\nHello,\r\nthe =3D sign and caf=C3=A9 need quoting.\r\n\r\n--=_alt_f3258d32e914dba1aac8136b\r\nContent-Type: text/html; charset=\"utf-8\"\r\nContent-Transfer-Encoding: quoted-printable\r\n\r\n<p>Hello, <b>caf=C3=A9</b></p>\r\n\r\n--=_alt_f3258d32e914dba1aac8136b--\r\n--=_mix_f3258d32e914dba1aac8136b\r\nContent-Type: application/octet-stream\r\nContent-Transfer-Encoding: base64\r\nContent-Disposition: attachment; filename=\"report.bin\"\r\n\r\nAwoRGB8mLTQ7QklQV15lbHN6gYiPlp2kq7K5wMfO1dzj6vH4/wYNFBsiKTA3PkVMU1phaG92fYSL\r\nkpmgp661vMPK0djf5u30+wIJEBceJSwzOkFIT1ZdZGtyeYCHjpWco6qxuA==\r\n--=_mix_f3258d32e914dba1aac8136b--\r\n")
+}
+
+@test
+fn test_simple_message_and_bcc_is_not_written() {
+    let mut m = new_message(address("", "a@example.com"), [address("", "b@example.com")], "Hi", "Plain body\n")
+    m.message_id = "1@example.com"
+    m.bcc = [address("", "secret@example.com")]
+    let text = built(build(m))
+    assert(text.starts_with("Date: Thu, 01 Jan 1970 00:00:00 +0000\r\nFrom: a@example.com\r\nTo: b@example.com\r\nSubject: Hi\r\nMessage-ID: <1@example.com>\r\nMIME-Version: 1.0\r\n"), text)
+    assert(!text.contains("secret@example.com"), "bcc stays in the envelope")
+    assert(text.ends_with("Content-Transfer-Encoding: 7bit\r\n\r\nPlain body\r\n"), text)
+}
+
+@test
+fn test_build_refuses_bad_input() {
+    let a = address("", "a@example.com")
+    let b = address("", "b@example.com")
+    let mut no_id = new_message(a, [b], "s", "t")
+    assert(built(build(no_id)).starts_with("error"), "message id required")
+    let mut crlf = new_message(a, [b], "s\r\nBcc: evil@example.com", "t")
+    crlf.message_id = "1@x.co"
+    assert(built(build(crlf)).starts_with("error"), "subject injection")
+    let mut nobody = new_message(a, Vec::new(), "s", "t")
+    nobody.message_id = "1@x.co"
+    assert(built(build(nobody)).starts_with("error"), "no recipients")
+    let mut header = new_message(a, [b], "s", "t")
+    header.message_id = "1@x.co"
+    let mut hs: Vec<(string, string)> = Vec::new()
+    hs.push(("X-Test", "ok\r\nBcc: evil@example.com"))
+    header.extra_headers = hs
+    assert(built(build(header)).starts_with("error"), "extra header injection")
+    let mut bad_to = new_message(a, [address("", "not an address")], "s", "t")
+    bad_to.message_id = "1@x.co"
+    assert(built(build(bad_to)).starts_with("error"), "bad recipient")
+}
+
+@test
+fn test_unicode_attachment_name_uses_rfc_2231() {
+    let mut m = new_message(address("", "a@example.com"), [address("", "b@example.com")], "s", "t")
+    m.message_id = "1@x.co"
+    m.attachments = [Attachment { filename: "r\u{e9}sum\u{e9}.pdf", content_type: "application/pdf", data: pattern(3) }]
+    assert_str_contains(built(build(m)), "Content-Disposition: attachment; filename*=utf-8''r%C3%A9sum%C3%A9.pdf\r\n")
+}
+
+fn reply_of(text: string) -> Reply {
+    match parse_reply(text) {
+        Ok(r) => r,
+        Err(_) => Reply { code: 0, lines: Vec::new(), complete: false },
+    }
+}
+
+@test
+fn test_smtp_plan_follows_rfc_5321() {
+    let steps = match plan("client.example.com", address("", "a@example.com"), [address("", "b@example.com"), address("", "c@example.com")], "Subject: x\r\n\r\n.hidden\r\nbody\r\n", "user", "pass") {
+        Ok(s) => s,
+        Err(_) => Vec::new(),
+    }
+    let mut sent: Vec<string> = Vec::new()
+    let mut k = 0
+    while k < steps.len() {
+        sent.push("${steps[k].send}")
+        k = k + 1
+    }
+    assert_eq(steps.len(), 9)
+    assert_eq(sent[0], "")
+    assert_eq(sent[1], "EHLO client.example.com\r\n")
+    assert_eq(sent[2], "AUTH PLAIN AHVzZXIAcGFzcw==\r\n")
+    assert_eq(sent[3], "MAIL FROM:<a@example.com>\r\n")
+    assert_eq(sent[4], "RCPT TO:<b@example.com>\r\n")
+    assert_eq(sent[5], "RCPT TO:<c@example.com>\r\n")
+    assert_eq(sent[6], "DATA\r\n")
+    assert_eq(sent[7], "Subject: x\r\n\r\n..hidden\r\nbody\r\n.\r\n")
+    assert_eq(sent[8], "QUIT\r\n")
+    assert(step_succeeded(steps[4], reply_of("250 OK\r\n")), "250 passes RCPT")
+    assert(step_succeeded(steps[4], reply_of("251 forwarded\r\n")), "251 passes RCPT")
+    assert(!step_succeeded(steps[4], reply_of("550 no such user\r\n")), "550 fails")
+    assert(!step_succeeded(steps[1], reply_of("250-partial\r\n")), "incomplete reply")
+}
+
+@test
+fn test_plan_without_auth_and_with_bad_recipients() {
+    let a = address("", "a@example.com")
+    let steps = match plan("h.example.com", a, [address("", "b@example.com")], "x", "", "") {
+        Ok(s) => s,
+        Err(_) => Vec::new(),
+    }
+    assert_eq(steps.len(), 7)
+    assert(plan("h.example.com", a, Vec::new(), "x", "", "").is_err(), "no recipients")
+    assert(plan("h.example.com", a, [address("", "bad>\r\nRCPT TO:<x@y.zz")], "x", "", "").is_err(), "injection in recipient")
+    assert(plan("", a, [address("", "b@example.com")], "x", "", "").is_err(), "empty host")
+}

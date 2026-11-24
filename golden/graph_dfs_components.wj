@@ -1,0 +1,51 @@
+// golden: connected components with depth-first search
+// idiom: adjacency list as Vec<Vec<int>>; an explicit stack instead of recursion; a visited Vec<bool>
+fn build(n: int, edges: Vec<(int, int)>) -> Vec<Vec<int>> {
+    let mut adj: Vec<Vec<int>> = []
+    for _ in 0..n {
+        adj.push([])
+    }
+    for (a, b) in edges {
+        adj[a].push(b)
+        adj[b].push(a)
+    }
+    adj
+}
+
+fn components(adj: Vec<Vec<int>>) -> Vec<Vec<int>> {
+    let mut seen: Vec<bool> = []
+    for _ in 0..adj.len() {
+        seen.push(false)
+    }
+    let mut groups: Vec<Vec<int>> = []
+    for start in 0..adj.len() {
+        if seen[start] {
+            continue
+        }
+        let mut group: Vec<int> = []
+        let mut stack = [start]
+        seen[start] = true
+        while stack.len() > 0 {
+            let node = stack.pop() ?? 0
+            group.push(node)
+            for next in adj[node] {
+                if !seen[next] {
+                    seen[next] = true
+                    stack.push(next)
+                }
+            }
+        }
+        group.sort()
+        groups.push(group)
+    }
+    groups
+}
+
+fn main() {
+    let adj = build(8, [(0, 1), (1, 2), (3, 4), (5, 6), (6, 7), (7, 5)])
+    let groups = components(adj)
+    println("${groups.len()} components")
+    for g in groups {
+        println("  ${g:?}")
+    }
+}

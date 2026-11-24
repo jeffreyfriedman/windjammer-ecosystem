@@ -1,0 +1,223 @@
+// Expected bytes come from the websockets 12.0 library (unmasked frames, accept keys) and RFC 6455 section 5.7 / 1.3.
+// Masked frames are the RFC's masking applied by hand and then parsed back with websockets to confirm them.
+use crate::frame::DEFAULT_MAX_PAYLOAD
+use crate::frame::Decoded
+use crate::frame::Frame
+use crate::frame::binary_frame
+use crate::frame::close_frame
+use crate::frame::decode
+use crate::frame::encode
+use crate::frame::from_hex
+use crate::frame::hex
+use crate::frame::new_frame
+use crate::frame::ping_frame
+use crate::frame::pong_frame
+use crate::frame::text_frame
+use crate::handshake::accept_key
+
+fn pattern(n: int) -> Vec<u8> {
+    let mut out: Vec<u8> = Vec::new()
+    let mut i = 0
+    while i < n {
+        out.push(((i * 7 + 3) % 251) as u8)
+        i = i + 1
+    }
+    out
+}
+
+fn wire_of(frame: Frame, key: Vec<u8>) -> Vec<u8> {
+    match encode(frame, key) {
+        Ok(bytes) => bytes,
+        Err(_) => Vec::new(),
+    }
+}
+
+fn encoded_hex(frame: Frame, key: Vec<u8>) -> string {
+    match encode(frame, key) {
+        Ok(bytes) => hex(bytes),
+        Err(e) => "error: ${e}",
+    }
+}
+
+fn head_hex(bytes: Vec<u8>, n: int) -> string {
+    let mut head: Vec<u8> = Vec::new()
+    let mut i = 0
+    while i < n && i < bytes.len() {
+        head.push(bytes[i])
+        i = i + 1
+    }
+    hex(head)
+}
+
+fn decoded(bytes: Vec<u8>) -> Decoded {
+    match decode(bytes, DEFAULT_MAX_PAYLOAD) {
+        Ok(Some(d)) => d,
+        _ => Decoded { frame: new_frame(15, Vec::new()), consumed: -1 },
+    }
+}
+
+@test
+fn test_unmasked_frames_match_websockets_library() {
+    assert_eq(encoded_hex(text_frame("Hello"), Vec::new()), "810548656c6c6f")
+    assert_eq(encoded_hex(text_frame(""), Vec::new()), "8100")
+    assert_eq(encoded_hex(ping_frame(from_hex("48656c6c6f")), Vec::new()), "890548656c6c6f")
+    assert_eq(encoded_hex(pong_frame(from_hex("48656c6c6f")), Vec::new()), "8a0548656c6c6f")
+    assert_eq(encoded_hex(close_frame(1000, "bye"), Vec::new()), "880503e8627965")
+    assert_eq(encoded_hex(Frame { fin: false, opcode: 1, payload: from_hex("48656c") }, Vec::new()), "010348656c")
+    assert_eq(encoded_hex(Frame { fin: true, opcode: 0, payload: from_hex("6c6f") }, Vec::new()), "80026c6f")
+    assert_eq(encoded_hex(text_frame("héllo ✓"), Vec::new()), "810a68c3a96c6c6f20e29c93")
+}
+
+@test
+fn test_length_encodings_match_websockets_library() {
+    let wire0 = wire_of(binary_frame(pattern(0)), Vec::new())
+    assert_eq(wire0.len(), 2)
+    assert_eq(head_hex(wire0, 2), "8200")
+    assert_eq(hex(wire0), "8200")
+    let wire1 = wire_of(binary_frame(pattern(1)), Vec::new())
+    assert_eq(wire1.len(), 3)
+    assert_eq(head_hex(wire1, 2), "8201")
+    assert_eq(hex(wire1), "820103")
+    let wire125 = wire_of(binary_frame(pattern(125)), Vec::new())
+    assert_eq(wire125.len(), 127)
+    assert_eq(head_hex(wire125, 2), "827d")
+    assert_eq(hex(wire125), "827d030a11181f262d343b424950575e656c737a81888f969da4abb2b9c0c7ced5dce3eaf1f8040b121920272e353c434a51585f666d747b828990979ea5acb3bac1c8cfd6dde4ebf2f9050c131a21282f363d444b525960676e757c838a91989fa6adb4bbc2c9d0d7dee5ecf3fa060d141b222930373e454c535a61686f76")
+    let wire126 = wire_of(binary_frame(pattern(126)), Vec::new())
+    assert_eq(wire126.len(), 130)
+    assert_eq(head_hex(wire126, 4), "827e007e")
+    assert_eq(hex(wire126), "827e007e030a11181f262d343b424950575e656c737a81888f969da4abb2b9c0c7ced5dce3eaf1f8040b121920272e353c434a51585f666d747b828990979ea5acb3bac1c8cfd6dde4ebf2f9050c131a21282f363d444b525960676e757c838a91989fa6adb4bbc2c9d0d7dee5ecf3fa060d141b222930373e454c535a61686f767d")
+    let wire127 = wire_of(binary_frame(pattern(127)), Vec::new())
+    assert_eq(wire127.len(), 131)
+    assert_eq(head_hex(wire127, 4), "827e007f")
+    assert_eq(hex(wire127), "827e007f030a11181f262d343b424950575e656c737a81888f969da4abb2b9c0c7ced5dce3eaf1f8040b121920272e353c434a51585f666d747b828990979ea5acb3bac1c8cfd6dde4ebf2f9050c131a21282f363d444b525960676e757c838a91989fa6adb4bbc2c9d0d7dee5ecf3fa060d141b222930373e454c535a61686f767d84")
+    let wire255 = wire_of(binary_frame(pattern(255)), Vec::new())
+    assert_eq(wire255.len(), 259)
+    assert_eq(head_hex(wire255, 4), "827e00ff")
+    assert_eq(hex(wire255), "827e00ff030a11181f262d343b424950575e656c737a81888f969da4abb2b9c0c7ced5dce3eaf1f8040b121920272e353c434a51585f666d747b828990979ea5acb3bac1c8cfd6dde4ebf2f9050c131a21282f363d444b525960676e757c838a91989fa6adb4bbc2c9d0d7dee5ecf3fa060d141b222930373e454c535a61686f767d848b9299a0a7aeb5bcc3cad1d8dfe6edf400070e151c232a31383f464d545b626970777e858c939aa1a8afb6bdc4cbd2d9e0e7eef501080f161d242b323940474e555c636a71787f868d949ba2a9b0b7bec5ccd3dae1e8eff6020910171e252c333a41484f565d646b727980878e959ca3aab1b8bfc6cdd4dbe2e9f0f7030a1118")
+    let wire256 = wire_of(binary_frame(pattern(256)), Vec::new())
+    assert_eq(wire256.len(), 260)
+    assert_eq(head_hex(wire256, 4), "827e0100")
+    assert_eq(hex(wire256), "827e0100030a11181f262d343b424950575e656c737a81888f969da4abb2b9c0c7ced5dce3eaf1f8040b121920272e353c434a51585f666d747b828990979ea5acb3bac1c8cfd6dde4ebf2f9050c131a21282f363d444b525960676e757c838a91989fa6adb4bbc2c9d0d7dee5ecf3fa060d141b222930373e454c535a61686f767d848b9299a0a7aeb5bcc3cad1d8dfe6edf400070e151c232a31383f464d545b626970777e858c939aa1a8afb6bdc4cbd2d9e0e7eef501080f161d242b323940474e555c636a71787f868d949ba2a9b0b7bec5ccd3dae1e8eff6020910171e252c333a41484f565d646b727980878e959ca3aab1b8bfc6cdd4dbe2e9f0f7030a11181f")
+    let wire65535 = wire_of(binary_frame(pattern(65535)), Vec::new())
+    assert_eq(wire65535.len(), 65539)
+    assert_eq(head_hex(wire65535, 4), "827effff")
+    assert_eq(wire65535[65538] as int, 164)
+    let wire65536 = wire_of(binary_frame(pattern(65536)), Vec::new())
+    assert_eq(wire65536.len(), 65546)
+    assert_eq(head_hex(wire65536, 10), "827f0000000000010000")
+    assert_eq(wire65536[65545] as int, 171)
+    let wire70000 = wire_of(binary_frame(pattern(70000)), Vec::new())
+    assert_eq(wire70000.len(), 70010)
+    assert_eq(head_hex(wire70000, 10), "827f0000000000011170")
+    assert_eq(wire70000[70009] as int, 44)
+}
+
+@test
+fn test_masked_frames_match_rfc_and_parse_with_websockets() {
+    let key = from_hex("37fa213d")
+    assert_eq(encoded_hex(text_frame("Hello"), key), "818537fa213d7f9f4d5158")
+    assert_eq(encoded_hex(text_frame(""), key), "818037fa213d")
+    assert_eq(encoded_hex(pong_frame(from_hex("48656c6c6f")), key), "8a8537fa213d7f9f4d5158")
+    assert_eq(encoded_hex(binary_frame(pattern(300)), key), "82fe012c37fa213d34f0302528dc0c090cb8686d60a444514480a0b5b86cbc999c4898fdf034f4e1d410d0c533f1332417dd0f080bb96b6c6fa547504381a3b4a76dbf989b499bfcff35f7e0d311d3c432f6322716d20e0b0abe6a6f6e9a46534286a2b7a662be9b9a4e9afffe2af6e3d216d2c731f7352615d3110a09bf6d6e6d9b49524187a5b6a563819a994f9dfefd2bf9e2d117d53d30f4342114d0100508bc6c696c98484d4084a4b1a4608095984c9cf9fc28f8ddd014d43c3ff5372013d1130477bd6f686b994b4c4f85a7b0a3618394874d9ff8fb29fbdcdf15d73f3eea362312d6120776b26e6b6a9e4a4f4e7aa6b3a266829786429efbfa2efadfde0ad63e3deb392211d7150675b3716a699f4d4e4d7ba9b2a16785968543e1faf92ffddedd0bd9393ce8381d10d4140174b07065")
+}
+
+@test
+fn test_decode_reads_rfc_6455_examples() {
+    // unmasked text Hello
+    let d0 = decoded(from_hex("81 05 48 65 6c 6c 6f"))
+    assert_eq(d0.consumed, 7)
+    assert_eq(d0.frame.opcode, 1)
+    assert_eq(d0.frame.fin, true)
+    assert_eq(hex(d0.frame.payload), "48656c6c6f")
+    // masked text Hello
+    let d1 = decoded(from_hex("81 85 37 fa 21 3d 7f 9f 4d 51 58"))
+    assert_eq(d1.consumed, 11)
+    assert_eq(d1.frame.opcode, 1)
+    assert_eq(d1.frame.fin, true)
+    assert_eq(hex(d1.frame.payload), "48656c6c6f")
+    // first fragment
+    let d2 = decoded(from_hex("01 03 48 65 6c"))
+    assert_eq(d2.consumed, 5)
+    assert_eq(d2.frame.opcode, 1)
+    assert_eq(d2.frame.fin, false)
+    assert_eq(hex(d2.frame.payload), "48656c")
+    // last fragment
+    let d3 = decoded(from_hex("80 02 6c 6f"))
+    assert_eq(d3.consumed, 4)
+    assert_eq(d3.frame.opcode, 0)
+    assert_eq(d3.frame.fin, true)
+    assert_eq(hex(d3.frame.payload), "6c6f")
+    // ping
+    let d4 = decoded(from_hex("89 05 48 65 6c 6c 6f"))
+    assert_eq(d4.consumed, 7)
+    assert_eq(d4.frame.opcode, 9)
+    assert_eq(d4.frame.fin, true)
+    assert_eq(hex(d4.frame.payload), "48656c6c6f")
+    // masked pong
+    let d5 = decoded(from_hex("8a 85 37 fa 21 3d 7f 9f 4d 51 58"))
+    assert_eq(d5.consumed, 11)
+    assert_eq(d5.frame.opcode, 10)
+    assert_eq(d5.frame.fin, true)
+    assert_eq(hex(d5.frame.payload), "48656c6c6f")
+}
+
+@test
+fn test_decode_round_trips_at_every_length_class() {
+    let d0 = decoded(wire_of(binary_frame(pattern(0)), Vec::new()))
+    assert_eq(d0.consumed, 2)
+    assert_eq(d0.frame.payload.len(), 0)
+    assert_eq(hex(d0.frame.payload), hex(pattern(0)))
+    let m0 = decoded(wire_of(binary_frame(pattern(0)), from_hex("0a0b0c0d")))
+    assert_eq(hex(m0.frame.payload), hex(pattern(0)))
+    assert_eq(m0.consumed, 6)
+    let d5 = decoded(wire_of(binary_frame(pattern(5)), Vec::new()))
+    assert_eq(d5.consumed, 7)
+    assert_eq(d5.frame.payload.len(), 5)
+    assert_eq(hex(d5.frame.payload), hex(pattern(5)))
+    let m5 = decoded(wire_of(binary_frame(pattern(5)), from_hex("0a0b0c0d")))
+    assert_eq(hex(m5.frame.payload), hex(pattern(5)))
+    assert_eq(m5.consumed, 11)
+    let d125 = decoded(wire_of(binary_frame(pattern(125)), Vec::new()))
+    assert_eq(d125.consumed, 127)
+    assert_eq(d125.frame.payload.len(), 125)
+    assert_eq(hex(d125.frame.payload), hex(pattern(125)))
+    let m125 = decoded(wire_of(binary_frame(pattern(125)), from_hex("0a0b0c0d")))
+    assert_eq(hex(m125.frame.payload), hex(pattern(125)))
+    assert_eq(m125.consumed, 131)
+    let d126 = decoded(wire_of(binary_frame(pattern(126)), Vec::new()))
+    assert_eq(d126.consumed, 130)
+    assert_eq(d126.frame.payload.len(), 126)
+    assert_eq(hex(d126.frame.payload), hex(pattern(126)))
+    let m126 = decoded(wire_of(binary_frame(pattern(126)), from_hex("0a0b0c0d")))
+    assert_eq(hex(m126.frame.payload), hex(pattern(126)))
+    assert_eq(m126.consumed, 134)
+    let d200 = decoded(wire_of(binary_frame(pattern(200)), Vec::new()))
+    assert_eq(d200.consumed, 204)
+    assert_eq(d200.frame.payload.len(), 200)
+    assert_eq(hex(d200.frame.payload), hex(pattern(200)))
+    let m200 = decoded(wire_of(binary_frame(pattern(200)), from_hex("0a0b0c0d")))
+    assert_eq(hex(m200.frame.payload), hex(pattern(200)))
+    assert_eq(m200.consumed, 208)
+    let d65535 = decoded(wire_of(binary_frame(pattern(65535)), Vec::new()))
+    assert_eq(d65535.consumed, 65539)
+    assert_eq(d65535.frame.payload.len(), 65535)
+    assert_eq(hex(d65535.frame.payload), hex(pattern(65535)))
+    let m65535 = decoded(wire_of(binary_frame(pattern(65535)), from_hex("0a0b0c0d")))
+    assert_eq(hex(m65535.frame.payload), hex(pattern(65535)))
+    assert_eq(m65535.consumed, 65543)
+    let d65536 = decoded(wire_of(binary_frame(pattern(65536)), Vec::new()))
+    assert_eq(d65536.consumed, 65546)
+    assert_eq(d65536.frame.payload.len(), 65536)
+    assert_eq(hex(d65536.frame.payload), hex(pattern(65536)))
+    let m65536 = decoded(wire_of(binary_frame(pattern(65536)), from_hex("0a0b0c0d")))
+    assert_eq(hex(m65536.frame.payload), hex(pattern(65536)))
+    assert_eq(m65536.consumed, 65550)
+}
+
+@test
+fn test_accept_key_matches_websockets_library() {
+    assert_eq(accept_key("dGhlIHNhbXBsZSBub25jZQ=="), "s3pPLMBiTxaQ9kYGzzhZRbK+xOo=")
+    assert_eq(accept_key("x3JJHMbDL1EzLkh9GBhXDw=="), "HSmrc0sMlYUkAGmm5OPpG2HaGWk=")
+    assert_eq(accept_key("AQIDBAUGBwgJCgsMDQ4PEA=="), "C/0nmHhBztSRGR1CwL6Tf4ZjwpY=")
+    assert_eq(accept_key("AAAAAAAAAAAAAAAAAAAAAA=="), "ICX+Yqv66kxgM0FcWaLWlFLwTAI=")
+}

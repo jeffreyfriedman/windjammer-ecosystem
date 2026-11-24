@@ -168,3 +168,113 @@ pub fn migrations_from_filenames(filenames: Vec<string>) -> Result<Vec<Migration
     }
     Ok(sort_migrations(items))
 }
+
+/// Number of migrations in `items`.
+pub fn migration_count(items: Vec<Migration>) -> int {
+    let mut n = 0
+    for _m in items {
+        n = n + 1
+    }
+    n
+}
+
+/// `Ok(n)` when `items` has exactly `n` migrations, otherwise `Err`.
+pub fn require_migration_count(items: Vec<Migration>, n: int) -> Result<int, string> {
+    if migration_count(items) == n {
+        return Ok(n)
+    }
+    Err("expected count")
+}
+
+/// Highest version in `items`, or `0` when empty.
+pub fn latest_version(items: Vec<Migration>) -> int {
+    let sorted = sort_migrations(items)
+    if sorted.len() == 0 {
+        return 0
+    }
+    sorted[sorted.len() - 1].version
+}
+
+/// `Ok(version)` for the highest migration, or `Err` when the set is empty.
+pub fn require_latest(items: Vec<Migration>) -> Result<int, string> {
+    let version = latest_version(items)
+    if version > 0 {
+        return Ok(version)
+    }
+    Err("expected latest")
+}
+
+/// Number of migrations in `all` not yet in `applied`.
+pub fn pending_count(all: Vec<Migration>, applied: Vec<int>) -> int {
+    let left = pending(all, applied)
+    let mut n = 0
+    for _m in left {
+        n = n + 1
+    }
+    n
+}
+
+/// `Ok(n)` when that many migrations are still pending, otherwise `Err`.
+pub fn require_pending_count(all: Vec<Migration>, applied: Vec<int>, n: int) -> Result<int, string> {
+    if pending_count(all, applied) == n {
+        return Ok(n)
+    }
+    Err("expected pending count")
+}
+
+/// True when `version` exists in `all` and is not yet applied.
+pub fn is_pending(all: Vec<Migration>, applied: Vec<int>, version: int) -> bool {
+    if version_applied(applied, version) {
+        return false
+    }
+    for m in all {
+        if m.version == version {
+            return true
+        }
+    }
+    false
+}
+
+/// `Ok(version)` when that migration exists and is not yet applied, otherwise `Err`.
+pub fn require_pending(all: Vec<Migration>, applied: Vec<int>, version: int) -> Result<int, string> {
+    if is_pending(all, applied, version) {
+        return Ok(version)
+    }
+    Err("expected pending")
+}
+
+/// Lowest version in `items`, or `0` when empty.
+pub fn earliest_version(items: Vec<Migration>) -> int {
+    let sorted = sort_migrations(items)
+    if sorted.len() == 0 {
+        return 0
+    }
+    sorted[0].version
+}
+
+/// `Ok(version)` for the lowest migration, or `Err` when the set is empty.
+pub fn require_earliest(items: Vec<Migration>) -> Result<int, string> {
+    let version = earliest_version(items)
+    if version > 0 {
+        return Ok(version)
+    }
+    Err("expected earliest")
+}
+
+/// Migration name for `version`, or None when absent.
+pub fn name_of_version(items: Vec<Migration>, version: int) -> Option<string> {
+    for m in items {
+        if m.version == version {
+            return Some(m.name)
+        }
+    }
+    None
+}
+
+/// Migration name for `version`, or Err naming the missing version.
+pub fn require_name(items: Vec<Migration>, version: int) -> Result<string, string> {
+    match name_of_version(items, version) {
+        Some(name) => Ok(name),
+        None => Err("missing migration: ${version}"),
+    }
+}

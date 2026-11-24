@@ -1,0 +1,7 @@
+GET / -> 200 home
+GET /health -> 200 ok
+POST /orders -> 201 order created
+GET /users/42 -> 200 user #42
+GET /users/abc -> 400 bad user id: abc
+GET /nowhere -> 404 no route for /nowhere
+DELETE / -> 405 method not allowed

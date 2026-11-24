@@ -1,0 +1,199 @@
+use crate::hex
+use crate::memory_exporter
+use crate::new_sampled_tracer
+use crate::new_tracer
+
+@test
+fn test_hex_pads_and_lowercases() {
+    assert_eq(hex(255, 4), "00ff")
+    assert_eq(hex(0, 2), "00")
+    assert_eq(hex(48879, 4), "beef")
+}
+
+@test
+fn test_same_seed_gives_same_ids() {
+    let mut a = new_tracer(7)
+    let mut b = new_tracer(7)
+    let ha = a.start_root("x", 0)
+    let hb = b.start_root("x", 0)
+    assert_eq(a.span(ha).trace_id, b.span(hb).trace_id)
+    assert_eq(a.span(ha).span_id, b.span(hb).span_id)
+}
+
+@test
+fn test_different_seeds_give_different_ids() {
+    let mut a = new_tracer(1)
+    let mut b = new_tracer(2)
+    let ha = a.start_root("x", 0)
+    let hb = b.start_root("x", 0)
+    assert(a.span(ha).trace_id != b.span(hb).trace_id)
+}
+
+@test
+fn test_id_shapes() {
+    let mut t = new_tracer(42)
+    let h = t.start_root("req", 0)
+    assert_eq(t.span(h).trace_id.len(), 32)
+    assert_eq(t.span(h).span_id.len(), 16)
+}
+
+@test
+fn test_spans_in_one_trace_have_distinct_ids() {
+    let mut t = new_tracer(42)
+    let r = t.start_root("req", 0)
+    let c = t.start_child(r, "db", 1)
+    assert(t.span(r).span_id != t.span(c).span_id)
+}
+
+@test
+fn test_child_links_to_parent_and_shares_trace() {
+    let mut t = new_tracer(42)
+    let r = t.start_root("req", 0)
+    let c = t.start_child(r, "db", 5)
+    let g = t.start_child(c, "query", 6)
+    assert_eq(t.span(c).trace_id, t.span(r).trace_id)
+    assert_eq(t.span(c).parent_id, t.span(r).span_id)
+    assert_eq(t.span(g).parent_id, t.span(c).span_id)
+    assert(t.span(r).is_root())
+    assert(!t.span(c).is_root())
+}
+
+@test
+fn test_duration_and_attributes() {
+    let mut t = new_tracer(1)
+    let h = t.start_root("req", 100)
+    t.set_attr(h, "http.method", "GET")
+    t.set_attr(h, "http.status", "200")
+    assert_eq(t.span(h).duration_ms(), 0)
+    t.end(h, 142)
+    assert_eq(t.span(h).duration_ms(), 42)
+    assert_eq(t.span(h).attr("http.status"), "200")
+    assert_eq(t.span(h).attr("missing"), "")
+}
+
+@test
+fn test_error_status_is_recorded() {
+    let mut t = new_tracer(1)
+    let h = t.start_root("req", 0)
+    t.set_error(h, "boom")
+    t.end(h, 1)
+    assert_eq(t.span(h).error, "boom")
+}
+
+@test
+fn test_ending_twice_exports_once() {
+    let mut t = new_tracer(1)
+    let h = t.start_root("req", 0)
+    t.end(h, 5)
+    t.end(h, 9)
+    assert_eq(t.finished_count(), 1)
+    assert_eq(t.span(h).end_ms, 5)
+}
+
+@test
+fn test_flush_exports_finished_spans_in_end_order_then_clears() {
+    let mut t = new_tracer(3)
+    let r = t.start_root("req", 0)
+    let c = t.start_child(r, "db", 1)
+    t.end(c, 4)
+    t.end(r, 6)
+    let mut ex = memory_exporter()
+    assert_eq(t.flush(ex), 2)
+    assert_eq(ex.spans[0].name, "db")
+    assert_eq(ex.spans[1].name, "req")
+    assert_eq(ex.spans[0].parent_id, ex.spans[1].span_id)
+    assert_eq(t.finished_count(), 0)
+    assert_eq(t.flush(ex), 0)
+}
+
+@test
+fn test_unfinished_spans_are_not_exported() {
+    let mut t = new_tracer(3)
+    t.start_root("open", 0)
+    assert_eq(t.finished_count(), 0)
+}
+
+@test
+fn test_zero_percent_sampling_drops_everything() {
+    let mut t = new_sampled_tracer(9, 0)
+    let mut i = 0
+    while i < 20 {
+        let h = t.start_root("r", i)
+        t.end(h, i + 1)
+        i = i + 1
+    }
+    assert_eq(t.finished_count(), 0)
+}
+
+@test
+fn test_full_sampling_keeps_everything() {
+    let mut t = new_sampled_tracer(9, 100)
+    let mut i = 0
+    while i < 20 {
+        let h = t.start_root("r", i)
+        t.end(h, i + 1)
+        i = i + 1
+    }
+    assert_eq(t.finished_count(), 20)
+}
+
+@test
+fn test_half_sampling_keeps_roughly_half_and_is_reproducible() {
+    let mut a = new_sampled_tracer(5, 50)
+    let mut b = new_sampled_tracer(5, 50)
+    let mut i = 0
+    while i < 400 {
+        let ha = a.start_root("r", i)
+        a.end(ha, i + 1)
+        let hb = b.start_root("r", i)
+        b.end(hb, i + 1)
+        i = i + 1
+    }
+    assert_eq(a.finished_count(), b.finished_count())
+    assert(a.finished_count() > 120)
+    assert(a.finished_count() < 280)
+}
+
+@test
+fn test_children_follow_the_root_sampling_decision() {
+    let mut t = new_sampled_tracer(11, 50)
+    let mut i = 0
+    while i < 60 {
+        let r = t.start_root("r", 0)
+        let c = t.start_child(r, "c", 0)
+        assert_eq(t.span(c).sampled, t.span(r).sampled)
+        i = i + 1
+    }
+}
+
+@test
+fn test_traceparent_round_trip() {
+    let mut a = new_tracer(21)
+    let r = a.start_root("front", 0)
+    let header = a.traceparent(r)
+    assert(header.starts_with("00-"))
+    assert(header.ends_with("-01"))
+    assert_eq(header.len(), 55)
+    let mut b = new_tracer(99)
+    let h = b.start_from_traceparent(header, "back", 3)
+    assert_eq(b.span(h).trace_id, a.span(r).trace_id)
+    assert_eq(b.span(h).parent_id, a.span(r).span_id)
+    assert(b.span(h).sampled)
+}
+
+@test
+fn test_unsampled_flag_propagates() {
+    let mut b = new_tracer(1)
+    let h = b.start_from_traceparent("00-0af7651916cd43dd8448eb211c80319c-b7ad6b7169203331-00", "x", 0)
+    assert(!b.span(h).sampled)
+    b.end(h, 1)
+    assert_eq(b.finished_count(), 0)
+}
+
+@test
+fn test_malformed_traceparent_starts_a_new_trace() {
+    let mut b = new_tracer(1)
+    let h = b.start_from_traceparent("garbage", "x", 0)
+    assert(b.span(h).is_root())
+    assert_eq(b.span(h).trace_id.len(), 32)
+}

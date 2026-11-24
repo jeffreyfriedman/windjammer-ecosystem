@@ -1,6 +1,6 @@
 # wj-uuid
 
-RFC 4122 / RFC 9562 UUID helpers: **v1** (time-based), **v4** (random), **v5** (name-based SHA-1), **v7** (Unix-ms time-ordered), plus **nil** / **max** constants.
+RFC 4122 / RFC 9562 UUID helpers: **v1** (time-based), **v4** (random; thin-wraps `std::uuid.v4`), **v5** (name-based SHA-1), **v7** (Unix-ms time-ordered; thin-wraps `std::uuid.v7` / `v7_from_timestamp`), plus **nil** / **max** constants.
 
 ## API
 
@@ -38,6 +38,10 @@ Constants: `NIL`, `MAX`, plus RFC namespaces (`NAMESPACE_DNS`, …).
 src/lib.wj
 tests/uuid_test.wj
 ```
+
+## Tip status
+
+❌ tip RED (P3.298) — `append_bytes(mut out: Vec<u8>, …) -> Vec<u8>` demotes to `&Vec<u8>`. Idiomatic sources kept; gate in `windjammer/tests/`.
 
 ## License
 

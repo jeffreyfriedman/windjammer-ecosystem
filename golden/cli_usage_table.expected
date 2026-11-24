@@ -1,0 +1,8 @@
+options:
+  -h, --help     show this message
+  -v, --verbose  print more detail
+  -o, --output   write results to a file
+  -q, --quiet    print nothing but errors
+-v known: true
+--output known: true
+--nope known: false

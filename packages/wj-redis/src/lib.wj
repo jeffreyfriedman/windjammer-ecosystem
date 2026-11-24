@@ -1,0 +1,4 @@
+//! A Redis client over `std::net::TcpStream`, speaking RESP2 with the `wj-cache` codec, and a small in-process
+//! Redis-compatible server (PING, ECHO, SET, GET, DEL, INCR) for tests and local development.
+pub mod client
+pub mod server

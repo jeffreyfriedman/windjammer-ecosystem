@@ -1,0 +1,54 @@
+use std::strings
+use crate::text::display_width
+use crate::text::pad_right
+
+fn repeat(unit: string, n: int) -> string {
+    let mut out = ""
+    let mut i = 0
+    while i < n {
+        out = out + unit
+        i = i + 1
+    }
+    out
+}
+
+/// A horizontal rule `width` columns wide, with an optional title: `── title ────────`.
+pub fn rule(title: string, width: int) -> string {
+    if strings.len(title) == 0 {
+        return repeat("─", width)
+    }
+    let label = " ${title} "
+    let used = 2 + display_width(label)
+    if used >= width {
+        return label
+    }
+    "──${label}${repeat("─", width - used)}"
+}
+
+/// Lines drawn in a single-line box. The inner width is the widest line (or `min_inner` if larger); wide characters
+/// and escape sequences are measured in terminal columns.
+pub fn boxed(lines: Vec<string>, min_inner: int) -> Vec<string> {
+    let mut inner = min_inner
+    for l in lines {
+        let w = display_width(l)
+        if w > inner {
+            inner = w
+        }
+    }
+    let mut out: Vec<string> = Vec::new()
+    out.push("┌${repeat("─", inner + 2)}┐")
+    for l in lines {
+        out.push("│ ${pad_right(l, inner)} │")
+    }
+    out.push("└${repeat("─", inner + 2)}┘")
+    out
+}
+
+/// Left and right text on one line, the gap filled so the line is exactly `width` columns (or both parts if too long).
+pub fn justify(left: string, right: string, width: int) -> string {
+    let gap = width - display_width(left) - display_width(right)
+    if gap < 1 {
+        return "${left} ${right}"
+    }
+    left + repeat(" ", gap) + right
+}

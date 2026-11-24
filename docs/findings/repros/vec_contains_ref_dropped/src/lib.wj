@@ -1,0 +1,11 @@
+/// `picked.contains(&i)` with a local `i`: the generated call has lost the `&` (E0308 "expected `&i64`, found `i64`").
+pub fn has_duplicate(items: Vec<int>) -> bool {
+    let mut picked: Vec<int> = Vec::new()
+    for i in items {
+        if picked.contains(&i) {
+            return true
+        }
+        picked.push(i)
+    }
+    false
+}

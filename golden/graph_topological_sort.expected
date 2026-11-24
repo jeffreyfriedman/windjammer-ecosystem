@@ -1,0 +1,2 @@
+order: compile -> link -> lint -> package -> test
+error: dependency cycle detected

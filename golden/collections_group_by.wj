@@ -1,0 +1,43 @@
+// golden: group records by key
+// idiom: HashMap<K, Vec<V>> with entry().or_insert([]).push(); sort keys for deterministic output
+use std::collections::HashMap
+
+struct Employee {
+    name: string,
+    dept: string,
+    salary: int,
+}
+
+fn by_dept(staff: Vec<Employee>) -> HashMap<string, Vec<Employee>> {
+    let mut groups: HashMap<string, Vec<Employee>> = HashMap::new()
+    for e in staff {
+        groups.entry(e.dept).or_insert([]).push(e)
+    }
+    groups
+}
+
+fn payroll(staff: Vec<Employee>) -> int {
+    let mut sum = 0
+    for e in staff {
+        sum += e.salary
+    }
+    sum
+}
+
+fn main() {
+    let staff = [
+        Employee { name: "Ada", dept: "eng", salary: 120 },
+        Employee { name: "Linus", dept: "eng", salary: 110 },
+        Employee { name: "Grace", dept: "ops", salary: 100 },
+        Employee { name: "Ken", dept: "ops", salary: 95 },
+        Employee { name: "Barbara", dept: "research", salary: 130 },
+    ]
+    let groups = by_dept(staff)
+    let mut depts: Vec<string> = groups.keys().collect()
+    depts.sort()
+    for dept in depts {
+        let members = groups[dept]
+        let names: Vec<string> = members.map(|e| e.name).collect()
+        println("${dept}: ${names.join(", ")} (payroll ${payroll(members)})")
+    }
+}

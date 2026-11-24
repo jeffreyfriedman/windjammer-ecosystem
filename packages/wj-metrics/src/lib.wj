@@ -1,0 +1,378 @@
+use std::json
+use std::strings
+
+/// The upper bounds Prometheus clients use when none are given.
+pub fn default_buckets() -> Vec<float> {
+    let bounds: Vec<float> = [0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1.0, 2.5, 5.0, 10.0]
+    bounds
+}
+
+/// What a metric family measures.
+pub enum Kind {
+    Counter,
+    Gauge,
+    Histogram,
+}
+
+struct Meta {
+    name: string,
+    help: string,
+    kind: string,
+    buckets: Vec<float>,
+}
+
+struct Series {
+    name: string,
+    labels: Vec<(string, string)>,
+    key: string,
+    value: float,
+    bucket_counts: Vec<int>,
+    sum: float,
+    count: int,
+}
+
+/// Counters, gauges and histograms, rendered in the Prometheus text exposition format (version 0.0.4).
+/// Series are keyed by metric name plus label set (label order does not matter). Output is sorted, so it is stable.
+pub struct Registry {
+    metas: Vec<Meta>,
+    series: Vec<Series>,
+}
+
+/// One series in a [`Snapshot`], for logs, tests and JSON endpoints.
+@json
+pub struct Sample {
+    pub name: string,
+    pub kind: string,
+    pub labels: string,
+    pub value: float,
+    pub count: int,
+    pub sum: float,
+}
+
+@json
+pub struct Snapshot {
+    pub samples: Vec<Sample>,
+}
+
+pub fn new_registry() -> Registry {
+    Registry { metas: Vec::new(), series: Vec::new() }
+}
+
+fn kind_name(kind: Kind) -> string {
+    match kind {
+        Kind::Counter => "counter",
+        Kind::Gauge => "gauge",
+        Kind::Histogram => "histogram",
+    }
+}
+
+fn is_name_start(ch: char, allow_colon: bool) -> bool {
+    (ch >= 'a' && ch <= 'z') || (ch >= 'A' && ch <= 'Z') || ch == '_' || (allow_colon && ch == ':')
+}
+
+fn is_name_char(ch: char, allow_colon: bool) -> bool {
+    is_name_start(ch, allow_colon) || (ch >= '0' && ch <= '9')
+}
+
+fn valid_name(name: string, allow_colon: bool) -> bool {
+    let mut first = true
+    for ch in strings.chars(name) {
+        if first {
+            if !is_name_start(ch, allow_colon) {
+                return false
+            }
+            first = false
+        } else if !is_name_char(ch, allow_colon) {
+            return false
+        }
+    }
+    !first
+}
+
+/// Backslash, double quote and newline are escaped inside label values.
+pub fn escape_label_value(text: string) -> string {
+    let mut out = ""
+    for ch in strings.chars(text) {
+        if ch == '\\' {
+            out = "${out}\\\\"
+        } else if ch == '"' {
+            out = "${out}\\\""
+        } else if ch == '\n' {
+            out = "${out}\\n"
+        } else {
+            out += "${ch}"
+        }
+    }
+    out
+}
+
+/// Backslash and newline are escaped in `# HELP` text.
+pub fn escape_help(text: string) -> string {
+    let mut out = ""
+    for ch in strings.chars(text) {
+        if ch == '\\' {
+            out = "${out}\\\\"
+        } else if ch == '\n' {
+            out = "${out}\\n"
+        } else {
+            out += "${ch}"
+        }
+    }
+    out
+}
+
+/// Prometheus number: whole values without a fraction, `+Inf`, `-Inf`, `NaN`.
+pub fn format_value(x: float) -> string {
+    if x != x {
+        return "NaN"
+    }
+    if x > 1.0e300 {
+        return "+Inf"
+    }
+    if x < -1.0e300 {
+        return "-Inf"
+    }
+    if x == (x as int) as float && x < 1.0e15 && x > -1.0e15 {
+        return "${x as int}"
+    }
+    "${x}"
+}
+
+fn sort_labels(labels: Vec<(string, string)>) -> Vec<(string, string)> {
+    let mut out: Vec<(string, string)> = Vec::new()
+    for l in labels {
+        let mut at = out.len()
+        let mut i = 0
+        while i < out.len() {
+            if l.0 < out[i].0 {
+                at = i
+                break
+            }
+            i = i + 1
+        }
+        out.insert(at, l)
+    }
+    out
+}
+
+fn label_text(labels: Vec<(string, string)>, extra: string) -> string {
+    let mut parts: Vec<string> = Vec::new()
+    for l in labels {
+        parts.push("${l.0}=\"${escape_label_value(l.1)}\"")
+    }
+    if strings.len(extra) > 0 {
+        parts.push(extra)
+    }
+    if parts.len() == 0 {
+        return ""
+    }
+    "{${parts.join(",")}}"
+}
+
+fn check_labels(labels: Vec<(string, string)>) -> Result<(), string> {
+    for l in labels {
+        if !valid_name(l.0, false) || strings.starts_with(l.0, "__") {
+            return Err("invalid label name '${l.0}'")
+        }
+    }
+    Ok(())
+}
+
+impl Registry {
+    /// Declare a metric family with help text; call before the first sample of that name.
+    /// Histograms take their upper bounds from `buckets` (ascending; empty means the defaults).
+    pub fn register(self, name: string, help: string, kind: Kind, buckets: Vec<float>) -> Result<(), string> {
+        if !valid_name(name, true) {
+            return Err("invalid metric name '${name}'")
+        }
+        for m in self.metas {
+            if m.name == name {
+                return Err("metric '${name}' is already registered")
+            }
+        }
+        let is_histogram = kind_name(kind) == "histogram"
+        let mut bounds = if buckets.len() == 0 { default_buckets() } else { buckets }
+        let mut i = 1
+        while i < bounds.len() {
+            if bounds[i] <= bounds[i - 1] {
+                return Err("histogram buckets must be strictly ascending")
+            }
+            i = i + 1
+        }
+        if !is_histogram {
+            bounds = Vec::new()
+        }
+        self.metas.push(Meta { name: name, help: help, kind: kind_name(kind), buckets: bounds })
+        Ok(())
+    }
+
+    fn meta_index(self, name: string) -> int {
+        let mut i = 0
+        while i < self.metas.len() {
+            if self.metas[i].name == name {
+                return i as int
+            }
+            i = i + 1
+        }
+        -1
+    }
+
+    fn series_index(self, name: string, key: string) -> int {
+        let mut i = 0
+        while i < self.series.len() {
+            if self.series[i].name == name && self.series[i].key == key {
+                return i as int
+            }
+            i = i + 1
+        }
+        -1
+    }
+
+    /// Find or create the series; the metric registers itself on first use with the given kind.
+    fn slot(self, name: string, labels: Vec<(string, string)>, kind: Kind) -> Result<int, string> {
+        check_labels(labels)?
+        let mut m = self.meta_index(name)
+        if m < 0 {
+            self.register(name, "", kind, Vec::new())?
+            m = self.meta_index(name)
+        }
+        let wanted = kind_name(kind)
+        let have = self.metas[m as usize].kind // wj-gap: int-index-cast
+        if have != wanted {
+            return Err("metric '${name}' is a ${have}, not a ${wanted}")
+        }
+        let sorted = sort_labels(labels)
+        let key = label_text(sorted, "")
+        let found = self.series_index(name, key)
+        if found >= 0 {
+            return Ok(found)
+        }
+        let mut counts: Vec<int> = Vec::new()
+        for _b in self.metas[m as usize].buckets { // wj-gap: int-index-cast
+            counts.push(0)
+        }
+        self.series.push(Series { name: name, labels: sorted, key: key, value: 0.0, bucket_counts: counts, sum: 0.0, count: 0 })
+        Ok((self.series.len() - 1) as int)
+    }
+
+    /// Add `by` (never negative) to a counter.
+    pub fn counter_add(self, name: string, labels: Vec<(string, string)>, by: float) -> Result<(), string> {
+        if by < 0.0 {
+            return Err("a counter cannot decrease")
+        }
+        let at = self.slot(name, labels, Kind::Counter)?
+        self.series[at as usize].value = self.series[at as usize].value + by // wj-gap: int-index-cast
+        Ok(())
+    }
+
+    pub fn counter_inc(self, name: string, labels: Vec<(string, string)>) -> Result<(), string> {
+        self.counter_add(name, labels, 1.0)
+    }
+
+    pub fn gauge_set(self, name: string, labels: Vec<(string, string)>, value: float) -> Result<(), string> {
+        let at = self.slot(name, labels, Kind::Gauge)?
+        self.series[at as usize].value = value // wj-gap: int-index-cast
+        Ok(())
+    }
+
+    pub fn gauge_add(self, name: string, labels: Vec<(string, string)>, delta: float) -> Result<(), string> {
+        let at = self.slot(name, labels, Kind::Gauge)?
+        self.series[at as usize].value = self.series[at as usize].value + delta // wj-gap: int-index-cast
+        Ok(())
+    }
+
+    /// Record one observation: it lands in every bucket whose upper bound is at least `value`.
+    pub fn histogram_observe(self, name: string, labels: Vec<(string, string)>, value: float) -> Result<(), string> {
+        let at = self.slot(name, labels, Kind::Histogram)?
+        let m = self.meta_index(name)
+        let bounds = self.metas[m as usize].buckets // wj-gap: int-index-cast
+        let mut i = 0
+        while i < bounds.len() {
+            if value <= bounds[i] {
+                self.series[at as usize].bucket_counts[i] = self.series[at as usize].bucket_counts[i] + 1 // wj-gap: int-index-cast
+            }
+            i = i + 1
+        }
+        self.series[at as usize].sum = self.series[at as usize].sum + value // wj-gap: int-index-cast
+        self.series[at as usize].count = self.series[at as usize].count + 1 // wj-gap: int-index-cast
+        Ok(())
+    }
+
+    /// Current value of a counter or gauge series (`None` when it does not exist).
+    pub fn value_of(self, name: string, labels: Vec<(string, string)>) -> Option<float> {
+        let key = label_text(sort_labels(labels), "")
+        let at = self.series_index(name, key)
+        if at < 0 {
+            return None
+        }
+        Some(self.series[at as usize].value) // wj-gap: int-index-cast
+    }
+
+    /// The Prometheus text exposition format, families sorted by name, series by label text.
+    pub fn render(self) -> string {
+        let mut names: Vec<string> = Vec::new()
+        for m in self.metas {
+            names.push(m.name)
+        }
+        names.sort()
+        let mut lines: Vec<string> = Vec::new()
+        for name in names {
+            let m = self.metas[self.meta_index(name) as usize] // wj-gap: int-index-cast
+            let mut keys: Vec<string> = Vec::new()
+            for s in self.series {
+                if s.name == name {
+                    keys.push(s.key)
+                }
+            }
+            if keys.len() == 0 {
+                continue
+            }
+            keys.sort()
+            if strings.len(m.help) > 0 {
+                lines.push("# HELP ${name} ${escape_help(m.help)}")
+            }
+            lines.push("# TYPE ${name} ${m.kind}")
+            for key in keys {
+                let s = self.series[self.series_index(name, key) as usize] // wj-gap: int-index-cast
+                if m.kind == "histogram" {
+                    let mut i = 0
+                    while i < m.buckets.len() {
+                        let le = "le=\"${format_value(m.buckets[i])}\""
+                        lines.push("${name}_bucket${label_text(s.labels, le)} ${s.bucket_counts[i]}")
+                        i = i + 1
+                    }
+                    lines.push("${name}_bucket${label_text(s.labels, "le=\"+Inf\"")} ${s.count}")
+                    lines.push("${name}_sum${key} ${format_value(s.sum)}")
+                    lines.push("${name}_count${key} ${s.count}")
+                } else {
+                    lines.push("${name}${key} ${format_value(s.value)}")
+                }
+            }
+        }
+        if lines.len() == 0 {
+            return ""
+        }
+        "${lines.join("\n")}\n"
+    }
+
+    /// Every series as typed data.
+    pub fn snapshot(self) -> Snapshot {
+        let mut samples: Vec<Sample> = Vec::new()
+        for s in self.series {
+            let kind = self.metas[self.meta_index(s.name) as usize].kind // wj-gap: int-index-cast
+            samples.push(Sample { name: s.name, kind: kind, labels: s.key, value: s.value, count: s.count, sum: s.sum })
+        }
+        Snapshot { samples: samples }
+    }
+}
+
+/// JSON text of [`Registry::snapshot`].
+pub fn snapshot_json(snapshot: Snapshot) -> Result<string, string> {
+    json.to_string(snapshot)
+}
+
+/// Read a snapshot back from the JSON that [`snapshot_json`] wrote.
+pub fn parse_snapshot(text: string) -> Result<Snapshot, string> {
+    let parsed: Result<Snapshot, string> = json.parse_string(text)
+    parsed
+}

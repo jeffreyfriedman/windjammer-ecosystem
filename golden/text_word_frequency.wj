@@ -1,0 +1,39 @@
+// golden: word frequency
+// idiom: HashMap counting with entry().and_modify().or_insert(), then sort the keys before printing (map order is unspecified)
+use std::collections::HashMap
+
+fn count_words(text: string) -> HashMap<string, int> {
+    let mut counts: HashMap<string, int> = HashMap::new()
+    for word in text.split(" ") {
+        counts.entry(word).and_modify(|c| *c += 1).or_insert(1)
+    }
+    counts
+}
+
+fn sorted_keys(counts: HashMap<string, int>) -> Vec<string> {
+    let mut words: Vec<string> = counts.keys().collect()
+    words.sort()
+    words
+}
+
+fn most_common(counts: HashMap<string, int>) -> string {
+    let mut best = ""
+    let mut best_count = 0
+    for word in sorted_keys(counts) {
+        if counts[word] > best_count {
+            best = word
+            best_count = counts[word]
+        }
+    }
+    best
+}
+
+fn main() {
+    let text = "the cat and the dog and the bird"
+    let counts = count_words(text)
+    for word in sorted_keys(counts) {
+        println("${word}: ${counts[word]}")
+    }
+    println("most common: ${most_common(counts)}")
+    println("distinct words: ${counts.len()}")
+}

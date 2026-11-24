@@ -64,6 +64,124 @@ pub fn format_version(v: SemVer) -> string {
     out
 }
 
+/// True when `a` is strictly newer than `b` (build metadata ignored).
+pub fn is_newer(a: SemVer, b: SemVer) -> bool {
+    compare(a, b) > 0
+}
+
+/// True when `a` is strictly older than `b` (build metadata ignored).
+pub fn is_older(a: SemVer, b: SemVer) -> bool {
+    compare(a, b) < 0
+}
+
+/// True when `a` and `b` compare equal (build metadata ignored).
+pub fn is_equal(a: SemVer, b: SemVer) -> bool {
+    compare(a, b) == 0
+}
+
+/// `Ok(a)` when `a` and `b` compare equal, otherwise `Err`.
+pub fn require_equal(a: SemVer, b: SemVer) -> Result<SemVer, string> {
+    if is_equal(a, b) {
+        return Ok(a)
+    }
+    Err("expected equal")
+}
+
+/// Increment patch; clears prerelease and build metadata.
+pub fn bump_patch(v: SemVer) -> SemVer {
+    SemVer {
+        major: v.major,
+        minor: v.minor,
+        patch: v.patch + 1,
+        pre: "",
+        build: "",
+    }
+}
+
+/// Increment minor, reset patch; clears prerelease and build metadata.
+pub fn bump_minor(v: SemVer) -> SemVer {
+    SemVer {
+        major: v.major,
+        minor: v.minor + 1,
+        patch: 0,
+        pre: "",
+        build: "",
+    }
+}
+
+/// Increment major, reset minor/patch; clears prerelease and build metadata.
+pub fn bump_major(v: SemVer) -> SemVer {
+    SemVer {
+        major: v.major + 1,
+        minor: 0,
+        patch: 0,
+        pre: "",
+        build: "",
+    }
+}
+
+/// Drop prerelease identifier; keep build metadata.
+pub fn clear_prerelease(v: SemVer) -> SemVer {
+    SemVer {
+        major: v.major,
+        minor: v.minor,
+        patch: v.patch,
+        pre: "",
+        build: v.build,
+    }
+}
+
+/// Drop build metadata; keep prerelease identifier.
+pub fn clear_build(v: SemVer) -> SemVer {
+    SemVer {
+        major: v.major,
+        minor: v.minor,
+        patch: v.patch,
+        pre: v.pre,
+        build: "",
+    }
+}
+
+pub fn major_of(v: SemVer) -> int {
+    v.major
+}
+
+pub fn minor_of(v: SemVer) -> int {
+    v.minor
+}
+
+pub fn patch_of(v: SemVer) -> int {
+    v.patch
+}
+
+/// True when the major component is zero.
+pub fn is_zero_major(v: SemVer) -> bool {
+    major_of(v) == 0
+}
+
+/// `Ok(v)` when the major component is zero, otherwise `Err`.
+pub fn require_zero_major(v: SemVer) -> Result<SemVer, string> {
+    if is_zero_major(v) {
+        return Ok(v)
+    }
+    Err("expected zero major")
+}
+
+/// True when major, minor, and patch are all zero.
+pub fn is_zero_version(v: SemVer) -> bool {
+    v.major == 0 && v.minor == 0 && v.patch == 0
+}
+
+/// Prerelease identifier string (empty when absent).
+pub fn prerelease_of(v: SemVer) -> string {
+    v.pre
+}
+
+/// Build metadata string (empty when absent).
+pub fn build_of(v: SemVer) -> string {
+    v.build
+}
+
 fn split_build(text: string) -> Result<(string, string), string> {
     let mut core = text
     let mut build = ""

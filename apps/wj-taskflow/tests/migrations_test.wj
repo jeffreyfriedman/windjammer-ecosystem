@@ -1,0 +1,30 @@
+use crate::domain::schema_migrations
+use crate::domain::pending_versions
+
+@test
+fn test_schema_files_are_ordered_and_parse() {
+    match schema_migrations() {
+        Ok(items) => {
+            assert(items.len() >= 1, "at least the initial schema")
+            assert_eq(items[0].version, 1)
+            assert_eq(items[0].name, "initial_schema")
+        },
+        Err(e) => assert(false, "schema_migrations failed: ${e}"),
+    }
+}
+
+fn pending_count(applied: Vec<int>) -> int {
+    match pending_versions(applied) {
+        Ok(list) => list.len(),
+        Err(_) => -1,
+    }
+}
+
+@test
+fn test_pending_versions_skips_applied() {
+    let none_applied: Vec<int> = Vec::new()
+    assert_eq(pending_count(none_applied), 1)
+    let mut applied: Vec<int> = Vec::new()
+    applied.push(1)
+    assert_eq(pending_count(applied), 0)
+}

@@ -1,0 +1,17 @@
+[package]
+name = "wj-session"
+version = "0.1.0"
+edition = "2025"
+
+[lib]
+
+[dependencies]
+
+[dev-dependencies]
+
+[profile.release]
+opt-level = 3
+lto = true
+
+# Pure computation: time is an argument in milliseconds and nothing touches the outside world.
+[capabilities]

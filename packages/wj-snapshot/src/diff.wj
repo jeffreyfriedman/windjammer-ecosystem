@@ -1,0 +1,154 @@
+use std::strings
+
+/// Lines of a text without the line terminators; a trailing newline does not add an empty line.
+pub fn lines_of(text: string) -> Vec<string> {
+    let mut out: Vec<string> = Vec::new()
+    let normalized = strings.replace(text, "\r\n", "\n")
+    let parts = strings.split(normalized, "\n")
+    let mut i = 0
+    while i < parts.len() as int {
+        let last = i == parts.len() as int - 1
+        if !(last && strings.len(parts[i]) == 0) {
+            out.push(parts[i])
+        }
+        i = i + 1
+    }
+    out
+}
+
+/// One edit operation: kind is `=` (kept), `-` (only in the old text) or `+` (only in the new).
+struct Op {
+    kind: string,
+    text: string,
+    old_at: int,
+    new_at: int,
+}
+
+fn lcs_table(a: Vec<string>, b: Vec<string>) -> Vec<Vec<int>> {
+    let n = a.len() as int
+    let m = b.len() as int
+    let mut table: Vec<Vec<int>> = Vec::new()
+    let mut i = 0
+    while i <= n {
+        let mut row: Vec<int> = Vec::new()
+        let mut j = 0
+        while j <= m {
+            row.push(0)
+            j = j + 1
+        }
+        table.push(row)
+        i = i + 1
+    }
+    i = n - 1
+    while i >= 0 {
+        let mut j = m - 1
+        while j >= 0 {
+            if a[i] == b[j] {
+                table[i][j] = table[i + 1][j + 1] + 1
+            } else {
+                let down = table[i + 1][j]
+                let right = table[i][j + 1]
+                table[i][j] = if down >= right { down } else { right }
+            }
+            j = j - 1
+        }
+        i = i - 1
+    }
+    table
+}
+
+fn edit_script(a: Vec<string>, b: Vec<string>) -> Vec<Op> {
+    let table = lcs_table(a, b)
+    let n = a.len() as int
+    let m = b.len() as int
+    let mut ops: Vec<Op> = Vec::new()
+    let mut i = 0
+    let mut j = 0
+    while i < n || j < m {
+        if i < n && j < m && a[i] == b[j] {
+            ops.push(Op { kind: "=", text: a[i], old_at: i, new_at: j })
+            i = i + 1
+            j = j + 1
+        } else if i < n && (j >= m || table[i + 1][j] >= table[i][j + 1]) {
+            ops.push(Op { kind: "-", text: a[i], old_at: i, new_at: j })
+            i = i + 1
+        } else {
+            ops.push(Op { kind: "+", text: b[j], old_at: i, new_at: j })
+            j = j + 1
+        }
+    }
+    ops
+}
+
+fn range_text(start: int, len: int) -> string {
+    let beginning = start + 1
+    if len == 1 {
+        return "${beginning}"
+    }
+    if len == 0 {
+        return "${beginning - 1},0"
+    }
+    "${beginning},${len}"
+}
+
+/// A unified diff (like `diff -u` / Python's `difflib.unified_diff`, lines without terminators) with `context` lines
+/// around each change. Empty when the texts have the same lines.
+pub fn unified(old_text: string, new_text: string, old_name: string, new_name: string, context: int) -> string {
+    let a = lines_of(old_text)
+    let b = lines_of(new_text)
+    let ops = edit_script(a, b)
+    let mut changed: Vec<int> = Vec::new()
+    let mut k = 0
+    while k < ops.len() as int {
+        if ops[k].kind != "=" {
+            changed.push(k)
+        }
+        k = k + 1
+    }
+    if changed.len() == 0 {
+        return ""
+    }
+    // Group changes whose context windows touch into hunks.
+    let mut out: Vec<string> = Vec::new()
+    out.push("--- ${old_name}")
+    out.push("+++ ${new_name}")
+    let total = ops.len() as int
+    let mut g = 0
+    while g < changed.len() as int {
+        let mut first = changed[g]
+        let mut last = first
+        let mut h = g + 1
+        while h < changed.len() as int && changed[h] - last <= 2 * context + 1 {
+            last = changed[h]
+            h = h + 1
+        }
+        let from = if first - context < 0 { 0 } else { first - context }
+        let to = if last + context + 1 > total { total } else { last + context + 1 }
+        let mut old_len = 0
+        let mut new_len = 0
+        let mut body: Vec<string> = Vec::new()
+        let mut p = from
+        while p < to {
+            let op = ops[p]
+            if op.kind == "=" {
+                body.push(" ${op.text}")
+                old_len = old_len + 1
+                new_len = new_len + 1
+            } else if op.kind == "-" {
+                body.push("-${op.text}")
+                old_len = old_len + 1
+            } else {
+                body.push("+${op.text}")
+                new_len = new_len + 1
+            }
+            p = p + 1
+        }
+        let start_op = ops[from]
+        out.push("@@ -${range_text(start_op.old_at, old_len)} +${range_text(start_op.new_at, new_len)} @@")
+        for line in body {
+            out.push(line)
+        }
+        g = h
+    }
+    out.join("\n")
+}

@@ -160,7 +160,7 @@ pub fn matches_field(field: string, value: int) -> bool {
     }
     // Exact value
     let n = strings.parse_i32(field) as int
-    return n == value
+    n == value
 }
 
 fn matches_range_step(field: string, value: int) -> bool {
@@ -206,6 +206,65 @@ pub fn matches_cron(expr: CronExpr, minute: int, hour: int, day_of_month: int, m
         && matches_field(expr.day_of_month, day_of_month)
         && matches_field(expr.month, month)
         && matches_field(expr.day_of_week, day_of_week)
+}
+
+/// True when a cron field is the pure wildcard `*`.
+pub fn is_wildcard_field(field: string) -> bool {
+    field == "*"
+}
+
+/// Expression that matches every minute (`* * * * *`).
+pub fn every_minute() -> CronExpr {
+    CronExpr {
+        minute: "*",
+        hour: "*",
+        day_of_month: "*",
+        month: "*",
+        day_of_week: "*",
+        source: "* * * * *",
+    }
+}
+
+/// Expression that matches the top of every hour (`0 * * * *`).
+pub fn every_hour() -> CronExpr {
+    CronExpr {
+        minute: "0",
+        hour: "*",
+        day_of_month: "*",
+        month: "*",
+        day_of_week: "*",
+        source: "0 * * * *",
+    }
+}
+
+/// Expression that matches midnight every day (`0 0 * * *`).
+pub fn every_day() -> CronExpr {
+    CronExpr {
+        minute: "0",
+        hour: "0",
+        day_of_month: "*",
+        month: "*",
+        day_of_week: "*",
+        source: "0 0 * * *",
+    }
+}
+
+/// Parse `text` as cron, or `Err` whose message mentions cron.
+pub fn require_cron(text: string) -> Result<CronExpr, string> {
+    match parse_cron(text) {
+        Ok(expr) => Ok(expr),
+        Err(msg) => Err("invalid cron: ${msg}"),
+    }
+}
+
+/// Original source text preserved on `expr`.
+pub fn source_of(expr: CronExpr) -> string {
+    expr.source
+}
+
+/// Format five cron fields as a space-separated expression.
+pub fn format_cron(expr: CronExpr) -> string {
+    "${expr.minute} ${expr.hour} ${expr.day_of_month} ${expr.month} ${expr.day_of_week}"
 }
 
 pub struct CronDateTime {

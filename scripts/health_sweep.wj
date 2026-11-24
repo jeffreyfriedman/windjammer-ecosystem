@@ -1,0 +1,57 @@
+// Tip-health sweep: run every package and app test suite interpreted and compiled.
+// Usage: wj run --allow process --allow fs.read --allow fs.write --allow env.read scripts/health_sweep.wj <wj-binary> <logdir> [mode: interp|compiled|both] [dir...]
+// Prints one TSV row per directory: dir, mode, status, last result line.
+use std::process
+use std::fs
+use std::env
+use std::strings
+
+// Interpreted runs end in "test result: ..."; compiled runs print "✓ N passed" / "✗ N failed" and
+// report build problems as "Error: ...". The first such line wins, so cargo's trailing doctest
+// summary ("0 passed") never hides the real count.
+fn last_result(text: string) -> string {
+    let mut found = "(no result line)"
+    let mut have = false
+    for line in strings.split_lines(text) {
+        let t = strings.trim(line)
+        let interp = strings.starts_with(t, "test result:") && strings.contains(t, "no cargo")
+        let compiled = strings.starts_with(t, "✓ ") && strings.contains(t, " passed") && !strings.contains(t, "All tests")
+        let failed = strings.starts_with(t, "✗ ") || strings.starts_with(t, "Error:")
+        if !have && (interp || compiled || failed) {
+            found = t
+            have = true
+        }
+    }
+    found
+}
+
+fn run_mode(wj: string, logdir: string, dir: string, mode: string) -> string {
+    let flag = if mode == "interp" { "--interpret" } else { "" }
+    let log = logdir + "/" + strings.replace(dir, "/", "_") + "." + mode + ".log"
+    let cmd = "(cd '" + dir + "' && '" + wj + "' test " + flag + " > '" + log + "' 2>&1); echo \"exit=$?\"; cat '" + log + "'"
+    match process.run_with_output("sh", ["-c", cmd]) {
+        Ok(o) => {
+            let tag = if strings.starts_with(o.stdout, "exit=0\n") { "PASS" } else { "FAIL" }
+            dir + "\t" + mode + "\t" + tag + "\t" + last_result(o.stdout)
+        },
+        Err(e) => dir + "\t" + mode + "\tERR\t" + e,
+    }
+}
+
+fn main() {
+    let args = env::args()
+    let wj = args[1]
+    let logdir = args[2]
+    let mode = args[3]
+    let mut i = 4
+    while i < args.len() {
+        let dir = args[i]
+        if mode == "interp" || mode == "both" {
+            println(run_mode(wj, logdir, dir, "interp"))
+        }
+        if mode == "compiled" || mode == "both" {
+            println(run_mode(wj, logdir, dir, "compiled"))
+        }
+        i = i + 1
+    }
+}

@@ -1,0 +1,5 @@
+ada aka countess, age 36
+grace aka (none), age unknown
+linus aka (none), age unknown
+error: $.name: unknown field `name`, expected one of `userName`, `nickname`, `age` at line 1 column 7
+{"userName":"ken","nickname":null,"age":80}

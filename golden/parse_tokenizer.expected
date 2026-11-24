@@ -1,0 +1,9 @@
+keyword: let
+ident: total_1
+symbol: =
+ident: price
+symbol: *
+number: 12
+symbol: +
+ident: tax
+9 tokens

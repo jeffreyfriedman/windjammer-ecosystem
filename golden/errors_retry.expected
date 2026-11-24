@@ -1,0 +1,13 @@
+budget 5:
+  retrying after: timeout on attempt 1
+  retrying after: timeout on attempt 2
+Ok("connected on attempt 3")
+budget 2:
+  retrying after: timeout on attempt 1
+  retrying after: timeout on attempt 2
+Err("gave up after 2 attempts, last error: timeout on attempt 2")
+attempt 1 waits 100ms
+attempt 2 waits 200ms
+attempt 3 waits 400ms
+attempt 4 waits 800ms
+attempt 5 waits 1600ms

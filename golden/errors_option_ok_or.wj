@@ -1,0 +1,42 @@
+// golden: Option to Result with ok_or
+// idiom: ok_or turns a missing value into an error; chain lookups with `?` inside a function returning Result
+use std::collections::HashMap
+
+struct Config {
+    values: HashMap<string, string>,
+}
+
+impl Config {
+    fn get(self, key: string) -> Result<string, string> {
+        self.values.get(key).ok_or("missing key: ${key}")
+    }
+
+    fn get_int(self, key: string) -> Result<int, string> {
+        let text = self.get(key)?
+        text.parse::<int>().map_err(|_| "key ${key} is not a number: ${text}")
+    }
+}
+
+fn describe(cfg: Config) -> Result<string, string> {
+    let host = cfg.get("host")?
+    let port = cfg.get_int("port")?
+    let workers = cfg.get_int("workers")?
+    Ok("${host}:${port} with ${workers} workers")
+}
+
+fn main() {
+    let mut values: HashMap<string, string> = HashMap::new()
+    values.insert("host", "localhost")
+    values.insert("port", "8080")
+    let partial = Config { values: values }
+    println("${describe(partial):?}")
+    let mut more: HashMap<string, string> = HashMap::new()
+    more.insert("host", "example.org")
+    more.insert("port", "80")
+    more.insert("workers", "4")
+    println("${describe(Config { values: more }):?}")
+    let mut bad: HashMap<string, string> = HashMap::new()
+    bad.insert("host", "h")
+    bad.insert("port", "eighty")
+    println("${describe(Config { values: bad }):?}")
+}

@@ -1,0 +1,47 @@
+// golden: traits and implementations
+// idiom: a trait lists method signatures with plain self; each type implements it; generics accept any implementor
+trait Describe {
+    fn describe(&self) -> string
+}
+
+struct Dog {
+    name: string,
+    age: int,
+}
+
+struct Robot {
+    model: string,
+    battery: int,
+}
+
+impl Describe for Dog {
+    fn describe(self) -> string {
+        "${self.name} the dog, ${self.age} years old"
+    }
+}
+
+impl Describe for Robot {
+    fn describe(self) -> string {
+        "robot ${self.model} at ${self.battery}% battery"
+    }
+}
+
+fn announce<T: Describe>(item: T) {
+    println("-> ${item.describe()}")
+}
+
+fn longest<T: Describe>(a: T, b: T) -> string {
+    let da = a.describe()
+    let db = b.describe()
+    if da.len() >= db.len() { da } else { db }
+}
+
+fn main() {
+    let rex = Dog { name: "Rex", age: 4 }
+    let bolt = Dog { name: "Bolt", age: 11 }
+    let r2 = Robot { model: "R2", battery: 80 }
+    announce(rex)
+    announce(r2)
+    println(longest(rex, bolt))
+    println("done")
+}

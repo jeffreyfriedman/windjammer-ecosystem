@@ -1,0 +1,54 @@
+use crate::describe
+use crate::link_header
+use crate::page_strip
+use crate::request_clamped
+use crate::strip_text
+use std::fs
+use std::strings
+
+fn read(path: string) -> string {
+    fs.read_to_string(path).unwrap_or("")
+}
+
+/// The docs gate reads the package files relative to the package root, which is where interpreted `wj test` runs.
+/// A compiled `wj test` runs from a scratch crate where they do not exist; the checks then step aside.
+fn docs_present() -> bool {
+    strings.len(read("README.md")) > 0
+}
+
+/// The first fenced `windjammer` block of the README.
+fn readme_snippet() -> string {
+    let text = read("README.md")
+    let parts = strings.split(text, "```windjammer\n")
+    let tail = parts[1]
+    strings.split(tail, "```")[0]
+}
+
+/// The first fenced `text` block of the README (the recorded output).
+fn readme_output() -> string {
+    let text = read("README.md")
+    let parts = strings.split(text, "```text\n")
+    strings.split(parts[1], "```")[0]
+}
+
+@test
+fn test_readme_snippet_matches_the_example() {
+    if !docs_present() {
+        return
+    }
+    assert_eq(readme_snippet(), read("examples/list_items.wj"))
+}
+
+@test
+fn test_readme_output_is_what_the_example_prints() {
+    if !docs_present() {
+        return
+    }
+    let req = request_clamped(7, 500, 20, 100)
+    let page = describe(req, 1234)
+    let mut out = "page ${page.page} of ${page.total_pages}, items ${page.first_item}-${page.last_item}\n"
+    out = "${out}SQL: LIMIT ${page.per_page} OFFSET ${page.offset}\n"
+    out = "${out}${strip_text(page_strip(page.page, page.total_pages, 1))}\n"
+    out = "${out}${link_header("/items?", page)}\n"
+    assert_eq(readme_output(), out)
+}

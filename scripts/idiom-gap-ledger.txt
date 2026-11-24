@@ -1,0 +1,7 @@
+# Shrink-only ledger of open compiler gaps. One line per gap id: `<id> <max marked sites>`.
+# Code marks a gap with `// wj-gap: <id>`; scripts/idiom_audit.wj --check fails when a marked id is missing from
+# this file, when its count exceeds the number here, or when an entry no longer has any marked site.
+# Lower a number (or delete the line) in the commit that removes a marked site; never raise one.
+# Counts are upper bounds: each marked line is either a proven need or not yet tried without the form. Lower them as lines are cleared.
+clone-moves-borrowed-field 76
+int-index-cast 112

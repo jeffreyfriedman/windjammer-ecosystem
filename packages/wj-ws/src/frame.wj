@@ -1,0 +1,244 @@
+use std::encoding
+use std::strings
+
+pub const OP_CONTINUATION: int = 0
+pub const OP_TEXT: int = 1
+pub const OP_BINARY: int = 2
+pub const OP_CLOSE: int = 8
+pub const OP_PING: int = 9
+pub const OP_PONG: int = 10
+
+/// Default cap on one frame's payload when decoding (16 MiB).
+pub const DEFAULT_MAX_PAYLOAD: int = 16777216
+
+pub struct Frame {
+    pub fin: bool,
+    pub opcode: int,
+    pub payload: Vec<u8>,
+}
+
+/// A decoded frame and how many input bytes it used.
+pub struct Decoded {
+    pub frame: Frame,
+    pub consumed: int,
+}
+
+pub fn is_control(opcode: int) -> bool {
+    opcode >= 8
+}
+
+pub fn new_frame(opcode: int, payload: Vec<u8>) -> Frame {
+    Frame { fin: true, opcode: opcode, payload: payload }
+}
+
+/// UTF-8 bytes of a string.
+pub fn utf8_bytes(text: string) -> Vec<u8> {
+    match encoding.base64_decode(encoding.base64_encode_string(text)) {
+        Ok(bytes) => bytes,
+        Err(_) => Vec::new(),
+    }
+}
+
+/// Text from UTF-8 bytes; invalid UTF-8 is an error.
+pub fn utf8_string(bytes: Vec<u8>) -> Result<string, string> {
+    match encoding.base64_decode_string(encoding.base64_encode(bytes)) {
+        Ok(text) => Ok(text),
+        Err(_) => Err("payload is not valid UTF-8"),
+    }
+}
+
+pub fn text_frame(text: string) -> Frame {
+    new_frame(OP_TEXT, utf8_bytes(text))
+}
+
+pub fn binary_frame(data: Vec<u8>) -> Frame {
+    new_frame(OP_BINARY, data)
+}
+
+pub fn ping_frame(data: Vec<u8>) -> Frame {
+    new_frame(OP_PING, data)
+}
+
+pub fn pong_frame(data: Vec<u8>) -> Frame {
+    new_frame(OP_PONG, data)
+}
+
+/// A close frame: 2-byte status code then an optional UTF-8 reason (at most 123 bytes).
+pub fn close_frame(code: int, reason: string) -> Frame {
+    let mut payload: Vec<u8> = Vec::new()
+    payload.push((code / 256) as u8)
+    payload.push((code % 256) as u8)
+    for b in utf8_bytes(reason) {
+        payload.push(b)
+    }
+    new_frame(OP_CLOSE, payload)
+}
+
+/// Status code and reason of a close frame's payload (an empty payload means no status).
+pub fn parse_close(payload: Vec<u8>) -> Result<(int, string), string> {
+    if payload.len() == 0 {
+        return Ok((1005, ""))
+    }
+    if payload.len() == 1 {
+        return Err("close payload of one byte")
+    }
+    let code = payload[0] as int * 256 + payload[1] as int
+    let mut rest: Vec<u8> = Vec::new()
+    let mut i = 2
+    while i < payload.len() {
+        rest.push(payload[i])
+        i = i + 1
+    }
+    let reason = utf8_string(rest)?
+    Ok((code, reason))
+}
+
+fn valid_opcode(op: int) -> bool {
+    op <= 2 || (op >= 8 && op <= 10)
+}
+
+/// Serialize a frame. A 4-byte `mask_key` (clients must mask) masks the payload; an empty key sends it unmasked.
+pub fn encode(frame: Frame, mask_key: Vec<u8>) -> Result<Vec<u8>, string> {
+    if !valid_opcode(frame.opcode) {
+        return Err("invalid opcode ${frame.opcode}")
+    }
+    let len = frame.payload.len() as int
+    if is_control(frame.opcode) {
+        if len > 125 {
+            return Err("control frame payload over 125 bytes")
+        }
+        if !frame.fin {
+            return Err("control frames cannot be fragmented")
+        }
+    }
+    if mask_key.len() != 0 && mask_key.len() != 4 {
+        return Err("mask key must be 4 bytes")
+    }
+    let masked = mask_key.len() == 4
+    let mut out: Vec<u8> = Vec::new()
+    let b0 = (if frame.fin { 128 } else { 0 }) + frame.opcode
+    out.push(b0 as u8)
+    let mask_bit = if masked { 128 } else { 0 }
+    if len < 126 {
+        out.push((mask_bit + len) as u8)
+    } else if len < 65536 {
+        out.push((mask_bit + 126) as u8)
+        out.push((len / 256) as u8)
+        out.push((len % 256) as u8)
+    } else {
+        out.push((mask_bit + 127) as u8)
+        let mut shift = 56
+        while shift >= 0 {
+            out.push(((len >> shift) & 255) as u8)
+            shift = shift - 8
+        }
+    }
+    if masked {
+        for k in mask_key {
+            out.push(k)
+        }
+        let mut i = 0
+        while i < frame.payload.len() {
+            out.push(((frame.payload[i] as int) ^ (mask_key[i % 4] as int)) as u8)
+            i = i + 1
+        }
+    } else {
+        for b in frame.payload {
+            out.push(b)
+        }
+    }
+    Ok(out)
+}
+
+/// Decode one frame from the front of `buf`. `Ok(None)` means more bytes are needed.
+/// Rejects reserved bits, unknown opcodes, oversized or fragmented control frames and payloads over `max_payload`.
+pub fn decode(buf: Vec<u8>, max_payload: int) -> Result<Option<Decoded>, string> {
+    if buf.len() < 2 {
+        return Ok(None)
+    }
+    let b0 = buf[0] as int
+    let b1 = buf[1] as int
+    let fin = b0 >= 128
+    if (b0 / 16) % 8 != 0 {
+        return Err("reserved bits set")
+    }
+    let opcode = b0 % 16
+    if !valid_opcode(opcode) {
+        return Err("invalid opcode ${opcode}")
+    }
+    let masked = b1 >= 128
+    let mut len = b1 % 128
+    let mut at = 2
+    if len == 126 {
+        if buf.len() < 4 {
+            return Ok(None)
+        }
+        len = buf[2] as int * 256 + buf[3] as int
+        at = 4
+        if len < 126 {
+            return Err("non-minimal length encoding")
+        }
+    } else if len == 127 {
+        if buf.len() < 10 {
+            return Ok(None)
+        }
+        if buf[2] as int >= 128 {
+            return Err("length has the top bit set")
+        }
+        len = 0
+        let mut i = 2
+        while i < 10 {
+            if i < 6 && buf[i] != 0 {
+                return Err("payload length over 4 GiB")
+            }
+            len = len * 256 + buf[i] as int
+            i = i + 1
+        }
+        at = 10
+        if len < 65536 {
+            return Err("non-minimal length encoding")
+        }
+    }
+    if is_control(opcode) {
+        if len > 125 {
+            return Err("control frame payload over 125 bytes")
+        }
+        if !fin {
+            return Err("fragmented control frame")
+        }
+    }
+    if len > max_payload {
+        return Err("payload of ${len} bytes exceeds the limit of ${max_payload}")
+    }
+    let mask_len = if masked { 4 } else { 0 }
+    let total = at + mask_len + len
+    if (buf.len() as int) < total {
+        return Ok(None)
+    }
+    let mut payload: Vec<u8> = Vec::new()
+    let start = at + mask_len
+    let mut i = 0
+    while i < len {
+        let byte = buf[(start + i) as usize] as int // wj-gap: int-index-cast
+        if masked {
+            payload.push((byte ^ (buf[(at + i % 4) as usize] as int)) as u8) // wj-gap: int-index-cast
+        } else {
+            payload.push(byte as u8)
+        }
+        i = i + 1
+    }
+    Ok(Some(Decoded { frame: Frame { fin: fin, opcode: opcode, payload: payload }, consumed: total }))
+}
+
+/// Hex text of bytes, for logs and tests.
+pub fn hex(bytes: Vec<u8>) -> string {
+    encoding.hex_encode(bytes)
+}
+
+/// Bytes from hex text; panics never, returns an empty vector on bad hex.
+pub fn from_hex(text: string) -> Vec<u8> {
+    match encoding.hex_decode(strings.replace(text, " ", "")) {
+        Ok(b) => b,
+        Err(_) => Vec::new(),
+    }
+}

@@ -1,0 +1,35 @@
+// golden: Result and the ? operator
+// idiom: return Result<T, string>; `?` returns early on Err; map_err gives parse errors a readable message
+fn parse_int(text: string) -> Result<int, string> {
+    text.parse::<int>().map_err(|_| "not a number: ${text}")
+}
+
+fn parse_pair(text: string) -> Result<(int, int), string> {
+    let parts: Vec<string> = text.split(",").collect()
+    if parts.len() != 2 {
+        return Err("expected two numbers separated by a comma: ${text}")
+    }
+    let a = parse_int(parts[0])?
+    let b = parse_int(parts[1])?
+    Ok((a, b))
+}
+
+fn divide(text: string) -> Result<int, string> {
+    let pair = parse_pair(text)?
+    if pair.1 == 0 {
+        return Err("division by zero in ${text}")
+    }
+    Ok(pair.0 / pair.1)
+}
+
+fn main() {
+    let inputs = ["84,2", "7,0", "x,3", "1;2", "100,7"]
+    for input in inputs {
+        match divide(input) {
+            Ok(n) => println("${input} -> ${n}"),
+            Err(e) => println("${input} -> error: ${e}"),
+        }
+    }
+    let total = divide("10,2").unwrap_or(0) + divide("oops").unwrap_or(-1)
+    println("total ${total}")
+}

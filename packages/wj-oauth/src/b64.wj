@@ -1,0 +1,45 @@
+use std::encoding
+use std::strings
+
+pub fn utf8(text: string) -> Vec<u8> {
+    match encoding.base64_decode(encoding.base64_encode_string(text)) {
+        Ok(b) => b,
+        Err(_) => Vec::new(),
+    }
+}
+
+/// Base64url without padding (RFC 4648 section 5), as used by PKCE and JWT.
+pub fn encode(bytes: Vec<u8>) -> string {
+    let std = encoding.base64_encode(bytes)
+    strings.replace(strings.replace(strings.replace(std, "+", "-"), "/", "_"), "=", "")
+}
+
+pub fn encode_text(text: string) -> string {
+    encode(utf8(text))
+}
+
+/// Decode base64url with or without padding.
+pub fn decode(text: string) -> Result<Vec<u8>, string> {
+    let mut std = strings.replace(strings.replace(text, "-", "+"), "_", "/")
+    let rem = strings.len(std) % 4
+    if rem == 1 {
+        return Err("invalid base64url length")
+    }
+    if rem == 2 {
+        std += "=="
+    } else if rem == 3 {
+        std += "="
+    }
+    match encoding.base64_decode(std) {
+        Ok(b) => Ok(b),
+        Err(_) => Err("invalid base64url"),
+    }
+}
+
+pub fn decode_text(text: string) -> Result<string, string> {
+    let bytes = decode(text)?
+    match encoding.base64_decode_string(encoding.base64_encode(bytes)) {
+        Ok(t) => Ok(t),
+        Err(_) => Err("not valid UTF-8"),
+    }
+}

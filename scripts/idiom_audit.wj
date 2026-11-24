@@ -1,0 +1,694 @@
+// Idiom audit: counts the forms in packages/ and apps/ that a Windjammer author should not need, per pattern and per
+// package, and writes the ranked report docs/IDIOM_AUDIT.md. Run it from the repository root.
+//
+//   wj run --interpret --allow process --allow fs.read --allow fs.write --allow env.read --allow console \
+//       scripts/idiom_audit.wj [--write | --check | --self-test | --gaps]
+//
+//   (no flag)   print the report
+//   --write     regenerate docs/IDIOM_AUDIT.md
+//   --check     fail when docs/IDIOM_AUDIT.md is stale, or a `wj-gap:` marker is not in (or exceeds) the ledger
+//   --golden    fail when any program in golden/ contains a line the audit would flag, or a `wj-gap` marker
+//   --gaps      list every `wj-gap:` marker with its file and line
+//   --self-test prove each pattern fires on a planted line and stays quiet on the idiomatic form
+//
+// A `// wj-gap: <id>` comment marks code that is shaped around a compiler gap that is still open. The ledger
+// scripts/idiom-gap-ledger.txt lists `<id> <max count>` and may only shrink.
+use std::process
+use std::fs
+use std::env
+use std::strings
+
+// One audited pattern. `fix` rows are forms with an idiomatic replacement; the others are forms that are sometimes
+// the right call and are reported for context.
+struct Pat {
+    id: string,
+    fix: bool,
+    what: string,
+    idiom: string,
+}
+
+fn patterns() -> Vec<Pat> {
+    [
+        Pat { id: "clone", fix: true, what: "`.clone()` call", idiom: "pass the value; keep `.clone()` only where the build asks for it (moving a field out of a borrowed `self`)" },
+        Pat { id: "ref-param", fix: true, what: "`&`, `&mut` or `&self` in a fn signature", idiom: "write `fn f(v: Vec<int>)` and `self`; borrows are inferred" },
+        Pat { id: "cast-i64", fix: true, what: "`as i64`", idiom: "`int` is 64-bit; drop the cast" },
+        Pat { id: "cast-usize", fix: true, what: "`as usize`", idiom: "index with an `int`; drop the cast" },
+        Pat { id: "typed-let-scalar", fix: false, what: "`let x: int = 0` style annotation on a literal", idiom: "keeps a counter 64-bit where a bare literal can default to 32 bits in compiled builds" },
+        Pat { id: "collect", fix: false, what: "`.collect()`", idiom: "right after `split`, `map`, `filter` and `keys`, which return iterators" },
+        Pat { id: "string-concat", fix: true, what: "`\"a\" + x` string building", idiom: "`\"a\${x}\"` interpolation" },
+        Pat { id: "empty-shim", fix: true, what: "`+ \"\"` or `\"\" +` shim", idiom: "interpolate or use the value directly" },
+        Pat { id: "literal-conv", fix: true, what: "`\"lit\".to_string()`, `.as_str()`, `String::from(\"lit\")`, `.to_owned()`", idiom: "a literal is a `string`" },
+        Pat { id: "to-string-call", fix: true, what: "`x.to_string()` on a value", idiom: "`\"\${x}\"`" },
+        Pat { id: "unwrap", fix: true, what: "`.unwrap()` / `.expect(..)`", idiom: "`x ?? fallback`, `x?`, `match` or `if let`" },
+        Pat { id: "dyn", fix: false, what: "`Box<dyn ..>` / `&dyn ..`", idiom: "right for a collection of mixed trait implementors" },
+        Pat { id: "lifetime", fix: true, what: "lifetime annotation", idiom: "lifetimes are inferred" },
+        Pat { id: "rust-type", fix: true, what: "`String` or `&str` type", idiom: "`string`" },
+        Pat { id: "rust-iter", fix: true, what: "`.iter()`, `.iter_mut()`, `.into_iter()`, `.as_ref()`, `.as_mut()`, `.borrow()`, `.to_vec()`", idiom: "`for x in v`, `v.map(..)`" },
+        Pat { id: "macro-form", fix: true, what: "`println!`, `format!`, `vec![`, `assert!`, ... macro form", idiom: "`println(..)`, `\"\${x}\"`, `[1, 2]`, `assert(..)` (W0007)" },
+        Pat { id: "semicolon", fix: true, what: "line ends with `;`", idiom: "no semicolons" },
+        Pat { id: "workaround-comment", fix: true, what: "comment that describes a workaround, compiler bug or ownership demotion", idiom: "fix the compiler or record a `wj-gap`" },
+        Pat { id: "cast-int", fix: false, what: "`as int` / `as float`", idiom: "needed to turn a `usize` length into `int`" },
+        Pat { id: "cast-narrow", fix: false, what: "`as u8`, `as u32`, `as u64`, `as i32`, `as f32` ...", idiom: "right for binary formats and hashing" },
+        Pat { id: "typed-let-other", fix: false, what: "`let x: Vec<..> = ..` style annotation", idiom: "right when it picks the element type" },
+    ]
+}
+
+// Length of the char literal that starts at `i` ('a' is 3, '\\n' is 4), or 0 when none starts there.
+fn char_lit_len(cs: Vec<char>, i: int) -> int {
+    if cs[i] != '\'' {
+        return 0
+    }
+    if i + 2 < cs.len() && cs[i + 1] != '\\' && cs[i + 2] == '\'' {
+        return 3
+    }
+    if i + 3 < cs.len() && cs[i + 1] == '\\' && cs[i + 3] == '\'' {
+        return 4
+    }
+    0
+}
+
+// Split a trailing `//` comment from a line. A `//` inside a string literal or after `:` (a URL) is not a comment.
+fn split_comment(line: string) -> (string, string) {
+    let cs = strings.chars(line)
+    let mut in_str = false
+    let mut i = 0
+    while i + 1 < cs.len() {
+        let c = cs[i]
+        if in_str {
+            if c == '\\' {
+                i = i + 1
+            } else if c == '"' {
+                in_str = false
+            }
+        } else if char_lit_len(cs, i) > 0 {
+            i = i + char_lit_len(cs, i) - 1
+        } else if c == '"' {
+            in_str = true
+        } else if c == '/' && cs[i + 1] == '/' {
+            return (strings.join(cs[0..i], ""), strings.join(cs[i..cs.len()], ""))
+        }
+        i = i + 1
+    }
+    (line, "")
+}
+
+// Keep the quotes of every string literal and replace its contents with `~`, so `"x.clone()"` is not a clone call.
+fn bare(code: string) -> string {
+    let cs = strings.chars(code)
+    let mut out = ""
+    let mut in_str = false
+    let mut i = 0
+    while i < cs.len() {
+        let c = cs[i]
+        if in_str {
+            if c == '\\' {
+                i = i + 1
+                out = out + "~"
+            } else if c == '"' {
+                in_str = false
+                out = out + "\""
+            } else {
+                out = out + "~"
+            }
+        } else if char_lit_len(cs, i) > 0 {
+            i = i + char_lit_len(cs, i) - 1
+            out = out + "'~'"
+        } else if c == '"' {
+            in_str = true
+            out = out + "\""
+        } else {
+            out = out + "${c}"
+        }
+        i = i + 1
+    }
+    out
+}
+
+fn has(s: string, needle: string) -> bool {
+    strings.contains(s, needle)
+}
+
+fn has_any(s: string, needles: Vec<string>) -> bool {
+    for n in needles {
+        if has(s, n) {
+            return true
+        }
+    }
+    false
+}
+
+fn is_ident_char(c: char) -> bool {
+    (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9') || c == '_'
+}
+
+// Does `word` occur in `s` with no identifier character on either side?
+fn has_word(s: string, word: string) -> bool {
+    let cs = strings.chars(s)
+    let wc = strings.chars(word)
+    let n = wc.len()
+    let mut i = 0
+    while i + n <= cs.len() {
+        let mut ok = true
+        let mut j = 0
+        while j < n {
+            if cs[i + j] != wc[j] {
+                ok = false
+                break
+            }
+            j = j + 1
+        }
+        if ok {
+            let before_ok = i == 0 || !is_ident_char(cs[i - 1])
+            let after_ok = i + n == cs.len() || !is_ident_char(cs[i + n])
+            if before_ok && after_ok {
+                return true
+            }
+        }
+        i = i + 1
+    }
+    false
+}
+
+fn is_fn_signature(t: string) -> bool {
+    strings.starts_with(t, "fn ") || strings.starts_with(t, "pub fn ") || strings.starts_with(t, "async fn ") || strings.starts_with(t, "pub async fn ") || strings.starts_with(t, "pub(crate) fn ")
+}
+
+// (scalar annotation on a literal, other annotation) for a `let` line.
+fn typed_let(t: string) -> (bool, bool) {
+    let rest = if strings.starts_with(t, "let mut ") {
+        t[8..t.len()]
+    } else if strings.starts_with(t, "let ") {
+        t[4..t.len()]
+    } else {
+        return (false, false)
+    }
+    let colon = rest.find(": ")
+    let eq = rest.find(" = ")
+    if colon.is_none() || eq.is_none() {
+        return (false, false)
+    }
+    let ci = colon ?? 0
+    let ei = eq ?? 0
+    if ci > ei {
+        return (false, false)
+    }
+    let ty = strings.trim(rest[ci + 2..ei])
+    let rhs = strings.trim(rest[ei + 3..rest.len()])
+    let scalar = ty == "int" || ty == "float" || ty == "bool" || ty == "string" || ty == "char"
+    if scalar {
+        let first = strings.chars(rhs)[0]
+        let literal = (first >= '0' && first <= '9') || first == '"' || first == '\'' || rhs == "true" || rhs == "false" || (first == '-' && rhs.len() > 1)
+        return (literal, false)
+    }
+    (false, true)
+}
+
+// The pattern ids that match one source line, each at most once.
+fn line_hits(raw: string) -> Vec<string> {
+    let mut hits: Vec<string> = Vec::new()
+    let t = strings.trim(raw)
+    if t.len() == 0 {
+        return hits
+    }
+    let parts = split_comment(t)
+    let code_text = strings.trim(parts.0)
+    let comment = parts.1
+    if comment.len() > 0 {
+        let lower = strings.to_lower(comment)
+        if has_any(lower, ["workaround", "work around", "works around", "compiler bug", "compiler gap", "compiler limitation", "cargo-bin", "demot", "tip red", "tip-green", "so tip ", "owned formal", "owned copy"]) && !has(lower, "wj-gap:") {
+            hits.push("workaround-comment")
+        }
+    }
+    if code_text.len() == 0 {
+        return hits
+    }
+    let b = bare(code_text)
+    if has(b, ".clone()") {
+        hits.push("clone")
+    }
+    // A trait method declaration has no body and must say `&self` or `&mut self` (W0016); an implementation says `self`.
+    if is_fn_signature(b) && strings.ends_with(b, "{") {
+        let sig = strings.split(b, " -> ")[0]
+        if has(sig, ": &") || has(sig, "&self") || has(sig, "&mut ") {
+            hits.push("ref-param")
+        }
+    }
+    if has(b, " as i64") {
+        hits.push("cast-i64")
+    }
+    if has(b, " as usize") {
+        hits.push("cast-usize")
+    }
+    if has(b, " as int") || has(b, " as float") {
+        hits.push("cast-int")
+    }
+    if has_any(b, [" as u8", " as u16", " as u32", " as u64", " as i8", " as i16", " as i32", " as f32"]) {
+        hits.push("cast-narrow")
+    }
+    let tl = typed_let(b)
+    if tl.0 {
+        hits.push("typed-let-scalar")
+    }
+    if tl.1 {
+        hits.push("typed-let-other")
+    }
+    if has(b, ".collect(") {
+        hits.push("collect")
+    }
+    if has(b, "+ \"\"") || has(b, "\"\" +") {
+        hits.push("empty-shim")
+    } else if has(b, "+ \"") || has(b, "\" +") {
+        hits.push("string-concat")
+    }
+    if has(b, "\".to_string()") || has(b, "\".as_str()") || has(b, "String::from(") || has(b, ".to_owned()") {
+        hits.push("literal-conv")
+    } else if has(b, ".to_string()") {
+        hits.push("to-string-call")
+    }
+    if has(b, ".unwrap()") || has(b, ".expect(") {
+        hits.push("unwrap")
+    }
+    if has(b, "Box<dyn") || has(b, "&dyn ") || has(b, "&mut dyn ") {
+        hits.push("dyn")
+    }
+    if has(b, "<'") || has(b, "&'") {
+        hits.push("lifetime")
+    }
+    if has_word(b, "String") || has(b, "&str") {
+        hits.push("rust-type")
+    }
+    if has_any(b, [".iter()", ".iter_mut()", ".into_iter()", ".as_ref()", ".as_mut()", ".borrow()", ".to_vec()"]) {
+        hits.push("rust-iter")
+    }
+    if has_any(b, ["println!(", "print!(", "eprintln!(", "format!(", "vec![", "assert!(", "assert_eq!(", "assert_ne!(", "panic!(", "write!(", "writeln!(", "matches!(", "unreachable!(", "todo!("]) {
+        hits.push("macro-form")
+    }
+    if strings.ends_with(b, ";") {
+        hits.push("semicolon")
+    }
+    hits
+}
+
+// The gap id of a `wj-gap: <id>` marker on this line, or "".
+fn gap_marker(line: string) -> string {
+    let idx = line.find("wj-gap:")
+    if idx.is_none() {
+        return ""
+    }
+    let start = (idx ?? 0) + 7
+    let words = strings.split_whitespace(line[start..line.len()])
+    if words.len() == 0 {
+        return ""
+    }
+    words[0]
+}
+
+fn package_of(path: string) -> string {
+    let parts = strings.split(path, "/")
+    if parts.len() >= 2 {
+        return "${parts[0]}/${parts[1]}"
+    }
+    path
+}
+
+fn source_files() -> Vec<string> {
+    let mut files: Vec<string> = Vec::new()
+    match process.run_with_output("git", ["ls-files", "packages", "apps"]) {
+        Ok(o) => {
+            for f in strings.split_lines(o.stdout) {
+                if strings.ends_with(f, ".wj") {
+                    files.push(f)
+                }
+            }
+        },
+        Err(e) => {
+            println("git ls-files failed: ${e}")
+            process.exit(1)
+        },
+    }
+    files.sort()
+    files
+}
+
+struct Scan {
+    counts: HashMap<string, int>,
+    gap_ids: HashMap<string, int>,
+    gap_sites: Vec<string>,
+    packages: Vec<string>,
+    files: int,
+    lines: int,
+}
+
+fn new_scan() -> Scan {
+    Scan { counts: HashMap::new(), gap_ids: HashMap::new(), gap_sites: Vec::new(), packages: Vec::new(), files: 0, lines: 0 }
+}
+
+fn bump(m: HashMap<string, int>, key: string) {
+    let cur = m.get(key) ?? 0
+    m.insert(key, cur + 1)
+}
+
+fn scan_all() -> Scan {
+    let mut s = new_scan()
+    for f in source_files() {
+        let text = fs.read_to_string(f).unwrap_or("")
+        let pkg = package_of(f)
+        if !s.packages.contains(pkg) {
+            s.packages.push(pkg)
+        }
+        s.files = s.files + 1
+        let mut n = 0
+        for line in strings.split_lines(text) {
+            n = n + 1
+            s.lines = s.lines + 1
+            let gap = gap_marker(line)
+            if gap.len() > 0 {
+                bump(s.gap_ids, gap)
+                s.gap_sites.push("${f}:${n} ${gap}")
+            }
+            for id in line_hits(line) {
+                bump(s.counts, "${pkg}|${id}")
+                bump(s.counts, "*|${id}")
+            }
+        }
+    }
+    s.packages.sort()
+    s
+}
+
+fn count(s: Scan, pkg: string, id: string) -> int {
+    s.counts.get("${pkg}|${id}") ?? 0
+}
+
+fn fix_total(s: Scan, pkg: string) -> int {
+    let mut total = 0
+    for p in patterns() {
+        if p.fix {
+            total = total + count(s, pkg, p.id)
+        }
+    }
+    total
+}
+
+// Patterns of one class ordered by descending count (ties by id).
+fn ranked(s: Scan, fix: bool) -> Vec<Pat> {
+    let mut rows: Vec<(int, Pat)> = Vec::new()
+    for p in patterns() {
+        if p.fix == fix {
+            rows.push((0 - count(s, "*", p.id), p))
+        }
+    }
+    rows.sort_by(|a, b| {
+        if a.0 != b.0 { a.0.cmp(b.0) } else { a.1.id.cmp(b.1.id) }
+    })
+    let mut out: Vec<Pat> = Vec::new()
+    for r in rows {
+        out.push(r.1)
+    }
+    out
+}
+
+fn read_ledger() -> HashMap<string, int> {
+    let mut m: HashMap<string, int> = HashMap::new()
+    let text = fs.read_to_string("scripts/idiom-gap-ledger.txt").unwrap_or("")
+    for raw in strings.split_lines(text) {
+        let l = strings.trim(raw)
+        if l.len() == 0 || strings.starts_with(l, "#") {
+            continue
+        }
+        let w = strings.split_whitespace(l)
+        if w.len() >= 2 {
+            m.insert(w[0], w[1].parse::<int>().unwrap_or(0))
+        }
+    }
+    m
+}
+
+fn gap_ids_sorted(s: Scan) -> Vec<string> {
+    let mut ids: Vec<string> = Vec::new()
+    for k in s.gap_ids.keys() {
+        ids.push(k)
+    }
+    ids.sort()
+    ids
+}
+
+fn render(s: Scan) -> string {
+    let mut out = "# Idiom audit\n\n"
+    out = out + "Generated by `scripts/idiom_audit.wj`; do not edit by hand. Regenerate with `--write`; CI runs `--check`.\n\n"
+    out = out + "The audit counts the forms in `packages/` and `apps/` that idiomatic Windjammer does not need: clones the compiler infers, explicit borrows, width casts, `.unwrap()`, string building with `+`, Rust-style types and macros, and comments that describe a workaround. "
+    out = out + "Each row is a line count. The target for every row in the first table is zero; a remaining use is either a gap recorded as `// wj-gap: <id>` or a line still to be rewritten.\n\n"
+    out = out + "Scanned ${s.files} files, ${s.lines} lines in ${s.packages.len()} packages and apps.\n\n"
+    out = out + "## Patterns to remove, ranked by count\n\n"
+    out = out + "| Pattern | Lines | Idiomatic form |\n|---|---:|---|\n"
+    let mut fix_sum = 0
+    for p in ranked(s, true) {
+        let c = count(s, "*", p.id)
+        fix_sum = fix_sum + c
+        out = out + "| `${p.id}`: ${p.what} | ${c} | ${p.idiom} |\n"
+    }
+    out = out + "| **total** | **${fix_sum}** | |\n\n"
+    out = out + "## Forms reported for context\n\n"
+    out = out + "| Pattern | Lines | Note |\n|---|---:|---|\n"
+    for p in ranked(s, false) {
+        out = out + "| `${p.id}`: ${p.what} | ${count(s, "*", p.id)} | ${p.idiom} |\n"
+    }
+    out = out + "\n## Open compiler gaps (`wj-gap`)\n\n"
+    let ids = gap_ids_sorted(s)
+    if ids.len() == 0 {
+        out = out + "No code is shaped around a compiler gap.\n\n"
+    } else {
+        out = out + "| Gap id | Marked sites |\n|---|---:|\n"
+        for id in ids {
+            out = out + "| `${id}` | ${s.gap_ids.get(id) ?? 0} |\n"
+        }
+        out = out + "\n"
+    }
+    out = out + "## Per package\n\nPackages and apps with at least one line to remove, most first. Columns are the patterns with a nonzero total.\n\n"
+    let mut cols: Vec<Pat> = Vec::new()
+    for p in ranked(s, true) {
+        if count(s, "*", p.id) > 0 {
+            cols.push(p)
+        }
+    }
+    let mut header = "| Package | Total |"
+    let mut rule = "|---|---:|"
+    for c in cols {
+        header = header + " ${c.id} |"
+        rule = rule + "---:|"
+    }
+    out = out + header + "\n" + rule + "\n"
+    let mut rows: Vec<(int, string)> = Vec::new()
+    for pkg in s.packages {
+        let t = fix_total(s, pkg)
+        if t > 0 {
+            rows.push((0 - t, pkg))
+        }
+    }
+    rows.sort_by(|a, b| {
+        if a.0 != b.0 { a.0.cmp(b.0) } else { a.1.cmp(b.1) }
+    })
+    for r in rows {
+        let pkg = r.1
+        let mut line = "| `${pkg}` | ${0 - r.0} |"
+        for c in cols {
+            let n = count(s, pkg, c.id)
+            let cell = if n == 0 { "" } else { "${n}" }
+            line = line + " ${cell} |"
+        }
+        out = out + line + "\n"
+    }
+    out
+}
+
+fn check_gaps(s: Scan) -> int {
+    let ledger = read_ledger()
+    let mut failures = 0
+    for id in gap_ids_sorted(s) {
+        let have = s.gap_ids.get(id) ?? 0
+        match ledger.get(id) {
+            Some(max) => {
+                if have > max {
+                    println("gap ledger: `${id}` has ${have} marked sites, the ledger allows ${max}; the ledger only shrinks")
+                    failures = failures + 1
+                }
+            },
+            None => {
+                println("gap ledger: `${id}` is marked in code but has no ledger entry")
+                failures = failures + 1
+            },
+        }
+    }
+    for k in ledger.keys() {
+        if !s.gap_ids.contains_key(k) {
+            println("gap ledger: `${k}` is in the ledger but no code marks it; remove the entry")
+            failures = failures + 1
+        }
+    }
+    failures
+}
+
+fn self_test() -> int {
+    let mut failures = 0
+    // (line, id that must fire)
+    let planted: Vec<(string, string)> = [
+        ("let a = b.clone()", "clone"),
+        ("pub fn f(v: &Vec<int>) -> int {", "ref-param"),
+        ("fn f(&self) {", "ref-param"),
+        ("pub fn f(v: &Vec<int>) -> int {", "ref-param"),
+        ("let n = x as i64", "cast-i64"),
+        ("let i = n as usize", "cast-usize"),
+        ("let n = v.len() as int", "cast-int"),
+        ("let b = x as u8", "cast-narrow"),
+        ("let x: int = 0", "typed-let-scalar"),
+        ("let mut s: string = \"\"", "typed-let-scalar"),
+        ("let v: Vec<int> = Vec::new()", "typed-let-other"),
+        ("let w = text.split(\" \").collect()", "collect"),
+        ("let s = \"a\" + b", "string-concat"),
+        ("let s = a + \"\"", "empty-shim"),
+        ("let s = \"abc\".to_string()", "literal-conv"),
+        ("let s = String::from(\"abc\")", "literal-conv"),
+        ("let s = n.to_string()", "to-string-call"),
+        ("let n = x.unwrap()", "unwrap"),
+        ("let n = x.expect(\"msg\")", "unwrap"),
+        ("layers: Vec<Box<dyn Layer>>,", "dyn"),
+        ("fn f<'a>(x: &'a string) {", "lifetime"),
+        ("fn f(x: String) {", "rust-type"),
+        ("for x in v.iter() {", "rust-iter"),
+        ("println!(\"hi\")", "macro-form"),
+        ("let v = vec![1, 2]", "macro-form"),
+        ("let a = 1;", "semicolon"),
+        ("let a = 1 // works around a compiler bug", "workaround-comment"),
+        ("/// keeps the formal owned so the callee does not demote it", "workaround-comment"),
+    ]
+    for p in planted {
+        if !line_hits(p.0).contains(p.1) {
+            println("self-test FAIL: `${p.0}` did not report ${p.1}")
+            failures = failures + 1
+        }
+    }
+    let clean: Vec<string> = [
+        "let total = 0",
+        "let v = [1, 2, 3]",
+        "fn area(shape: Shape) -> float {",
+        "pub fn push(self, item: string) {",
+        "let msg = \"total \${total}\"",
+        "let s = \"x.clone() and .unwrap() are text\"",
+        "let url = \"http://example.com\"",
+        "// the compiler infers the borrow here",
+        "let n = x ?? 0",
+        "for x in v { total += x }",
+        "let strings_count = 3",
+        "fn describe(&self) -> string",
+        "if ch == '<' || ch == '&' || ch == '\"' { n += 1 }",
+        "/// String scalar at a dotted path",
+    ]
+    for c in clean {
+        let hits = line_hits(c)
+        if hits.len() > 0 {
+            println("self-test FAIL: idiomatic line `${c}` reported ${hits}")
+            failures = failures + 1
+        }
+    }
+    // A wj-gap marker is parsed, and a comment about a gap is not a workaround comment.
+    if gap_marker("let a = 1 // wj-gap: map-get-owned") != "map-get-owned" {
+        println("self-test FAIL: wj-gap marker not parsed")
+        failures = failures + 1
+    }
+    if line_hits("let a = 1 // wj-gap: map-get-owned works around a compiler bug").contains("workaround-comment") {
+        println("self-test FAIL: a wj-gap comment was counted as a workaround comment")
+        failures = failures + 1
+    }
+    // The ledger gate fires on a marker missing from the ledger.
+    let mut s = new_scan()
+    s.gap_ids.insert("planted-gap-id", 1)
+    if check_gaps(s) == 0 {
+        println("self-test FAIL: an unledgered gap marker passed the gate")
+        failures = failures + 1
+    }
+    failures
+}
+
+// Every program in golden/ must be free of every `fix` pattern and of gap markers.
+fn golden_check() -> int {
+    let mut failures = 0
+    let fix_ids: Vec<string> = patterns().filter(|p| p.fix).map(|p| p.id).collect()
+    match fs.read_dir("golden") {
+        Ok(entries) => {
+            for e in entries {
+                let name = e.name()
+                if !strings.ends_with(name, ".wj") {
+                    continue
+                }
+                let text = fs.read_to_string("golden/${name}").unwrap_or("")
+                let mut n = 0
+                for line in strings.split_lines(text) {
+                    n += 1
+                    if gap_marker(line).len() > 0 {
+                        println("golden/${name}:${n}: wj-gap marker")
+                        failures += 1
+                    }
+                    for id in line_hits(line) {
+                        if fix_ids.contains(id) {
+                            println("golden/${name}:${n}: ${id}: ${strings.trim(line)}")
+                            failures += 1
+                        }
+                    }
+                }
+            }
+        },
+        Err(e) => {
+            println("cannot read golden/: ${e}")
+            failures += 1
+        },
+    }
+    failures
+}
+
+fn main() {
+    let args = env::args()
+    let mode = if args.len() > 1 { args[1] } else { "" }
+    if mode == "--golden" {
+        let failures = golden_check()
+        if failures > 0 {
+            process.exit(1)
+        }
+        println("golden programs are free of every audited pattern")
+        return
+    }
+    if mode == "--self-test" {
+        let failures = self_test()
+        if failures > 0 {
+            process.exit(1)
+        }
+        println("self-test ok: ${patterns().len()} patterns fire on planted lines and stay quiet on idiomatic ones")
+        return
+    }
+    let s = scan_all()
+    if mode == "--gaps" {
+        for site in s.gap_sites {
+            println(site)
+        }
+        return
+    }
+    let report = render(s)
+    if mode == "--write" {
+        fs.write("docs/IDIOM_AUDIT.md", report)
+        println("wrote docs/IDIOM_AUDIT.md")
+        return
+    }
+    if mode == "--check" {
+        let mut failures = check_gaps(s)
+        let current = fs.read_to_string("docs/IDIOM_AUDIT.md").unwrap_or("")
+        if current != report {
+            println("docs/IDIOM_AUDIT.md is stale; regenerate it with scripts/idiom_audit.wj --write")
+            failures = failures + 1
+        }
+        if failures > 0 {
+            process.exit(1)
+        }
+        println("idiom audit ok: report fresh, gap ledger holds")
+        return
+    }
+    println(report)
+}

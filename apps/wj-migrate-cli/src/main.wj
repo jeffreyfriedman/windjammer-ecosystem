@@ -5,6 +5,7 @@ use crate::adapters::run_status
 use crate::domain::config_from_env
 use crate::domain::format_apply_result
 use crate::domain::format_list_result
+use crate::domain::format_status_result
 use crate::adapters::run_validate
 use crate::domain::format_validate_result
 use crate::domain::parse_command
@@ -19,7 +20,7 @@ fn main() {
                 match run_apply(cmd.url, cmd.dir) {
                     Ok(report) => {
                         let msg = format_apply_result(report.applied_count, report.applied_versions)
-                        println("{}", msg)
+                        println("${msg}")
                     },
                     Err(e) => {
                         eprintln("wj-migrate-cli: ${e}")
@@ -30,7 +31,7 @@ fn main() {
                 match run_status(cmd.url, cmd.dir) {
                     Ok(report) => {
                         let msg = format_status_result(report.applied_versions, report.pending_versions)
-                        println("{}", msg)
+                        println("${msg}")
                     },
                     Err(e) => {
                         eprintln("wj-migrate-cli: ${e}")
@@ -41,7 +42,7 @@ fn main() {
                 match run_list(cmd.dir) {
                     Ok(lines) => {
                         let msg = format_list_result(lines)
-                        println("{}", msg)
+                        println("${msg}")
                     },
                     Err(e) => {
                         eprintln("wj-migrate-cli: ${e}")
@@ -52,7 +53,7 @@ fn main() {
                 match run_validate(cmd.dir) {
                     Ok(count) => {
                         let msg = format_validate_result(count)
-                        println("{}", msg)
+                        println("${msg}")
                     },
                     Err(e) => {
                         eprintln("wj-migrate-cli: ${e}")

@@ -1,0 +1,52 @@
+// golden: topological sort of tasks
+// idiom: count incoming edges (Kahn's algorithm); a Vec as the ready list; report a cycle when not every node is placed
+use std::collections::HashMap
+
+fn order(tasks: Vec<string>, needs: Vec<(string, string)>) -> Result<Vec<string>, string> {
+    let mut incoming: HashMap<string, int> = HashMap::new()
+    let mut after: HashMap<string, Vec<string>> = HashMap::new()
+    for t in tasks {
+        incoming.insert(t, 0)
+        after.insert(t, [])
+    }
+    for (first, then) in needs {
+        incoming.insert(then, incoming[then] + 1)
+        after.entry(first).or_insert([]).push(then)
+    }
+    let mut ready: Vec<string> = []
+    for t in tasks {
+        if incoming[t] == 0 {
+            ready.push(t)
+        }
+    }
+    let mut result: Vec<string> = []
+    while ready.len() > 0 {
+        ready.sort()
+        let next = ready.remove(0)
+        result.push(next)
+        for follower in after[next] {
+            incoming.insert(follower, incoming[follower] - 1)
+            if incoming[follower] == 0 {
+                ready.push(follower)
+            }
+        }
+    }
+    if result.len() != tasks.len() {
+        return Err("dependency cycle detected")
+    }
+    Ok(result)
+}
+
+fn main() {
+    let tasks = ["compile", "link", "test", "package", "lint"]
+    let needs = [("compile", "link"), ("link", "test"), ("link", "package"), ("lint", "test")]
+    match order(tasks, needs) {
+        Ok(steps) => println("order: ${steps.join(" -> ")}"),
+        Err(e) => println("error: ${e}"),
+    }
+    let cyclic = [("compile", "link"), ("link", "compile")]
+    match order(["compile", "link"], cyclic) {
+        Ok(steps) => println("order: ${steps.join(" -> ")}"),
+        Err(e) => println("error: ${e}"),
+    }
+}

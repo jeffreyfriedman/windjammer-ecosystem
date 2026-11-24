@@ -1,0 +1,50 @@
+// golden: degrees of separation
+// idiom: HashMap<string, Vec<string>> as the social graph; breadth-first levels using two Vecs (current and next)
+use std::collections::HashMap
+use std::collections::HashSet
+
+fn friends_of(graph: HashMap<string, Vec<string>>, name: string) -> Vec<string> {
+    graph.get(name) ?? []
+}
+
+fn distance(graph: HashMap<string, Vec<string>>, from: string, to: string) -> Option<int> {
+    if from == to {
+        return Some(0)
+    }
+    let mut seen: HashSet<string> = HashSet::new()
+    seen.insert(from)
+    let mut current = [from]
+    let mut level = 0
+    while current.len() > 0 {
+        level += 1
+        let mut next: Vec<string> = []
+        for person in current {
+            for friend in friends_of(graph, person) {
+                if friend == to {
+                    return Some(level)
+                }
+                if !seen.contains(friend) {
+                    seen.insert(friend)
+                    next.push(friend)
+                }
+            }
+        }
+        current = next
+    }
+    None
+}
+
+fn main() {
+    let mut graph: HashMap<string, Vec<string>> = HashMap::new()
+    let links = [("ann", "bob"), ("bob", "cy"), ("cy", "di"), ("ann", "eve"), ("zed", "yan")]
+    for (a, b) in links {
+        graph.entry(a).or_insert([]).push(b)
+        graph.entry(b).or_insert([]).push(a)
+    }
+    for (a, b) in [("ann", "di"), ("ann", "ann"), ("eve", "cy"), ("ann", "zed")] {
+        match distance(graph, a, b) {
+            Some(d) => println("${a} to ${b}: ${d}"),
+            None => println("${a} to ${b}: not connected"),
+        }
+    }
+}

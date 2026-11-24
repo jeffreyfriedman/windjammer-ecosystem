@@ -1,0 +1,124 @@
+use std::crypto
+use std::encoding
+use std::strings
+
+const GUID: string = "258EAFA5-E914-47DA-95CA-C5AB0DC85B11"
+
+/// `Sec-WebSocket-Accept` for a client's `Sec-WebSocket-Key` (RFC 6455 section 4.2.2).
+pub fn accept_key(client_key: string) -> string {
+    encoding.base64_encode(crypto.sha1_bytes(crate::frame::utf8_bytes(strings.trim(client_key) + GUID)))
+}
+
+/// A well-formed `Sec-WebSocket-Key` is the base64 of 16 bytes.
+pub fn is_valid_key(key: string) -> bool {
+    match encoding.base64_decode(strings.trim(key)) {
+        Ok(bytes) => bytes.len() == 16,
+        Err(_) => false,
+    }
+}
+
+/// The client's opening request. `key` should be 16 random bytes in base64.
+pub fn client_request(host: string, path: string, key: string, protocols: Vec<string>) -> string {
+    let mut text = "GET ${path} HTTP/1.1\r\nHost: ${host}\r\nUpgrade: websocket\r\nConnection: Upgrade\r\nSec-WebSocket-Key: ${key}\r\nSec-WebSocket-Version: 13\r\n"
+    if protocols.len() > 0 {
+        text += "Sec-WebSocket-Protocol: ${protocols.join(", ")}\r\n"
+    }
+    "${text}\r\n"
+}
+
+pub struct Request {
+    pub path: string,
+    pub host: string,
+    pub key: string,
+    pub protocols: Vec<string>,
+}
+
+fn header(lines: Vec<string>, name: string) -> string {
+    let wanted = strings.to_lower(name)
+    for line in lines {
+        let parts = strings.split(line, ":")
+        if parts.len() >= 2 && strings.to_lower(strings.trim(parts[0])) == wanted {
+            let mut rest: Vec<string> = Vec::new()
+            let mut i = 1
+            while i < parts.len() {
+                rest.push(parts[i])
+                i = i + 1
+            }
+            return strings.trim(rest.join(":"))
+        }
+    }
+    ""
+}
+
+fn has_token(value: string, token: string) -> bool {
+    for part in strings.split(value, ",") {
+        if strings.to_lower(strings.trim(part)) == token {
+            return true
+        }
+    }
+    false
+}
+
+/// Validate a client's opening request and pull out what the server needs.
+pub fn parse_request(text: string) -> Result<Request, string> {
+    let lines = strings.split(strings.replace(text, "\r\n", "\n"), "\n")
+    if lines.len() == 0 {
+        return Err("empty request")
+    }
+    let first = strings.split_whitespace(lines[0])
+    if first.len() != 3 || first[0] != "GET" {
+        return Err("expected a GET request line")
+    }
+    if first[2] != "HTTP/1.1" {
+        return Err("expected HTTP/1.1")
+    }
+    if strings.to_lower(header(lines, "Upgrade")) != "websocket" {
+        return Err("missing 'Upgrade: websocket'")
+    }
+    if !has_token(header(lines, "Connection"), "upgrade") {
+        return Err("missing 'Connection: Upgrade'")
+    }
+    if header(lines, "Sec-WebSocket-Version") != "13" {
+        return Err("unsupported Sec-WebSocket-Version (need 13)")
+    }
+    let key = header(lines, "Sec-WebSocket-Key")
+    if !is_valid_key(key) {
+        return Err("missing or malformed Sec-WebSocket-Key")
+    }
+    let mut protocols: Vec<string> = Vec::new()
+    let offered = header(lines, "Sec-WebSocket-Protocol")
+    if strings.len(offered) > 0 {
+        for p in strings.split(offered, ",") {
+            protocols.push(strings.trim(p))
+        }
+    }
+    Ok(Request { path: first[1], host: header(lines, "Host"), key: key, protocols: protocols })
+}
+
+/// The server's `101 Switching Protocols` reply. `protocol` is the one chosen subprotocol ("" for none).
+pub fn server_response(key: string, protocol: string) -> string {
+    let mut text = "HTTP/1.1 101 Switching Protocols\r\nUpgrade: websocket\r\nConnection: Upgrade\r\nSec-WebSocket-Accept: ${accept_key(key)}\r\n"
+    if strings.len(protocol) > 0 {
+        text += "Sec-WebSocket-Protocol: ${protocol}\r\n"
+    }
+    "${text}\r\n"
+}
+
+/// Check the server's reply against the key the client sent.
+pub fn validate_response(text: string, key: string) -> Result<(), string> {
+    let lines = strings.split(strings.replace(text, "\r\n", "\n"), "\n")
+    let status = strings.split_whitespace(lines[0])
+    if status.len() < 2 || status[1] != "101" {
+        return Err("expected status 101")
+    }
+    if strings.to_lower(header(lines, "Upgrade")) != "websocket" {
+        return Err("missing 'Upgrade: websocket'")
+    }
+    if !has_token(header(lines, "Connection"), "upgrade") {
+        return Err("missing 'Connection: Upgrade'")
+    }
+    if header(lines, "Sec-WebSocket-Accept") != accept_key(key) {
+        return Err("Sec-WebSocket-Accept does not match the key")
+    }
+    Ok(())
+}

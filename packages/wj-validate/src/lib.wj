@@ -18,6 +18,14 @@ pub fn require_min_len(field: string, value: string, min: int) -> Result<string,
     Ok(trimmed)
 }
 
+/// Require `min <= len(trim(value)) <= max`.
+pub fn require_len_range(field: string, value: string, min: int, max: int) -> Result<string, string> {
+    match require_min_len(field, value, min) {
+        Ok(v) => require_max_len(field, v, max),
+        Err(e) => Err(e),
+    }
+}
+
 /// Require `value` length <= `max` (after trim).
 pub fn require_max_len(field: string, value: string, max: int) -> Result<string, string> {
     let trimmed = strings.trim(value)
@@ -96,6 +104,82 @@ pub fn all_ok(errors: Vec<string>) -> Result<(), string> {
     Err(out)
 }
 
+/// True when `errors` is non-empty.
+pub fn has_errors(errors: Vec<string>) -> bool {
+    errors.len() > 0
+}
+
+pub fn error_count(errors: Vec<string>) -> int {
+    let mut n = 0
+    for _ in errors {
+        n = n + 1
+    }
+    n
+}
+
+/// True when there are no validation errors.
+pub fn is_valid(errors: Vec<string>) -> bool {
+    !has_errors(errors)
+}
+
+/// First error message, or `None` when the list is empty.
+pub fn first_error(errors: Vec<string>) -> Option<string> {
+    if errors.len() == 0 {
+        return None
+    }
+    Some(errors[0])
+}
+
+/// Last error message, or `None` when the list is empty.
+pub fn last_error(errors: Vec<string>) -> Option<string> {
+    let n = errors.len()
+    if n == 0 {
+        return None
+    }
+    Some(errors[n - 1])
+}
+
+/// Ok when there are no errors; otherwise Err with the first message.
+pub fn require_clean(errors: Vec<string>) -> Result<(), string> {
+    match first_error(errors) {
+        Some(msg) => Err(msg),
+        None => Ok(()),
+    }
+}
+
+/// The only error when the list has exactly one entry.
+pub fn only_error(errors: Vec<string>) -> Option<string> {
+    if errors.len() == 1 {
+        Some(errors[0])
+    } else {
+        None
+    }
+}
+
+/// Predicate form of `require_email` (no field name).
+pub fn is_email(value: string) -> bool {
+    match require_email("email", value) {
+        Ok(_) => true,
+        Err(_) => false,
+    }
+}
+
+/// Require `value > 0`.
+pub fn require_positive(field: string, value: int) -> Result<int, string> {
+    if value <= 0 {
+        return Err("${field} must be positive")
+    }
+    Ok(value)
+}
+
+/// Require `value >= 0`.
+pub fn require_nonneg(field: string, value: int) -> Result<int, string> {
+    if value < 0 {
+        return Err("${field} must be non-negative")
+    }
+    Ok(value)
+}
+
 /// Require an absolute `http://` or `https://` URL with a non-empty host.
 pub fn require_url(field: string, value: string) -> Result<string, string> {
     let trimmed = strings.trim(value)
@@ -117,6 +201,19 @@ pub fn require_url(field: string, value: string) -> Result<string, string> {
         return Err("${field} must be an http or https URL")
     }
     Ok(trimmed)
+}
+
+/// Require an absolute `https://` URL with a non-empty host.
+pub fn require_https(field: string, value: string) -> Result<string, string> {
+    match require_url(field, value) {
+        Ok(url) => {
+            if strings.starts_with(url, "https://") {
+                return Ok(url)
+            }
+            Err("${field} must be https")
+        },
+        Err(e) => Err(e),
+    }
 }
 
 /// Require a canonical UUID v1, v4, v5, or v7 (`8-4-4-4-12`, RFC variant).

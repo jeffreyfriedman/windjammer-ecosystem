@@ -1,0 +1,162 @@
+use std::crypto
+use std::encoding
+use std::strings
+use crate::b64
+use crate::pkce
+
+/// Parameters of an authorization request (authorization code flow with PKCE).
+pub struct AuthRequest {
+    pub authorization_endpoint: string,
+    pub client_id: string,
+    pub redirect_uri: string,
+    pub scopes: Vec<string>,
+    pub state: string,
+    pub code_verifier: string,
+    /// OpenID Connect `nonce`; empty to omit.
+    pub nonce: string,
+    /// Extra query parameters, appended in order (for example `prompt`, `login_hint`).
+    pub extra: Vec<(string, string)>,
+}
+
+fn pair(k: string, v: string) -> string {
+    "${encoding.url_encode_component(k)}=${encoding.url_encode_component(v)}"
+}
+
+/// Form encoding as OAuth specifies it: every character outside the unreserved set is percent-encoded,
+/// including spaces (`%20`), in the order given.
+pub fn form_encode(params: Vec<(string, string)>) -> string {
+    let mut parts: Vec<string> = Vec::new()
+    for p in params {
+        parts.push(pair(p.0, p.1))
+    }
+    parts.join("&")
+}
+
+/// The URL to send the user to. Fails on a missing field or a verifier outside RFC 7636's rules.
+pub fn authorization_url(r: AuthRequest) -> Result<string, string> {
+    if strings.len(r.authorization_endpoint) == 0 || strings.len(r.client_id) == 0 || strings.len(r.redirect_uri) == 0 {
+        return Err("authorization_endpoint, client_id and redirect_uri are required")
+    }
+    if strings.len(r.state) < 8 {
+        return Err("state must be at least 8 characters of unpredictable data")
+    }
+    if !pkce::is_valid_verifier(r.code_verifier) {
+        return Err("code_verifier must be 43 to 128 unreserved characters")
+    }
+    let mut params: Vec<(string, string)> = Vec::new()
+    params.push(("response_type", "code"))
+    params.push(("client_id", r.client_id))
+    params.push(("redirect_uri", r.redirect_uri))
+    if r.scopes.len() > 0 {
+        params.push(("scope", r.scopes.join(" ")))
+    }
+    params.push(("state", r.state))
+    params.push(("code_challenge", pkce::challenge_s256(r.code_verifier)))
+    params.push(("code_challenge_method", "S256"))
+    if strings.len(r.nonce) > 0 {
+        params.push(("nonce", r.nonce))
+    }
+    for e in r.extra {
+        params.push(e)
+    }
+    let sep = if strings.contains(r.authorization_endpoint, "?") { "&" } else { "?" }
+    Ok(r.authorization_endpoint + sep + form_encode(params))
+}
+
+/// What the redirect carried back.
+pub struct Callback {
+    pub code: string,
+    pub state: string,
+    pub error: string,
+    pub error_description: string,
+}
+
+fn query_value(pairs: Vec<(string, string)>, name: string) -> string {
+    for p in pairs {
+        if p.0 == name {
+            return p.1
+        }
+    }
+    ""
+}
+
+/// Parse a redirect URL (or just its query) into code, state and error fields. The fragment is ignored.
+pub fn parse_callback(url_or_query: string) -> Callback {
+    let no_fragment = strings.split(url_or_query, "#")[0]
+    let parts = strings.split(no_fragment, "?")
+    let query = if parts.len() > 1 { parts[1] } else if strings.contains(no_fragment, "=") { parts[0] } else { "" }
+    let pairs = encoding.form_parse(query)
+    Callback {
+        code: query_value(pairs, "code"),
+        state: query_value(pairs, "state"),
+        error: query_value(pairs, "error"),
+        error_description: query_value(pairs, "error_description"),
+    }
+}
+
+/// Check the callback against the state you sent; the code when everything is in order.
+pub fn accept_callback(cb: Callback, expected_state: string) -> Result<string, string> {
+    if strings.len(cb.error) > 0 {
+        let why = if strings.len(cb.error_description) > 0 { ": ${cb.error_description}" } else { "" }
+        return Err("authorization failed: ${cb.error}${why}")
+    }
+    if strings.len(expected_state) == 0 || !crypto.constant_time_eq(cb.state, expected_state) {
+        return Err("state mismatch")
+    }
+    if strings.len(cb.code) == 0 {
+        return Err("no authorization code in the callback")
+    }
+    Ok(cb.code)
+}
+
+/// Body of the token request that trades an authorization code (with the PKCE verifier) for tokens.
+pub fn token_request_authorization_code(client_id: string, client_secret: string, code: string, redirect_uri: string, code_verifier: string) -> string {
+    let mut params: Vec<(string, string)> = Vec::new()
+    params.push(("grant_type", "authorization_code"))
+    params.push(("code", code))
+    params.push(("redirect_uri", redirect_uri))
+    params.push(("client_id", client_id))
+    params.push(("code_verifier", code_verifier))
+    if strings.len(client_secret) > 0 {
+        params.push(("client_secret", client_secret))
+    }
+    form_encode(params)
+}
+
+pub fn token_request_refresh(client_id: string, client_secret: string, refresh_token: string, scopes: Vec<string>) -> string {
+    let mut params: Vec<(string, string)> = Vec::new()
+    params.push(("grant_type", "refresh_token"))
+    params.push(("refresh_token", refresh_token))
+    params.push(("client_id", client_id))
+    if strings.len(client_secret) > 0 {
+        params.push(("client_secret", client_secret))
+    }
+    if scopes.len() > 0 {
+        params.push(("scope", scopes.join(" ")))
+    }
+    form_encode(params)
+}
+
+pub fn token_request_client_credentials(client_id: string, client_secret: string, scopes: Vec<string>) -> string {
+    let mut params: Vec<(string, string)> = Vec::new()
+    params.push(("grant_type", "client_credentials"))
+    params.push(("client_id", client_id))
+    if strings.len(client_secret) > 0 {
+        params.push(("client_secret", client_secret))
+    }
+    if scopes.len() > 0 {
+        params.push(("scope", scopes.join(" ")))
+    }
+    form_encode(params)
+}
+
+/// `Authorization` header value for `client_secret_basic`: the id and secret are form-encoded first (RFC 6749 section 2.3.1).
+pub fn basic_auth_header(client_id: string, client_secret: string) -> string {
+    let raw = "${encoding.url_encode_component(client_id)}:${encoding.url_encode_component(client_secret)}"
+    "Basic ${encoding.base64_encode(b64::utf8(raw))}"
+}
+
+/// `Authorization: Bearer ...` header value.
+pub fn bearer_header(access_token: string) -> string {
+    "Bearer ${access_token}"
+}

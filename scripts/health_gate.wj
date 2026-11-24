@@ -1,0 +1,678 @@
+// Ecosystem health gate: every package and app test suite, interpreted and (optionally) compiled.
+//
+// Usage (from the repo root):
+//   wj run --interpret --allow process --allow fs.read --allow fs.write --allow env.read --allow console \
+//       scripts/health_gate.wj <wj-binary> <outdir> <mode: interp|compiled|both> [dir...]
+//   wj run --interpret ... scripts/health_gate.wj --self-test <wj-binary> <scratchdir>
+//
+// With no dir arguments every apps/* and packages/* directory that has a wj.toml is swept.
+//
+// Environment (all optional):
+//   HEALTH_TIMEOUT   seconds per package per mode (default 600)
+//   HEALTH_JOBS      packages run at once (default 2)
+//   SLOT_CMD         command prefix that wraps each compiled `wj test` (a build-slot wrapper); default empty
+//   HEALTH_LEDGER    known-failures ledger (default scripts/health-known-failures.txt)
+//
+// Output: <outdir>/results.json (one entry per directory and mode, plus a cross-mode comparison),
+// <outdir>/<dir>.<mode>.log per run, and a summary on stdout. Exit 0 means the gate holds:
+// no new failure, no new interpreted-vs-compiled drift, and no ledger entry that is already fixed.
+//
+// Ledger lines: `dir | mode | reason | owner` with mode in interp, compiled or drift. The ledger only shrinks:
+// a failure missing from it fails the gate, and a ledger entry whose problem is gone fails the gate until removed.
+use std::process
+use std::fs
+use std::env
+use std::strings
+
+struct Row {
+    dir: string,
+    mode: string,
+    status: string,
+    passed: int,
+    failed: int,
+    secs: int,
+    result: string,
+}
+
+struct Entry {
+    dir: string,
+    mode: string,
+    reason: string,
+    owner: string,
+}
+
+// ---------- parsing ----------
+
+fn num_before(line: string, word: string) -> int {
+    // the integer immediately before `word` in `line`, or -1
+    let parts = strings.split(line, word)
+    if parts.len() < 2 {
+        return -1
+    }
+    let words = strings.split_whitespace(parts[0])
+    if words.len() == 0 {
+        return -1
+    }
+    let last = words[words.len() - 1]
+    match last.parse::<int>() {
+        Ok(n) => n,
+        Err(_) => -1,
+    }
+}
+
+// Interpreted: "test result: ok. 14 passed; 0 failed (interpreted, no cargo)".
+// Compiled: "✓ 14 passed" and "✗ 2 failed". Returns [passed, failed, found(0|1)].
+fn counts_of(text: string) -> Vec<int> {
+    let mut passed = 0
+    let mut failed = 0
+    let mut found = 0
+    for raw in strings.split_lines(text) {
+        let t = strings.trim(raw)
+        if strings.starts_with(t, "test result:") && strings.contains(t, "no cargo") {
+            passed = num_before(t, " passed")
+            failed = num_before(t, " failed")
+            found = 1
+            break
+        }
+        if strings.starts_with(t, "✓ ") && strings.contains(t, " passed") && !strings.contains(t, "All tests") && found == 0 {
+            passed = num_before(t, " passed")
+            found = 1
+        }
+        if strings.starts_with(t, "✗ ") && strings.contains(t, " failed") {
+            failed = num_before(t, " failed")
+            found = 1
+        }
+    }
+    if passed < 0 {
+        passed = 0
+    }
+    if failed < 0 {
+        failed = 0
+    }
+    [passed, failed, found]
+}
+
+fn result_line(text: string) -> string {
+    for raw in strings.split_lines(text) {
+        let t = strings.trim(raw)
+        if strings.starts_with(t, "error[") || strings.starts_with(t, "error: could not compile") {
+            return t
+        }
+    }
+    for raw in strings.split_lines(text) {
+        let t = strings.trim(raw)
+        let found = strings.starts_with(t, "✓ Found")
+        if !found && (strings.starts_with(t, "test result:") || strings.starts_with(t, "✓ ") || strings.starts_with(t, "✗ ") || strings.starts_with(t, "Error:")) {
+            return t
+        }
+    }
+    "(no result line)"
+}
+
+fn duration_class(secs: int) -> string {
+    if secs < 10 {
+        "fast"
+    } else if secs < 60 {
+        "medium"
+    } else if secs < 300 {
+        "slow"
+    } else {
+        "very-slow"
+    }
+}
+
+fn parse_ledger(text: string) -> Vec<Entry> {
+    let mut out: Vec<Entry> = Vec::new()
+    for raw in strings.split_lines(text) {
+        let line = strings.trim(raw)
+        if line.len() == 0 || strings.starts_with(line, "#") {
+            continue
+        }
+        let parts = strings.split(line, "|")
+        let mut f: Vec<string> = Vec::new()
+        for p in parts {
+            f.push(strings.trim(p))
+        }
+        if f.len() < 4 {
+            out.push(Entry { dir: line, mode: "malformed", reason: "", owner: "" })
+        } else {
+            out.push(Entry { dir: f[0], mode: f[1], reason: f[2], owner: f[3] })
+        }
+    }
+    out
+}
+
+// ---------- decisions (pure) ----------
+
+fn find_row(rows: Vec<Row>, dir: string, mode: string) -> Option<Row> {
+    for r in rows {
+        if r.dir == dir && r.mode == mode {
+            return Some(r)
+        }
+    }
+    None
+}
+
+fn is_bad(status: string) -> bool {
+    status == "fail" || status == "timeout"
+}
+
+fn ledgered(ledger: Vec<Entry>, dir: string, mode: string) -> bool {
+    for e in ledger {
+        if e.dir == dir && e.mode == mode {
+            return true
+        }
+    }
+    false
+}
+
+// Why interpreted and compiled disagree on `dir`, or "" when they agree (or one side was not run / skipped).
+fn drift_of(rows: Vec<Row>, dir: string) -> string {
+    let i = match find_row(rows, dir, "interp") {
+        Some(r) => r,
+        None => return "",
+    }
+    let c = match find_row(rows, dir, "compiled") {
+        Some(r) => r,
+        None => return "",
+    }
+    if i.status == "skip" || c.status == "skip" || i.status == "blocked" || c.status == "blocked" {
+        return ""
+    }
+    if i.status != c.status {
+        return "status interp=" + i.status + " compiled=" + c.status
+    }
+    if i.status == "pass" && (i.passed != c.passed || i.failed != c.failed) {
+        return "counts interp=" + i.passed.to_string() + "/" + i.failed.to_string() + " compiled=" + c.passed.to_string() + "/" + c.failed.to_string()
+    }
+    ""
+}
+
+fn dirs_of(rows: Vec<Row>) -> Vec<string> {
+    let mut out: Vec<string> = Vec::new()
+    for r in rows {
+        if !out.contains(&r.dir) {
+            out.push(r.dir)
+        }
+    }
+    out
+}
+
+fn modes_in(rows: Vec<Row>, mode: string) -> bool {
+    for r in rows {
+        if r.mode == mode {
+            return true
+        }
+    }
+    false
+}
+
+// All gate violations for a set of results against the ledger. Empty means the gate holds.
+fn violations(rows: Vec<Row>, ledger: Vec<Entry>) -> Vec<string> {
+    let mut v: Vec<string> = Vec::new()
+    for e in ledger {
+        if e.mode != "interp" && e.mode != "compiled" && e.mode != "drift" {
+            v.push("LEDGER FORMAT: `" + e.dir + "` (want: dir | interp|compiled|drift | reason | owner)")
+        }
+    }
+    for r in rows {
+        if is_bad(r.status) && !ledgered(ledger, r.dir, r.mode) {
+            v.push("NEW FAILURE: " + r.dir + " [" + r.mode + "] " + r.status + " - " + r.result)
+        }
+        if r.status == "pass" && ledgered(ledger, r.dir, r.mode) {
+            v.push("FIXED, REMOVE FROM LEDGER: " + r.dir + " [" + r.mode + "]")
+        }
+    }
+    let both = modes_in(rows, "interp") && modes_in(rows, "compiled")
+    if both {
+        for d in dirs_of(rows) {
+            let why = drift_of(rows, d)
+            let explained = ledgered(ledger, d, "interp") || ledgered(ledger, d, "compiled")
+            if why.len() > 0 && !explained && !ledgered(ledger, d, "drift") {
+                v.push("NEW DRIFT: " + d + " (" + why + ")")
+            }
+            if why.len() == 0 && ledgered(ledger, d, "drift") {
+                v.push("FIXED, REMOVE FROM LEDGER: " + d + " [drift]")
+            }
+        }
+    }
+    v
+}
+
+// ---------- output ----------
+
+fn jstr(s: string) -> string {
+    let mut t = strings.replace(s, "\\", "\\\\")
+    t = strings.replace(t, "\"", "\\\"")
+    t = strings.replace(t, "\n", "\\n")
+    t = strings.replace(t, "\r", "\\r")
+    t = strings.replace(t, "\t", "\\t")
+    "\"" + t + "\""
+}
+
+fn results_json(rows: Vec<Row>, ledger: Vec<Entry>, viol: Vec<string>, timeout: int) -> string {
+    let mut runs: Vec<string> = Vec::new()
+    for r in rows {
+        runs.push("    {\"dir\": " + jstr(r.dir) + ", \"mode\": " + jstr(r.mode) + ", \"status\": " + jstr(r.status)
+            + ", \"passed\": " + r.passed.to_string() + ", \"failed\": " + r.failed.to_string()
+            + ", \"seconds\": " + r.secs.to_string() + ", \"duration_class\": " + jstr(duration_class(r.secs))
+            + ", \"result\": " + jstr(r.result) + "}")
+    }
+    let mut cmp: Vec<string> = Vec::new()
+    let mut drifts = 0
+    if modes_in(rows, "interp") && modes_in(rows, "compiled") {
+        for d in dirs_of(rows) {
+            let why = drift_of(rows, d)
+            if why.len() > 0 {
+                drifts = drifts + 1
+            }
+            cmp.push("    {\"dir\": " + jstr(d) + ", \"drift\": " + (if why.len() > 0 { "true" } else { "false" }) + ", \"detail\": " + jstr(why) + "}")
+        }
+    }
+    let mut vj: Vec<string> = Vec::new()
+    for x in viol {
+        vj.push("    " + jstr(x))
+    }
+    let mut pass_i = 0
+    let mut bad_i = 0
+    let mut pass_c = 0
+    let mut bad_c = 0
+    let mut tests_i = 0
+    let mut tests_c = 0
+    for r in rows {
+        if r.mode == "interp" {
+            tests_i = tests_i + r.passed
+            if r.status == "pass" { pass_i = pass_i + 1 }
+            if is_bad(r.status) { bad_i = bad_i + 1 }
+        } else {
+            tests_c = tests_c + r.passed
+            if r.status == "pass" { pass_c = pass_c + 1 }
+            if is_bad(r.status) { bad_c = bad_c + 1 }
+        }
+    }
+    "{\n  \"schema\": 1,\n  \"timeout_seconds\": " + timeout.to_string()
+        + ",\n  \"summary\": {\"interp\": {\"pass\": " + pass_i.to_string() + ", \"bad\": " + bad_i.to_string() + ", \"tests_passed\": " + tests_i.to_string()
+        + "}, \"compiled\": {\"pass\": " + pass_c.to_string() + ", \"bad\": " + bad_c.to_string() + ", \"tests_passed\": " + tests_c.to_string()
+        + "}, \"drift\": " + drifts.to_string() + ", \"ledger_entries\": " + ledger.len().to_string() + ", \"violations\": " + viol.len().to_string() + "},"
+        + "\n  \"runs\": [\n" + strings.join(runs, ",\n") + "\n  ],"
+        + "\n  \"comparison\": [\n" + strings.join(cmp, ",\n") + "\n  ],"
+        + "\n  \"violations\": [\n" + strings.join(vj, ",\n") + "\n  ]\n}\n"
+}
+
+// ---------- running ----------
+
+fn sh_quote(s: string) -> string {
+    "'" + strings.replace(s, "'", "'\\''") + "'"
+}
+
+fn log_base(outdir: string, dir: string, mode: string) -> string {
+    outdir + "/" + strings.replace(strings.replace(dir, "/", "_"), ".", "_") + "." + mode
+}
+
+// One worker script per (dir, mode): runs `wj test` in its own process group under a timeout watchdog (started once any build slot is held) and
+// records exit code and elapsed seconds next to the log.
+fn write_job(wj: string, outdir: string, dir: string, mode: string, timeout: int, slot: string, n: int) -> string {
+    let base = log_base(outdir, dir, mode)
+    let flag = if mode == "interp" { "--interpret" } else { "" }
+    let wrap = if slot.len() > 0 && mode == "compiled" { slot + " " } else { "" }
+    let script = "set -m\n"
+        + "start=$(date +%s)\n"
+        + "rm -f " + sh_quote(base + ".timeout") + "\n"
+        + "( cd " + sh_quote(dir) + " && " + sh_quote(wj) + " test " + flag + " ) > " + sh_quote(base + ".log") + " 2>&1 &\n"
+        + "pid=$!\n"
+        // The watcher polls once a second and leaves as soon as the job is gone: it never outlives the job (dash does not signal
+        // a background subshell's group), it cannot mark a finished job as timed out, and it closes the build-slot lock fd (9)
+        // it inherits so a surviving sleep can never hold the shared lock.
+        + "( exec 9>&-; i=0; while [ $i -lt " + timeout.to_string() + " ]; do sleep 1; kill -0 $pid 2>/dev/null || exit 0; i=$((i + 1)); done; "
+        + "kill -0 $pid 2>/dev/null || exit 0; echo 1 > " + sh_quote(base + ".timeout") + "; kill -TERM -$pid 2>/dev/null; kill -TERM $pid 2>/dev/null; sleep 3; kill -KILL -$pid 2>/dev/null; kill -KILL $pid 2>/dev/null ) &\n"
+        + "watch=$!\n"
+        + "wait $pid\n"
+        + "rc=$?\n"
+        + "kill $watch 2>/dev/null\n"
+        + "end=$(date +%s)\n"
+        + "echo \"$rc $((end - start))\" > " + sh_quote(base + ".meta") + "\n"
+    let _ = fs.remove_file(base + ".meta")
+    let inner = outdir + "/jobs/" + mode + "-" + n.to_string() + ".inner.sh"
+    let _ = fs.write(inner, script)
+    // the timeout clock starts inside the slot, so time spent queued for a build slot never counts against a package
+    let path = outdir + "/jobs/" + mode + "-" + n.to_string() + ".sh"
+    let _ = fs.write(path, wrap + "sh " + sh_quote(inner) + "\n")
+    path
+}
+
+// `dir` joined with the relative `rel`, with `.` and `..` resolved and a trailing `build` component dropped (a path
+// dependency points at the generated crate of a package: `../../packages/wj-x/build` names the directory `packages/wj-x`).
+fn resolve_path(dir: string, rel: string) -> string {
+    let mut stack: Vec<string> = Vec::new()
+    for part in strings.split(dir + "/" + rel, "/") {
+        if part == "" || part == "." {
+            continue
+        }
+        if part == ".." {
+            if stack.len() > 0 {
+                stack.pop()
+            }
+        } else {
+            stack.push(part)
+        }
+    }
+    if stack.len() > 0 && stack[stack.len() - 1] == "build" {
+        stack.pop()
+    }
+    let joined = strings.join(stack, "/")
+    if strings.starts_with(dir, "/") { "/" + joined } else { joined }
+}
+
+// The directories in `all` that `dir` depends on by `path = "..."` in its wj.toml.
+fn path_deps(dir: string, all: Vec<string>) -> Vec<string> {
+    let mut out: Vec<string> = Vec::new()
+    let text = fs.read_to_string(dir + "/wj.toml").unwrap_or("")
+    for line in strings.split_lines(text) {
+        let parts = strings.split(line, "path = \"")
+        if parts.len() < 2 {
+            continue
+        }
+        let rel = strings.split(parts[1], "\"")[0]
+        let target = resolve_path(dir, rel)
+        if target != dir && all.contains(&target) && !out.contains(&target) {
+            out.push(target)
+        }
+    }
+    out
+}
+
+// Build waves: a directory runs only after every directory it depends on by path has finished, so an app is never built
+// before (or while) the package it points at is. A dependency cycle runs as one last wave rather than hanging.
+fn waves(dirs: Vec<string>) -> Vec<Vec<string>> {
+    let mut all: Vec<string> = Vec::new()
+    for d in dirs {
+        if fs.exists(d + "/wj.toml") {
+            all.push(d)
+        }
+    }
+    let mut remaining = all
+    let mut out: Vec<Vec<string>> = Vec::new()
+    while remaining.len() > 0 {
+        let mut ready: Vec<string> = Vec::new()
+        let mut later: Vec<string> = Vec::new()
+        for d in remaining {
+            if path_deps(d, remaining).len() > 0 { later.push(d) } else { ready.push(d) }
+        }
+        if ready.len() == 0 {
+            ready = later
+            later = Vec::new()
+        }
+        out.push(ready)
+        remaining = later
+    }
+    out
+}
+
+// The first dependency of `dir` (among `dirs`) whose row for `mode` is not a pass, or "".
+fn failed_dependency(rows: Vec<Row>, dir: string, dirs: Vec<string>, mode: string) -> string {
+    for dep in path_deps(dir, dirs) {
+        match find_row(rows, dep, mode) {
+            Some(r) => {
+                if r.status != "pass" {
+                    return dep
+                }
+            },
+            None => {},
+        }
+    }
+    ""
+}
+
+fn run_jobs(wj: string, outdir: string, dirs: Vec<string>, modes: Vec<string>, timeout: int, jobs: int, slot: string) -> Vec<Row> {
+    let _ = process.run("mkdir -p " + sh_quote(outdir + "/jobs"))
+    let _ = process.run("rm -f " + sh_quote(outdir) + "/jobs/*.sh")
+    let mut rows: Vec<Row> = Vec::new()
+    for mode in modes {
+        let mut n = 0
+        let mut wave_no = 0
+        for wave in waves(dirs) {
+            let mut paths: Vec<string> = Vec::new()
+            for d in wave {
+                // compiled builds need the dependency's crate: a dependent of a failed dependency is reported as blocked, once
+                let dep = if mode == "compiled" { failed_dependency(rows, d, dirs, mode) } else { "" }
+                if dep.len() > 0 {
+                    rows.push(Row { dir: d, mode: mode, status: "blocked", passed: 0, failed: 0, secs: 0, result: "dependency failed: " + dep })
+                } else {
+                    paths.push(write_job(wj, outdir, d, mode, timeout, slot, n))
+                    n = n + 1
+                }
+            }
+            if paths.len() > 0 {
+                let list = outdir + "/jobs/" + mode + "-wave" + wave_no.to_string() + ".list"
+                let _ = fs.write(list, strings.join(paths, "\n") + "\n")
+                let _ = process.run("xargs -n 1 -P " + jobs.to_string() + " sh < " + sh_quote(list))
+            }
+            for d in wave {
+                if find_row(rows, d, mode).is_none() {
+                    rows.push(read_row(outdir, d, mode))
+                }
+            }
+            wave_no = wave_no + 1
+        }
+        for d in dirs {
+            if !fs.exists(d + "/wj.toml") {
+                rows.push(read_row(outdir, d, mode))
+            }
+        }
+    }
+    rows
+}
+
+fn read_row(outdir: string, dir: string, mode: string) -> Row {
+    let base = log_base(outdir, dir, mode)
+    if !fs.exists(dir + "/wj.toml") {
+        return Row { dir: dir, mode: mode, status: "skip", passed: 0, failed: 0, secs: 0, result: "no wj.toml" }
+    }
+    let text = fs.read_to_string(base + ".log").unwrap_or("")
+    let meta = strings.split_whitespace(fs.read_to_string(base + ".meta").unwrap_or("1 0"))
+    let rc = meta[0].parse::<int>().unwrap_or(1)
+    let secs = if meta.len() > 1 { meta[1].parse::<int>().unwrap_or(0) } else { 0 }
+    let c = counts_of(text)
+    let status = if fs.exists(base + ".timeout") {
+        "timeout"
+    } else if rc == 0 && c[1] == 0 {
+        "pass"
+    } else {
+        "fail"
+    }
+    Row { dir: dir, mode: mode, status: status, passed: c[0], failed: c[1], secs: secs, result: result_line(text) }
+}
+
+fn env_int(key: string, default: int) -> int {
+    match env::get(key) {
+        Some(v) => v.parse::<int>().unwrap_or(default),
+        None => default,
+    }
+}
+
+fn discover() -> Vec<string> {
+    let mut out: Vec<string> = Vec::new()
+    match process.run("ls -d apps/*/wj.toml packages/*/wj.toml 2>/dev/null") {
+        Ok(text) => {
+            for line in strings.split_lines(text) {
+                let t = strings.trim(line)
+                if t.len() > 0 {
+                    out.push(strings.replace(t, "/wj.toml", ""))
+                }
+            }
+        },
+        Err(_) => {},
+    }
+    out
+}
+
+fn modes_for(mode: string) -> Vec<string> {
+    if mode == "both" {
+        ["interp", "compiled"]
+    } else {
+        [mode]
+    }
+}
+
+// ---------- self-test (mutation check) ----------
+
+fn row(dir: string, mode: string, status: string, passed: int, failed: int) -> Row {
+    Row { dir: dir, mode: mode, status: status, passed: passed, failed: failed, secs: 1, result: "synthetic" }
+}
+
+fn expect(label: string, ok: bool) -> int {
+    if ok {
+        println("  ok    " + label)
+        0
+    } else {
+        println("  FAIL  " + label)
+        1
+    }
+}
+
+fn write_planted(root: string, name: string, test_body: string) {
+    let d = root + "/" + name
+    let _ = process.run("mkdir -p " + sh_quote(d + "/tests"))
+    let _ = fs.write(d + "/wj.toml", "[package]\nname = \"" + name + "\"\nversion = \"0.1.0\"\nedition = \"2025\"\n\n[lib]\n\n[dependencies]\n\n[dev-dependencies]\n")
+    let _ = fs.write(d + "/tests/planted_test.wj", "@test\nfn test_planted() {\n" + test_body + "\n}\n")
+}
+
+fn status_of(rows: Vec<Row>, root: string, name: string) -> string {
+    match find_row(rows, root + "/" + name, "interp") {
+        Some(r) => r.status,
+        None => "missing",
+    }
+}
+
+fn self_test(wj: string, scratch: string) -> int {
+    let mut bad = 0
+    let none: Vec<Entry> = Vec::new()
+    let good = [row("p/a", "interp", "pass", 5, 0), row("p/a", "compiled", "pass", 5, 0)]
+    println("gate decisions (synthetic results)")
+    bad = bad + expect("clean results pass the gate", violations(good, none).len() == 0)
+
+    let failing = [row("p/a", "interp", "fail", 4, 1), row("p/a", "compiled", "fail", 4, 1)]
+    bad = bad + expect("a planted failing package fails the gate", violations(failing, none).len() > 0)
+    let led = parse_ledger("p/a | interp | planted | nobody\np/a | compiled | planted | nobody\n")
+    bad = bad + expect("a ledgered failure is tolerated", violations(failing, led).len() == 0)
+    bad = bad + expect("a fixed package still in the ledger fails the gate", violations(good, led).len() == 2)
+
+    let timed = [row("p/a", "interp", "timeout", 0, 0)]
+    bad = bad + expect("a timeout is a failure", violations(timed, none).len() == 1)
+
+    let drift_counts = [row("p/a", "interp", "pass", 5, 0), row("p/a", "compiled", "pass", 4, 0)]
+    bad = bad + expect("planted count drift fails the gate", violations(drift_counts, none).len() == 1)
+    let drift_status = [row("p/a", "interp", "pass", 5, 0), row("p/a", "compiled", "fail", 4, 1)]
+    let v = violations(drift_status, none)
+    bad = bad + expect("planted outcome drift fails the gate", v.len() >= 1)
+    let drift_led = parse_ledger("p/a | drift | planted | nobody\n")
+    bad = bad + expect("ledgered drift is tolerated", violations(drift_counts, drift_led).len() == 0)
+    bad = bad + expect("fixed drift still in the ledger fails the gate", violations(good, drift_led).len() == 1)
+    bad = bad + expect("malformed ledger line fails the gate", violations(good, parse_ledger("p/a only\n")).len() == 1)
+    bad = bad + expect("interp-only run does not invent drift", violations([row("p/a", "interp", "pass", 5, 0)], none).len() == 0)
+
+    println("dependency order (fixture: one package, one app that depends on it by path)")
+    let eco = scratch + "/eco"
+    let _ = process.run("rm -rf " + sh_quote(eco))
+    let _ = process.run("mkdir -p " + sh_quote(eco + "/packages/fixlib/src") + " " + sh_quote(eco + "/apps/fixapp/src"))
+    let _ = fs.write(eco + "/packages/fixlib/wj.toml", "[package]\nname = \"fixlib\"\nversion = \"0.1.0\"\nedition = \"2025\"\n\n[lib]\n\n[dependencies]\n")
+    let _ = fs.write(eco + "/apps/fixapp/wj.toml", "[package]\nname = \"fixapp\"\nversion = \"0.1.0\"\nedition = \"2025\"\n\n[dependencies]\nfixlib = { path = \"../../packages/fixlib/build\" }\n")
+    let lib_dir = eco + "/packages/fixlib"
+    let app_dir = eco + "/apps/fixapp"
+    bad = bad + expect("a path dependency resolves to its package directory", path_deps(app_dir, [app_dir, lib_dir]) == [lib_dir])
+    for order in [[app_dir, lib_dir], [lib_dir, app_dir]] {
+        let w = waves(order)
+        bad = bad + expect("the package is built in an earlier wave than the app, whatever the listing order", w.len() == 2 && w[0] == [lib_dir] && w[1] == [app_dir])
+    }
+    let broken = [row(lib_dir, "compiled", "fail", 0, 0)]
+    bad = bad + expect("an app whose package failed is reported blocked on it", failed_dependency(broken, app_dir, [app_dir, lib_dir], "compiled") == lib_dir)
+    bad = bad + expect("an app whose package passed is not blocked", failed_dependency([row(lib_dir, "compiled", "pass", 1, 0)], app_dir, [app_dir, lib_dir], "compiled") == "")
+    let blocked = [row(lib_dir, "interp", "pass", 1, 0), row(lib_dir, "compiled", "fail", 0, 0), row(app_dir, "interp", "pass", 1, 0), Row { dir: app_dir, mode: "compiled", status: "blocked", passed: 0, failed: 0, secs: 0, result: "dependency failed" }]
+    let mut mentions_app = 0
+    for v in violations(blocked, none) {
+        if strings.contains(v, app_dir) {
+            mentions_app = mentions_app + 1
+        }
+    }
+    bad = bad + expect("a blocked dependent is never reported as a failure or as drift of its own", mentions_app == 0)
+    bad = bad + expect("the failed package is still reported", violations(blocked, none).len() >= 1)
+    let _ = process.run("rm -rf " + sh_quote(eco))
+
+    println("end-to-end (real wj runs on planted packages, interpreted)")
+    let root = scratch + "/planted"
+    let _ = process.run("rm -rf " + sh_quote(root))
+    write_planted(root, "plant-pass", "    assert(1 + 1 == 2)")
+    write_planted(root, "plant-fail", "    assert(1 + 1 == 3)")
+    write_planted(root, "plant-hang", "    let mut i = 0\n    while true {\n        i = i + 1\n    }")
+    let dirs = [root + "/plant-pass", root + "/plant-fail", root + "/plant-hang"]
+    let rows = run_jobs(wj, scratch + "/e2e", dirs, ["interp"], 20, 2, env::get("SLOT_CMD").unwrap_or(""))
+    bad = bad + expect("planted passing package passes", status_of(rows, root, "plant-pass") == "pass")
+    bad = bad + expect("planted failing package fails", status_of(rows, root, "plant-fail") == "fail")
+    bad = bad + expect("planted hanging package times out", status_of(rows, root, "plant-hang") == "timeout")
+    bad = bad + expect("the gate rejects the planted run", violations(rows, none).len() == 2)
+    let _ = process.run("rm -rf " + sh_quote(root))
+    bad
+}
+
+fn main() {
+    let args = env::args()
+    if args.len() >= 4 && args[1] == "--self-test" {
+        let bad = self_test(args[2], args[3])
+        if bad > 0 {
+            println("health_gate self-test: " + bad.to_string() + " check(s) FAILED")
+            process.exit(1)
+        }
+        println("health_gate self-test: all checks passed")
+        return
+    }
+    if args.len() < 4 {
+        println("usage: health_gate.wj <wj-binary> <outdir> <interp|compiled|both> [dir...]")
+        process.exit(2)
+    }
+    let wj = args[1]
+    let outdir = args[2]
+    let mode = args[3]
+    let mut dirs: Vec<string> = Vec::new()
+    let mut i = 4
+    while i < args.len() {
+        dirs.push(args[i])
+        i = i + 1
+    }
+    let full = dirs.len() == 0
+    if full {
+        dirs = discover()
+    }
+    let timeout = env_int("HEALTH_TIMEOUT", 600)
+    let jobs = env_int("HEALTH_JOBS", 2)
+    let slot = env::get("SLOT_CMD").unwrap_or("")
+    let ledger_path = env::get("HEALTH_LEDGER").unwrap_or("scripts/health-known-failures.txt")
+    let ledger = parse_ledger(fs.read_to_string(ledger_path).unwrap_or(""))
+
+    let rows = run_jobs(wj, outdir, dirs, modes_for(mode), timeout, jobs, slot)
+    // a partial sweep only judges the ledger entries for the directories it ran
+    let mut relevant: Vec<Entry> = Vec::new()
+    for e in ledger {
+        if full || dirs.contains(&e.dir) || e.mode == "malformed" {
+            relevant.push(e)
+        }
+    }
+    let viol = violations(rows, relevant)
+    let _ = fs.write(outdir + "/results.json", results_json(rows, ledger, viol, timeout))
+
+    let mut line_i = 0
+    for r in rows {
+        if r.status != "pass" {
+            println(r.dir + "\t" + r.mode + "\t" + r.status + "\t" + r.result)
+        }
+        line_i = line_i + 1
+    }
+    println("swept " + dirs.len().to_string() + " directories, " + rows.len().to_string() + " runs; results in " + outdir + "/results.json")
+    for x in viol {
+        println(x)
+    }
+    if viol.len() > 0 {
+        println("health gate: FAIL (" + viol.len().to_string() + " violation(s))")
+        process.exit(1)
+    }
+    println("health gate: PASS")
+}

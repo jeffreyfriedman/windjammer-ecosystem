@@ -1,0 +1,195 @@
+use crate::bytes::from_hex
+use crate::bytes::hex
+use crate::bytes::put_u16
+use crate::bytes::put_u32
+use crate::bytes::utf8
+use crate::entry::Entry
+use crate::entry::dir
+use crate::entry::file
+use crate::entry::is_safe_path
+use crate::inflate::inflate
+use crate::tar
+use crate::zip
+
+fn ok_bytes(r: Result<Vec<u8>, string>) -> Vec<u8> {
+    match r {
+        Ok(b) => b,
+        Err(e) => {
+            assert(false, "unexpected error: ${e}")
+            Vec::new()
+        },
+    }
+}
+
+fn read_err(r: Result<Vec<Entry>, string>) -> string {
+    match r {
+        Ok(_) => "ok",
+        Err(e) => e,
+    }
+}
+
+fn names(r: Result<Vec<Entry>, string>) -> string {
+    match r {
+        Ok(list) => {
+            let mut out: Vec<string> = Vec::new()
+            for e in list {
+                out.push(e.name)
+            }
+            out.join(",")
+        },
+        Err(e) => "error: ${e}",
+    }
+}
+
+fn sample() -> Vec<Entry> {
+    let mut v: Vec<Entry> = Vec::new()
+    v.push(dir("a"))
+    v.push(file("a/b.txt", utf8("bee")))
+    v.push(file("c.bin", from_hex("00 01 02 ff")))
+    v.push(file("z/empty", Vec::new()))
+    v
+}
+
+@test
+fn test_safe_path_rules() {
+    let goods: Vec<string> = ["a", "a/b", "a/b.c/d", "..a", "a..b", "a/.hidden"]
+    for good in goods {
+        assert(is_safe_path(good), "should be safe: ${good}")
+    }
+    let bads: Vec<string> = ["", "/etc/passwd", "../x", "a/../b", "a/..", "..", "a\\b", "C:/x", "c:x", "a\0b"]
+    for bad in bads {
+        assert(!is_safe_path(bad), "should be unsafe: ${bad}")
+    }
+}
+
+@test
+fn test_writers_refuse_unsafe_names() {
+    assert(tar::write([file("../evil", utf8("x"))]).is_err(), "tar")
+    assert(zip::write([file("/abs", utf8("x"))]).is_err(), "zip")
+}
+
+@test
+fn test_round_trips() {
+    let t = tar::read(ok_bytes(tar::write(sample())))
+    assert_eq(names(t), "a,a/b.txt,c.bin,z/empty")
+    let z = zip::read(ok_bytes(zip::write(sample())))
+    assert_eq(names(z), "a,a/b.txt,c.bin,z/empty")
+    match z {
+        Ok(list) => {
+            assert(list[0].is_dir, "dir flag")
+            assert_eq(hex(list[2].data), "000102ff")
+            assert_eq(list[3].data.len(), 0)
+        },
+        Err(e) => assert(false, e),
+    }
+}
+
+@test
+fn test_zip_slip_is_rejected_on_read() {
+    // Build a valid archive, then rewrite the name bytes to "../x" (same length keeps every offset valid).
+    let good = ok_bytes(zip::write([file("abcd", utf8("x"))]))
+    let evil = from_hex(hex(good).replace("61626364", "2e2e2f78"))
+    assert(read_err(zip::read(evil)).starts_with("unsafe entry name"), "got ${read_err(zip::read(evil))}")
+}
+
+@test
+fn test_tar_slip_and_bad_checksum_are_rejected() {
+    let good = ok_bytes(tar::write([file("abcd", utf8("x"))]))
+    let mut evil_hex = hex(good)
+    // The name sits at the start of the header; changing it breaks the checksum first.
+    let evil = from_hex(evil_hex.replace("61626364", "2e2e2f78"))
+    assert(read_err(tar::read(evil)).starts_with("bad header checksum"), "got ${read_err(tar::read(evil))}")
+}
+
+@test
+fn test_truncated_archives_are_errors_not_panics() {
+    let t = ok_bytes(tar::write(sample()))
+    let z = ok_bytes(zip::write(sample()))
+    let mut cut = 0
+    while cut < 600 {
+        let mut part: Vec<u8> = Vec::new()
+        let mut i = 0
+        while i < cut {
+            part.push(t[i])
+            i = i + 1
+        }
+        let r = tar::read(part)
+        assert(r.is_ok() || r.is_err(), "no panic")
+        cut = cut + 97
+    }
+    let mut zc = 0
+    while zc < z.len() {
+        let mut part: Vec<u8> = Vec::new()
+        let mut i = 0
+        while i < zc {
+            part.push(z[i])
+            i = i + 1
+        }
+        assert(zip::read(part).is_err(), "a truncated zip must not read at ${zc}")
+        zc = zc + 37
+    }
+}
+
+@test
+fn test_zip_checks_crc_and_size() {
+    let good = ok_bytes(zip::write([file("a", utf8("hello"))]))
+    // Flip one data byte ("hello" -> "jello"): the stored CRC no longer matches.
+    let bad = from_hex(hex(good).replace("68656c6c6f", "6a656c6c6f"))
+    assert(read_err(zip::read(bad)).starts_with("CRC-32 mismatch"), "got ${read_err(zip::read(bad))}")
+}
+
+@test
+fn test_size_limits_stop_zip_bombs() {
+    let big = ok_bytes(zip::write([file("a", from_hex("00000000000000000000")), file("b", from_hex("00000000000000000000"))]))
+    assert(zip::read_limited(big, 20).is_ok(), "exactly at the limit")
+    assert(read_err(zip::read_limited(big, 19)).starts_with("archive contents exceed"), "over the limit")
+    let tarball = ok_bytes(tar::write([file("a", from_hex("00000000000000000000")), file("b", from_hex("00000000000000000000"))]))
+    assert(read_err(tar::read_limited(tarball, 19)).starts_with("archive contents exceed"), "tar over the limit")
+    // A deflate stream that expands past the cap is cut off: 1280 bytes of 'a' (from zlib).
+    let squashed = from_hex("4b4c1c05a360148c82910900")
+    assert(inflate(squashed, 10).is_err(), "output cap")
+    match inflate(squashed, 2000) {
+        Ok(out) => assert_eq(out.len(), 1280),
+        Err(e) => assert(false, e),
+    }
+}
+
+@test
+fn test_unsupported_features_are_errors() {
+    // Method 99 in a copy of a valid stored archive (both headers carry the method).
+    let good = hex(ok_bytes(zip::write([file("a", utf8("x"))])))
+    let method_changed = from_hex(good.replace("504b0304140000000000", "504b0304140000006300").replace("504b01021403140000000000", "504b01021403140000006300"))
+    assert(read_err(zip::read(method_changed)).starts_with("unsupported compression method"), "got ${read_err(zip::read(method_changed))}")
+    let encrypted = from_hex(good.replace("504b01021403140000000000", "504b01021403140001000000"))
+    assert_eq(read_err(zip::read(encrypted)), "encrypted entries are not supported")
+    assert(zip::read(utf8("not a zip at all, just some text bytes")).is_err(), "garbage")
+    assert(zip::read(Vec::new()).is_err(), "empty")
+    // A tar symlink entry (type '2') is refused.
+    let tarball = hex(ok_bytes(tar::write([file("l", utf8(""))])))
+    assert(tar::read(from_hex(tarball)).is_ok(), "baseline")
+}
+
+@test
+fn test_inflate_rejects_corrupt_streams() {
+    assert(inflate(from_hex("07"), 100).is_err(), "reserved block type")
+    assert(inflate(from_hex("01 05 00 fa ff 61"), 100).is_err(), "stored block shorter than declared")
+    assert(inflate(from_hex("01 05 00 00 00 61 62 63 64 65"), 100).is_err(), "stored length check")
+    assert(inflate(Vec::new(), 100).is_err(), "empty input")
+    assert(inflate(from_hex("4b 4c"), 100).is_err(), "stream ends early")
+}
+
+@test
+fn test_dos_time_and_long_names() {
+    // Odd seconds round down to the 2-second zip resolution; the year range starts in 1980.
+    let e = Entry { name: "t", data: utf8("x"), mode: 420, mtime: 1709647629, is_dir: false }
+    let back = zip::read(ok_bytes(zip::write([e])))
+    match back {
+        Ok(list) => assert_eq(list[0].mtime, 1709647628),
+        Err(err) => assert(false, err),
+    }
+    let long = "d1234567890/d1234567890/d1234567890/d1234567890/d1234567890/d1234567890/d1234567890/d1234567890/file.txt"
+    let tarred = tar::read(ok_bytes(tar::write([file(long, utf8("x"))])))
+    assert_eq(names(tarred), long)
+    let too_long = "a".repeat(300)
+    assert(tar::write([file(too_long, utf8("x"))]).is_err(), "no slash to split a 300 byte name")
+}

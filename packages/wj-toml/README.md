@@ -1,8 +1,8 @@
 # wj-toml
 
-Pure Windjammer TOML config subset → flat `HashMap<string, string>`.
+Pure Windjammer TOML config subset → flat `HashMap<string, string>` (useful for tip dogfooding / subset scanners).
 
-Compose with [`wj-config`](../wj-config): parse a `.toml` file layer, then `resolve(defaults, file, env_map)`.
+**Prefer [`wj-config`](../wj-config)** for app config: `from_toml` / `resolve_toml` go through `std::config.parse_flat` (full TOML via runtime). This package remains for the intentional subset and compiler repros.
 
 ## Supported
 

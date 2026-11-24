@@ -1,0 +1,7 @@
+use crate::Token
+use crate::describe
+
+fn test_describe() {
+    let t = Token { access: "a", refresh: Some("r"), lifetime: 5 }
+    assert_eq(describe(t), "r:105")
+}

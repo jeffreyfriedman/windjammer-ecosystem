@@ -1,0 +1,43 @@
+// golden: line and word statistics for a file
+// idiom: read the file once, derive lines and words from the text; return a struct of results
+use std::fs
+use std::env
+use std::strings
+
+struct Stats {
+    lines: int,
+    words: int,
+    chars: int,
+    longest: string,
+}
+
+fn analyze(text: string) -> Stats {
+    let mut words = 0
+    let mut longest = ""
+    for line in text.lines() {
+        for word in strings.split_whitespace(line) {
+            words += 1
+            if word.len() > longest.len() {
+                longest = word
+            }
+        }
+    }
+    Stats { lines: text.lines().count() as int, words: words, chars: text.len() as int, longest: longest }
+}
+
+fn main() {
+    let path = "${env::temp_dir()}/wj-golden-stats.txt"
+    let body = "Windjammer keeps ownership out of sight.\nThe compiler decides borrows.\n\nShort lines read well."
+    let _ = fs.write(path, body)
+    match fs.read_to_string(path) {
+        Ok(text) => {
+            let s = analyze(text)
+            println("lines: ${s.lines}")
+            println("words: ${s.words}")
+            println("chars: ${s.chars}")
+            println("longest word: ${s.longest}")
+        },
+        Err(e) => println("cannot read: ${e}"),
+    }
+    let _ = fs.remove_file(path)
+}

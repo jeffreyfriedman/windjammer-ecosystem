@@ -1,0 +1,6 @@
+sum = 6
+product = 20
+negated = [-1, 2]
+error: not a number: x
+unknown command 'frobnicate'; usage: tool <add|mul|neg|help> [numbers...]
+usage: tool <add|mul|neg|help> [numbers...]

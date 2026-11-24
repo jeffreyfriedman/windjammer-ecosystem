@@ -103,7 +103,7 @@ pub fn todos_from_json(text: string) -> Result<Vec<Todo>, string> {
             let mut todos = Vec::new()
             let mut i = 0
             loop {
-                let idx: usize = i as usize
+                let idx: usize = i as usize // wj-gap: int-index-cast
                 match json.get_index(root, idx) {
                     Some(item) => {
                         match parse_todo_value(item) {

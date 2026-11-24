@@ -1,0 +1,17 @@
+[package]
+name = "wj-smtp"
+version = "0.1.0"
+edition = "2025"
+
+[lib]
+
+[dependencies]
+
+[dev-dependencies]
+
+[profile.release]
+opt-level = 3
+lto = true
+
+# Pure computation: messages are built as text and SMTP exchanges are planned; the caller owns the socket.
+[capabilities]

@@ -1,0 +1,159 @@
+use crate::delete_from
+use crate::insert_into
+use crate::is_valid_name
+use crate::quote_name
+use crate::select_from
+use crate::update_table
+use crate::Dialect
+use crate::Query
+
+fn sql_of(r: Result<Query, string>) -> string {
+    match r {
+        Ok(q) => q.sql,
+        Err(e) => "ERR ${e}",
+    }
+}
+
+fn params_of(r: Result<Query, string>) -> string {
+    match r {
+        Ok(q) => q.params.join("|"),
+        Err(e) => "ERR ${e}",
+    }
+}
+
+@test
+fn test_names_are_quoted() {
+    assert_eq(quote_name("users") ?? "ERR", "\"users\"")
+    assert_eq(quote_name("users.id") ?? "ERR", "\"users\".\"id\"")
+    assert_eq(quote_name("*") ?? "ERR", "*")
+}
+
+@test
+fn test_injection_shaped_names_are_rejected() {
+    assert(!is_valid_name("id; DROP TABLE users"), "semicolon")
+    assert(!is_valid_name("id\" OR \"1\"=\"1"), "quote")
+    assert(!is_valid_name("a.b.c"), "three parts")
+    assert(!is_valid_name(".id"), "leading dot")
+    assert(!is_valid_name("id."), "trailing dot")
+    assert(!is_valid_name(""), "empty")
+    assert(quote_name("name--x").is_err(), "comment marker")
+}
+
+@test
+fn test_select_star() {
+    assert_eq(sql_of(select_from("users").build(Dialect::Question)), "SELECT * FROM \"users\"")
+}
+
+@test
+fn test_select_with_everything() {
+    let q = select_from("users")
+        .columns(["id", "name"])
+        .where_eq("active", "1")
+        .where_op("age", ">=", "18")
+        .order_by("name", false)
+        .limit(10)
+        .offset(20)
+        .build(Dialect::Question)
+    assert_eq(sql_of(q), "SELECT \"id\", \"name\" FROM \"users\" WHERE \"active\" = ? AND \"age\" >= ? ORDER BY \"name\" ASC LIMIT 10 OFFSET 20")
+    let q2 = select_from("users").where_eq("active", "1").where_op("age", ">=", "18").build(Dialect::Question)
+    assert_eq(params_of(q2), "1|18")
+}
+
+@test
+fn test_postgres_placeholders_are_numbered() {
+    let q = select_from("t").where_eq("a", "x").where_in("b", ["1", "2"]).build(Dialect::Dollar)
+    assert_eq(sql_of(q), "SELECT * FROM \"t\" WHERE \"a\" = $1 AND \"b\" IN ($2, $3)")
+}
+
+@test
+fn test_values_never_enter_the_sql() {
+    let evil = "x' OR '1'='1"
+    let q = select_from("users").where_eq("name", evil).build(Dialect::Question)
+    assert_eq(sql_of(q), "SELECT * FROM \"users\" WHERE \"name\" = ?")
+    let q2 = select_from("users").where_eq("name", evil).build(Dialect::Question)
+    assert_eq(params_of(q2), evil)
+}
+
+@test
+fn test_question_mark_in_a_value_is_not_a_placeholder() {
+    let q = select_from("t").where_eq("a", "what?").where_eq("b", "y").build(Dialect::Dollar)
+    assert_eq(sql_of(q), "SELECT * FROM \"t\" WHERE \"a\" = $1 AND \"b\" = $2")
+    let q2 = select_from("t").where_eq("a", "what?").where_eq("b", "y").build(Dialect::Dollar)
+    assert_eq(params_of(q2), "what?|y")
+}
+
+@test
+fn test_bad_column_fails_the_build() {
+    let q = select_from("users").where_eq("id; DROP TABLE users", "1").build(Dialect::Question)
+    assert_eq(sql_of(q), "ERR invalid SQL name: id; DROP TABLE users")
+    let q2 = select_from("users").where_op("age", "; --", "1").build(Dialect::Question)
+    assert_eq(sql_of(q2), "ERR invalid SQL operator: ; --")
+    let q3 = select_from("bad name").build(Dialect::Question)
+    assert(q3.is_err(), "table name is checked")
+}
+
+@test
+fn test_null_checks_and_empty_in() {
+    let q = select_from("t").where_null("deleted_at").where_not_null("email").build(Dialect::Question)
+    assert_eq(sql_of(q), "SELECT * FROM \"t\" WHERE \"deleted_at\" IS NULL AND \"email\" IS NOT NULL")
+    let q2 = select_from("t").where_in("id", Vec::new()).build(Dialect::Question)
+    assert_eq(sql_of(q2), "SELECT * FROM \"t\" WHERE 1 = 0")
+}
+
+@test
+fn test_join_and_paging() {
+    let q = select_from("orders")
+        .columns(["orders.id", "users.name"])
+        .join("users", "users.id", "orders.user_id")
+        .page(3, 25)
+        .build(Dialect::Question)
+    assert_eq(sql_of(q), "SELECT \"orders\".\"id\", \"users\".\"name\" FROM \"orders\" JOIN \"users\" ON \"users\".\"id\" = \"orders\".\"user_id\" LIMIT 25 OFFSET 50")
+}
+
+@test
+fn test_insert() {
+    let q = insert_into("users").value("name", "Ada").value("age", "36").build(Dialect::Dollar)
+    assert_eq(sql_of(q), "INSERT INTO \"users\" (\"name\", \"age\") VALUES ($1, $2)")
+    let q2 = insert_into("users").value("name", "Ada").value("age", "36").build(Dialect::Dollar)
+    assert_eq(params_of(q2), "Ada|36")
+    assert(insert_into("users").build(Dialect::Question).is_err(), "no values")
+}
+
+@test
+fn test_update_orders_set_params_before_where_params() {
+    let q = update_table("users").set("name", "Grace").set("age", "40").where_eq("id", "7").build(Dialect::Dollar)
+    assert_eq(sql_of(q), "UPDATE \"users\" SET \"name\" = $1, \"age\" = $2 WHERE \"id\" = $3")
+    let q2 = update_table("users").set("name", "Grace").set("age", "40").where_eq("id", "7").build(Dialect::Dollar)
+    assert_eq(params_of(q2), "Grace|40|7")
+}
+
+@test
+fn test_update_and_delete_refuse_to_touch_every_row_by_accident() {
+    let u = update_table("users").set("name", "x").build(Dialect::Question)
+    assert_eq(sql_of(u), "ERR UPDATE without WHERE; use build_all_rows to change every row")
+    let d = delete_from("users").build(Dialect::Question)
+    assert_eq(sql_of(d), "ERR DELETE without WHERE; use build_all_rows to delete every row")
+    let all = delete_from("sessions").build_all_rows(Dialect::Question)
+    assert_eq(sql_of(all), "DELETE FROM \"sessions\"")
+}
+
+@test
+fn test_delete_with_where_in() {
+    let q = delete_from("users").where_in("id", ["1", "2", "3"]).build(Dialect::Question)
+    assert_eq(sql_of(q), "DELETE FROM \"users\" WHERE \"id\" IN (?, ?, ?)")
+    let q2 = delete_from("users").where_in("id", ["1", "2", "3"]).build(Dialect::Question)
+    assert_eq(params_of(q2), "1|2|3")
+}
+
+// The README walkthrough: a paged, filtered select for PostgreSQL.
+@test
+fn test_readme_paged_select() {
+    let q = select_from("users")
+        .columns(["id", "name"])
+        .where_eq("active", "1")
+        .where_op("age", ">=", "18")
+        .order_by("name", false)
+        .page(2, 25)
+        .build(Dialect::Dollar)
+    assert_eq(sql_of(q), "SELECT \"id\", \"name\" FROM \"users\" WHERE \"active\" = $1 AND \"age\" >= $2 ORDER BY \"name\" ASC LIMIT 25 OFFSET 25")
+}

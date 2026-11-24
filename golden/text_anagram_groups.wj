@@ -1,0 +1,38 @@
+// golden: group anagrams
+// idiom: HashMap<string, Vec<string>> with entry().or_insert([]), sorted keys for stable output
+use std::collections::HashMap
+
+fn signature(word: string) -> string {
+    let mut cs: Vec<char> = word.chars().collect()
+    cs.sort()
+    let mut out = ""
+    for c in cs {
+        out += "${c}"
+    }
+    out
+}
+
+fn group(words: Vec<string>) -> HashMap<string, Vec<string>> {
+    let mut groups: HashMap<string, Vec<string>> = HashMap::new()
+    for word in words {
+        groups.entry(signature(word)).or_insert([]).push(word)
+    }
+    groups
+}
+
+fn main() {
+    let words = ["listen", "silent", "enlist", "google", "gogole", "cat", "act", "dog"]
+    let groups = group(words)
+    let mut keys: Vec<string> = groups.keys().collect()
+    keys.sort()
+    for key in keys {
+        println("${key}: ${groups[key].join(", ")}")
+    }
+    let mut multi = 0
+    for key in keys {
+        if groups[key].len() > 1 {
+            multi += 1
+        }
+    }
+    println("${multi} groups with more than one word")
+}

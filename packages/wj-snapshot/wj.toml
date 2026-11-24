@@ -1,0 +1,21 @@
+[package]
+name = "wj-snapshot"
+version = "0.1.0"
+edition = "2025"
+
+[lib]
+
+[dependencies]
+
+[dev-dependencies]
+
+[profile.release]
+opt-level = 3
+lto = true
+
+# Snapshots live under the project's tests/snapshots directory; WJ_UPDATE_SNAPSHOTS=1 rewrites them.
+# The package's own tests use a scratch directory under /tmp.
+[capabilities]
+env.read = ["WJ_UPDATE_SNAPSHOTS"]
+fs.read = ["./tests/snapshots/**", "/tmp/**"]
+fs.write = ["./tests/snapshots/**", "/tmp/**"]

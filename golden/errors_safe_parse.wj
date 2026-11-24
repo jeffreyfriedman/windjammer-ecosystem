@@ -1,0 +1,37 @@
+// golden: parse input without panicking
+// idiom: parse::<T>() returns a Result; match it, or use unwrap_or / unwrap_or_default for a fallback
+fn describe(text: string) -> string {
+    match text.parse::<int>() {
+        Ok(n) => "int ${n}",
+        Err(_) => match text.parse::<float>() {
+            Ok(f) => "float ${f:.2}",
+            Err(_) => "text '${text}'",
+        },
+    }
+}
+
+fn sum_or_skip(items: Vec<string>) -> int {
+    let mut total = 0
+    for item in items {
+        total += item.parse::<int>().unwrap_or(0)
+    }
+    total
+}
+
+fn parse_bool(text: string) -> Option<bool> {
+    match text {
+        "yes" | "true" | "1" => Some(true),
+        "no" | "false" | "0" => Some(false),
+        _ => None,
+    }
+}
+
+fn main() {
+    for text in ["42", "-7", "3.14159", "abc", "", "12abc"] {
+        println("\"${text}\" -> ${describe(text)}")
+    }
+    println("sum ${sum_or_skip(["1", "2", "three", "4"])}")
+    for text in ["yes", "0", "maybe"] {
+        println("${text} -> ${parse_bool(text) ?? false}")
+    }
+}

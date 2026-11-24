@@ -79,6 +79,11 @@ pub fn render_strict(template: string, vars: HashMap<string, string>) -> Result<
     Ok(render(template, vars))
 }
 
+/// True when `template` contains at least one well-formed `{{key}}` placeholder.
+pub fn has_placeholders(template: string) -> bool {
+    placeholder_names(template).len() > 0
+}
+
 /// Keys referenced as `{{key}}` in `template` that are absent from `vars`.
 pub fn missing_keys(template: string, vars: HashMap<string, string>) -> Vec<string> {
     let required = placeholder_names(template)
@@ -116,6 +121,86 @@ pub fn placeholder_names(template: string) -> Vec<string> {
         }
     }
     names
+}
+
+/// Number of `{{key}}` placeholders in `template`.
+pub fn placeholder_count(template: string) -> int {
+    placeholder_names(template).len()
+}
+
+/// Number of distinct `{{key}}` names in `template`.
+pub fn unique_placeholder_count(template: string) -> int {
+    let names = placeholder_names(template)
+    let mut seen = Vec::new()
+    let mut i = 0
+    while i < names.len() {
+        if !list_contains(seen, names[i]) {
+            seen.push(names[i])
+        }
+        i = i + 1
+    }
+    seen.len()
+}
+
+/// Number of unbound placeholder names in `template`.
+pub fn missing_count(template: string, vars: HashMap<string, string>) -> int {
+    missing_keys(template, vars).len()
+}
+
+/// Return `template` when fully bound, or `Err` listing unbound placeholders.
+pub fn require_fully_bound(template: string, vars: HashMap<string, string>) -> Result<string, string> {
+    let missing = missing_keys(template, vars)
+    if missing.len() == 0 {
+        return Ok(template)
+    }
+    Err("unbound placeholders")
+}
+
+/// True when `template` has no well-formed placeholders.
+pub fn is_plain(template: string) -> bool {
+    !has_placeholders(template)
+}
+
+/// Last `{{key}}` name in `template`, or `None` when plain.
+pub fn last_placeholder(template: string) -> Option<string> {
+    let names = placeholder_names(template)
+    if names.len() == 0 {
+        return None
+    }
+    Some(names[names.len() - 1])
+}
+
+/// `Ok(template)` when it has no placeholders, otherwise `Err`.
+pub fn require_plain(template: string) -> Result<string, string> {
+    if is_plain(template) {
+        return Ok(template)
+    }
+    Err("expected plain")
+}
+
+/// First `{{key}}` name in `template`, or `None` when plain.
+pub fn first_placeholder(template: string) -> Option<string> {
+    let names = placeholder_names(template)
+    if names.len() == 0 {
+        return None
+    }
+    Some(names[0])
+}
+
+/// First placeholder name when one exists, otherwise `Err`.
+pub fn require_placeholder(template: string) -> Result<string, string> {
+    match first_placeholder(template) {
+        Some(name) => Ok(name),
+        None => Err("expected placeholder"),
+    }
+}
+
+/// Last placeholder name when one exists, otherwise `Err`.
+pub fn require_last(template: string) -> Result<string, string> {
+    match last_placeholder(template) {
+        Some(name) => Ok(name),
+        None => Err("expected last"),
+    }
 }
 
 fn list_contains(items: Vec<string>, needle: string) -> bool {

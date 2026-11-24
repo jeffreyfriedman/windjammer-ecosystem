@@ -1,0 +1,35 @@
+// golden: template substitution
+// idiom: a Vec of (key, value) tuples destructures in the for loop; strings.replace builds the result
+use std::strings
+
+fn render(template: string, values: Vec<(string, string)>) -> string {
+    let mut out = template
+    for (key, value) in values {
+        out = strings.replace(out, "{{${key}}}", value)
+    }
+    out
+}
+
+fn placeholders(template: string) -> Vec<string> {
+    let mut found: Vec<string> = []
+    for part in template.split("{{") {
+        if part.contains("}}") {
+            let pieces: Vec<string> = part.split("}}").collect()
+            found.push(pieces[0])
+        }
+    }
+    found
+}
+
+fn main() {
+    let template = "Dear {{name}}, your order {{order}} ships on {{day}}."
+    let values = [("name", "Ada"), ("order", "#1042"), ("day", "Friday")]
+    println("rendering ${values.len()} values")
+    println(render(template, values))
+    println("placeholders: ${placeholders(template).join(", ")}")
+    let partial = render(template, [("name", "Grace")])
+    println(partial)
+    println("unfilled: ${placeholders(partial).len()}")
+    let banner = render("{{a}}{{b}}{{a}}", [("a", "-"), ("b", "=")])
+    println(banner)
+}

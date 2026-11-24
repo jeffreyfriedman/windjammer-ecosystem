@@ -1,0 +1,44 @@
+// golden: invoice totals in integer cents
+// idiom: money as integer cents avoids float drift; a line struct; one helper formats cents as dollars
+struct Line {
+    description: string,
+    qty: int,
+    unit_cents: int,
+}
+
+fn dollars(cents: int) -> string {
+    let sign = if cents < 0 { "-" } else { "" }
+    let abs = if cents < 0 { 0 - cents } else { cents }
+    let rem = abs % 100
+    let pad = if rem < 10 { "0" } else { "" }
+    "${sign}\$${abs / 100}.${pad}${rem}"
+}
+
+fn subtotal(lines: Vec<Line>) -> int {
+    let mut sum = 0
+    for l in lines {
+        sum += l.qty * l.unit_cents
+    }
+    sum
+}
+
+fn tax(amount: int, basis_points: int) -> int {
+    (amount * basis_points + 5000) / 10000
+}
+
+fn main() {
+    let lines = [
+        Line { description: "Widget", qty: 3, unit_cents: 1999 },
+        Line { description: "Gadget", qty: 1, unit_cents: 4950 },
+        Line { description: "Cable", qty: 12, unit_cents: 325 },
+    ]
+    for l in lines {
+        println("${l.description:<8} ${l.qty:>3} x ${dollars(l.unit_cents):>8} = ${dollars(l.qty * l.unit_cents):>9}")
+    }
+    let sub = subtotal(lines)
+    let vat = tax(sub, 825)
+    println("subtotal ${dollars(sub)}")
+    println("tax 8.25% ${dollars(vat)}")
+    println("total ${dollars(sub + vat)}")
+    println("refund ${dollars(0 - 1250)}")
+}

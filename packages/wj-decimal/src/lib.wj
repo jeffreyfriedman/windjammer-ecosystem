@@ -1,0 +1,360 @@
+use std::strings
+
+const MAX_UNITS: int = 9223372036854775807
+const MAX_SCALE: int = 18
+
+/// How a value is rounded when digits are dropped.
+pub enum Rounding {
+    /// Toward zero (truncate).
+    Down,
+    /// Away from zero.
+    Up,
+    /// Toward negative infinity.
+    Floor,
+    /// Toward positive infinity.
+    Ceiling,
+    /// To nearest; ties away from zero.
+    HalfUp,
+    /// To nearest; ties toward zero.
+    HalfDown,
+    /// To nearest; ties to the even neighbour (banker's rounding).
+    HalfEven,
+}
+
+/// Fixed-point number: `units / 10^scale`. `Decimal { units: 12345, scale: 2 }` is `123.45`.
+/// Arithmetic never uses floats and reports overflow as an `Err`.
+pub struct Decimal {
+    pub units: int,
+    pub scale: int,
+}
+
+pub fn new(units: int, scale: int) -> Decimal {
+    Decimal { units: units, scale: scale }
+}
+
+pub fn zero() -> Decimal {
+    Decimal { units: 0, scale: 0 }
+}
+
+pub fn from_int(n: int) -> Decimal {
+    Decimal { units: n, scale: 0 }
+}
+
+fn abs_int(n: int) -> int {
+    if n < 0 { 0 - n } else { n }
+}
+
+fn signum_int(n: int) -> int {
+    if n < 0 {
+        return -1
+    }
+    if n > 0 {
+        return 1
+    }
+    0
+}
+
+/// `10^n` for `0 <= n <= 18`.
+fn pow10(n: int) -> Result<int, string> {
+    if n < 0 || n > MAX_SCALE {
+        return Err("scale out of range (0..18)")
+    }
+    let mut out = 1
+    let mut i = 0
+    while i < n {
+        out = out * 10
+        i = i + 1
+    }
+    Ok(out)
+}
+
+fn mul_checked(a: int, b: int) -> Result<int, string> {
+    if a == 0 || b == 0 {
+        return Ok(0)
+    }
+    if abs_int(a) > MAX_UNITS / abs_int(b) {
+        return Err("decimal overflow")
+    }
+    Ok(a * b)
+}
+
+fn add_checked(a: int, b: int) -> Result<int, string> {
+    if b > 0 && a > MAX_UNITS - b {
+        return Err("decimal overflow")
+    }
+    if b < 0 && a < 0 - MAX_UNITS - b {
+        return Err("decimal overflow")
+    }
+    Ok(a + b)
+}
+
+/// Integer division of `num` by `den` rounded by `mode`.
+fn round_div(num: int, den: int, mode: Rounding) -> Result<int, string> {
+    if den == 0 {
+        return Err("division by zero")
+    }
+    let q = num / den
+    let r = num - q * den
+    if r == 0 {
+        return Ok(q)
+    }
+    let sign = if (num < 0) != (den < 0) { -1 } else { 1 }
+    let rem = abs_int(r)
+    let other = abs_int(den) - rem
+    let half = if rem < other { -1 } else if rem > other { 1 } else { 0 }
+    let away = q + sign
+    let out = match mode {
+        Rounding::Down => q,
+        Rounding::Up => away,
+        Rounding::Floor => if sign < 0 { away } else { q },
+        Rounding::Ceiling => if sign > 0 { away } else { q },
+        Rounding::HalfUp => if half >= 0 { away } else { q },
+        Rounding::HalfDown => if half > 0 { away } else { q },
+        Rounding::HalfEven => {
+            if half > 0 || (half == 0 && q % 2 != 0) { away } else { q }
+        },
+    }
+    Ok(out)
+}
+
+fn is_digit(ch: char) -> bool {
+    ch >= '0' && ch <= '9'
+}
+
+/// Parse `[+-]digits[.digits]`. At most 18 digits in all; the scale is the number of fraction digits.
+pub fn parse(text: string) -> Result<Decimal, string> {
+    let t = strings.trim(text)
+    if strings.len(t) == 0 {
+        return Err("empty decimal")
+    }
+    let mut negative = false
+    let mut units = 0
+    let mut scale = 0
+    let mut digits = 0
+    let mut seen_dot = false
+    let mut first = true
+    for ch in strings.chars(t) {
+        if first && (ch == '-' || ch == '+') {
+            negative = ch == '-'
+            first = false
+            continue
+        }
+        first = false
+        if ch == '.' {
+            if seen_dot {
+                return Err("two decimal points in '${t}'")
+            }
+            seen_dot = true
+            continue
+        }
+        if !is_digit(ch) {
+            return Err("invalid character '${ch}' in '${t}'")
+        }
+        digits = digits + 1
+        if digits > MAX_SCALE {
+            return Err("too many digits in '${t}' (max 18)")
+        }
+        units = units * 10 + (ch as int - '0' as int)
+        if seen_dot {
+            scale = scale + 1
+        }
+    }
+    if digits == 0 {
+        return Err("no digits in '${t}'")
+    }
+    Ok(Decimal { units: if negative { 0 - units } else { units }, scale: scale })
+}
+
+fn pad_left(text: string, width: int) -> string {
+    let mut out = text
+    while strings.len(out) < width {
+        out = "0${out}"
+    }
+    out
+}
+
+/// Exact text: `Decimal { units: -5, scale: 3 }` is `-0.005`.
+pub fn to_string(d: Decimal) -> string {
+    let sign = if d.units < 0 { "-" } else { "" }
+    let body = pad_left("${abs_int(d.units)}", d.scale + 1)
+    if d.scale == 0 {
+        return sign + body
+    }
+    let cut = strings.len(body) - d.scale
+    "${sign}${strings.substring(body, 0, cut)}.${strings.substring(body, cut, strings.len(body))}"
+}
+
+/// Same value at another scale; dropping digits uses `mode`.
+pub fn rescale(d: Decimal, scale: int, mode: Rounding) -> Result<Decimal, string> {
+    if scale < 0 || scale > MAX_SCALE {
+        return Err("scale out of range (0..18)")
+    }
+    if scale == d.scale {
+        return Ok(d)
+    }
+    if scale > d.scale {
+        let factor = pow10(scale - d.scale)?
+        let units = mul_checked(d.units, factor)?
+        return Ok(Decimal { units: units, scale: scale })
+    }
+    let divisor = pow10(d.scale - scale)?
+    let units = round_div(d.units, divisor, mode)?
+    Ok(Decimal { units: units, scale: scale })
+}
+
+/// Text with exactly `places` fraction digits, rounded by `mode`.
+pub fn format_places(d: Decimal, places: int, mode: Rounding) -> Result<string, string> {
+    let r = rescale(d, places, mode)?
+    Ok(to_string(r))
+}
+
+/// Exact text with `,` between thousands: `1234567.50` -> `1,234,567.50`.
+pub fn with_thousands(d: Decimal) -> string {
+    let text = to_string(d)
+    let negative = strings.starts_with(text, "-")
+    let body = if negative { strings.substring(text, 1, strings.len(text)) } else { text }
+    let parts = strings.split(body, ".")
+    let whole = parts[0]
+    let mut out = ""
+    let mut count = 0
+    let mut i = strings.len(whole)
+    while i > 0 {
+        out = strings.substring(whole, i - 1, i) + out
+        count = count + 1
+        if count % 3 == 0 && i > 1 {
+            out = ",${out}"
+        }
+        i = i - 1
+    }
+    if parts.len() > 1 {
+        out += ".${parts[1]}"
+    }
+    if negative { "-${out}" } else { out }
+}
+
+fn max_int(a: int, b: int) -> int {
+    if a > b { a } else { b }
+}
+
+/// Bring both operands to the larger scale.
+fn align(a: Decimal, b: Decimal) -> Result<(int, int, int), string> {
+    let scale = max_int(a.scale, b.scale)
+    let x = rescale(a, scale, Rounding::Down)?
+    let y = rescale(b, scale, Rounding::Down)?
+    Ok((x.units, y.units, scale))
+}
+
+pub fn add(a: Decimal, b: Decimal) -> Result<Decimal, string> {
+    let (x, y, scale) = align(a, b)?
+    let units = add_checked(x, y)?
+    Ok(Decimal { units: units, scale: scale })
+}
+
+pub fn sub(a: Decimal, b: Decimal) -> Result<Decimal, string> {
+    add(a, neg(b))
+}
+
+/// Exact product; the scale is the sum of the scales (at most 18).
+pub fn mul(a: Decimal, b: Decimal) -> Result<Decimal, string> {
+    let scale = a.scale + b.scale
+    if scale > MAX_SCALE {
+        return Err("scale out of range (0..18)")
+    }
+    let units = mul_checked(a.units, b.units)?
+    Ok(Decimal { units: units, scale: scale })
+}
+
+/// `a / b` rounded to `scale` fraction digits by `mode`.
+pub fn div(a: Decimal, b: Decimal, scale: int, mode: Rounding) -> Result<Decimal, string> {
+    if b.units == 0 {
+        return Err("division by zero")
+    }
+    if scale < 0 || scale > MAX_SCALE {
+        return Err("scale out of range (0..18)")
+    }
+    let shift = scale + b.scale - a.scale
+    let mut num = a.units
+    let mut den = b.units
+    if shift >= 0 {
+        num = mul_checked(num, pow10(shift)?)?
+    } else {
+        den = mul_checked(den, pow10(0 - shift)?)?
+    }
+    let units = round_div(num, den, mode)?
+    Ok(Decimal { units: units, scale: scale })
+}
+
+pub fn neg(d: Decimal) -> Decimal {
+    Decimal { units: 0 - d.units, scale: d.scale }
+}
+
+pub fn abs(d: Decimal) -> Decimal {
+    Decimal { units: abs_int(d.units), scale: d.scale }
+}
+
+/// -1, 0 or 1.
+pub fn signum(d: Decimal) -> int {
+    signum_int(d.units)
+}
+
+pub fn is_zero(d: Decimal) -> bool {
+    d.units == 0
+}
+
+pub fn is_negative(d: Decimal) -> bool {
+    d.units < 0
+}
+
+/// -1, 0 or 1. Values compare by amount, so `1.50` equals `1.5`.
+pub fn compare(a: Decimal, b: Decimal) -> int {
+    match sub(a, b) {
+        Ok(diff) => signum_int(diff.units),
+        Err(_) => {
+            // Only an overflow can fail; the larger magnitude side decides.
+            if a.units < 0 && b.units >= 0 { -1 } else if a.units >= 0 && b.units < 0 { 1 } else { 0 }
+        },
+    }
+}
+
+pub fn equals(a: Decimal, b: Decimal) -> bool {
+    compare(a, b) == 0
+}
+
+/// Split `total` in proportion to `ratios` without losing a unit: the leftover units go to the
+/// first shares, one each. `allocate(100.00, [1, 1, 1])` is `[33.34, 33.33, 33.33]`.
+pub fn allocate(total: Decimal, ratios: Vec<int>) -> Result<Vec<Decimal>, string> {
+    if ratios.len() == 0 {
+        return Err("no ratios")
+    }
+    let mut sum = 0
+    for r in ratios {
+        if r < 0 {
+            return Err("negative ratio")
+        }
+        sum = add_checked(sum, r)?
+    }
+    if sum == 0 {
+        return Err("ratios sum to zero")
+    }
+    let mut shares: Vec<int> = Vec::new()
+    let mut given = 0
+    for r in ratios {
+        let part = round_div(mul_checked(total.units, r)?, sum, Rounding::Down)?
+        shares.push(part)
+        given = given + part
+    }
+    let mut left = total.units - given
+    let step = signum_int(left)
+    let mut out: Vec<Decimal> = Vec::new()
+    let mut i = 0
+    while i < shares.len() {
+        let mut units = shares[i]
+        if left != 0 && ratios[i] > 0 {
+            units = units + step
+            left = left - step
+        }
+        out.push(Decimal { units: units, scale: total.scale })
+        i = i + 1
+    }
+    Ok(out)
+}

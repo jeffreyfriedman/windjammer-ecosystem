@@ -1,0 +1,222 @@
+use crate::PageRequest
+use crate::describe
+use crate::item_count
+use crate::keyset_result
+use crate::link_header
+use crate::offset_for
+use crate::page_count
+use crate::page_strip
+use crate::request
+use crate::request_clamped
+use crate::slice_page
+use crate::strip_text
+
+fn must<T>(r: Result<T, string>) -> T {
+    match r {
+        Ok(v) => v,
+        Err(e) => panic("unexpected error: ${e}"),
+    }
+}
+
+fn req(page: int, per: int) -> PageRequest {
+    must(request(page, per, 1000))
+}
+
+@test
+fn test_request_accepts_valid_values() {
+    let r = must(request(2, 25, 100))
+    assert_eq(r.page, 2)
+    assert_eq(r.per_page, 25)
+}
+
+@test
+fn test_request_rejects_bad_values() {
+    assert(request(0, 25, 100).is_err())
+    assert(request(1, 0, 100).is_err())
+    assert(request(1, 101, 100).is_err())
+    assert(request(-3, 10, 100).is_err())
+}
+
+@test
+fn test_request_clamped_repairs_input() {
+    let r = request_clamped(-4, 0, 20, 100)
+    assert_eq(r.page, 1)
+    assert_eq(r.per_page, 20)
+    assert_eq(request_clamped(2, 5000, 20, 100).per_page, 100)
+}
+
+@test
+fn test_page_count_rounds_up() {
+    assert_eq(page_count(0, 10), 0)
+    assert_eq(page_count(1, 10), 1)
+    assert_eq(page_count(10, 10), 1)
+    assert_eq(page_count(11, 10), 2)
+    assert_eq(page_count(5, 0), 0)
+}
+
+@test
+fn test_offset_for_first_and_later_pages() {
+    assert_eq(offset_for(1, 25), 0)
+    assert_eq(offset_for(3, 25), 50)
+    assert_eq(offset_for(0, 25), 0)
+}
+
+@test
+fn test_describe_middle_page() {
+    let p = describe(req(2, 10), 35)
+    assert_eq(p.total_pages, 4)
+    assert_eq(p.offset, 10)
+    assert_eq(p.first_item, 11)
+    assert_eq(p.last_item, 20)
+    assert(p.has_prev)
+    assert(p.has_next)
+}
+
+@test
+fn test_describe_last_partial_page() {
+    let p = describe(req(4, 10), 35)
+    assert_eq(p.first_item, 31)
+    assert_eq(p.last_item, 35)
+    assert_eq(item_count(p), 5)
+    assert(!p.has_next)
+}
+
+@test
+fn test_describe_clamps_page_past_the_end() {
+    let p = describe(req(99, 10), 35)
+    assert_eq(p.page, 4)
+    assert_eq(p.offset, 30)
+}
+
+@test
+fn test_describe_empty_collection() {
+    let p = describe(req(1, 10), 0)
+    assert_eq(p.total_pages, 0)
+    assert_eq(p.first_item, 0)
+    assert_eq(p.last_item, 0)
+    assert_eq(item_count(p), 0)
+    assert(!p.has_prev)
+    assert(!p.has_next)
+}
+
+@test
+fn test_describe_negative_total_is_treated_as_empty() {
+    assert_eq(describe(req(1, 10), -5).total_items, 0)
+}
+
+@test
+fn test_page_strip_shapes() {
+    assert_eq(page_strip(1, 5, 1), [1, 2, 0, 5])
+    assert_eq(page_strip(10, 20, 1), [1, 0, 9, 10, 11, 0, 20])
+    assert_eq(page_strip(20, 20, 1), [1, 0, 19, 20])
+    assert_eq(page_strip(3, 5, 2), [1, 2, 3, 4, 5])
+    assert_eq(page_strip(1, 1, 3), [1])
+    assert(page_strip(1, 0, 3).is_empty())
+}
+
+@test
+fn test_page_strip_has_no_gap_for_a_single_hidden_page() {
+    // page 2 is the only page between 1 and 3: it is shown, not hidden behind an ellipsis
+    assert_eq(page_strip(4, 8, 1), [1, 0, 3, 4, 5, 0, 8])
+    assert_eq(page_strip(3, 8, 1), [1, 2, 3, 4, 0, 8])
+}
+
+@test
+fn test_strip_text() {
+    assert_eq(strip_text(page_strip(10, 20, 1)), "1 ... 9 10 11 ... 20")
+}
+
+@test
+fn test_link_header_relations() {
+    let p = describe(req(2, 10), 35)
+    let h = link_header("/items?", p)
+    assert(h.contains("</items?page=1>; rel=\"first\""))
+    assert(h.contains("</items?page=1>; rel=\"prev\""))
+    assert(h.contains("</items?page=3>; rel=\"next\""))
+    assert(h.contains("</items?page=4>; rel=\"last\""))
+}
+
+@test
+fn test_link_header_first_page_has_no_prev() {
+    let h = link_header("/x?", describe(req(1, 10), 35))
+    assert(!h.contains("prev"))
+}
+
+@test
+fn test_link_header_empty_when_no_pages() {
+    assert_eq(link_header("/x?", describe(req(1, 10), 0)), "")
+}
+
+@test
+fn test_slice_page_matches_describe() {
+    let mut items = Vec::new()
+    let mut i = 0
+    while i < 23 {
+        items.push("item${i}")
+        i = i + 1
+    }
+    let page3 = slice_page(items, req(3, 10))
+    assert_eq(page3.len(), 3)
+    assert_eq(page3[0], "item20")
+    assert_eq(slice_page(items, req(4, 10)).len(), 0)
+}
+
+@test
+fn test_keyset_result() {
+    let more = keyset_result(11, 10)
+    assert(more.has_more)
+    assert_eq(more.show, 10)
+    let done = keyset_result(7, 10)
+    assert(!done.has_more)
+    assert_eq(done.show, 7)
+}
+
+@test
+fn test_property_pages_partition_the_items() {
+    // for every total and page size, walking the pages visits each item exactly once
+    let mut total = 0
+    while total <= 40 {
+        let mut per = 1
+        while per <= 12 {
+            let pages = page_count(total, per)
+            let mut seen = 0
+            let mut p = 1
+            while p <= pages {
+                let d = describe(req(p, per), total)
+                assert_eq(d.offset, seen)
+                seen = seen + item_count(d)
+                p = p + 1
+            }
+            assert_eq(seen, total)
+            per = per + 1
+        }
+        total = total + 1
+    }
+}
+
+@test
+fn test_property_strip_is_sorted_and_bounded() {
+    let mut pages = 1
+    while pages <= 15 {
+        let mut cur = 1
+        while cur <= pages {
+            let strip = page_strip(cur, pages, 2)
+            assert_eq(strip[0], 1)
+            assert_eq(strip[strip.len() - 1], pages)
+            let mut contains_cur = false
+            let mut prev = 0
+            for n in strip {
+                if n == cur {
+                    contains_cur = true
+                }
+                if n != 0 {
+                    assert(n > prev)
+                    prev = n
+                }
+            }
+            assert(contains_cur)
+            cur = cur + 1
+        }
+        pages = pages + 1
+    }
+}

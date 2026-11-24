@@ -13,7 +13,7 @@ fn main() {
             match run_fetch(req) {
                 Ok(out) => {
                     if strings.len(out) > 0 {
-                        println("{}", out)
+                        println("${out}")
                     }
                 },
                 Err(e) => {

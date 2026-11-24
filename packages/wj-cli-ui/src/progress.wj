@@ -1,0 +1,91 @@
+use crate::style::Theme
+use crate::style::green
+use crate::style::dim
+
+fn clamp(v: int, lo: int, hi: int) -> int {
+    if v < lo {
+        return lo
+    }
+    if v > hi {
+        return hi
+    }
+    v
+}
+
+fn repeat(unit: string, n: int) -> string {
+    let mut out = ""
+    let mut i = 0
+    while i < n {
+        out = out + unit
+        i = i + 1
+    }
+    out
+}
+
+/// `[#####-----]  50%`: `width` is the bar's inner width. Out-of-range input is clamped.
+pub fn progress_bar(done: int, total: int, width: int) -> string {
+    let t = if total <= 0 { 1 } else { total }
+    let d = clamp(done, 0, t)
+    let filled = (d * width) / t
+    let pct = (d * 100) / t
+    let label = if pct < 10 { "  ${pct}%" } else if pct < 100 { " ${pct}%" } else { "${pct}%" }
+    "[${repeat("#", filled)}${repeat("-", width - filled)}] ${label}"
+}
+
+/// The same bar with a coloured fill when the theme allows it.
+pub fn styled_bar(theme: Theme, done: int, total: int, width: int) -> string {
+    let t = if total <= 0 { 1 } else { total }
+    let d = clamp(done, 0, t)
+    let filled = (d * width) / t
+    let pct = (d * 100) / t
+    "[${green(theme, repeat("#", filled))}${dim(theme, repeat("-", width - filled))}] ${pct}%"
+}
+
+/// Braille spinner frame for tick `i`.
+pub fn spinner_frame(i: int) -> string {
+    let frames = ["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"]
+    frames[i % 10]
+}
+
+/// `\r` plus the line, to redraw a progress line in place.
+pub fn redraw(line: string) -> string {
+    "\r${line}"
+}
+
+/// Estimated seconds remaining from elapsed milliseconds and progress; `None` before any progress.
+pub fn eta_seconds(done: int, total: int, elapsed_ms: int) -> Option<int> {
+    if done <= 0 || total <= done {
+        return None
+    }
+    Some((elapsed_ms * (total - done)) / (done * 1000))
+}
+
+/// Items per second with one decimal, from a count and elapsed milliseconds (`0.0/s` before any time has passed).
+pub fn rate_text(done: int, elapsed_ms: int) -> string {
+    if elapsed_ms <= 0 {
+        return "0.0/s"
+    }
+    let per_second = (done as float * 1000.0) / elapsed_ms as float
+    "${per_second:.1}/s"
+}
+
+/// `1m 5s`-style remaining time, or `--` when unknown.
+pub fn eta_text(done: int, total: int, elapsed_ms: int) -> string {
+    match eta_seconds(done, total, elapsed_ms) {
+        Some(s) => {
+            if s >= 3600 {
+                "${s / 3600}h ${(s % 3600) / 60}m"
+            } else if s >= 60 {
+                "${s / 60}m ${s % 60}s"
+            } else {
+                "${s}s"
+            }
+        },
+        None => "--",
+    }
+}
+
+/// One status line: `label [#####-----]  50% 5/10 2.5/s ETA 2s`.
+pub fn status_line(label: string, done: int, total: int, elapsed_ms: int, bar_width: int) -> string {
+    "${label} ${progress_bar(done, total, bar_width)} ${done}/${total} ${rate_text(done, elapsed_ms)} ETA ${eta_text(done, total, elapsed_ms)}"
+}

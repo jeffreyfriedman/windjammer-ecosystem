@@ -16,13 +16,13 @@ fn main() {
                     println("wj-sitegen: wrote ${count} page(s) to ${dirs.out}")
                 },
                 Err(e) => {
-                    eprintln!("wj-sitegen: ${e}")
+                    stderr.println("wj-sitegen: ${e}")
                     process.exit(1)
                 },
             }
         },
         Err(e) => {
-            eprintln!("wj-sitegen: ${e}")
+            stderr.println("wj-sitegen: ${e}")
             process.exit(1)
         },
     }

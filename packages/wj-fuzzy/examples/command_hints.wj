@@ -1,0 +1,18 @@
+use wj_fuzzy::fuzzy_score
+use wj_fuzzy::hint
+use wj_fuzzy::rank
+use wj_fuzzy::suggest
+
+fn main() {
+    let commands = ["build", "test", "check", "clean", "publish"]
+
+    // a mistyped CLI command
+    println("unknown command 'biuld'; ${hint("biuld", commands)}")
+    println("nothing close: '${hint("deploy-everything", commands)}'")
+    println("candidates: ${suggest("cleen", commands, 2).join(", ")}")
+
+    // a file picker
+    let files = ["README.md", "tests/main_test.wj", "src/main.wj", "Cargo.toml"]
+    println("rank 'main': ${rank("main", files).join(", ")}")
+    println("no match score: ${fuzzy_score("xyz", "src/main.wj")}")
+}

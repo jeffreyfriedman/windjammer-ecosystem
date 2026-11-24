@@ -1,0 +1,46 @@
+// golden: tokenizer for a tiny expression language
+// idiom: classify characters with is_alphabetic / is_ascii_digit; a Vec of token structs carries kind and text
+struct Token {
+    kind: string,
+    text: string,
+}
+
+fn tokenize(source: string) -> Vec<Token> {
+    let cs: Vec<char> = source.chars().collect()
+    let mut tokens: Vec<Token> = []
+    let mut i = 0
+    while i < cs.len() {
+        let c = cs[i]
+        if c.is_whitespace() {
+            i += 1
+        } else if c.is_alphabetic() || c == '_' {
+            let mut word = ""
+            while i < cs.len() && (cs[i].is_alphanumeric() || cs[i] == '_') {
+                word += "${cs[i]}"
+                i += 1
+            }
+            let kind = if word == "let" || word == "if" || word == "else" { "keyword" } else { "ident" }
+            tokens.push(Token { kind: kind, text: word })
+        } else if c.is_ascii_digit() {
+            let mut num = ""
+            while i < cs.len() && cs[i].is_ascii_digit() {
+                num += "${cs[i]}"
+                i += 1
+            }
+            tokens.push(Token { kind: "number", text: num })
+        } else {
+            tokens.push(Token { kind: "symbol", text: "${c}" })
+            i += 1
+        }
+    }
+    tokens
+}
+
+fn main() {
+    let tokens = tokenize("let total_1 = price * 12 + tax")
+    for t in tokens {
+        println("${t.kind}: ${t.text}")
+    }
+    let counts = tokenize("if x { y } else { z }")
+    println("${counts.len()} tokens")
+}

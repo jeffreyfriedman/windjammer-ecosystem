@@ -13,15 +13,12 @@ pub struct ExplainResult {
 }
 
 pub fn check_schedule(expr: string, at: CivilTime) -> Result<bool, string> {
-    // Owned copy for cross-crate owned formal (local formal may demote to &str).
-    match parse_cron("${expr}") {
-        Ok(cron) => Ok(matches_cron(cron, at.minute, at.hour, at.day, at.month, at.day_of_week)),
-        Err(e) => Err(e),
-    }
+    let cron = parse_cron(expr)?
+    Ok(matches_cron(cron, at.minute, at.hour, at.day, at.month, at.day_of_week))
 }
 
 pub fn next_schedule(expr: string, from: CivilTime, max_minutes: int) -> Result<Option<CronDateTime>, string> {
-    match parse_cron("${expr}") {
+    match parse_cron(expr) {
         Ok(cron) => {
             let start = CronDateTime {
                 year: from.year,
@@ -38,7 +35,7 @@ pub fn next_schedule(expr: string, from: CivilTime, max_minutes: int) -> Result<
 }
 
 pub fn explain_schedule(expr: string) -> Result<ExplainResult, string> {
-    match parse_cron("${expr}") {
+    match parse_cron(expr) {
         Ok(cron) => Ok(ExplainResult {
             minute: cron.minute,
             hour: cron.hour,

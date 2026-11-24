@@ -1,0 +1,188 @@
+// Expected values come from a Python port of the PCG32 reference algorithm (pcg32_srandom_r, pcg32_random_r,
+// pcg32_boundedrand_r); the first six outputs for seed 42, stream 54 are the ones published with the C reference.
+use crate::check::Config
+use crate::check::assert_holds
+use crate::check::check_int
+use crate::check::check_int_pair
+use crate::check::check_ints
+use crate::check::check_string
+use crate::check::config
+use crate::check::describe
+use crate::check::with_cases
+use crate::check::with_seed
+use crate::rng::new_rng
+
+const LEN20: int = 20
+const LEN30: int = 30
+const LEN12: int = 12
+const LEN12B: int = 12
+const NEG100: int = -100
+const POS100: int = 100
+const NEG1000: int = -1000
+const POS1000: int = 1000
+const NEG50: int = -50
+const POS50: int = 50
+const ZERO: int = 0
+const SEVEN: int = 7
+const NINE: int = 9
+const MILLION: int = 1000000
+const BILLION: int = 1000000000
+const FIFTY: int = 50
+
+fn sorted_copy(v: Vec<int>) -> Vec<int> {
+    let mut out: Vec<int> = Vec::new()
+    for x in v {
+        out.push(x)
+    }
+    out.sort()
+    out
+}
+
+fn reversed(v: Vec<int>) -> Vec<int> {
+    let mut out: Vec<int> = Vec::new()
+    let mut i = v.len() as int - 1
+    while i >= 0 {
+        out.push(v[i])
+        i = i - 1
+    }
+    out
+}
+
+fn same(a: Vec<int>, b: Vec<int>) -> bool {
+    if a.len() != b.len() {
+        return false
+    }
+    let mut i = 0
+    while i < a.len() {
+        if a[i] != b[i] {
+            return false
+        }
+        i = i + 1
+    }
+    true
+}
+
+fn has(v: Vec<int>, x: int) -> bool {
+    for y in v {
+        if y == x {
+            return true
+        }
+    }
+    false
+}
+
+fn is_sorted(v: Vec<int>) -> bool {
+    let mut i = 1
+    while i < v.len() {
+        if v[i - 1] > v[i] {
+            return false
+        }
+        i = i + 1
+    }
+    true
+}
+
+@test
+fn test_pcg32_matches_the_reference_outputs() {
+    let mut r = new_rng(42, 54)
+    assert_eq(r.next_u32(), 2707161783)
+    assert_eq(r.next_u32(), 2068313097)
+    assert_eq(r.next_u32(), 3122475824)
+    assert_eq(r.next_u32(), 2211639955)
+    assert_eq(r.next_u32(), 3215226955)
+    assert_eq(r.next_u32(), 3421331566)
+    assert_eq(r.next_u32(), 3217466285)
+    assert_eq(r.next_u32(), 2167406445)
+}
+
+@test
+fn test_bounded_range_and_unit_match_the_python_port() {
+    let mut r = new_rng(7, 3)
+    assert_eq(r.below(6), 5)
+    assert_eq(r.below(6), 4)
+    assert_eq(r.below(100), 72)
+    assert_eq(r.below(1), 0)
+    assert_eq(r.below(2), 0)
+    assert_eq(r.below(1000000), 254699)
+    assert_eq(r.below(3), 2)
+    assert_eq(r.below(17), 11)
+    assert_eq(r.range(-5, 5), -2)
+    assert_eq(r.range(10, 10), 10)
+    assert_eq(r.range(0, 255), 100)
+    assert_eq(r.range(-1000000, 1000000), 304181)
+    assert_eq(r.unit(), 0.08282310189679265)
+}
+
+@test
+fn test_below_is_uniform_and_matches_the_port_exactly() {
+    let mut r = new_rng(2026, 0)
+    let mut counts: Vec<int> = [0, 0, 0, 0, 0, 0]
+    let mut i = 0
+    while i < 6000 {
+        let k = r.below(6) as usize // wj-gap: int-index-cast
+        counts[k] = counts[k] + 1
+        i = i + 1
+    }
+    assert_eq(counts[0], 998)
+    assert_eq(counts[1], 991)
+    assert_eq(counts[2], 976)
+    assert_eq(counts[3], 1047)
+    assert_eq(counts[4], 1001)
+    assert_eq(counts[5], 987)
+}
+
+@test
+fn test_true_properties_hold() {
+    assert_holds(check_ints(config(), LEN20, NEG100, POS100, |v| same(reversed(reversed(v)), v)))
+    assert_holds(check_ints(config(), LEN20, NEG100, POS100, |v| is_sorted(sorted_copy(v))))
+    assert_holds(check_ints(config(), LEN20, NEG100, POS100, |v| same(sorted_copy(sorted_copy(v)), sorted_copy(v))))
+    assert_holds(check_int_pair(config(), NEG1000, POS1000, |a, b| a + b == b + a))
+    assert_holds(check_int(with_cases(500), NEG50, POS50, |n| n * n >= 0))
+    assert_holds(check_string(config(), LEN12, "abc", |s| s.len() <= 12))
+    let report = check_int(config(), ZERO, NINE, |n| n >= 0)
+    assert_eq(describe(report), "ok: 100 cases passed (seed 42)")
+}
+
+@test
+fn test_failures_shrink_to_the_smallest_counterexample() {
+    let a = check_int(config(), ZERO, MILLION, |n| n < 100)
+    assert(!a.ok, "must fail")
+    assert_eq(a.shrunk, "100")
+    let b = check_ints(config(), LEN30, ZERO, FIFTY, |v| !has(v, 11) && v.len() < 100)
+    assert(!b.ok, "a vector with an 11 must turn up")
+    assert_eq(b.shrunk, "[11]")
+    let c = check_ints(config(), LEN30, ZERO, FIFTY, |v| v.len() < 3)
+    assert_eq(c.shrunk, "[0, 0, 0]")
+    let d = check_string(config(), LEN20, "abxyz", |s| !s.contains("z"))
+    assert_eq(d.shrunk, "\"z\"")
+    let e = check_int_pair(config(), ZERO, POS1000, |x, y| x + y < 50)
+    assert(!e.ok, "must fail")
+    assert(e.shrunk == "(50, 0)" || e.shrunk == "(0, 50)", "pair shrank to ${e.shrunk}")
+    let f = check_int(config(), NEG1000, POS1000, |n| n > -7)
+    assert_eq(f.shrunk, "-7")
+}
+
+@test
+fn test_reports_name_the_seed_and_replay_exactly() {
+    let first = check_int(config(), ZERO, MILLION, |n| n % 7 != 3)
+    let again = check_int(config(), ZERO, MILLION, |n| n % 7 != 3)
+    assert(!first.ok, "fails")
+    assert_eq(first.failing, again.failing)
+    assert_eq(first.case, again.case)
+    let small = first.shrunk.parse::<int>().unwrap_or(-1)
+    assert_eq(small % 7, 3)
+    assert(small <= first.failing.parse::<int>().unwrap_or(0), "shrinking never grows the input")
+    assert_str_contains(describe(first), "seed 42")
+    let other = check_int(with_seed(config(), SEVEN), ZERO, MILLION, |n| n % 7 != 3)
+    assert_str_contains(describe(other), "seed 7")
+    assert(other.failing != first.failing || other.case != first.case, "a different seed explores different cases")
+}
+
+@test
+fn test_shrinking_is_bounded() {
+    let cfg = with_cases(10)
+    let capped = check_int(Config { cases: 10, seed: 1, max_shrinks: 3 }, ZERO, BILLION, |n| n < 5)
+    assert(!capped.ok, "fails")
+    assert(capped.shrink_steps <= 6, "at most a few steps past the cap")
+    assert(cfg.cases == 10, "config helper")
+}

@@ -1,4 +1,5 @@
 use std::strings
+use wj_cli_args::long_flag_value
 use crate::domain::SchedulerConfig
 
 pub struct CliCommand {
@@ -40,19 +41,9 @@ fn parse_check(rest: Vec<string>, _config: SchedulerConfig) -> Result<CliCommand
         return Err(USAGE)
     }
     let expr = rest[1]
-    // Inline flag scan (P3.224): avoid Vec helper ownership mismatch after index.
-    let mut at = ""
-    let mut found = false
-    let mut i = 0
-    while i + 1 < rest.len() {
-        if rest[i] == "--at" {
-            at = rest[i + 1]
-            found = true
-        }
-        i = i + 1
-    }
-    if !found {
-        return Err("missing --at")
+    let at = match long_flag_value(rest, "at") {
+        Some(value) => value,
+        None => return Err("missing --at"),
     }
     Ok(CliCommand {
         kind: "check",

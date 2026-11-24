@@ -1,0 +1,34 @@
+// golden: JSON round trip for a struct
+// idiom: any struct converts with json.to_string and json.parse_string::<T>; no derive, no glue code
+use std::json
+
+struct Book {
+    title: string,
+    year: int,
+    tags: Vec<string>,
+    rating: float,
+}
+
+fn describe(b: Book) -> string {
+    "${b.title} (${b.year}) tags=${b.tags.join("/")} rating=${b.rating}"
+}
+
+fn read(text: string) -> string {
+    let parsed: Result<Book, string> = json.parse_string(text)
+    match parsed {
+        Ok(b) => describe(b),
+        Err(e) => "parse error: ${e}",
+    }
+}
+
+fn main() {
+    let book = Book { title: "Dune", year: 1965, tags: ["scifi", "classic"], rating: 4.5 }
+    let text = json.to_string(book) ?? ""
+    println(text)
+    println(read(text))
+    println(read("{\"title\":\"X\",\"year\":\"soon\",\"tags\":[],\"rating\":1.0}"))
+    println(read("{\"title\":\"Y\"}"))
+    println(read("not json at all"))
+    let shelf = [Book { title: "A", year: 1, tags: [], rating: 1.0 }, Book { title: "B", year: 2, tags: ["x"], rating: 2.5 }]
+    println(json.to_string(shelf) ?? "")
+}

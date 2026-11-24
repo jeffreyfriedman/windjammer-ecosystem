@@ -1,0 +1,17 @@
+//! CommonMark subset to HTML. Escaping is the default: raw HTML in the input is shown as text.
+pub mod escape
+pub mod inline
+pub mod block
+
+/// Render inline Markdown (no blocks).
+pub fn inline_html(text: string) -> string {
+    inline::render(text)
+}
+
+/// Render a Markdown document as HTML. The subset: ATX and setext headings, paragraphs, emphasis, strong,
+/// code spans, fenced and indented code, block quotes, bullet and numbered lists (nested, tight and loose),
+/// thematic breaks, links, images and autolinks. Raw HTML in the input is escaped, and `javascript:` style
+/// link destinations are never turned into links.
+pub fn to_html(markdown: string) -> string {
+    block::render(markdown)
+}

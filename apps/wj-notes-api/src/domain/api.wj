@@ -15,9 +15,7 @@ use wj_headers::format_headers
 use wj_mime::html as html_mime
 use wj_mime::json as json_mime
 use wj_json_util::pretty as json_pretty
-// Alias must not be `query_get`: loading `wj_url` registers Borrowed metadata under
-// that name and steals ownership at call sites of this Owned `get` (P3.283).
-use wj_querystring::get as qs_get
+use wj_querystring::get
 use wj_regex::is_match
 use wj_sha::hex as sha_hex
 use wj_template::render_html
@@ -142,8 +140,7 @@ impl NotesApp {
         )
     }
 
-    /// Adapter port: same-crate `HttpMethod` avoids demoted `method: &str` + owned
-    /// label helper (see `bug_owned_helper_into_demoted_str_formal_must_auto_borrow_test`).
+    /// Typed entry for adapters that already hold an `HttpMethod`; `handle` takes the method as a label and parses it.
     pub fn handle_http(
         self,
         method: HttpMethod,
@@ -407,10 +404,7 @@ fn location_header(url: string) -> string {
 }
 
 fn note_get_reply(note: Note, if_none_match: string, query: string) -> HttpReply {
-    // Keep formal owned (cargo-bin otherwise demotes to &str while callers pass String).
-    let mut held: Vec<string> = Vec::new()
-    held.push(if_none_match)
-    let inm = held[0]
+    let inm = if_none_match
     let want_base64 = query_wants_base64(query)
     let material = "${note.uid}:${note.title}:${note.body}"
     let tag = "\"${sha_digest(material)}\""
@@ -709,7 +703,7 @@ fn find_char(text: string, needle: string) -> int {
 fn list_notes_for_query(notes: Vec<Note>, query: string) -> Result<Vec<Note>, string> {
     let query = own(query)
     let mut filtered = Vec::new()
-    match qs_get("${query}", "q") {
+    match get("${query}", "q") {
         None => {
             let mut i = 0
             while i < notes.len() {
@@ -742,7 +736,7 @@ fn list_notes_for_query(notes: Vec<Note>, query: string) -> Result<Vec<Note>, st
             }
         },
     }
-    Ok(match qs_get("${query}", "limit") {
+    Ok(match get("${query}", "limit") {
         None => filtered,
         Some(text) => {
             match parse_positive_int(text) {
@@ -764,7 +758,7 @@ fn note_matches_pattern(pattern: string, note: Note) -> Result<bool, string> {
 
 fn query_wants_pretty(query: string) -> bool {
     let query = own(query)
-    match qs_get(query, "pretty") {
+    match get(query, "pretty") {
         None => false,
         Some(text) => text == "1" || text == "true",
     }
@@ -772,7 +766,7 @@ fn query_wants_pretty(query: string) -> bool {
 
 fn query_wants_base64(query: string) -> bool {
     let query = own(query)
-    match qs_get(query, "encoding") {
+    match get(query, "encoding") {
         None => false,
         Some(text) => text == "base64",
     }

@@ -1,0 +1,53 @@
+use crate::format_iec
+use crate::format_rate
+use crate::format_si
+use crate::parse
+use std::fs
+use std::strings
+
+fn must<T>(r: Result<T, string>) -> T {
+    match r {
+        Ok(v) => v,
+        Err(e) => panic("unexpected error: ${e}"),
+    }
+}
+
+fn read(path: string) -> string {
+    fs.read_to_string(path).unwrap_or("")
+}
+
+/// The docs gate reads the package files relative to the package root, which is where interpreted `wj test` runs.
+/// A compiled `wj test` runs from a scratch crate where they do not exist; the checks then step aside.
+fn docs_present() -> bool {
+    strings.len(read("README.md")) > 0
+}
+
+fn readme_block(fence: string) -> string {
+    let parts = strings.split(read("README.md"), fence)
+    strings.split(parts[1], "```")[0]
+}
+
+@test
+fn test_readme_snippet_matches_the_example() {
+    if !docs_present() {
+        return
+    }
+    assert_eq(readme_block("```windjammer\n"), read("examples/upload_limits.wj"))
+}
+
+@test
+fn test_readme_output_is_what_the_example_prints() {
+    if !docs_present() {
+        return
+    }
+    let limit = must(parse("1.5 MiB"))
+    let upload = 1900000
+    let mut out = "limit: ${limit} bytes\n"
+    if upload > limit {
+        out = "${out}rejected: ${format_iec(upload)} is over the ${format_iec(limit)} limit\n"
+    }
+    out = "${out}disk label: ${format_si(upload)}\n"
+    out = "${out}speed: ${format_rate(upload, 250)}\n"
+    out = "${out}bad input: ${parse("12 parsecs").unwrap_err()}\n"
+    assert_eq(readme_block("```text\n"), out)
+}

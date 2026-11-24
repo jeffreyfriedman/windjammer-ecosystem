@@ -1,0 +1,51 @@
+// golden: builder with chained setters
+// idiom: setters take self and return Self by value; build up a config with a method chain
+struct Request {
+    method: string,
+    path: string,
+    headers: Vec<string>,
+    body: string,
+    retries: int,
+}
+
+impl Request {
+    fn new(path: string) -> Request {
+        Request { method: "GET", path: path, headers: [], body: "", retries: 0 }
+    }
+
+    fn with_method(self, m: string) -> Request {
+        Request { method: m, path: self.path, headers: self.headers, body: self.body, retries: self.retries }
+    }
+
+    fn with_header(self, h: string) -> Request {
+        let mut headers = self.headers
+        headers.push(h)
+        Request { method: self.method, path: self.path, headers: headers, body: self.body, retries: self.retries }
+    }
+
+    fn with_body(self, b: string) -> Request {
+        Request { method: self.method, path: self.path, headers: self.headers, body: b, retries: self.retries }
+    }
+
+    fn with_retries(self, n: int) -> Request {
+        Request { method: self.method, path: self.path, headers: self.headers, body: self.body, retries: n }
+    }
+
+    fn show(self) -> string {
+        let mut out = "${self.method} ${self.path}"
+        for h in self.headers {
+            out += "\n  ${h}"
+        }
+        if self.body.len() > 0 {
+            out += "\n  body: ${self.body}"
+        }
+        "${out}\n  retries: ${self.retries}"
+    }
+}
+
+fn main() {
+    let simple = Request::new("/health")
+    println(simple.show())
+    let post = Request::new("/orders").with_method("POST").with_header("Content-Type: json").with_header("X-Trace: 7").with_body("{\"id\":1}").with_retries(3)
+    println(post.show())
+}

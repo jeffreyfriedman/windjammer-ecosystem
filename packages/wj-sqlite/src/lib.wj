@@ -1,0 +1,7 @@
+//! A read-only SQLite file reader in Windjammer: database header, `sqlite_master`, table b-trees (interior and leaf
+//! pages, overflow chains) and the record format. It reads the bytes of a database file, so there is no SQLite engine,
+//! no SQL and no native library; use `std::db` to run queries and write data, and this to inspect or export a file
+//! (CI artefacts, backups, test fixtures). `verify` cross-checks a file against SQLite itself through `std::db`. Rows of a table come back in rowid order.
+pub mod format
+pub mod database
+pub mod verify

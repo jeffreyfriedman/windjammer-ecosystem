@@ -1,0 +1,217 @@
+use crate::frame::DEFAULT_MAX_PAYLOAD
+use crate::frame::Frame
+use crate::frame::close_frame
+use crate::frame::decode
+use crate::frame::encode
+use crate::frame::from_hex
+use crate::frame::hex
+use crate::frame::new_frame
+use crate::frame::parse_close
+use crate::frame::text_frame
+use crate::handshake::accept_key
+use crate::handshake::client_request
+use crate::handshake::is_valid_key
+use crate::handshake::parse_request
+use crate::handshake::server_response
+use crate::handshake::validate_response
+use crate::message::Message
+use crate::message::new_assembler
+
+fn error_of(bytes: Vec<u8>) -> string {
+    match decode(bytes, DEFAULT_MAX_PAYLOAD) {
+        Ok(Some(_)) => "decoded",
+        Ok(None) => "need more",
+        Err(e) => e,
+    }
+}
+
+fn close_code(r: Result<(int, string), string>) -> int {
+    match r {
+        Ok(p) => p.0,
+        Err(_) => 0,
+    }
+}
+
+fn close_reason(r: Result<(int, string), string>) -> string {
+    match r {
+        Ok(p) => p.1,
+        Err(e) => e,
+    }
+}
+
+fn enc_error(frame: Frame, key: Vec<u8>) -> string {
+    match encode(frame, key) {
+        Ok(_) => "ok",
+        Err(e) => e,
+    }
+}
+
+@test
+fn test_partial_input_asks_for_more_bytes() {
+    let whole = from_hex("81 85 37 fa 21 3d 7f 9f 4d 51 58")
+    let mut cut = 0
+    while cut < whole.len() {
+        let mut part: Vec<u8> = Vec::new()
+        let mut i = 0
+        while i < cut {
+            part.push(whole[i])
+            i = i + 1
+        }
+        assert_eq(error_of(part), "need more")
+        cut = cut + 1
+    }
+    assert_eq(error_of(whole), "decoded")
+}
+
+fn consumed_of(bytes: Vec<u8>) -> int {
+    match decode(bytes, DEFAULT_MAX_PAYLOAD) {
+        Ok(Some(d)) => d.consumed,
+        _ => -1,
+    }
+}
+
+fn opcode_of(bytes: Vec<u8>) -> int {
+    match decode(bytes, DEFAULT_MAX_PAYLOAD) {
+        Ok(Some(d)) => d.frame.opcode,
+        _ => -1,
+    }
+}
+
+@test
+fn test_two_frames_in_one_buffer_decode_one_at_a_time() {
+    let both = from_hex("81 05 48 65 6c 6c 6f 89 00")
+    assert_eq(consumed_of(both), 7)
+    assert_eq(opcode_of(from_hex("89 00")), 9)
+    assert_eq(consumed_of(from_hex("89 00")), 2)
+}
+
+@test
+fn test_protocol_violations_are_rejected() {
+    assert_eq(error_of(from_hex("c1 00")), "reserved bits set")
+    assert_eq(error_of(from_hex("a1 00")), "reserved bits set")
+    assert_eq(error_of(from_hex("83 00")), "invalid opcode 3")
+    assert_eq(error_of(from_hex("8b 00")), "invalid opcode 11")
+    assert_eq(error_of(from_hex("09 00")), "fragmented control frame")
+    assert_eq(error_of(from_hex("89 7e 00 7e")), "control frame payload over 125 bytes")
+    assert_eq(error_of(from_hex("82 7e 00 05")), "non-minimal length encoding")
+    assert_eq(error_of(from_hex("82 7f 00 00 00 00 00 00 01 00")), "non-minimal length encoding")
+    assert_eq(error_of(from_hex("82 7f 80 00 00 00 00 00 00 00")), "length has the top bit set")
+    assert_eq(error_of(from_hex("82 7f 00 00 00 01 00 00 00 00")), "payload length over 4 GiB")
+}
+
+@test
+fn test_payload_limit_applies_before_the_bytes_arrive() {
+    let header_only = from_hex("82 7e 04 00")
+    match decode(header_only, 1000) {
+        Ok(_) => assert(false, "a 1024 byte payload must exceed a 1000 byte limit"),
+        Err(e) => assert_str_contains(e, "exceeds the limit"),
+    }
+    assert_eq(error_of(header_only), "need more")
+}
+
+@test
+fn test_encode_rejects_bad_frames() {
+    assert_eq(enc_error(new_frame(3, Vec::new()), Vec::new()), "invalid opcode 3")
+    let mut big: Vec<u8> = Vec::new()
+    let mut i = 0
+    while i < 126 {
+        big.push(0)
+        i = i + 1
+    }
+    assert_eq(enc_error(new_frame(9, big), Vec::new()), "control frame payload over 125 bytes")
+    assert_eq(enc_error(Frame { fin: false, opcode: 8, payload: Vec::new() }, Vec::new()), "control frames cannot be fragmented")
+    assert_eq(enc_error(text_frame("x"), from_hex("0102")), "mask key must be 4 bytes")
+}
+
+@test
+fn test_close_frame_round_trip() {
+    let f = close_frame(1001, "going away")
+    let parsed = parse_close(f.payload)
+    assert_eq(close_code(parsed), 1001)
+    assert_eq(close_reason(parsed), "going away")
+    assert(parse_close(from_hex("03")).is_err(), "one byte close payload")
+    assert(parse_close(from_hex("03 e8 ff fe")).is_err(), "reason must be UTF-8")
+    assert_eq(close_code(parse_close(Vec::new())), 1005)
+}
+
+@test
+fn test_handshake_matches_rfc_6455_example() {
+    // RFC 6455 section 1.3.
+    let key = "dGhlIHNhbXBsZSBub25jZQ=="
+    assert_eq(accept_key(key), "s3pPLMBiTxaQ9kYGzzhZRbK+xOo=")
+    let request = client_request("server.example.com", "/chat", key, ["chat", "superchat"])
+    assert_eq(request, "GET /chat HTTP/1.1\r\nHost: server.example.com\r\nUpgrade: websocket\r\nConnection: Upgrade\r\nSec-WebSocket-Key: dGhlIHNhbXBsZSBub25jZQ==\r\nSec-WebSocket-Version: 13\r\nSec-WebSocket-Protocol: chat, superchat\r\n\r\n")
+    let summary = match parse_request(request) {
+        Ok(q) => "${q.path}|${q.host}|${q.key}|${q.protocols.join(",")}",
+        Err(e) => "error: ${e}",
+    }
+    assert_eq(summary, "/chat|server.example.com|dGhlIHNhbXBsZSBub25jZQ==|chat,superchat")
+    let reply = server_response(key, "chat")
+    assert_eq(reply, "HTTP/1.1 101 Switching Protocols\r\nUpgrade: websocket\r\nConnection: Upgrade\r\nSec-WebSocket-Accept: s3pPLMBiTxaQ9kYGzzhZRbK+xOo=\r\nSec-WebSocket-Protocol: chat\r\n\r\n")
+    assert(validate_response(reply, key).is_ok(), "reply validates")
+}
+
+@test
+fn test_handshake_rejections() {
+    let key = "dGhlIHNhbXBsZSBub25jZQ=="
+    let good = client_request("h", "/", key, Vec::new())
+    assert(parse_request(good).is_ok(), "baseline")
+    assert(parse_request(good.replace("GET", "POST")).is_err(), "method")
+    assert(parse_request(good.replace("Upgrade: websocket", "Upgrade: h2c")).is_err(), "upgrade")
+    assert(parse_request(good.replace("Connection: Upgrade", "Connection: close")).is_err(), "connection")
+    assert(parse_request(good.replace("Version: 13", "Version: 8")).is_err(), "version")
+    assert(parse_request(good.replace(key, "short")).is_err(), "key")
+    assert(parse_request(good.replace("Sec-WebSocket-Key", "X-Other")).is_err(), "missing key")
+    // Header names and the Connection token list are case-insensitive.
+    let lower = "GET / HTTP/1.1\r\nhost: h\r\nupgrade: WebSocket\r\nCONNECTION: keep-alive, Upgrade\r\nsec-websocket-key: ${key}\r\nsec-websocket-version: 13\r\n\r\n"
+    assert(parse_request(lower).is_ok(), "case-insensitive")
+    let reply = server_response(key, "")
+    assert(validate_response(reply.replace("s3pPLMBiTxaQ9kYGzzhZRbK+xOo=", "AAAA"), key).is_err(), "wrong accept")
+    assert(validate_response(reply.replace("101", "200"), key).is_err(), "wrong status")
+    assert(is_valid_key(key), "valid key")
+    assert(!is_valid_key("AAAA"), "short key")
+}
+
+@test
+fn test_fragments_reassemble_into_one_message() {
+    let mut a = new_assembler(1024)
+    let r1 = a.push(Frame { fin: false, opcode: 1, payload: from_hex("48656c") })
+    assert(r1.is_ok(), "first fragment")
+    match r1 {
+        Ok(None) => {},
+        _ => assert(false, "first fragment is incomplete"),
+    }
+    // Control frames may arrive between fragments (RFC 6455 section 5.4).
+    match a.push(new_frame(9, from_hex("01"))) {
+        Ok(Some(Message::Ping(data))) => assert_eq(hex(data), "01"),
+        _ => assert(false, "ping between fragments"),
+    }
+    match a.push(Frame { fin: true, opcode: 0, payload: from_hex("6c6f") }) {
+        Ok(Some(Message::Text(t))) => assert_eq(t, "Hello"),
+        _ => assert(false, "final fragment completes the text"),
+    }
+}
+
+@test
+fn test_assembler_enforces_message_rules() {
+    let mut a = new_assembler(10)
+    assert(a.push(Frame { fin: true, opcode: 0, payload: Vec::new() }).is_err(), "continuation with nothing open")
+    assert(a.push(Frame { fin: false, opcode: 2, payload: from_hex("00") }).is_ok(), "open a binary message")
+    assert(a.push(new_frame(1, from_hex("41"))).is_err(), "new data frame inside a fragmented message")
+    let mut b = new_assembler(4)
+    assert(b.push(new_frame(2, from_hex("0102030405"))).is_err(), "message too large")
+    let mut c = new_assembler(100)
+    assert(c.push(new_frame(1, from_hex("ff fe"))).is_err(), "text must be UTF-8")
+    let mut d = new_assembler(100)
+    match d.push(close_frame(1000, "done")) {
+        Ok(Some(Message::Close(code, why))) => {
+            assert_eq(code, 1000)
+            assert_eq(why, "done")
+        },
+        _ => assert(false, "close message"),
+    }
+    match d.push(new_frame(2, from_hex("0a0b"))) {
+        Ok(Some(Message::Binary(data))) => assert_eq(hex(data), "0a0b"),
+        _ => assert(false, "binary message"),
+    }
+}

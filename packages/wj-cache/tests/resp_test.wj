@@ -1,0 +1,95 @@
+// Wire vectors come from the Redis protocol specification (https://redis.io/docs/reference/protocol-spec/).
+use crate::resp::cmd_auth
+use crate::resp::cmd_get
+use crate::resp::cmd_set
+use crate::resp::cmd_set_ex
+use crate::resp::encode_command
+use crate::resp::parse_reply
+use crate::resp::show
+use std::encoding
+
+fn bytes(text: string) -> Vec<u8> {
+    match encoding.base64_decode(encoding.base64_encode_string(text)) {
+        Ok(b) => b,
+        Err(_) => Vec::new(),
+    }
+}
+
+fn text_of(b: Vec<u8>) -> string {
+    match encoding.base64_decode_string(encoding.base64_encode(b)) {
+        Ok(t) => t,
+        Err(e) => e,
+    }
+}
+
+fn shown(wire: string) -> string {
+    match parse_reply(bytes(wire)) {
+        Ok(Some(p)) => "${show(p.reply)} used=${p.used}",
+        Ok(None) => "need more",
+        Err(e) => "error: ${e}",
+    }
+}
+
+@test
+fn test_replies_from_the_protocol_specification() {
+    assert_eq(shown("+OK\r\n"), "+OK used=5")
+    assert_eq(shown("-Error message\r\n"), "-Error message used=16")
+    assert_eq(shown(":1000\r\n"), ":1000 used=7")
+    assert_eq(shown(":-5\r\n"), ":-5 used=5")
+    assert_eq(shown("$6\r\nfoobar\r\n"), "\"foobar\" used=12")
+    assert_eq(shown("$0\r\n\r\n"), "\"\" used=6")
+    assert_eq(shown("$-1\r\n"), "(nil) used=5")
+    assert_eq(shown("*0\r\n"), "[] used=4")
+    assert_eq(shown("*-1\r\n"), "(nil) used=5")
+    assert_eq(shown("*2\r\n$3\r\nfoo\r\n$3\r\nbar\r\n"), "[\"foo\", \"bar\"] used=22")
+    assert_eq(shown("*3\r\n:1\r\n:2\r\n:3\r\n"), "[:1, :2, :3] used=16")
+    assert_eq(shown("*2\r\n*3\r\n:1\r\n:2\r\n:3\r\n*2\r\n+Foo\r\n-Bar\r\n"), "[[:1, :2, :3], [+Foo, -Bar]] used=36")
+    assert_eq(shown("*3\r\n$3\r\nfoo\r\n$-1\r\n$3\r\nbar\r\n"), "[\"foo\", (nil), \"bar\"] used=27")
+    assert_eq(shown("$6\r\nhéllo\r\n"), "\"héllo\" used=12")
+    assert_eq(shown("+OK\r\n+TRAILING\r\n"), "+OK used=5")
+}
+
+@test
+fn test_incomplete_input_asks_for_more() {
+    assert_eq(shown(""), "need more")
+    assert_eq(shown("+"), "need more")
+    assert_eq(shown("+OK"), "need more")
+    assert_eq(shown("+OK\r"), "need more")
+    assert_eq(shown("$6\r\nfoo"), "need more")
+    assert_eq(shown("$6\r\nfoobar\r"), "need more")
+    assert_eq(shown("*2\r\n$3\r\nfoo\r\n"), "need more")
+    assert_eq(shown("*2\r\n:1\r\n"), "need more")
+    assert_eq(shown("$"), "need more")
+}
+
+@test
+fn test_malformed_replies_are_errors() {
+    assert(shown("?what\r\n").starts_with("error"), "malformed: ?what\r\n")
+    assert(shown(":abc\r\n").starts_with("error"), "malformed: :abc\r\n")
+    assert(shown("$x\r\n").starts_with("error"), "malformed: \$x\r\n")
+    assert(shown("$3\r\nfooXY").starts_with("error"), "malformed: \$3\r\nfooXY")
+    assert(shown("*x\r\n").starts_with("error"), "malformed: *x\r\n")
+    assert(shown("$-5\r\n").starts_with("error"), "malformed: \$-5\r\n")
+    assert(shown("*-5\r\n").starts_with("error"), "malformed: *-5\r\n")
+}
+
+@test
+fn test_commands_encode_as_arrays_of_bulk_strings() {
+    assert_eq(text_of(encode_command(cmd_set("key", "value"))), "*3\r\n$3\r\nSET\r\n$3\r\nkey\r\n$5\r\nvalue\r\n")
+    assert_eq(text_of(encode_command(cmd_get("mykey"))), "*2\r\n$3\r\nGET\r\n$5\r\nmykey\r\n")
+    assert_eq(text_of(encode_command(cmd_set_ex("k", "v", 30))), "*5\r\n$3\r\nSET\r\n$1\r\nk\r\n$1\r\nv\r\n$2\r\nEX\r\n$2\r\n30\r\n")
+    assert_eq(text_of(encode_command(cmd_auth("", "pw"))), "*2\r\n$4\r\nAUTH\r\n$2\r\npw\r\n")
+    assert_eq(text_of(encode_command(cmd_auth("bob", "pw"))), "*3\r\n$4\r\nAUTH\r\n$3\r\nbob\r\n$2\r\npw\r\n")
+    // Lengths count bytes, not characters.
+    assert_eq(text_of(encode_command(cmd_get("hé"))), "*2\r\n$3\r\nGET\r\n$3\r\nhé\r\n")
+    assert_eq(text_of(encode_command(["PING"])), "*1\r\n$4\r\nPING\r\n")
+}
+
+@test
+fn test_a_command_parses_back_as_an_array() {
+    let wire = encode_command(cmd_set("a", "b c"))
+    match parse_reply(wire) {
+        Ok(Some(p)) => assert_eq(show(p.reply), "[\"SET\", \"a\", \"b c\"]"),
+        _ => assert(false, "round trip"),
+    }
+}

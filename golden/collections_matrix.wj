@@ -1,0 +1,45 @@
+// golden: matrix multiply and transpose
+// idiom: Vec<Vec<int>> indexed with m[i][j]; nested for ranges; build rows with push
+fn multiply(a: Vec<Vec<int>>, b: Vec<Vec<int>>) -> Vec<Vec<int>> {
+    let mut out: Vec<Vec<int>> = []
+    for i in 0..a.len() {
+        let mut row: Vec<int> = []
+        for j in 0..b[0].len() {
+            let mut sum = 0
+            for k in 0..b.len() {
+                sum += a[i][k] * b[k][j]
+            }
+            row.push(sum)
+        }
+        out.push(row)
+    }
+    out
+}
+
+fn transpose(m: Vec<Vec<int>>) -> Vec<Vec<int>> {
+    let mut out: Vec<Vec<int>> = []
+    for j in 0..m[0].len() {
+        let mut row: Vec<int> = []
+        for i in 0..m.len() {
+            row.push(m[i][j])
+        }
+        out.push(row)
+    }
+    out
+}
+
+fn show(m: Vec<Vec<int>>) {
+    for row in m {
+        let cells: Vec<string> = row.map(|x| "${x:>4}").collect()
+        println(cells.join(""))
+    }
+}
+
+fn main() {
+    let a = [[1, 2, 3], [4, 5, 6]]
+    let b = [[7, 8], [9, 10], [11, 12]]
+    println("a x b:")
+    show(multiply(a, b))
+    println("transpose of a:")
+    show(transpose(a))
+}

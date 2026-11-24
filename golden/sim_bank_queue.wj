@@ -1,0 +1,41 @@
+// golden: deterministic queue simulation
+// idiom: a linear congruential generator keeps "random" arrivals reproducible; a loop advances simulated minutes
+struct Rng {
+    state: int,
+}
+
+impl Rng {
+    fn next(self) -> int {
+        self.state = (self.state * 1103515245 + 12345) % 2147483648
+        self.state
+    }
+
+    fn below(self, n: int) -> int {
+        self.next() / 65536 % n
+    }
+}
+
+fn main() {
+    let mut rng = Rng { state: 42 }
+    let mut waiting = 0
+    let mut served = 0
+    let mut longest = 0
+    let mut busy_until = 0
+    for minute in 0..30 {
+        if rng.below(3) == 0 {
+            waiting += 1
+        }
+        if minute >= busy_until && waiting > 0 {
+            waiting -= 1
+            served += 1
+            busy_until = minute + 1 + rng.below(3)
+        }
+        if waiting > longest {
+            longest = waiting
+        }
+        if minute % 10 == 9 {
+            println("minute ${minute + 1}: ${waiting} waiting, ${served} served")
+        }
+    }
+    println("longest line ${longest}")
+}

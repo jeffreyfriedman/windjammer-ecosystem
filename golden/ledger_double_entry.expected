@@ -1,0 +1,6 @@
+rejected: postings do not sum to zero
+cash          690
+equity      -1000
+inventory     400
+sales         -90
+books balance: true

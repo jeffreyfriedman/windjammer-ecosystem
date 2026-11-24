@@ -1,6 +1,18 @@
+use crate::bearer_header
+use crate::email_of
+use crate::expires_at
+use crate::extract_bearer
+use crate::has_email
+use crate::require_bearer
+use crate::require_email
+use crate::is_bearer_header
+use crate::looks_like_jwt
 use crate::sign
 use crate::sign_scoped
+use crate::subject
+use crate::tenant_slug
 use crate::verify
+use crate::verify_bearer
 use std::strings
 
 @test
@@ -86,5 +98,101 @@ fn test_claims_exp_is_in_future() {
             }
         },
         Err(_) => assert(false, "sign"),
+    }
+}
+
+@test
+fn test_bearer_header_and_extract() {
+    match sign("user-1", "acme", "secret", 3600) {
+        Ok(token) => {
+            let header = bearer_header(token)
+            assert(strings.starts_with(header, "Authorization: Bearer "), "prefix")
+            match extract_bearer(header) {
+                Some(got) => assert_eq(got, token),
+                None => assert(false, "extract"),
+            }
+        },
+        Err(_) => assert(false, "sign"),
+    }
+}
+
+@test
+fn test_extract_bearer_rejects_non_bearer() {
+    match extract_bearer("Authorization: Basic abc") {
+        Some(_) => assert(false, "expected None"),
+        None => {},
+    }
+}
+
+@test
+fn test_is_bearer_header() {
+    assert(is_bearer_header("Authorization: Bearer abc"), "bearer yes")
+    assert(!is_bearer_header("Authorization: Basic abc"), "basic no")
+    assert(!is_bearer_header(""), "empty")
+}
+
+@test
+fn test_require_bearer() {
+    match require_bearer("Authorization: Bearer abc") {
+        Ok(token) => assert_eq(token, "abc"),
+        Err(_) => assert(false, "bearer"),
+    }
+    match require_bearer("Authorization: Basic abc") {
+        Ok(_) => assert(false, "basic must Err"),
+        Err(msg) => assert(strings.contains(msg, "bearer"), "mentions bearer"),
+    }
+}
+
+@test
+fn test_verify_bearer() {
+    match sign("user-1", "acme", "secret", 3600) {
+        Ok(token) => {
+            let header = bearer_header(token)
+            match verify_bearer(header, "secret") {
+                Ok(claims) => assert_eq(claims.sub, "user-1"),
+                Err(_) => assert(false, "verify_bearer"),
+            }
+        },
+        Err(_) => assert(false, "sign"),
+    }
+    match verify_bearer("Authorization: Basic abc", "secret") {
+        Ok(_) => assert(false, "expected Err"),
+        Err(msg) => assert(strings.len(msg) > 0, "error"),
+    }
+}
+
+@test
+fn test_looks_like_jwt() {
+    match sign("user-1", "acme", "secret", 3600) {
+        Ok(token) => assert(looks_like_jwt(token), "signed token"),
+        Err(_) => assert(false, "sign"),
+    }
+    assert(!looks_like_jwt(""), "empty")
+    assert(!looks_like_jwt("only.two"), "two parts")
+    assert(!looks_like_jwt("a.b.c.d"), "four parts")
+}
+
+@test
+fn test_expires_at_and_has_email() {
+    match sign("user-1", "acme", "secret", 3600) {
+        Ok(token) => {
+            match verify(token, "secret") {
+                Ok(claims) => {
+                    assert(expires_at(claims) > 0, "exp set")
+                    assert(!has_email(claims), "no email on basic sign")
+                },
+                Err(_) => assert(false, "verify"),
+            }
+        },
+        Err(_) => assert(false, "sign"),
+    }
+    match sign_scoped("user-1", "acme", "t1", "e1", "a@b.c", "secret", 3600) {
+        Ok(token) => {
+            match verify(token, "secret") {
+                Ok(claims) => assert(has_email(claims), "scoped has email"),
+                Err(_) => assert(false, "verify scoped"),
+            }
+        },
+        Err(_) => assert(false, "sign_scoped"),
     }
 }

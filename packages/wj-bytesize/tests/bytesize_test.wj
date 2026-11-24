@@ -1,0 +1,165 @@
+use crate::Base
+use crate::format_iec
+use crate::format_places
+use crate::format_rate
+use crate::format_si
+use crate::parse
+use crate::parse_or
+
+fn must<T>(r: Result<T, string>) -> T {
+    match r {
+        Ok(v) => v,
+        Err(e) => panic("unexpected error: ${e}"),
+    }
+}
+
+@test
+fn test_small_values_are_plain_bytes() {
+    assert_eq(format_iec(0), "0 B")
+    assert_eq(format_iec(1), "1 B")
+    assert_eq(format_iec(1023), "1023 B")
+    assert_eq(format_si(999), "999 B")
+}
+
+@test
+fn test_iec_units() {
+    assert_eq(format_iec(1024), "1 KiB")
+    assert_eq(format_iec(1536), "1.5 KiB")
+    assert_eq(format_iec(1048576), "1 MiB")
+    assert_eq(format_iec(5 * 1073741824), "5 GiB")
+    assert_eq(format_iec(1099511627776), "1 TiB")
+}
+
+@test
+fn test_si_units() {
+    assert_eq(format_si(1000), "1 kB")
+    assert_eq(format_si(1500), "1.5 kB")
+    assert_eq(format_si(2500000), "2.5 MB")
+    assert_eq(format_si(1000000000000), "1 TB")
+}
+
+@test
+fn test_rounding_half_up_and_places() {
+    assert_eq(format_places(1075, Base::Iec, 1), "1 KiB")
+    assert_eq(format_places(1100, Base::Iec, 2), "1.07 KiB")
+    assert_eq(format_places(1100, Base::Iec, 0), "1 KiB")
+    assert_eq(format_places(1100, Base::Iec, 3), "1.074 KiB")
+    assert_eq(format_places(1150, Base::Si, 1), "1.2 kB")
+    assert_eq(format_places(1149, Base::Si, 1), "1.1 kB")
+}
+
+@test
+fn test_rounding_up_promotes_to_the_next_unit() {
+    assert_eq(format_places(1048575, Base::Iec, 1), "1 MiB")
+    assert_eq(format_places(999999, Base::Si, 1), "1 MB")
+    assert_eq(format_places(999950, Base::Si, 1), "1 MB")
+    assert_eq(format_places(999949, Base::Si, 1), "999.9 kB")
+}
+
+@test
+fn test_largest_unit_keeps_counting() {
+    assert_eq(format_iec(2048 * 1125899906842624), "2048 PiB")
+    assert_eq(format_si(9000 * 1000000000000000), "9000 PB")
+}
+
+@test
+fn test_negative_values_get_a_sign() {
+    assert_eq(format_iec(-1536), "-1.5 KiB")
+}
+
+@test
+fn test_places_are_clamped() {
+    assert_eq(format_places(1536, Base::Iec, 9), "1.5 KiB")
+    assert_eq(format_places(1536, Base::Iec, -2), "2 KiB")
+}
+
+@test
+fn test_rate() {
+    assert_eq(format_rate(10485760, 1000), "10 MiB/s")
+    assert_eq(format_rate(5242880, 500), "10 MiB/s")
+    assert_eq(format_rate(100, 0), "97.7 KiB/s")
+}
+
+@test
+fn test_parse_plain_and_units() {
+    assert_eq(must(parse("512")), 512)
+    assert_eq(must(parse("512 B")), 512)
+    assert_eq(must(parse("2 GiB")), 2147483648)
+    assert_eq(must(parse("2GB")), 2000000000)
+    assert_eq(must(parse("64k")), 65536)
+    assert_eq(must(parse("  3 mib ")), 3145728)
+    assert_eq(must(parse("1 PB")), 1000000000000000)
+}
+
+@test
+fn test_parse_fractions_are_exact() {
+    assert_eq(must(parse("1.5MB")), 1500000)
+    assert_eq(must(parse("1.5 KiB")), 1536)
+    assert_eq(must(parse("0.25 GiB")), 268435456)
+    assert_eq(must(parse("0.001 kb")), 1)
+    assert_eq(parse("2.").is_err(), true)
+}
+
+@test
+fn test_parse_errors() {
+    assert_eq(parse("").unwrap_err(), "empty size")
+    assert_eq(parse("   ").unwrap_err(), "empty size")
+    assert_eq(parse("GB").unwrap_err(), "expected a number")
+    assert_eq(parse("12 parsecs").unwrap_err(), "unknown unit 'parsecs'")
+    assert_eq(parse("1.2345 MB").unwrap_err(), "at most 3 decimal places")
+    assert_eq(parse("5 Mb").unwrap_err(), "'Mb' means bits; write MB or MiB")
+    assert_eq(must(parse("5 mb")), 5000000)
+    assert_eq(parse("-5").unwrap_err(), "expected a number")
+}
+
+@test
+fn test_parse_overflow_is_an_error() {
+    assert_eq(must(parse("9223372036854775807")), 9223372036854775807)
+    assert_eq(parse("9223372036854775808").unwrap_err(), "size is too large")
+    assert_eq(parse("9000 PiB").unwrap_err(), "size is too large")
+    assert_eq(must(parse("8000 PiB")), 8000 * 1125899906842624)
+}
+
+@test
+fn test_parse_or() {
+    assert_eq(parse_or("2k", 7), 2048)
+    assert_eq(parse_or("nope", 7), 7)
+}
+
+@test
+fn test_property_format_never_loses_more_than_rounding() {
+    // parse(format(x)) is within half a display step of x for every size
+    let samples = [0, 1, 7, 999, 1000, 1023, 1024, 1025, 4095, 65535, 1048575, 1048576, 123456789, 987654321012]
+    let mut i = 0
+    while i < samples.len() {
+        let x = samples[i]
+        let text = format_places(x, Base::Iec, 3)
+        let back = must(parse(text))
+        let diff = if back > x { back - x } else { x - back }
+        // three decimals of the chosen unit: error below 0.05% of the value, plus one byte of slack
+        assert(diff * 2000 <= x + 2000)
+        i = i + 1
+    }
+}
+
+@test
+fn test_property_format_is_monotonic_in_unit() {
+    // growing a value never moves it to a smaller unit
+    let units = ["B", "KiB", "MiB", "GiB", "TiB", "PiB"]
+    let mut last_rank = 0
+    let mut x = 1
+    while x < 4000000000000000 {
+        let text = format_iec(x)
+        let mut rank = 0
+        let mut r = 0
+        while r < 6 {
+            if text.ends_with(" ${units[r]}") {
+                rank = r
+            }
+            r = r + 1
+        }
+        assert(rank >= last_rank)
+        last_rank = rank
+        x = x * 3 + 1
+    }
+}

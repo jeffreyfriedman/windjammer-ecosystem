@@ -1,0 +1,164 @@
+use std::crypto
+use std::encoding
+use std::json
+use std::strings
+use crate::b64
+
+/// A JWT split into its parts (not yet verified).
+pub struct Parts {
+    pub header_json: string,
+    pub payload_json: string,
+    pub signing_input: string,
+    pub signature: Vec<u8>,
+}
+
+/// Split `header.payload.signature` and decode the parts.
+pub fn split(token: string) -> Result<Parts, string> {
+    let pieces = strings.split(strings.trim(token), ".")
+    if pieces.len() != 3 {
+        return Err("a JWT has three dot-separated parts")
+    }
+    let header_json = b64::decode_text(pieces[0])?
+    let payload_json = b64::decode_text(pieces[1])?
+    let signature = b64::decode(pieces[2])?
+    Ok(Parts { header_json: header_json, payload_json: payload_json, signing_input: "${pieces[0]}.${pieces[1]}", signature: signature })
+}
+
+fn text_field(v: json::Value, name: string) -> string {
+    match json.get(v, name) {
+        Some(x) => json.as_str(x) ?? "",
+        None => "",
+    }
+}
+
+/// Header `alg` of an unverified token.
+pub fn algorithm(p: Parts) -> Result<string, string> {
+    match json.parse(p.header_json) {
+        Ok(h) => Ok(text_field(h, "alg")),
+        Err(e) => Err("bad JWT header: ${e}"),
+    }
+}
+
+/// Verify an HS256 token with `secret` and return its parts. Rejects `alg: none`, any other algorithm, and a
+/// wrong signature (compared in constant time).
+pub fn verify_hs256(token: string, secret: string) -> Result<Parts, string> {
+    let p = split(token)?
+    let alg = algorithm(p)?
+    if alg == "none" || strings.len(alg) == 0 {
+        return Err("unsigned tokens are not accepted")
+    }
+    if alg != "HS256" {
+        if alg == "RS256" || alg == "ES256" || alg == "PS256" {
+            return Err("${alg} needs RSA or ECDSA support, which std does not have yet")
+        }
+        return Err("unsupported algorithm ${alg}")
+    }
+    if !crypto.verify_hmac_sha256(secret, p.signing_input, encoding.hex_encode(p.signature)) {
+        return Err("signature does not match")
+    }
+    Ok(p)
+}
+
+/// What a token must satisfy. Empty `issuer`, `audience` or `nonce` skips that check.
+pub struct Expect {
+    pub issuer: string,
+    pub audience: string,
+    pub nonce: string,
+    pub now: int,
+    pub leeway: int,
+}
+
+/// The claims clients usually read.
+pub struct Claims {
+    pub subject: string,
+    pub issuer: string,
+    pub expires_at: int,
+    pub issued_at: int,
+    pub nonce: string,
+    pub email: string,
+}
+
+fn number_field(v: json::Value, name: string) -> Option<int> {
+    match json.get(v, name) {
+        Some(x) => json.as_i64(x),
+        None => None,
+    }
+}
+
+fn audience_matches(v: json::Value, want: string) -> bool {
+    match json.get(v, "aud") {
+        Some(a) => {
+            if json.is_string(a) {
+                return json.as_str(a).unwrap_or("") == want
+            }
+            if json.is_array(a) {
+                let mut i = 0
+                while i < json.len(a) {
+                    match json.get_index(a, i) {
+                        Some(item) => {
+                            if json.as_str(item).unwrap_or("") == want {
+                                return true
+                            }
+                        },
+                        None => {},
+                    }
+                    i = i + 1
+                }
+            }
+            false
+        },
+        None => false,
+    }
+}
+
+/// Validate the registered claims (RFC 7519 section 4.1) and the OpenID Connect ones against `expect`.
+pub fn validate_claims(payload_json: string, expect: Expect) -> Result<Claims, string> {
+    let v = match json.parse(payload_json) {
+        Ok(v) => v,
+        Err(e) => return Err("bad JWT payload: ${e}"),
+    }
+    if !json.is_object(v) {
+        return Err("JWT payload is not an object")
+    }
+    let iss = text_field(v, "iss")
+    if strings.len(expect.issuer) > 0 && iss != expect.issuer {
+        return Err("issuer mismatch: expected ${expect.issuer}, got ${iss}")
+    }
+    if strings.len(expect.audience) > 0 && !audience_matches(v, expect.audience) {
+        return Err("audience does not include ${expect.audience}")
+    }
+    let exp = match number_field(v, "exp") {
+        Some(n) => n,
+        None => return Err("exp claim is required"),
+    }
+    if expect.now >= exp + expect.leeway {
+        return Err("token expired")
+    }
+    match number_field(v, "nbf") {
+        Some(n) => {
+            if expect.now + expect.leeway < n {
+                return Err("token not valid yet")
+            }
+        },
+        None => {},
+    }
+    let iat = number_field(v, "iat") ?? 0
+    if iat > expect.now + expect.leeway {
+        return Err("token issued in the future")
+    }
+    let nonce = text_field(v, "nonce")
+    if strings.len(expect.nonce) > 0 && !crypto.constant_time_eq(nonce, expect.nonce) {
+        return Err("nonce mismatch")
+    }
+    let sub = text_field(v, "sub")
+    if strings.len(sub) == 0 {
+        return Err("sub claim is required")
+    }
+    Ok(Claims { subject: sub, issuer: iss, expires_at: exp, issued_at: iat, nonce: nonce, email: text_field(v, "email") })
+}
+
+/// Verify an HS256 ID token and validate its claims in one call.
+pub fn validate_id_token_hs256(token: string, secret: string, expect: Expect) -> Result<Claims, string> {
+    let p = verify_hs256(token, secret)?
+    validate_claims(p.payload_json, expect)
+}

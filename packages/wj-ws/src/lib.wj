@@ -1,0 +1,5 @@
+//! WebSocket (RFC 6455) frame codec, message assembly and opening-handshake helpers.
+//! Transport independent: feed bytes in, get frames out, so it works over any socket or test buffer.
+pub mod frame
+pub mod handshake
+pub mod message

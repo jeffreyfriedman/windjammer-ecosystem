@@ -89,6 +89,61 @@ pub fn html_filename(path: string) -> string {
     html_output_path(name)
 }
 
+pub fn is_markdown_path(path: string) -> bool {
+    strings.ends_with(path, ".md")
+}
+
+pub fn is_html_path(path: string) -> bool {
+    strings.ends_with(path, ".html")
+}
+
+pub fn page_count(pages: Vec<GeneratedPage>) -> int {
+    let mut n = 0
+    for _ in pages {
+        n = n + 1
+    }
+    n
+}
+
+/// Page count when the list is non-empty.
+pub fn require_pages(pages: Vec<GeneratedPage>) -> Result<int, string> {
+    let n = page_count(pages)
+    if n == 0 {
+        Err("expected pages")
+    } else {
+        Ok(n)
+    }
+}
+
+/// The only page, or an error when the list is empty or has more than one.
+pub fn require_only_page(pages: Vec<GeneratedPage>) -> Result<GeneratedPage, string> {
+    match only_page(pages) {
+        Some(page) => Ok(page),
+        None => Err("expected one page"),
+    }
+}
+
+/// The only page when the list has exactly one entry.
+pub fn only_page(pages: Vec<GeneratedPage>) -> Option<GeneratedPage> {
+    let mut kept = GeneratedPage {
+        filename: "",
+        title: "",
+        html: "",
+    }
+    let mut n = 0
+    for page in pages {
+        n = n + 1
+        if n == 1 {
+            kept = page
+        }
+    }
+    if n == 1 {
+        Some(kept)
+    } else {
+        None
+    }
+}
+
 fn parse_markdown(source: string) -> (string, string) {
     let lines = strings.split_lines(source)
     let mut title = "Untitled"

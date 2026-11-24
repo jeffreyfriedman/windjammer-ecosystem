@@ -1,0 +1,58 @@
+use crate::Rounding
+use crate::add
+use crate::allocate
+use crate::apply_bps
+use crate::format
+use crate::mul_int
+use crate::parse
+use crate::split
+use std::fs
+use std::strings
+
+fn must<T>(r: Result<T, string>) -> T {
+    match r {
+        Ok(v) => v,
+        Err(e) => panic("unexpected error: ${e}"),
+    }
+}
+
+fn read(path: string) -> string {
+    fs.read_to_string(path).unwrap_or("")
+}
+
+/// The docs gate reads the package files relative to the package root, which is where interpreted `wj test` runs.
+/// A compiled `wj test` runs from a scratch crate where they do not exist; the checks then step aside.
+fn docs_present() -> bool {
+    strings.len(read("README.md")) > 0
+}
+
+fn readme_block(fence: string) -> string {
+    let parts = strings.split(read("README.md"), fence)
+    strings.split(parts[1], "```")[0]
+}
+
+@test
+fn test_readme_snippet_matches_the_example() {
+    if !docs_present() {
+        return
+    }
+    assert_eq(readme_block("```windjammer\n"), read("examples/invoice.wj"))
+}
+
+@test
+fn test_readme_output_is_what_the_example_prints() {
+    if !docs_present() {
+        return
+    }
+    let price = must(parse("19.99", "USD"))
+    let subtotal = must(mul_int(price, 3))
+    let tax = must(apply_bps(subtotal, 825, Rounding::HalfUp))
+    let total = must(add(subtotal, tax))
+    let mut out = "subtotal ${format(subtotal)}, tax ${format(tax)}, total ${format(total)}\n"
+    let shares = must(split(total, 5))
+    out = "${out}shares: ${format(shares[0])} ${format(shares[1])} ${format(shares[2])} ${format(shares[3])} ${format(shares[4])}\n"
+    let parts = must(allocate(must(parse("1000.00", "USD")), [70, 20, 10]))
+    out = "${out}revenue: ${format(parts[0])} ${format(parts[1])} ${format(parts[2])}\n"
+    out = "${out}mixed: ${add(price, must(parse("5", "EUR"))).unwrap_err()}\n"
+    assert_eq(readme_block("```text\n"), out)
+}

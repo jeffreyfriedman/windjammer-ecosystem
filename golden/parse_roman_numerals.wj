@@ -1,0 +1,53 @@
+// golden: Roman numerals both ways
+// idiom: a table of (value, symbol) pairs drives both directions; greedy subtraction and a left-to-right scan
+fn table() -> Vec<(int, string)> {
+    [(1000, "M"), (900, "CM"), (500, "D"), (400, "CD"), (100, "C"), (90, "XC"), (50, "L"), (40, "XL"), (10, "X"), (9, "IX"), (5, "V"), (4, "IV"), (1, "I")]
+}
+
+fn to_roman(n: int) -> string {
+    let mut left = n
+    let mut out = ""
+    for (value, symbol) in table() {
+        while left >= value {
+            out += symbol
+            left -= value
+        }
+    }
+    out
+}
+
+fn symbol_value(c: char) -> int {
+    match c {
+        'I' => 1,
+        'V' => 5,
+        'X' => 10,
+        'L' => 50,
+        'C' => 100,
+        'D' => 500,
+        'M' => 1000,
+        _ => 0,
+    }
+}
+
+fn from_roman(text: string) -> int {
+    let cs: Vec<char> = text.chars().collect()
+    let mut total = 0
+    let mut i = 0
+    while i < cs.len() {
+        let v = symbol_value(cs[i])
+        if i + 1 < cs.len() && v < symbol_value(cs[i + 1]) {
+            total -= v
+        } else {
+            total += v
+        }
+        i += 1
+    }
+    total
+}
+
+fn main() {
+    for n in [1, 4, 9, 14, 40, 90, 400, 1994, 2024, 3999] {
+        let r = to_roman(n)
+        println("${n} -> ${r} -> ${from_roman(r)}")
+    }
+}

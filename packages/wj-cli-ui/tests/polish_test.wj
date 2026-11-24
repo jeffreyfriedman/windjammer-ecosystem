@@ -1,0 +1,154 @@
+// Control sequences are the ECMA-48 / xterm values; status lines and boxes are computed in Python (str.format and unicodedata).
+use crate::ansi::bell
+use crate::ansi::clear_line
+use crate::ansi::clear_lines_above
+use crate::ansi::clear_screen
+use crate::ansi::cursor_back
+use crate::ansi::cursor_column
+use crate::ansi::cursor_down
+use crate::ansi::cursor_forward
+use crate::ansi::cursor_up
+use crate::ansi::enter_alt_screen
+use crate::ansi::hide_cursor
+use crate::ansi::hyperlink
+use crate::ansi::leave_alt_screen
+use crate::ansi::move_to
+use crate::ansi::restore_cursor
+use crate::ansi::rewrite_line
+use crate::ansi::save_cursor
+use crate::ansi::set_title
+use crate::ansi::show_cursor
+use crate::layout::boxed
+use crate::layout::justify
+use crate::layout::rule
+use crate::progress::eta_text
+use crate::progress::rate_text
+use crate::progress::status_line
+use crate::prompt::Rule
+use crate::prompt::answers_from
+use crate::prompt::check_rule
+use crate::prompt::ask_int
+use crate::prompt::multi_select
+use crate::prompt::parse_multi
+use crate::style::always
+use crate::style::never
+
+fn picks(r: Option<Vec<int>>) -> string {
+    match r {
+        Some(v) => {
+            let mut parts: Vec<string> = Vec::new()
+            for i in v {
+                parts.push("${i}")
+            }
+            "[${parts.join(",")}]"
+        },
+        None => "none",
+    }
+}
+
+
+@test
+fn test_control_sequences() {
+    assert_eq(cursor_up(1), "\u{1b}[A")
+    assert_eq(cursor_up(3), "\u{1b}[3A")
+    assert_eq(cursor_down(2), "\u{1b}[2B")
+    assert_eq(cursor_forward(5), "\u{1b}[5C")
+    assert_eq(cursor_back(1), "\u{1b}[D")
+    assert_eq(cursor_column(10), "\u{1b}[10G")
+    assert_eq(move_to(4, 12), "\u{1b}[4;12H")
+    assert_eq(save_cursor(), "\u{1b}7")
+    assert_eq(restore_cursor(), "\u{1b}8")
+    assert_eq(hide_cursor(), "\u{1b}[?25l")
+    assert_eq(show_cursor(), "\u{1b}[?25h")
+    assert_eq(clear_line(), "\u{1b}[2K")
+    assert_eq(clear_screen(), "\u{1b}[2J\u{1b}[H")
+    assert_eq(enter_alt_screen(), "\u{1b}[?1049h")
+    assert_eq(leave_alt_screen(), "\u{1b}[?1049l")
+    assert_eq(set_title("build"), "\u{1b}]0;build\u{7}")
+    assert_eq(bell(), "\u{7}")
+    assert_eq(rewrite_line("x"), "\r\u{1b}[2Kx")
+    assert_eq(clear_lines_above(2), "\u{1b}[A\u{1b}[2K\u{1b}[A\u{1b}[2K\r")
+    assert_eq(hyperlink(always(), "https://example.com", "site"), "\u{1b}]8;;https://example.com\u{1b}\\site\u{1b}]8;;\u{1b}\\")
+    assert_eq(hyperlink(never(), "https://example.com", "site"), "site")
+}
+
+@test
+fn test_status_lines_match_python() {
+    assert_eq(status_line("copy", 5, 10, 2000, 10), "copy [#####-----]  50% 5/10 2.5/s ETA 2s")
+    assert_eq(status_line("build", 0, 10, 0, 8), "build [--------]   0% 0/10 0.0/s ETA --")
+    assert_eq(status_line("sync", 10, 10, 5000, 10), "sync [##########] 100% 10/10 2.0/s ETA --")
+    assert_eq(status_line("big", 1, 1000, 60000, 20), "big [--------------------]   0% 1/1000 0.0/s ETA 16h 39m")
+    assert_eq(status_line("slow", 1, 100, 1000000, 10), "slow [----------]   1% 1/100 0.0/s ETA 27h 30m")
+    assert_eq(status_line("eta h", 1, 10000, 100000, 10), "eta h [----------]   0% 1/10000 0.0/s ETA 277h 45m")
+    assert_eq(rate_text(1, 1500), "0.7/s")
+    assert_eq(eta_text(1, 3, 1500), "3s")
+    assert_eq(rate_text(7, 3000), "2.3/s")
+    assert_eq(eta_text(7, 9, 3000), "0s")
+    assert_eq(rate_text(2, 45000), "0.0/s")
+    assert_eq(eta_text(2, 100, 45000), "36m 45s")
+}
+
+@test
+fn test_boxes_rules_and_justify() {
+    let lines: Vec<string> = ["short", "a longer line", "日本語"]
+    assert_eq(boxed(lines, 0).join("\n"), "┌───────────────┐\n│ short         │\n│ a longer line │\n│ 日本語        │\n└───────────────┘")
+    assert_eq(boxed(lines, 20).join("\n"), "┌──────────────────────┐\n│ short                │\n│ a longer line        │\n│ 日本語               │\n└──────────────────────┘")
+    assert_eq(rule("", 8), "────────")
+    assert_eq(rule("Results", 30), "── Results ───────────────────")
+    assert_eq(rule("far too long a title", 10), " far too long a title ")
+    assert_eq(justify("left", "right", 20), "left           right")
+    assert_eq(justify("a very long left", "right part", 10), "a very long left right part")
+}
+
+@test
+fn test_numeric_and_validated_prompts() {
+    let mut a = answers_from(["abc", "99", "7"])
+    assert_eq(ask_int(a, "Port", 1, 65535, 8080, 5), 99)
+    let mut b = answers_from(["", "x"])
+    assert_eq(ask_int(b, "Port", 1, 65535, 8080, 5), 8080)
+    let mut c = answers_from(["0", "70000", "-5"])
+    assert_eq(ask_int(c, "Port", 1, 65535, 8080, 3), 8080)
+    let mut d = answers_from(Vec::new())
+    assert_eq(ask_int(d, "Port", 1, 65535, 8080, 3), 8080)
+    let mut e = answers_from(["has space", "good-slug"])
+    assert_eq(e.ask_rule("Slug", "fallback", Rule::NoSpaces, 3) ?? "none", "good-slug")
+    let mut f = answers_from(["a b", "c d"])
+    assert_eq(f.ask_rule("Slug", "fallback", Rule::NoSpaces, 2) ?? "none", "none")
+    let mut g = answers_from([""])
+    assert_eq(g.ask_rule("Slug", "fallback", Rule::NoSpaces, 2) ?? "none", "fallback")
+}
+
+@test
+fn test_rules() {
+    assert(check_rule(Rule::NonEmpty, "x"), "non-empty")
+    assert(!check_rule(Rule::NonEmpty, "   "), "blank")
+    assert(check_rule(Rule::NoSpaces, "a-b"), "slug")
+    assert(!check_rule(Rule::NoSpaces, "a b"), "space")
+    assert(check_rule(Rule::Digits, "0123"), "digits")
+    assert(!check_rule(Rule::Digits, "12a"), "letters")
+    assert(!check_rule(Rule::Digits, ""), "empty")
+    assert(check_rule(Rule::MaxLen(3), "abc"), "at the limit")
+    assert(!check_rule(Rule::MaxLen(3), "abcd"), "over the limit")
+    let words: Vec<string> = ["Yes", "no"]
+    assert(check_rule(Rule::OneOf(words), "YES"), "case-insensitive")
+    let words2: Vec<string> = ["Yes", "no"]
+    assert(!check_rule(Rule::OneOf(words2), "maybe"), "not listed")
+}
+
+@test
+fn test_multiple_choice() {
+    let options = ["red", "green", "blue", "cyan"]
+    assert_eq(picks(parse_multi("1,3", options)), "[0,2]")
+    assert_eq(picks(parse_multi("3 1", options)), "[0,2]")
+    assert_eq(picks(parse_multi("Green, CYAN", options)), "[1,3]")
+    assert_eq(picks(parse_multi("1,1", options)), "none")
+    assert_eq(picks(parse_multi("5", options)), "none")
+    assert_eq(picks(parse_multi("red,purple", options)), "none")
+    assert_eq(picks(parse_multi("", options)), "[]")
+    let mut a = answers_from(["9", "2,4"])
+    assert_eq(picks(multi_select(a, "Colours?", options, 3)), "[1,3]")
+    let mut b = answers_from([""])
+    assert_eq(picks(multi_select(b, "Colours?", options, 3)), "[]")
+    let mut c = answers_from(Vec::new())
+    assert_eq(picks(multi_select(c, "Colours?", options, 3)), "none")
+}

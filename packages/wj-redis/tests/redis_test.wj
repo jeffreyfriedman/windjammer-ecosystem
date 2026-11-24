@@ -1,0 +1,163 @@
+// The wire bytes and replies below follow the RESP2 specification (redis.io/docs/reference/protocol-spec):
+// a command is an array of bulk strings; `+OK`, `:1`, `$1\r\n1`, `$-1` (nil) and `-ERR ...` are the replies.
+use std::thread
+use crate::client::Client
+use crate::server::TestServer
+use wj_cache::resp::Reply
+use wj_cache::resp::show
+
+fn shown(r: Result<Reply, string>) -> string {
+    match r {
+        Ok(reply) => show(reply),
+        Err(e) => "error: ${e}",
+    }
+}
+
+fn check(r: Result<(), string>) {
+    match r {
+        Ok(_) => {},
+        Err(e) => assert(false, e),
+    }
+}
+
+fn round_trip() -> Result<(), string> {
+    let mut server = TestServer::bind("127.0.0.1:0")?
+    let mut client = Client::connect(server.addr(), 2000)?
+    let mut session = server.accept()?
+    let script: Vec<Vec<string>> = [
+        ["PING"],
+        ["SET", "greeting", "héllo"],
+        ["GET", "greeting"],
+        ["GET", "missing"],
+        ["INCR", "hits"],
+        ["INCR", "hits"],
+        ["DEL", "greeting", "missing"],
+        ["NOPE"],
+    ]
+    let mut seen: Vec<string> = Vec::new()
+    for cmd in script {
+        client.send(cmd)?
+        assert(server.serve_one(session)?)
+        seen.push(shown(client.receive()))
+    }
+    assert_eq(seen[0], "+PONG")
+    assert_eq(seen[1], "+OK")
+    assert_eq(seen[2], "\"héllo\"")
+    assert_eq(seen[3], "(nil)")
+    assert_eq(seen[4], ":1")
+    assert_eq(seen[5], ":2")
+    assert_eq(seen[6], ":1")
+    assert_eq(seen[7], "-ERR unknown command 'NOPE'")
+    Ok(())
+}
+
+@test
+fn test_commands_round_trip_in_lockstep() {
+    check(round_trip())
+}
+
+fn pipelined() -> Result<(), string> {
+    let mut server = TestServer::bind("127.0.0.1:0")?
+    let mut client = Client::connect(server.addr(), 2000)?
+    let mut session = server.accept()?
+    client.send(["SET", "a", "1"])?
+    client.send(["ECHO", "two"])?
+    client.send(["GET", "a"])?
+    for _ in 0..3 {
+        assert(server.serve_one(session)?)
+    }
+    assert_eq(shown(client.receive()), "+OK")
+    assert_eq(shown(client.receive()), "\"two\"")
+    assert_eq(shown(client.receive()), "\"1\"")
+    Ok(())
+}
+
+@test
+fn test_pipelined_commands_keep_their_order() {
+    check(pipelined())
+}
+
+fn closed_client() -> Result<(), string> {
+    let mut server = TestServer::bind("127.0.0.1:0")?
+    let mut client = Client::connect(server.addr(), 2000)?
+    let mut session = server.accept()?
+    client.close()?
+    assert(!server.serve_one(session)?)
+    Ok(())
+}
+
+@test
+fn test_a_closed_client_ends_the_session() {
+    check(closed_client())
+}
+
+fn silent_server() -> Result<(), string> {
+    let server = TestServer::bind("127.0.0.1:0")?
+    let mut client = Client::connect(server.addr(), 100)?
+    client.send(["PING"])?
+    assert_eq(shown(client.receive()), "error: timed out")
+    Ok(())
+}
+
+@test
+fn test_a_silent_server_times_out() {
+    check(silent_server())
+}
+
+fn error_replies() -> Result<(), string> {
+    let mut server = TestServer::bind("127.0.0.1:0")?
+    let mut client = Client::connect(server.addr(), 2000)?
+    let mut session = server.accept()?
+    client.send(["INCR", "x"])?
+    client.send(["SET", "x", "abc"])?
+    client.send(["INCR", "x"])?
+    for _ in 0..3 {
+        assert(server.serve_one(session)?)
+    }
+    assert_eq(shown(client.receive()), ":1")
+    assert_eq(shown(client.receive()), "+OK")
+    assert_eq(shown(client.receive()), "-ERR value is not an integer or out of range")
+    Ok(())
+}
+
+@test
+fn test_error_replies_arrive_in_order() {
+    check(error_replies())
+}
+
+fn refused() -> Result<(), string> {
+    let closed = TestServer::bind("127.0.0.1:0")?
+    let addr = closed.addr()
+    drop(closed)
+    match Client::connect(addr, 500) {
+        Ok(_) => assert(false, "connected to a closed port"),
+        Err(e) => assert_eq(e, "connection refused"),
+    }
+    Ok(())
+}
+
+@test
+fn test_nobody_listening_is_connection_refused() {
+    check(refused())
+}
+
+fn threaded() -> Result<(), string> {
+    let mut server = TestServer::bind("127.0.0.1:0")?
+    let addr = server.addr()
+    let h = thread::spawn(move || server.serve_client())
+    let mut client = Client::connect(addr, 5000)?
+    assert_eq(shown(client.call(["SET", "k", "v"])), "+OK")
+    assert_eq(shown(client.call(["GET", "k"])), "\"v\"")
+    assert_eq(shown(client.call(["INCR", "k"])), "error: ERR value is not an integer or out of range")
+    client.close()?
+    match h.join() {
+        Ok(served) => assert_eq(served ?? -1, 3),
+        Err(_) => assert(false, "the server thread panicked"),
+    }
+    Ok(())
+}
+
+@test
+fn test_a_server_thread_answers_calls() {
+    check(threaded())
+}

@@ -1,0 +1,58 @@
+// golden: INI-style config parser
+// idiom: one pass over lines with a "current section" variable; entries are structs; strings.trim returns an owned string
+use std::strings
+
+struct Entry {
+    section: string,
+    key: string,
+    value: string,
+}
+
+fn parse(text: string) -> Result<Vec<Entry>, string> {
+    let mut entries: Vec<Entry> = []
+    let mut section = "global"
+    let mut number = 0
+    for raw in text.lines() {
+        number += 1
+        let line = strings.trim(raw)
+        if line.len() == 0 || line.starts_with("#") {
+            continue
+        }
+        if line.starts_with("[") {
+            if !line.ends_with("]") {
+                return Err("line ${number}: unterminated section header")
+            }
+            section = line[1..line.len() - 1]
+        } else if line.contains("=") {
+            let kv: Vec<string> = line.split("=").collect()
+            entries.push(Entry { section: section, key: strings.trim(kv[0]), value: strings.trim(kv[1]) })
+        } else {
+            return Err("line ${number}: expected key = value")
+        }
+    }
+    Ok(entries)
+}
+
+fn get(entries: Vec<Entry>, section: string, key: string) -> Option<string> {
+    for e in entries {
+        if e.section == section && e.key == key {
+            return Some(e.value)
+        }
+    }
+    None
+}
+
+fn main() {
+    let text = "name = demo\n# a comment\n[server]\nhost = localhost\nport = 8080\n\n[db]\nurl = sqlite://data.db"
+    match parse(text) {
+        Ok(entries) => {
+            println("${entries.len()} entries")
+            println("server.port = ${get(entries, "server", "port") ?? "unset"}")
+            println("db.url = ${get(entries, "db", "url") ?? "unset"}")
+            println("global.name = ${get(entries, "global", "name") ?? "unset"}")
+            println("db.user = ${get(entries, "db", "user") ?? "unset"}")
+        },
+        Err(e) => println("error: ${e}"),
+    }
+    println("${parse("[oops").is_err()} ${parse("nonsense").is_err()}")
+}

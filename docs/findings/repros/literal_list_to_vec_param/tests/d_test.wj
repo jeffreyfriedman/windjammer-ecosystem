@@ -1,0 +1,5 @@
+use crate::demo
+
+fn test_demo() {
+    assert_eq(demo(), 3)
+}

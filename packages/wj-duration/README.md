@@ -2,6 +2,8 @@
 
 Parse and format human durations as milliseconds (`5ms`, `3s`, `1h30m`).
 
+Thin-wraps `std::time.parse_duration_ms` / `format_duration_ms`.
+
 ## API
 
 ```windjammer
@@ -23,6 +25,10 @@ Bare numbers are milliseconds. Units: `ms`, `s`, `m`, `h`, `d`.
 src/lib.wj
 tests/duration_test.wj
 ```
+
+## Tip status
+
+✅ tip green — thin-wrap over `std::time` (parse/format duration ms).
 
 ## License
 

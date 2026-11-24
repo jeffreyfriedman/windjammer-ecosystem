@@ -1,0 +1,57 @@
+// golden: command-line flag parsing
+// idiom: a struct of options with defaults; scan the argument Vec with an index; Result reports bad input
+struct Options {
+    name: string,
+    count: int,
+    verbose: bool,
+    files: Vec<string>,
+}
+
+fn parse(args: Vec<string>) -> Result<Options, string> {
+    let mut opts = Options { name: "world", count: 1, verbose: false, files: [] }
+    let mut i = 0
+    while i < args.len() {
+        let arg = args[i]
+        if arg == "--verbose" || arg == "-v" {
+            opts.verbose = true
+        } else if arg == "--name" || arg == "-n" {
+            i += 1
+            if i >= args.len() {
+                return Err("${arg} needs a value")
+            }
+            opts.name = args[i]
+        } else if arg == "--count" || arg == "-c" {
+            i += 1
+            if i >= args.len() {
+                return Err("${arg} needs a value")
+            }
+            opts.count = args[i].parse::<int>().map_err(|_| "bad count: ${args[i]}")?
+        } else if arg.starts_with("-") {
+            return Err("unknown flag: ${arg}")
+        } else {
+            opts.files.push(arg)
+        }
+        i += 1
+    }
+    Ok(opts)
+}
+
+fn run(args: Vec<string>) {
+    match parse(args) {
+        Ok(o) => {
+            for _ in 0..o.count {
+                println("hello, ${o.name}")
+            }
+            println("verbose=${o.verbose} files=${o.files:?}")
+        },
+        Err(e) => println("error: ${e}"),
+    }
+}
+
+fn main() {
+    run(["--name", "Ada", "-c", "2", "-v", "a.txt", "b.txt"])
+    run([])
+    run(["--count", "many"])
+    run(["--name"])
+    run(["--bogus"])
+}

@@ -1,0 +1,6 @@
+rendering 3 values
+Dear Ada, your order #1042 ships on Friday.
+placeholders: name, order, day
+Dear Grace, your order {{order}} ships on {{day}}.
+unfilled: 2
+-=-

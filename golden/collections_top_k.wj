@@ -1,0 +1,66 @@
+// golden: top-k and dedupe
+// idiom: copy into a new Vec before sorting; sort then reverse for descending; plain loops for max, min and the average
+fn top_k(items: Vec<int>, k: int) -> Vec<int> {
+    let mut sorted: Vec<int> = []
+    for x in items {
+        sorted.push(x)
+    }
+    sorted.sort()
+    sorted.reverse()
+    let mut out: Vec<int> = []
+    for i in 0..k {
+        out.push(sorted[i])
+    }
+    out
+}
+
+fn dedupe(items: Vec<int>) -> Vec<int> {
+    let mut sorted = items
+    sorted.sort()
+    let mut out: Vec<int> = []
+    for x in sorted {
+        if out.len() == 0 || out[out.len() - 1] != x {
+            out.push(x)
+        }
+    }
+    out
+}
+
+fn average(items: Vec<int>) -> float {
+    if items.len() == 0 {
+        return 0.0
+    }
+    let mut sum = 0
+    for x in items {
+        sum += x
+    }
+    sum as float / items.len() as float
+}
+
+fn largest(items: Vec<int>) -> int {
+    let mut best = items[0]
+    for x in items {
+        if x > best {
+            best = x
+        }
+    }
+    best
+}
+
+fn smallest(items: Vec<int>) -> int {
+    let mut best = items[0]
+    for x in items {
+        if x < best {
+            best = x
+        }
+    }
+    best
+}
+
+fn main() {
+    let scores = [72, 91, 85, 91, 60, 85, 99, 72]
+    println("top 3: ${top_k(scores, 3):?}")
+    println("distinct: ${dedupe(scores):?}")
+    println("average: ${average(scores):.2}")
+    println("max ${largest(scores)} min ${smallest(scores)}")
+}

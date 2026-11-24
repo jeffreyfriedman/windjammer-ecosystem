@@ -1,0 +1,8 @@
+all 3 inputs are numbers
+exit 0 (success)
+error: x is not a number
+exit 1 (bad input)
+error: no input given
+exit 2 (usage error)
+all 1 inputs are numbers
+finished cleanly

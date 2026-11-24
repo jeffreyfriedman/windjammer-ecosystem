@@ -16,7 +16,7 @@ fn main() {
                 Ok(result) => {
                     match save_store(path, result.0) {
                         Ok(_) => {
-                            println("{}", result.1)
+                            println("${result.1}")
                         },
                         Err(e) => {
                             eprintln("wj-todo-cli: ${e}")

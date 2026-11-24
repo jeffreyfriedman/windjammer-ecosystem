@@ -1,6 +1,6 @@
 # wj-glob
 
-Shell-style path glob matching (`*`, `?`, `**`) in pure Windjammer.
+Shell-style path glob matching (`*`, `?`, `**`). `is_match` thin-wraps `std::path.glob_match`; `filter` stays package sugar.
 
 - `*` / `?` match within a single path segment (do not cross `/`)
 - `**` matches zero or more path segments
@@ -25,6 +25,8 @@ let hits = filter("*.md", paths)
 |---|---|
 | `is_match(pattern, path)` | Segment-aware glob match (`*`, `?`, `**`) |
 | `filter(pattern, paths)` | Matching subset |
+
+**Graduation:** `is_match` thin-wraps tip-green `std::path.glob_match`. `filter` stays package sugar.
 
 ## Layout
 

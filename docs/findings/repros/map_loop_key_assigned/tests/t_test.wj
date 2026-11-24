@@ -1,0 +1,8 @@
+use crate::new_table
+
+fn test_smallest() {
+    let mut t = new_table()
+    t.put("a", 3)
+    t.put("b", 1)
+    assert_eq(t.smallest(), "b")
+}

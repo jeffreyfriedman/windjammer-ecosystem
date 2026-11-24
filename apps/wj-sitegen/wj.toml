@@ -11,3 +11,9 @@ wj_template = { path = "../../packages/wj-template/build" }
 [profile.release]
 opt-level = 3
 lto = true
+
+[capabilities]
+env.read = ["SITEGEN_SRC", "SITEGEN_OUT", "SITEGEN_TITLE", "SITEGEN_BASE_URL"]
+# the source and output directories are chosen by the user; tests use the system temp directory
+fs.read = ["./**", "/tmp/**"]
+fs.write = ["./**", "/tmp/**"]

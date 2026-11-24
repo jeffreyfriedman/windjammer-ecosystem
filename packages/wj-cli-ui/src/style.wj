@@ -1,0 +1,125 @@
+use std::env
+use std::strings
+
+/// Whether colour is on. Build one with `theme_for` (pure) or `theme_from_env`.
+pub struct Theme {
+    pub enabled: bool,
+}
+
+/// Colour is off when `no_color` is non-empty (https://no-color.org), when TERM is `dumb`, or when TERM is empty.
+pub fn theme_for(no_color: string, term: string) -> Theme {
+    let off = strings.len(no_color) > 0 || term == "dumb" || strings.len(term) == 0
+    Theme { enabled: !off }
+}
+
+pub fn theme_from_env() -> Theme {
+    let no_color = env.var("NO_COLOR") ?? ""
+    let term = env.var("TERM") ?? ""
+    theme_for(no_color, term)
+}
+
+pub fn always() -> Theme {
+    Theme { enabled: true }
+}
+
+pub fn never() -> Theme {
+    Theme { enabled: false }
+}
+
+pub const RESET: string = "\u{1b}[0m"
+
+fn sgr(codes: string) -> string {
+    "\u{1b}[${codes}m"
+}
+
+/// Wrap `text` in SGR parameters such as `"1;31"` (bold red), then reset. Plain text when colour is off.
+pub fn paint(theme: Theme, codes: string, text: string) -> string {
+    if !theme.enabled || strings.len(text) == 0 {
+        return text
+    }
+    sgr(codes) + text + RESET
+}
+
+pub fn bold(theme: Theme, text: string) -> string {
+    paint(theme, "1", text)
+}
+
+pub fn dim(theme: Theme, text: string) -> string {
+    paint(theme, "2", text)
+}
+
+pub fn italic(theme: Theme, text: string) -> string {
+    paint(theme, "3", text)
+}
+
+pub fn underline(theme: Theme, text: string) -> string {
+    paint(theme, "4", text)
+}
+
+pub fn black(theme: Theme, text: string) -> string {
+    paint(theme, "30", text)
+}
+
+pub fn red(theme: Theme, text: string) -> string {
+    paint(theme, "31", text)
+}
+
+pub fn green(theme: Theme, text: string) -> string {
+    paint(theme, "32", text)
+}
+
+pub fn yellow(theme: Theme, text: string) -> string {
+    paint(theme, "33", text)
+}
+
+pub fn blue(theme: Theme, text: string) -> string {
+    paint(theme, "34", text)
+}
+
+pub fn magenta(theme: Theme, text: string) -> string {
+    paint(theme, "35", text)
+}
+
+pub fn cyan(theme: Theme, text: string) -> string {
+    paint(theme, "36", text)
+}
+
+pub fn white(theme: Theme, text: string) -> string {
+    paint(theme, "37", text)
+}
+
+/// Bright black, the usual "grey" for secondary text.
+pub fn gray(theme: Theme, text: string) -> string {
+    paint(theme, "90", text)
+}
+
+pub fn on_red(theme: Theme, text: string) -> string {
+    paint(theme, "41", text)
+}
+
+pub fn on_green(theme: Theme, text: string) -> string {
+    paint(theme, "42", text)
+}
+
+/// 256-colour foreground (`0..=255`).
+pub fn color256(theme: Theme, n: int, text: string) -> string {
+    paint(theme, "38;5;${n}", text)
+}
+
+/// 24-bit foreground.
+pub fn rgb(theme: Theme, r: int, g: int, b: int, text: string) -> string {
+    paint(theme, "38;2;${r};${g};${b}", text)
+}
+
+/// Green check, red cross, yellow warning: status marks that also read fine without colour.
+pub fn ok_mark(theme: Theme) -> string {
+    green(theme, "ok")
+}
+
+pub fn fail_mark(theme: Theme) -> string {
+    red(theme, "FAIL")
+}
+
+pub fn warn_mark(theme: Theme) -> string {
+    yellow(theme, "warn")
+}

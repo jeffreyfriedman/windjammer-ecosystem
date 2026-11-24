@@ -1,0 +1,42 @@
+use crate::to_html
+
+@test
+fn test_raw_html_is_shown_as_text() {
+    assert_eq(to_html("<script>alert(1)</script>"), "<p>&lt;script&gt;alert(1)&lt;/script&gt;</p>\n")
+    assert_eq(to_html("hi <img src=x onerror=alert(1)>"), "<p>hi &lt;img src=x onerror=alert(1)&gt;</p>\n")
+    assert_eq(to_html("<!-- c -->"), "<p>&lt;!-- c --&gt;</p>\n")
+}
+
+@test
+fn test_script_urls_never_become_links_or_images() {
+    for url in ["javascript:alert(1)", "JaVaScRiPt:alert(1)", "vbscript:x", "data:text/html;base64,AAAA", "file:///etc/passwd"] {
+        let link = to_html("[x](${url})")
+        assert(!link.contains("<a "), "link for ${url}: ${link}")
+        let image = to_html("![x](${url})")
+        assert(!image.contains("<img"), "image for ${url}: ${image}")
+    }
+    assert_str_contains(to_html("[x](https://example.com/a)"), "<a href=\"https://example.com/a\">x</a>")
+    assert_str_contains(to_html("[x](mailto:a@b.co)"), "<a href=\"mailto:a@b.co\">")
+    assert_str_contains(to_html("![x](data:image/png;base64,AAAA)"), "<img src=\"data:image/png;base64,AAAA\"")
+}
+
+@test
+fn test_attribute_and_text_quotes_are_escaped() {
+    assert_eq(to_html("[a](/x \"t\\\"><script>\")"), "<p><a href=\"/x\" title=\"t&quot;&gt;&lt;script&gt;\">a</a></p>\n")
+    assert_eq(to_html("![a\"b](/x)"), "<p><img src=\"/x\" alt=\"a&quot;b\" /></p>\n")
+    assert_eq(to_html("[x](/a\"onmouseover=\"y)"), "<p><a href=\"/a%22onmouseover=%22y\">x</a></p>\n")
+}
+
+@test
+fn test_code_is_escaped() {
+    assert_eq(to_html("`<b>&`"), "<p><code>&lt;b&gt;&amp;</code></p>\n")
+    assert_eq(to_html("```html\n<b onclick=\"x\">\n```"), "<pre><code class=\"language-html\">&lt;b onclick=&quot;x&quot;&gt;\n</code></pre>\n")
+    assert_eq(to_html("```\"><script>\nx\n```"), "<pre><code class=\"language-&quot;&gt;&lt;script&gt;\">x\n</code></pre>\n")
+}
+
+@test
+fn test_empty_and_whitespace_documents() {
+    assert_eq(to_html(""), "")
+    assert_eq(to_html("\n\n   \n"), "")
+    assert_eq(to_html("a\r\nb"), "<p>a\nb</p>\n")
+}

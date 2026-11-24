@@ -51,9 +51,9 @@ pub struct WebhookApp {
     bus_queue: Vec<BusEventBody>,
 }
 
-/// SHA-256 hex of `secret.body` (demo signing until std HMAC lands).
+/// HMAC-SHA-256 of `body` under `secret`, lowercase hex: the `X-Webhook-Signature` value.
 pub fn signature_for(secret: string, body: string) -> string {
-    crypto.sha256("${secret}.${body}")
+    crypto.hmac_sha256(secret, body)
 }
 
 impl WebhookApp {
@@ -163,12 +163,11 @@ impl WebhookApp {
     }
 
     fn authorized(self, token: string, signature: string, body: string) -> bool {
-        if token.len() > 0 && token == self.config.secret {
+        if token.len() > 0 && crypto.constant_time_eq(token, self.config.secret) {
             return true
         }
         if signature.len() > 0 {
-            let expected = signature_for(self.config.secret, body)
-            return signature == expected
+            return crypto.verify_hmac_sha256(self.config.secret, body, signature)
         }
         false
     }

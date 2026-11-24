@@ -1,0 +1,3 @@
+# Known ecosystem health failures. Shrink-only: scripts/health_gate.wj fails on any failure missing here,
+# and also fails when an entry here has been fixed (delete the line in the same change that fixes it).
+# Format: dir | mode | reason | owner      (mode: interp, compiled, or drift = interpreted vs compiled disagree)

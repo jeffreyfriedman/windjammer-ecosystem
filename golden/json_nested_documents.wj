@@ -1,0 +1,42 @@
+// golden: nested JSON documents
+// idiom: structs nest and Vec<Struct> becomes an array; one parse call reads the whole document
+use std::json
+
+struct Address {
+    city: string,
+    zip: string,
+}
+
+struct Customer {
+    name: string,
+    address: Address,
+    orders: Vec<Order>,
+}
+
+struct Order {
+    id: int,
+    total: float,
+}
+
+fn revenue(c: Customer) -> float {
+    let mut sum = 0.0
+    for o in c.orders {
+        sum += o.total
+    }
+    sum
+}
+
+fn main() {
+    let text = "{\"name\":\"Acme\",\"address\":{\"city\":\"Lisbon\",\"zip\":\"1000\"},\"orders\":[{\"id\":1,\"total\":19.5},{\"id\":2,\"total\":80.5},{\"id\":3,\"total\":5.0}]}"
+    let parsed: Result<Customer, string> = json.parse_string(text)
+    match parsed {
+        Ok(c) => {
+            println("${c.name} in ${c.address.city} ${c.address.zip}")
+            println("${c.orders.len()} orders, revenue ${revenue(c):.2}")
+            let ids: Vec<string> = c.orders.map(|o| "${o.id}").collect()
+            println("order ids: ${ids.join(",")}")
+            println(json.to_string(c.address) ?? "")
+        },
+        Err(e) => println("error: ${e}"),
+    }
+}

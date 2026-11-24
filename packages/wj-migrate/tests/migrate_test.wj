@@ -1,11 +1,22 @@
+use crate::is_pending
+use crate::latest_version
+use crate::migration_count
 use crate::parse_filename
 use crate::pending
+use crate::pending_count
 use crate::record_applied_sql
+use crate::require_pending
+use crate::require_latest
+use crate::require_earliest
+use crate::require_pending_count
+use crate::require_migration_count
 use crate::schema_table_sql
 use crate::select_applied_sql
 use crate::sort_migrations
 use crate::validate_unique_versions
+use crate::version_applied
 use crate::Migration
+use std::strings
 
 @test
 fn test_parse_numeric_prefix() {
@@ -163,5 +174,124 @@ fn test_record_applied_sql() {
             assert_str_contains(sql, "2026-08-23T00:00:00Z")
         },
         Err(_) => assert(false, "parse"),
+    }
+}
+
+fn sample_migrations() -> Vec<Migration> {
+    let mut all = Vec::new()
+    match parse_filename("001_a.sql") {
+        Ok(m) => all.push(m),
+        Err(_) => {},
+    }
+    match parse_filename("002_b.sql") {
+        Ok(m) => all.push(m),
+        Err(_) => {},
+    }
+    match parse_filename("003_c.sql") {
+        Ok(m) => all.push(m),
+        Err(_) => {},
+    }
+    all
+}
+
+@test
+fn test_pending_count_latest_and_is_pending() {
+    assert_eq(migration_count(sample_migrations()), 3)
+    assert_eq(latest_version(sample_migrations()), 3)
+    let mut applied = Vec::new()
+    applied.push(1)
+    assert_eq(pending_count(sample_migrations(), applied), 2)
+    let mut applied2 = Vec::new()
+    applied2.push(1)
+    assert(version_applied(applied2, 1), "1 applied")
+    let mut applied3 = Vec::new()
+    applied3.push(1)
+    assert(is_pending(sample_migrations(), applied3, 2), "2 pending")
+    let mut applied4 = Vec::new()
+    applied4.push(1)
+    assert(!is_pending(sample_migrations(), applied4, 1), "1 not pending")
+    let mut applied5 = Vec::new()
+    applied5.push(1)
+    assert(!is_pending(sample_migrations(), applied5, 9), "missing version")
+}
+
+@test
+fn test_require_name() {
+    use crate::require_name
+    match require_name(sample_migrations(), 2) {
+        Ok(name) => assert_eq(name, "b"),
+        Err(_) => assert(false, "name of 2"),
+    }
+    match require_name(sample_migrations(), 9) {
+        Ok(_) => assert(false, "missing must Err"),
+        Err(msg) => assert(strings.contains(msg, "9"), "mentions version"),
+    }
+}
+
+@test
+fn test_require_pending() {
+    let mut applied = Vec::new()
+    applied.push(1)
+    match require_pending(sample_migrations(), applied, 2) {
+        Ok(version) => assert_eq(version, 2),
+        Err(_) => assert(false, "2 pending"),
+    }
+    let mut done = Vec::new()
+    done.push(1)
+    match require_pending(sample_migrations(), done, 1) {
+        Ok(_) => assert(false, "applied must Err"),
+        Err(msg) => assert(strings.contains(msg, "pending"), "mentions pending"),
+    }
+}
+
+@test
+fn test_require_latest() {
+    match require_latest(sample_migrations()) {
+        Ok(version) => assert_eq(version, 3),
+        Err(_) => assert(false, "latest sample"),
+    }
+    match require_latest(Vec::new()) {
+        Ok(_) => assert(false, "empty must Err"),
+        Err(msg) => assert(strings.contains(msg, "latest"), "mentions latest"),
+    }
+}
+
+@test
+fn test_require_earliest() {
+    match require_earliest(sample_migrations()) {
+        Ok(version) => assert_eq(version, 1),
+        Err(_) => assert(false, "earliest sample"),
+    }
+    match require_earliest(Vec::new()) {
+        Ok(_) => assert(false, "empty must Err"),
+        Err(msg) => assert(strings.contains(msg, "earliest"), "mentions earliest"),
+    }
+}
+
+@test
+fn test_require_pending_count() {
+    let mut applied = Vec::new()
+    applied.push(1)
+    match require_pending_count(sample_migrations(), applied, 2) {
+        Ok(n) => assert_eq(n, 2),
+        Err(_) => assert(false, "two pending"),
+    }
+    let mut other = Vec::new()
+    other.push(1)
+    match require_pending_count(sample_migrations(), other, 1) {
+        Ok(_) => assert(false, "not one"),
+        Err(msg) => assert(strings.contains(msg, "pending count"), "mentions pending count"),
+    }
+}
+
+@test
+fn test_require_migration_count() {
+    match require_migration_count(sample_migrations(), 3) {
+        Ok(n) => assert_eq(n, 3),
+        Err(_) => assert(false, "three migrations"),
+    }
+    match require_migration_count(sample_migrations(), 1) {
+        Ok(_) => assert(false, "not one"),
+        Err(msg) => assert(strings.contains(msg, "count"), "mentions count"),
     }
 }

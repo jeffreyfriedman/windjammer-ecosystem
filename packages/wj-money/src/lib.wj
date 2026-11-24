@@ -1,0 +1,422 @@
+//! Money as whole minor units (cents, pence, yen) tagged with a currency: no floats anywhere, mixed currencies are an
+//! error instead of a silent sum, rounding is explicit, and `allocate` splits an amount by ratio without losing or
+//! inventing a single cent.
+
+use std::strings
+
+const MAX: int = 9223372036854775807
+
+/// How to round when a calculation produces a fraction of a minor unit.
+pub enum Rounding {
+    /// Toward zero.
+    Down,
+    /// Away from zero.
+    Up,
+    /// Nearest; ties away from zero (what receipts usually show).
+    HalfUp,
+    /// Nearest; ties to the even neighbour (banker's rounding, avoids drift over many operations).
+    HalfEven,
+}
+
+/// An amount in minor units of `currency` (an upper-case ISO 4217 code such as `USD`).
+pub struct Money {
+    pub minor: int,
+    pub currency: string,
+}
+
+/// Build an amount from minor units: `money(1999, "USD")` is $19.99.
+pub fn money(minor: int, currency: string) -> Money {
+    Money { minor: minor, currency: strings.to_upper(currency) }
+}
+
+/// Decimal places of a currency (`USD` 2, `JPY` 0, `KWD` 3). Unknown codes are an error, so a typo cannot silently
+/// become a 2-decimal currency.
+pub fn exponent(currency: string) -> Result<int, string> {
+    let c = strings.to_upper(currency)
+    let zero = ["JPY", "KRW", "VND", "CLP", "ISK", "UGX", "XAF", "XOF", "PYG", "RWF"]
+    let three = ["KWD", "BHD", "OMR", "JOD", "TND"]
+    let two = ["USD", "EUR", "GBP", "CAD", "AUD", "NZD", "CHF", "CNY", "INR", "MXN", "BRL", "SEK", "NOK", "DKK",
+        "PLN", "SGD", "HKD", "ZAR", "AED", "SAR", "ILS", "TRY", "THB", "CZK", "HUF", "RUB", "PHP", "IDR", "MYR"]
+    for z in zero {
+        if z == c {
+            return Ok(0)
+        }
+    }
+    for t in three {
+        if t == c {
+            return Ok(3)
+        }
+    }
+    for w in two {
+        if w == c {
+            return Ok(2)
+        }
+    }
+    Err("unknown currency '${currency}'")
+}
+
+/// The display symbol for a currency, or its code when there is no common symbol.
+pub fn symbol(currency: string) -> string {
+    let c = strings.to_upper(currency)
+    if c == "USD" || c == "CAD" || c == "AUD" || c == "NZD" || c == "MXN" || c == "SGD" || c == "HKD" {
+        return "$"
+    }
+    if c == "EUR" {
+        return "€"
+    }
+    if c == "GBP" {
+        return "£"
+    }
+    if c == "JPY" || c == "CNY" {
+        return "¥"
+    }
+    if c == "INR" {
+        return "₹"
+    }
+    if c == "KRW" {
+        return "₩"
+    }
+    c
+}
+
+fn pow10(n: int) -> int {
+    let mut out = 1
+    let mut i = 0
+    while i < n {
+        out = out * 10
+        i = i + 1
+    }
+    out
+}
+
+fn abs_int(n: int) -> int {
+    if n < 0 { 0 - n } else { n }
+}
+
+/// `num / den` rounded per `mode`, for `den > 0`. Negative numerators round symmetrically about zero.
+fn div_round(num: int, den: int, mode: Rounding) -> int {
+    let negative = num < 0
+    let n = abs_int(num)
+    let q = n / den
+    let r = n % den
+    let twice = r * 2
+    let bump = match mode {
+        Rounding::Down => false,
+        Rounding::Up => r > 0,
+        Rounding::HalfUp => twice >= den,
+        Rounding::HalfEven => twice > den || (twice == den && q % 2 == 1),
+    }
+    let magnitude = if bump { q + 1 } else { q }
+    if negative { 0 - magnitude } else { magnitude }
+}
+
+/// Parse a decimal amount such as `"1234.56"`, `"-0.5"` or `"1,234.56"` (commas are ignored). More fractional digits
+/// than the currency has is an error rather than a silent rounding.
+///
+/// ```wj
+/// use crate::money
+/// use crate::parse
+/// assert_eq(parse("19.99", "USD"), Ok(money(1999, "USD")))
+/// assert_eq(parse("1,234", "JPY"), Ok(money(1234, "JPY")))
+/// assert(parse("1.005", "USD").is_err())
+/// ```
+pub fn parse(text: string, currency: string) -> Result<Money, string> {
+    match exponent(currency) {
+        Ok(exp) => {
+            let t = strings.replace(strings.trim(text), ",", "")
+            if strings.len(t) == 0 {
+                return Err("empty amount")
+            }
+            let cs = strings.chars(t)
+            let mut i = 0
+            let mut negative = false
+            if cs[0] == '-' {
+                negative = true
+                i = 1
+            } else if cs[0] == '+' {
+                i = 1
+            }
+            let mut whole = 0
+            let mut digits = 0
+            while i < cs.len() && cs[i] != '.' {
+                let d = digit(strings.substring_chars(t, i, i + 1))
+                if d < 0 {
+                    return Err("invalid amount '${text}'")
+                }
+                if whole > (MAX - d) / 10 {
+                    return Err("amount too large")
+                }
+                whole = whole * 10 + d
+                digits = digits + 1
+                i = i + 1
+            }
+            let mut frac = 0
+            let mut frac_digits = 0
+            if i < cs.len() {
+                i = i + 1
+                while i < cs.len() {
+                    let d = digit(strings.substring_chars(t, i, i + 1))
+                    if d < 0 {
+                        return Err("invalid amount '${text}'")
+                    }
+                    if frac_digits >= exp {
+                        return Err("${currency} has ${exp} decimal places, got more")
+                    }
+                    frac = frac * 10 + d
+                    frac_digits = frac_digits + 1
+                    digits = digits + 1
+                    i = i + 1
+                }
+            }
+            if digits == 0 {
+                return Err("invalid amount '${text}'")
+            }
+            frac = frac * pow10(exp - frac_digits)
+            let scale = pow10(exp)
+            if whole > (MAX - frac) / scale {
+                return Err("amount too large")
+            }
+            let minor = whole * scale + frac
+            Ok(money(if negative { 0 - minor } else { minor }, currency))
+        },
+        Err(e) => Err(e),
+    }
+}
+
+fn digit(ch: string) -> int {
+    if strings.len(ch) != 1 || !strings.contains("0123456789", ch) {
+        return -1
+    }
+    strings.parse_i32(ch) as int
+}
+
+fn plain_text(minor: int, exp: int) -> string {
+    let n = abs_int(minor)
+    let scale = pow10(exp)
+    let whole = n / scale
+    let sign = if minor < 0 { "-" } else { "" }
+    if exp == 0 {
+        return "${sign}${whole}"
+    }
+    let mut frac = "${n % scale}"
+    while strings.len(frac) < exp {
+        frac = "0${frac}"
+    }
+    "${sign}${whole}.${frac}"
+}
+
+fn group_thousands(whole: string) -> string {
+    let cs = strings.chars(whole)
+    let mut out = ""
+    let mut i = 0
+    while i < cs.len() {
+        if i > 0 && (cs.len() - i) % 3 == 0 {
+            out = "${out},"
+        }
+        out = "${out}${cs[i]}"
+        i = i + 1
+    }
+    out
+}
+
+/// The amount without symbol or grouping: `1999` USD is `19.99`, `-5` USD is `-0.05`.
+pub fn format_plain(m: Money) -> string {
+    match exponent(m.currency) {
+        Ok(exp) => plain_text(m.minor, exp),
+        Err(_) => "${m.minor}",
+    }
+}
+
+/// With thousands separators: `1,234,567.89`.
+pub fn format_grouped(m: Money) -> string {
+    let plain = format_plain(m)
+    let negative = strings.starts_with(plain, "-")
+    let body = if negative { strings.substring(plain, 1, strings.len(plain)) } else { plain }
+    let parts = strings.split(body, ".")
+    let grouped = group_thousands(parts[0])
+    let rest = if parts.len() > 1 { ".${parts[1]}" } else { "" }
+    "${if negative { "-" } else { "" }}${grouped}${rest}"
+}
+
+/// With the currency symbol, sign in front: `$1,234.56`, `-$0.05`, `¥1,234`.
+///
+/// ```wj
+/// use crate::format
+/// use crate::money
+/// assert_eq(format(money(123456, "USD")), "$1,234.56")
+/// assert_eq(format(money(-5, "USD")), "-$0.05")
+/// assert_eq(format(money(1234, "JPY")), "¥1,234")
+/// ```
+pub fn format(m: Money) -> string {
+    let grouped = format_grouped(m)
+    if strings.starts_with(grouped, "-") {
+        return "-${symbol(m.currency)}${strings.substring(grouped, 1, strings.len(grouped))}"
+    }
+    "${symbol(m.currency)}${grouped}"
+}
+
+fn same_currency(a: Money, b: Money) -> Result<bool, string> {
+    if a.currency != b.currency {
+        return Err("currency mismatch: ${a.currency} and ${b.currency}")
+    }
+    Ok(true)
+}
+
+/// Sum of two amounts. `Err` for different currencies or overflow.
+pub fn add(a: Money, b: Money) -> Result<Money, string> {
+    match same_currency(a, b) {
+        Ok(_) => {
+            if (b.minor > 0 && a.minor > MAX - b.minor) || (b.minor < 0 && a.minor < 0 - MAX - b.minor) {
+                return Err("amount overflow")
+            }
+            Ok(Money { minor: a.minor + b.minor, currency: a.currency })
+        },
+        Err(e) => Err(e),
+    }
+}
+
+/// `a - b`. `Err` for different currencies or overflow.
+pub fn sub(a: Money, b: Money) -> Result<Money, string> {
+    add(a, negate(b))
+}
+
+/// The same amount with the opposite sign.
+pub fn negate(a: Money) -> Money {
+    Money { minor: 0 - a.minor, currency: a.currency }
+}
+
+/// Sum a list of amounts of one currency (an empty list is `Err`, since the currency is unknown).
+pub fn sum(items: Vec<Money>) -> Result<Money, string> {
+    if items.len() == 0 {
+        return Err("cannot sum an empty list")
+    }
+    let mut total = items[0]
+    let mut i = 1
+    while i < items.len() {
+        match add(total, items[i]) {
+            Ok(t) => total = t,
+            Err(e) => return Err(e),
+        }
+        i = i + 1
+    }
+    Ok(total)
+}
+
+/// -1, 0 or 1. `Err` for different currencies.
+pub fn compare(a: Money, b: Money) -> Result<int, string> {
+    match same_currency(a, b) {
+        Ok(_) => {
+            if a.minor < b.minor {
+                return Ok(-1)
+            }
+            if a.minor > b.minor {
+                return Ok(1)
+            }
+            Ok(0)
+        },
+        Err(e) => Err(e),
+    }
+}
+
+/// True when the amount is exactly zero.
+pub fn is_zero(a: Money) -> bool {
+    a.minor == 0
+}
+
+/// Multiply by a whole number (a quantity). `Err` on overflow.
+pub fn mul_int(a: Money, factor: int) -> Result<Money, string> {
+    if factor != 0 && abs_int(a.minor) > MAX / abs_int(factor) {
+        return Err("amount overflow")
+    }
+    Ok(Money { minor: a.minor * factor, currency: a.currency })
+}
+
+/// Take `bps` basis points (hundredths of a percent) of an amount: 825 bps is 8.25%. Use it for tax, tips and
+/// discounts: `apply_bps(money(10000, "USD"), 825, Rounding::HalfUp)` is $8.25.
+///
+/// ```wj
+/// use crate::Rounding
+/// use crate::apply_bps
+/// use crate::money
+/// assert_eq(apply_bps(money(10000, "USD"), 825, Rounding::HalfUp), Ok(money(825, "USD")))
+/// assert_eq(apply_bps(money(199, "USD"), 1000, Rounding::HalfUp), Ok(money(20, "USD")))
+/// ```
+pub fn apply_bps(a: Money, bps: int, mode: Rounding) -> Result<Money, string> {
+    if bps != 0 && abs_int(a.minor) > MAX / abs_int(bps) {
+        return Err("amount overflow")
+    }
+    Ok(Money { minor: div_round(a.minor * bps, 10000, mode), currency: a.currency })
+}
+
+/// Divide into `parts` shares that always add back to the original amount; the remainder cents go to the first
+/// shares. `split(money(100, "USD"), 3)` is 34, 33, 33.
+pub fn split(a: Money, parts: int) -> Result<Vec<Money>, string> {
+    if parts < 1 {
+        return Err("need at least one part")
+    }
+    let mut ratios = Vec::new()
+    let mut i = 0
+    while i < parts {
+        ratios.push(1)
+        i = i + 1
+    }
+    allocate(a, ratios)
+}
+
+/// Split an amount in proportion to `ratios` (non-negative, not all zero) using the largest-remainder method: the
+/// shares always add up to exactly the original amount, and leftover minor units go to the largest fractional
+/// remainders, earlier entries first on ties.
+///
+/// ```wj
+/// use crate::allocate
+/// use crate::money
+/// assert_eq(allocate(money(100, "USD"), [1, 1, 1]), Ok([money(34, "USD"), money(33, "USD"), money(33, "USD")]))
+/// ```
+pub fn allocate(a: Money, ratios: Vec<int>) -> Result<Vec<Money>, string> {
+    if ratios.len() == 0 {
+        return Err("need at least one ratio")
+    }
+    let mut total_ratio = 0
+    for r in ratios {
+        if r < 0 {
+            return Err("ratios must not be negative")
+        }
+        total_ratio = total_ratio + r
+    }
+    if total_ratio == 0 {
+        return Err("ratios must not all be zero")
+    }
+    let negative = a.minor < 0
+    let amount = abs_int(a.minor)
+    let mut shares: Vec<int> = Vec::new()
+    let mut remainders: Vec<int> = Vec::new()
+    let mut given = 0
+    for r in ratios {
+        if r > 0 && amount > MAX / r {
+            return Err("amount too large to allocate")
+        }
+        let product = amount * r
+        shares.push(product / total_ratio)
+        remainders.push(product % total_ratio)
+        given = given + product / total_ratio
+    }
+    let mut left = amount - given
+    while left > 0 {
+        let mut best = 0
+        let mut k = 1
+        while k < remainders.len() {
+            if remainders[k] > remainders[best] {
+                best = k
+            }
+            k = k + 1
+        }
+        shares[best] = shares[best] + 1
+        remainders[best] = -1
+        left = left - 1
+    }
+    let mut out = Vec::new()
+    for s in shares {
+        out.push(Money { minor: if negative { 0 - s } else { s }, currency: a.currency })
+    }
+    Ok(out)
+}

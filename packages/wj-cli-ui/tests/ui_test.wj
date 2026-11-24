@@ -1,0 +1,199 @@
+// Expected values come from Python: unicodedata for widths, str.format for sizes and durations, re for ANSI stripping.
+// SGR codes are the ECMA-48 / xterm values.
+use crate::progress::eta_seconds
+use crate::progress::progress_bar
+use crate::progress::spinner_frame
+use crate::progress::styled_bar
+use crate::prompt::answers_from
+use crate::prompt::ask
+use crate::prompt::confirm
+use crate::prompt::parse_choice
+use crate::prompt::parse_confirm
+use crate::prompt::select
+use crate::style::always
+use crate::style::bold
+use crate::style::color256
+use crate::style::green
+use crate::style::never
+use crate::style::red
+use crate::style::rgb
+use crate::style::theme_for
+use crate::style::underline
+use crate::text::center
+use crate::text::display_width
+use crate::text::format_bytes
+use crate::text::format_duration_ms
+use crate::text::pad_left
+use crate::text::pad_right
+use crate::text::strip_ansi
+use crate::text::truncate
+use crate::text::wrap
+
+fn choice_of(r: Option<int>) -> int {
+    match r {
+        Some(i) => i,
+        None => -9,
+    }
+}
+
+fn confirm_of(r: Option<bool>) -> string {
+    match r {
+        Some(true) => "yes",
+        Some(false) => "no",
+        None => "invalid",
+    }
+}
+
+@test
+fn test_theme_detection_follows_no_color_and_term() {
+    assert(theme_for("", "xterm-256color").enabled, "plain terminal")
+    assert(!theme_for("1", "xterm-256color").enabled, "NO_COLOR set")
+    assert(!theme_for("", "dumb").enabled, "dumb terminal")
+    assert(!theme_for("", "").enabled, "no TERM")
+}
+
+@test
+fn test_colours_are_plain_when_disabled() {
+    assert_eq(red(never(), "x"), "x")
+    assert_eq(bold(never(), "x"), "x")
+    assert_eq(red(always(), ""), "")
+}
+
+@test
+fn test_sgr_sequences() {
+    let t = always()
+    assert_eq(bold(t, "hi"), "\u{1b}[1mhi\u{1b}[0m")
+    assert_eq(underline(t, "hi"), "\u{1b}[4mhi\u{1b}[0m")
+    assert_eq(red(t, "hi"), "\u{1b}[31mhi\u{1b}[0m")
+    assert_eq(green(t, "hi"), "\u{1b}[32mhi\u{1b}[0m")
+    assert_eq(color256(t, 202, "hi"), "\u{1b}[38;5;202mhi\u{1b}[0m")
+    assert_eq(rgb(t, 255, 128, 0, "hi"), "\u{1b}[38;2;255;128;0mhi\u{1b}[0m")
+}
+
+@test
+fn test_strip_ansi_matches_python_regex() {
+    assert_eq(strip_ansi("\u{1b}[31mred\u{1b}[0m plain"), "red plain")
+    assert_eq(strip_ansi("\u{1b}[1;38;5;202mx\u{1b}[0m"), "x")
+    assert_eq(strip_ansi("no escapes"), "no escapes")
+    assert_eq(strip_ansi("\u{1b}[2K\u{1b}[1Gline"), "line")
+    assert_eq(strip_ansi("a\u{1b}[0mb\u{1b}[1mc"), "abc")
+    assert_eq(strip_ansi("\u{1b}[38;2;1;2;3mrgb\u{1b}[0m"), "rgb")
+    assert_eq(strip_ansi("\u{1b}Zodd"), "odd")
+}
+
+@test
+fn test_display_width_matches_unicodedata() {
+    assert_eq(display_width("hello"), 5)
+    assert_eq(display_width("héllo"), 5)
+    assert_eq(display_width("日本語"), 6)
+    assert_eq(display_width("한국어 text"), 11)
+    assert_eq(display_width("é (combining)"), 13)
+    assert_eq(display_width("emoji 😀 ok"), 11)
+    assert_eq(display_width("tab\there"), 7)
+    assert_eq(display_width("​zero"), 4)
+    assert_eq(display_width("ＡＢＣ fullwidth"), 16)
+    assert_eq(display_width("\u{1b}[31m日本\u{1b}[0m"), 4)
+    assert_eq(display_width(""), 0)
+    assert_eq(display_width("Ω≈ç√"), 4)
+}
+
+@test
+fn test_padding_truncation_and_wrap() {
+    assert_eq(pad_right("日本", 6), "日本  ")
+    assert_eq(pad_left("ab", 5), "   ab")
+    assert_eq(center("ab", 7), "  ab   ")
+    assert_eq(pad_right("long text", 3), "long text")
+    assert_eq(truncate("abcdefghij", 6), "abcde…")
+    assert_eq(truncate("short", 10), "short")
+    assert_eq(truncate("日本語です", 5), "日本…")
+    assert_eq(truncate("abc", 0), "")
+    let lines = wrap("the quick brown fox jumps over the lazy dog", 15)
+    assert_eq(lines.len(), 3)
+    assert_eq(lines[0], "the quick brown")
+    assert_eq(lines[1], "fox jumps over")
+    assert_eq(lines[2], "the lazy dog")
+    assert_eq(wrap("", 10).len(), 0)
+    assert_eq(wrap("unbreakable_word", 5)[0], "unbreakable_word")
+}
+
+@test
+fn test_format_bytes_matches_python() {
+    assert_eq(format_bytes(0), "0 B")
+    assert_eq(format_bytes(1), "1 B")
+    assert_eq(format_bytes(1023), "1023 B")
+    assert_eq(format_bytes(1024), "1.0 KiB")
+    assert_eq(format_bytes(1536), "1.5 KiB")
+    assert_eq(format_bytes(10240), "10.0 KiB")
+    assert_eq(format_bytes(1048576), "1.0 MiB")
+    assert_eq(format_bytes(1572864), "1.5 MiB")
+    assert_eq(format_bytes(5368709120), "5.0 GiB")
+    assert_eq(format_bytes(3298534883328), "3.0 TiB")
+    assert_eq(format_bytes(1500), "1.5 KiB")
+}
+
+@test
+fn test_format_duration() {
+    assert_eq(format_duration_ms(0), "0ms")
+    assert_eq(format_duration_ms(999), "999ms")
+    assert_eq(format_duration_ms(1000), "1s")
+    assert_eq(format_duration_ms(59999), "59s")
+    assert_eq(format_duration_ms(60000), "1m 0s")
+    assert_eq(format_duration_ms(3725000), "1h 2m 5s")
+    assert_eq(format_duration_ms(3600000), "1h 0m 0s")
+    assert_eq(format_duration_ms(86399000), "23h 59m 59s")
+}
+
+@test
+fn test_progress_bar_matches_python_model() {
+    assert_eq(progress_bar(0, 10, 10), "[----------]   0%")
+    assert_eq(progress_bar(5, 10, 10), "[#####-----]  50%")
+    assert_eq(progress_bar(10, 10, 10), "[##########] 100%")
+    assert_eq(progress_bar(1, 3, 9), "[###------]  33%")
+    assert_eq(progress_bar(2, 3, 9), "[######---]  66%")
+    assert_eq(progress_bar(15, 10, 10), "[##########] 100%")
+    assert_eq(progress_bar(-4, 10, 10), "[----------]   0%")
+    assert_eq(progress_bar(3, 0, 8), "[########] 100%")
+    assert_eq(progress_bar(37, 100, 20), "[#######-------------]  37%")
+    assert_eq(progress_bar(99, 100, 20), "[###################-]  99%")
+    assert_eq(styled_bar(never(), 5, 10, 10), "[#####-----] 50%")
+    assert_str_contains(styled_bar(always(), 5, 10, 10), "\u{1b}[32m#####\u{1b}[0m")
+}
+
+@test
+fn test_spinner_and_eta() {
+    assert_eq(spinner_frame(0), "⠋")
+    assert_eq(spinner_frame(10), "⠋")
+    assert_eq(spinner_frame(12), "⠹")
+    assert_eq(choice_of(eta_seconds(25, 100, 5000)), 15)
+    assert_eq(choice_of(eta_seconds(0, 100, 5000)), -9)
+    assert_eq(choice_of(eta_seconds(100, 100, 5000)), -9)
+}
+
+@test
+fn test_prompt_parsers() {
+    assert_eq(confirm_of(parse_confirm("Y", false)), "yes")
+    assert_eq(confirm_of(parse_confirm(" no ", true)), "no")
+    assert_eq(confirm_of(parse_confirm("", true)), "yes")
+    assert_eq(confirm_of(parse_confirm("", false)), "no")
+    assert_eq(confirm_of(parse_confirm("maybe", true)), "invalid")
+    let options = ["red", "green", "blue"]
+    assert_eq(choice_of(parse_choice("2", options)), 1)
+    assert_eq(choice_of(parse_choice("BLUE", options)), 2)
+    assert_eq(choice_of(parse_choice("0", options)), -9)
+    assert_eq(choice_of(parse_choice("4", options)), -9)
+    assert_eq(choice_of(parse_choice("", options)), -9)
+    assert_eq(choice_of(parse_choice("purple", options)), -9)
+}
+
+@test
+fn test_prompts_consume_answers_in_order() {
+    let mut a = answers_from(["x", "yes", "", "ada", "9", "green"])
+    assert(confirm(a, "Continue?", false, 3), "second try says yes")
+    assert_eq(ask(a, "Name", "anon"), "anon")
+    assert_eq(ask(a, "Name", "anon"), "ada")
+    let mut b = answers_from(["9", "green"])
+    assert_eq(select(b, "Colour?", ["red", "green"], 3), 1)
+    let mut empty = answers_from(Vec::new())
+    assert(confirm(empty, "Sure?", true, 3), "no input falls back to the default")
+    assert_eq(select(empty, "Pick", ["a"], 2), -1)
+}

@@ -35,3 +35,7 @@ $WJ test
 ## License
 
 MIT OR Apache-2.0
+
+## Tip status
+
+✅ tip GREEN (P3.311) — vec-index loop increment width fixed on tip `wj` 0.50.0.

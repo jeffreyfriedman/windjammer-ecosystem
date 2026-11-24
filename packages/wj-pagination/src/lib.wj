@@ -1,0 +1,253 @@
+//! Offset pagination for list endpoints: clamp what a client asks for, compute the SQL window, and describe the page
+//! (totals, neighbours, a compact page-number strip, an RFC 8288 `Link` header). Integer arithmetic only.
+
+/// What a client asked for, after validation: 1-based `page` and a bounded `per_page`.
+pub struct PageRequest {
+    pub page: int,
+    pub per_page: int,
+}
+
+/// A described page of results. `first_item` and `last_item` are 1-based and both 0 when the page is empty.
+pub struct Page {
+    pub page: int,
+    pub per_page: int,
+    pub total_items: int,
+    pub total_pages: int,
+    pub offset: int,
+    pub first_item: int,
+    pub last_item: int,
+    pub has_prev: bool,
+    pub has_next: bool,
+}
+
+/// Validate raw query values. `page` must be at least 1 and `per_page` within `1..=max_per_page`.
+///
+/// ```wj
+/// use crate::request
+/// fn main() -> Result<(), string> {
+///     let r = request(2, 25, 100)?
+///     assert_eq(r.page, 2)
+///     assert(request(0, 25, 100).is_err())
+///     Ok(())
+/// }
+/// ```
+pub fn request(page: int, per_page: int, max_per_page: int) -> Result<PageRequest, string> {
+    if page < 1 {
+        return Err("page must be at least 1")
+    }
+    if per_page < 1 {
+        return Err("per_page must be at least 1")
+    }
+    if per_page > max_per_page {
+        return Err("per_page must be at most ${max_per_page}")
+    }
+    Ok(PageRequest { page: page, per_page: per_page })
+}
+
+/// Forgiving variant for public APIs: a bad page becomes 1, a bad `per_page` becomes `default_per_page`, and a
+/// large `per_page` is capped at `max_per_page`.
+pub fn request_clamped(page: int, per_page: int, default_per_page: int, max_per_page: int) -> PageRequest {
+    let p = if page < 1 { 1 } else { page }
+    let mut n = if per_page < 1 { default_per_page } else { per_page }
+    if n > max_per_page {
+        n = max_per_page
+    }
+    if n < 1 {
+        n = 1
+    }
+    PageRequest { page: p, per_page: n }
+}
+
+/// Number of pages needed for `total_items` at `per_page` per page (0 items means 0 pages).
+pub fn page_count(total_items: int, per_page: int) -> int {
+    if total_items < 1 || per_page < 1 {
+        return 0
+    }
+    (total_items + per_page - 1) / per_page
+}
+
+/// The SQL `OFFSET` for a 1-based page.
+pub fn offset_for(page: int, per_page: int) -> int {
+    if page < 1 || per_page < 1 {
+        return 0
+    }
+    (page - 1) * per_page
+}
+
+/// Describe `req` against `total_items`. A page past the end is clamped to the last page, so the result is always
+/// something a client can render.
+///
+/// ```wj
+/// use crate::describe
+/// use crate::request
+/// fn main() -> Result<(), string> {
+///     let p = describe(request(3, 10, 50)?, 25)
+///     assert_eq(p.total_pages, 3)
+///     assert_eq(p.first_item, 21)
+///     assert_eq(p.last_item, 25)
+///     assert(!p.has_next)
+///     Ok(())
+/// }
+/// ```
+pub fn describe(req: PageRequest, total_items: int) -> Page {
+    let total = if total_items < 0 { 0 } else { total_items }
+    let pages = page_count(total, req.per_page)
+    let mut page = req.page
+    if page > pages {
+        page = pages
+    }
+    if page < 1 {
+        page = 1
+    }
+    let offset = offset_for(page, req.per_page)
+    let mut first = 0
+    let mut last = 0
+    if total > 0 {
+        first = offset + 1
+        last = offset + req.per_page
+        if last > total {
+            last = total
+        }
+    }
+    Page {
+        page: page,
+        per_page: req.per_page,
+        total_items: total,
+        total_pages: pages,
+        offset: offset,
+        first_item: first,
+        last_item: last,
+        has_prev: page > 1,
+        has_next: page < pages,
+    }
+}
+
+/// Number of items on the page (`last_item - first_item + 1`, or 0 when empty).
+pub fn item_count(p: Page) -> int {
+    if p.total_items < 1 {
+        return 0
+    }
+    p.last_item - p.first_item + 1
+}
+
+/// A compact page-number strip such as `1 ... 4 5 6 ... 20`. Gaps are `0`. The strip always includes the first
+/// page, the last page, and `radius` neighbours on each side of `current`.
+///
+/// ```wj
+/// use crate::page_strip
+/// let strip = page_strip(10, 20, 1)
+/// assert_eq(strip, [1, 0, 9, 10, 11, 0, 20])
+/// ```
+pub fn page_strip(current: int, total_pages: int, radius: int) -> Vec<int> {
+    let mut out = Vec::new()
+    if total_pages < 1 {
+        return out
+    }
+    let r = if radius < 0 { 0 } else { radius }
+    let mut cur = current
+    if cur < 1 {
+        cur = 1
+    }
+    if cur > total_pages {
+        cur = total_pages
+    }
+    let mut lo = cur - r
+    let mut hi = cur + r
+    if lo < 1 {
+        lo = 1
+    }
+    if hi > total_pages {
+        hi = total_pages
+    }
+    if lo > 1 {
+        out.push(1)
+        if lo > 2 {
+            out.push(0)
+        }
+    }
+    let mut n = lo
+    while n <= hi {
+        out.push(n)
+        n = n + 1
+    }
+    if hi < total_pages {
+        if hi < total_pages - 1 {
+            out.push(0)
+        }
+        out.push(total_pages)
+    }
+    out
+}
+
+/// Render a strip for logs and plain-text output: gaps become `...`.
+pub fn strip_text(strip: Vec<int>) -> string {
+    let mut out = ""
+    let mut first = true
+    for n in strip {
+        let piece = if n == 0 { "..." } else { "${n}" }
+        if first {
+            out = piece
+            first = false
+        } else {
+            out = "${out} ${piece}"
+        }
+    }
+    out
+}
+
+/// An RFC 8288 `Link` header value with `first`, `prev`, `next`, `last` relations. `base` is the URL up to and
+/// including a query separator, for example `/items?per_page=25&`; the page number is appended as `page=N`.
+///
+/// ```wj
+/// use crate::describe
+/// use crate::link_header
+/// use crate::request
+/// fn main() -> Result<(), string> {
+///     let p = describe(request(2, 10, 50)?, 35)
+///     let h = link_header("/items?", p)
+///     assert(h.contains("rel=\"next\""))
+///     assert(h.contains("</items?page=4>; rel=\"last\""))
+///     Ok(())
+/// }
+/// ```
+pub fn link_header(base: string, p: Page) -> string {
+    let mut out = ""
+    if p.total_pages < 1 {
+        return out
+    }
+    out = "<${base}page=1>; rel=\"first\""
+    if p.has_prev {
+        out = "${out}, <${base}page=${p.page - 1}>; rel=\"prev\""
+    }
+    if p.has_next {
+        out = "${out}, <${base}page=${p.page + 1}>; rel=\"next\""
+    }
+    "${out}, <${base}page=${p.total_pages}>; rel=\"last\""
+}
+
+/// Slice a page out of an in-memory list using the same window the SQL `LIMIT`/`OFFSET` would produce.
+pub fn slice_page(items: Vec<string>, req: PageRequest) -> Vec<string> {
+    let mut out = Vec::new()
+    let start = offset_for(req.page, req.per_page)
+    let mut i = start
+    while i < items.len() && i < start + req.per_page {
+        out.push(items[i])
+        i = i + 1
+    }
+    out
+}
+
+/// Keyset (cursor) pagination: given `limit + 1` fetched rows, report whether another page exists and how many
+/// rows to show. Fetch one extra row, pass the fetched count here, and drop the last row when `has_more` is true.
+pub struct KeysetResult {
+    pub show: int,
+    pub has_more: bool,
+}
+
+/// See [`KeysetResult`].
+pub fn keyset_result(fetched: int, limit: int) -> KeysetResult {
+    if fetched > limit {
+        return KeysetResult { show: limit, has_more: true }
+    }
+    KeysetResult { show: fetched, has_more: false }
+}

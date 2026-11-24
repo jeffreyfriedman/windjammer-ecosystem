@@ -27,7 +27,7 @@ Apps: `wj-hello`, `wj-fetch`, `wj-find`, `wj-first-hour`, `wj-form-parse`, `wj-n
 | Wrappers over `std::*` | wj-sha, wj-hash, wj-jwt, wj-regex, wj-yaml, wj-compress, wj-json-util, wj-http-client (sync only), wj-fs-walk, wj-base64 |
 | Own parsers (documented subsets) | wj-toml, wj-csv, wj-cron, wj-url, wj-querystring, wj-semver, wj-timefmt, wj-duration, wj-glob, wj-multipart, wj-template, wj-dotenv, wj-cli-args, wj-cookie, wj-path, wj-mime |
 | HTTP building blocks | wj-router, wj-cors, wj-headers, wj-rate-limit, wj-validate |
-| Runtime / domain | wj-sync (channels, pool), wj-event, wj-retry, wj-log, wj-config, wj-migrate, wj-uuid, wj-inflect, wj-ulid, wj-money, wj-pagination, wj-ini, wj-bytesize, wj-fuzzy |
+| Runtime / domain | wj-sync (channels, pool), wj-event, wj-retry, wj-log, wj-config, wj-migrate, wj-uuid, wj-inflect, wj-ulid, wj-money, wj-pagination, wj-ini, wj-bytesize, wj-fuzzy, wj-wav |
 
 ## Roadmap: the hard 20%
 

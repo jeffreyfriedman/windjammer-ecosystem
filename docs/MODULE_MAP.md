@@ -69,6 +69,7 @@
 | wj-bytesize | Human byte sizes (IEC and SI) and rates, exact integer parse and format | std |
 | wj-fuzzy | Edit distance, did-you-mean hints, subsequence picker scoring | std |
 | wj-money | Currency-tagged minor units: checked arithmetic, basis points, exact allocation | std |
+| wj-static-server | Confined read-only static file handler, CSP presets, loopback serve | std |
 | wj-stats | Mean, median, standard deviation | std |
 | wj-sync | Channels, shared state, pools | std |
 | wj-table | Markdown and plain tables, fixed-point numbers | std |

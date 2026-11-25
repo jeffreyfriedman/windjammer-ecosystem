@@ -1,0 +1,286 @@
+use crate::StaticServer
+use crate::Roots
+use crate::mount
+use crate::handle
+use crate::resolve
+use crate::with_csp
+use crate::with_cache_control
+use crate::strict_local
+use crate::strict_local_with_connect
+use crate::content_type
+use crate::looks_like_text
+use crate::serve_on
+use std::collections::HashMap
+use std::fs
+use std::http::{HttpMethod, ServerRequest}
+
+// Fixture tree: site/ is mounted at /, data/ at /data; secret.txt sits outside both; site/link.txt and
+// site/assets/alias.dat are symlinks to it, site/assets/inner.dat a symlink that stays inside site/.
+
+fn fixture() -> StaticServer {
+    match StaticServer::new([mount("/", "tests/fixtures/tree/site"), mount("/data", "tests/fixtures/tree/data")]) {
+        Ok(s) => s,
+        Err(e) => {
+            assert(false, "fixture: ${e}")
+            return StaticServer { roots: Roots { mounts: [] }, csp: "", cache_control: "" }
+        },
+    }
+}
+
+fn request(method: HttpMethod, path: string) -> ServerRequest {
+    ServerRequest { method: method, path: path, query: HashMap::new(), headers: [], body: "" }
+}
+
+fn status_of(server: StaticServer, method: HttpMethod, path: string) -> int {
+    handle(server, request(method, path)).status
+}
+
+@test
+fn test_serves_files_from_each_mount() {
+    let s = fixture()
+    let get = HttpMethod::GET
+    assert_eq(status_of(s, get, "/"), 200)
+    assert_eq(status_of(s, get, "/app.js"), 200)
+    assert_eq(status_of(s, get, "/assets/pixel.png"), 200)
+    assert_eq(status_of(s, get, "/data/items.json"), 200)
+    assert_eq(handle(s, request(get, "/app.js")).binary_body ?? [], fs::read("tests/fixtures/tree/site/app.js") ?? [])
+}
+
+@test
+fn test_directories_are_never_listed() {
+    let s = fixture()
+    let get = HttpMethod::GET
+    assert_eq(status_of(s, get, "/data/"), 404)
+    assert_eq(status_of(s, get, "/data"), 404)
+    assert_eq(status_of(s, get, "/assets/"), 404)
+    assert_eq(status_of(s, get, "/assets"), 404)
+}
+
+@test
+fn test_traversal_is_refused() {
+    let s = fixture()
+    let get = HttpMethod::GET
+    assert_eq(status_of(s, get, "/../secret.txt"), 404)
+    assert_eq(status_of(s, get, "/assets/../../secret.txt"), 404)
+    assert_eq(status_of(s, get, "/data/../secret.txt"), 404)
+    assert_eq(status_of(s, get, "/data/../app.js"), 404)
+    // Even a dotdot that stays inside the mount is refused.
+    assert_eq(status_of(s, get, "/assets/../app.js"), 404)
+    assert_eq(status_of(s, get, "/%2e%2e/secret.txt"), 404)
+    assert_eq(status_of(s, get, "/%2E%2E/secret.txt"), 404)
+    assert_eq(status_of(s, get, "/data/%2e%2e/secret.txt"), 404)
+    assert_eq(status_of(s, get, "/assets/%2e%2e/%2e%2e/secret.txt"), 404)
+    assert_eq(status_of(s, get, "/..%2fsecret.txt"), 404)
+}
+
+@test
+fn test_malformed_paths_are_refused() {
+    let s = fixture()
+    let get = HttpMethod::GET
+    assert_eq(status_of(s, get, "/assets\\..\\..\\secret.txt"), 404)
+    assert_eq(status_of(s, get, "/app.js%00.png"), 404)
+    assert_eq(status_of(s, get, "app.js"), 404)
+    assert_eq(status_of(s, get, ""), 404)
+    assert_eq(status_of(s, get, "/nope.js"), 404)
+    assert_eq(status_of(s, get, "/%zz"), 404)
+}
+
+@test
+fn test_absolute_paths_stay_inside_the_mount() {
+    let s = fixture()
+    // A doubled slash is cleaned, not treated as a filesystem root.
+    assert_eq(status_of(s, HttpMethod::GET, "//etc/passwd"), 404)
+    assert_eq(status_of(s, HttpMethod::GET, "//app.js"), 200)
+    assert_eq(resolve(s, "/etc/passwd").is_none(), true)
+}
+
+@test
+fn test_symlinks_that_leave_the_root_are_refused() {
+    let s = fixture()
+    let get = HttpMethod::GET
+    assert_eq(status_of(s, get, "/link.txt"), 404)
+    assert_eq(status_of(s, get, "/assets/alias.dat"), 404)
+    assert_eq(resolve(s, "/link.txt").is_none(), true)
+}
+
+@test
+fn test_symlinks_inside_the_root_are_served() {
+    let s = fixture()
+    let r = handle(s, request(HttpMethod::GET, "/assets/inner.dat"))
+    assert_eq(r.status, 200)
+    assert_eq(r.binary_body ?? [], fs::read("tests/fixtures/tree/site/notes.dat") ?? [])
+    assert_eq((r.binary_body ?? []).len(), 12)
+}
+
+@test
+fn test_file_response_carries_the_policy_headers() {
+    let r = handle(fixture(), request(HttpMethod::GET, "/app.js"))
+    assert_eq(r.status, 200)
+    assert_eq(r.headers.get("Cache-Control") ?? "", "no-store")
+    assert_eq(r.headers.get("X-Content-Type-Options") ?? "", "nosniff")
+    assert_eq(r.headers.get("Content-Security-Policy") ?? "", "default-src 'self'; img-src 'self' data:; media-src 'self'; object-src 'none'")
+    assert_eq(r.headers.get("Content-Type") ?? "", "text/javascript; charset=utf-8")
+}
+
+@test
+fn test_policy_headers_are_configurable() {
+    let s = with_cache_control(with_csp(fixture(), strict_local_with_connect(["https://api.example.test"])), "max-age=60")
+    let r = handle(s, request(HttpMethod::GET, "/style.css"))
+    assert_eq(r.headers.get("Cache-Control") ?? "", "max-age=60")
+    assert_eq(r.headers.get("Content-Security-Policy") ?? "", "default-src 'self'; img-src 'self' data:; media-src 'self'; object-src 'none'; connect-src 'self' https://api.example.test")
+}
+
+@test
+fn test_csp_presets() {
+    assert_eq(strict_local(), "default-src 'self'; img-src 'self' data:; media-src 'self'; object-src 'none'")
+    assert_eq(strict_local_with_connect([]), strict_local())
+    assert_eq(
+        strict_local_with_connect(["https://a.example.test", "wss://b.example.test"]),
+        "default-src 'self'; img-src 'self' data:; media-src 'self'; object-src 'none'; connect-src 'self' https://a.example.test wss://b.example.test"
+    )
+}
+
+@test
+fn test_content_types_follow_the_extension() {
+    let s = fixture()
+    let get = HttpMethod::GET
+    assert_eq(handle(s, request(get, "/")).headers.get("Content-Type") ?? "", "text/html; charset=utf-8")
+    assert_eq(handle(s, request(get, "/style.css")).headers.get("Content-Type") ?? "", "text/css; charset=utf-8")
+    assert_eq(handle(s, request(get, "/app.js")).headers.get("Content-Type") ?? "", "text/javascript; charset=utf-8")
+    assert_eq(handle(s, request(get, "/data/items.json")).headers.get("Content-Type") ?? "", "application/json; charset=utf-8")
+    assert_eq(handle(s, request(get, "/assets/pixel.png")).headers.get("Content-Type") ?? "", "image/png")
+}
+
+@test
+fn test_unknown_extensions_are_sniffed() {
+    let s = fixture()
+    let get = HttpMethod::GET
+    assert_eq(handle(s, request(get, "/notes.dat")).headers.get("Content-Type") ?? "", "text/plain; charset=utf-8")
+    assert_eq(handle(s, request(get, "/assets/blob.bin")).headers.get("Content-Type") ?? "", "application/octet-stream")
+    assert_eq(content_type("/x/file.MJS", []), "text/javascript; charset=utf-8")
+    assert_eq(content_type("/x/noextension", [104, 105, 10]), "text/plain; charset=utf-8")
+    assert_eq(content_type("/x/dir.v2/noextension", [0, 1]), "application/octet-stream")
+}
+
+@test
+fn test_sniff_looks_only_at_the_leading_bytes() {
+    assert_eq(looks_like_text([9, 10, 13, 27, 65]), true)
+    assert_eq(looks_like_text([65, 0]), false)
+    assert_eq(looks_like_text([65, 31]), false)
+    let mut long: Vec<u8> = []
+    let mut i = 0
+    while i < 600 {
+        long.push(65)
+        i += 1
+    }
+    long.push(0)
+    assert_eq(looks_like_text(long), true)
+}
+
+@test
+fn test_head_gets_the_same_headers_as_get() {
+    let r = handle(fixture(), request(HttpMethod::HEAD, "/app.js"))
+    assert_eq(r.status, 200)
+    assert_eq(r.headers.get("Content-Type") ?? "", "text/javascript; charset=utf-8")
+    assert_eq(r.headers.get("Cache-Control") ?? "", "no-store")
+    assert_eq(status_of(fixture(), HttpMethod::HEAD, "/nope.js"), 404)
+}
+
+@test
+fn test_other_methods_get_405_with_allow() {
+    let s = fixture()
+    let r = handle(s, request(HttpMethod::POST, "/app.js"))
+    assert_eq(r.status, 405)
+    assert_eq(r.headers.get("Allow") ?? "", "GET, HEAD")
+    assert_eq(r.body, "read-only\n")
+    assert_eq(status_of(s, HttpMethod::PUT, "/data/items.json"), 405)
+    assert_eq(status_of(s, HttpMethod::DELETE, "/nope.js"), 405)
+}
+
+@test
+fn test_not_found_has_no_policy_headers() {
+    let r = handle(fixture(), request(HttpMethod::GET, "/nope.js"))
+    assert_eq(r.status, 404)
+    assert_eq(r.body, "404 page not found\n")
+    assert_eq(r.headers.get("Cache-Control") ?? "none", "none")
+    assert_eq(r.headers.get("X-Content-Type-Options") ?? "", "nosniff")
+}
+
+@test
+fn test_index_html_redirects_to_the_folder() {
+    let s = fixture()
+    let r = handle(s, request(HttpMethod::GET, "/index.html"))
+    assert_eq(r.status, 301)
+    assert_eq(r.headers.get("Location") ?? "", "./")
+    assert_eq(r.headers.get("Cache-Control") ?? "", "no-store")
+    let nested = handle(s, request(HttpMethod::GET, "/assets/index.html"))
+    assert_eq(nested.status, 301)
+    assert_eq(nested.headers.get("Location") ?? "", "./")
+    // A folder URL does not map to a nested index: only a mount root does.
+    assert_eq(status_of(s, HttpMethod::GET, "/assets/"), 404)
+}
+
+@test
+fn test_longest_prefix_wins() {
+    let s = match StaticServer::new([mount("/", "tests/fixtures/tree/site"), mount("/assets", "tests/fixtures/tree/data")]) {
+        Ok(x) => x,
+        Err(e) => {
+            assert(false, e)
+            return
+        },
+    }
+    // /assets now shows the data folder, shadowing site/assets.
+    assert_eq(status_of(s, HttpMethod::GET, "/assets/items.json"), 200)
+    assert_eq(status_of(s, HttpMethod::GET, "/assets/pixel.png"), 404)
+    // /assetsx is not under the /assets prefix.
+    assert_eq(status_of(s, HttpMethod::GET, "/app.js"), 200)
+}
+
+@test
+fn test_new_reports_bad_mount_tables() {
+    match StaticServer::new([mount("/", "tests/fixtures/tree/site/index.html")]) {
+        Ok(_) => assert(false, "a file is not a folder"),
+        Err(e) => assert_eq(e, "tests/fixtures/tree/site/index.html is not a folder"),
+    }
+    match StaticServer::new([mount("/", "tests/fixtures/tree/site"), mount("/data", "tests/fixtures/tree/missing")]) {
+        Ok(_) => assert(false, "a missing folder is not a root"),
+        Err(e) => assert_eq(e, "tests/fixtures/tree/missing is not a folder"),
+    }
+    match StaticServer::new([]) {
+        Ok(_) => assert(false, "no mounts"),
+        Err(e) => assert_eq(e, "no mounts"),
+    }
+    match StaticServer::new([mount("/a", "tests/fixtures/tree/site"), mount("/a", "tests/fixtures/tree/data")]) {
+        Ok(_) => assert(false, "duplicate prefix"),
+        Err(e) => assert_eq(e, "duplicate mount prefix /a"),
+    }
+    match StaticServer::new([mount("data", "tests/fixtures/tree/data")]) {
+        Ok(_) => assert(false, "prefix needs a slash"),
+        Err(e) => assert(e.contains("must start with /"), e),
+    }
+    match StaticServer::new([mount("/data/", "tests/fixtures/tree/data")]) {
+        Ok(_) => assert(false, "no trailing slash"),
+        Err(e) => assert(e.contains("must not end with /"), e),
+    }
+    match StaticServer::new([mount("/../x", "tests/fixtures/tree/data")]) {
+        Ok(_) => assert(false, "no dotdot prefix"),
+        Err(e) => assert(e.contains("must not hold"), e),
+    }
+}
+
+@test
+fn test_serve_refuses_other_hosts() {
+    let s = fixture()
+    match serve_on(s, "0.0.0.0", 8080) {
+        Ok(_) => assert(false, "must refuse"),
+        Err(e) => assert_eq(e, "refusing to bind 0.0.0.0: only 127.0.0.1 is allowed"),
+    }
+    match serve_on(s, "localhost", 8080) {
+        Ok(_) => assert(false, "must refuse"),
+        Err(e) => assert(e.contains("refusing to bind localhost"), e),
+    }
+    match serve_on(s, "127.0.0.1", 70000) {
+        Ok(_) => assert(false, "must refuse"),
+        Err(e) => assert_eq(e, "port 70000 is out of range"),
+    }
+}

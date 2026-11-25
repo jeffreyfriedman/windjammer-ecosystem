@@ -1,0 +1,461 @@
+use crate::WavInfo
+use crate::WavError
+use crate::SampleFormat
+use crate::parse
+use crate::parse_header
+use crate::decode
+use crate::encode_f32
+use crate::encode_i16
+use crate::quantize
+use crate::duration_seconds
+use crate::describe
+use std::encoding
+use std::math
+
+// Golden bytes for a mono 8000 Hz PCM16 file of 800 frames (0.1 s of a 440 Hz sine at amplitude 0.5), worked out by hand:
+// RIFF size = 36 + 1600 = 0x0664, byte rate = 16000 = 0x3E80, data size = 1600 = 0x0640. The first eight samples are
+// round(0.5 * sin(2 * pi * 440 * n / 8000) * 32768) as little-endian 16-bit values.
+const GOLDEN_HEADER: string = "524946466406000057415645666d74201000000001000100401f0000803e0000020010006461746140060000"
+const GOLDEN_FIRST_SAMPLES: string = "0000ae15cc281637de3e363f1538532a"
+
+fn put_u16(out: Vec<u8>, v: int) -> Vec<u8> {
+    let mut o = out
+    o.push((v & 255) as u8)
+    o.push(((v >> 8) & 255) as u8)
+    o
+}
+
+fn put_u32(out: Vec<u8>, v: int) -> Vec<u8> {
+    put_u16(put_u16(out, v & 65535), (v >> 16) & 65535)
+}
+
+fn put_tag(out: Vec<u8>, tag: string) -> Vec<u8> {
+    let mut o = out
+    for c in tag.bytes() {
+        o.push(c)
+    }
+    o
+}
+
+fn tone_sample(rate: int, hz: f64, n: int, amplitude: f64) -> f64 {
+    let phase = 2.0 * math.PI * hz * (n as f64) / (rate as f64)
+    amplitude * phase.sin()
+}
+
+fn tone(rate: int, hz: f64, frames: int, amplitude: f64) -> Vec<f32> {
+    let mut out: Vec<f32> = []
+    let mut n = 0
+    while n < frames {
+        out.push(tone_sample(rate, hz, n, amplitude) as f32)
+        n = n + 1
+    }
+    out
+}
+
+// A fmt chunk body for plain PCM or float.
+fn fmt_body(code: int, channels: int, rate: int, bits: int) -> Vec<u8> {
+    let align = channels * bits / 8
+    let mut b: Vec<u8> = []
+    b = put_u16(b, code)
+    b = put_u16(b, channels)
+    b = put_u32(b, rate)
+    b = put_u32(b, rate * align)
+    b = put_u16(b, align)
+    put_u16(b, bits)
+}
+
+fn chunk(tag: string, body: Vec<u8>) -> Vec<u8> {
+    let mut o = put_tag([], tag)
+    o = put_u32(o, body.len() as int)
+    for x in body {
+        o.push(x)
+    }
+    if (body.len() as int) % 2 == 1 {
+        o.push(0 as u8)
+    }
+    o
+}
+
+fn riff(chunks: Vec<Vec<u8>>) -> Vec<u8> {
+    let mut payload = put_tag([], "WAVE")
+    for c in chunks {
+        for x in c {
+            payload.push(x)
+        }
+    }
+    let mut o = put_tag([], "RIFF")
+    o = put_u32(o, payload.len() as int)
+    for x in payload {
+        o.push(x)
+    }
+    o
+}
+
+fn bytes_of(values: Vec<int>) -> Vec<u8> {
+    let mut o: Vec<u8> = []
+    for v in values {
+        o.push(v as u8)
+    }
+    o
+}
+
+fn error_text(result: Result<WavInfo, WavError>) -> string {
+    match result {
+        Ok(_) => "ok",
+        Err(e) => describe(e),
+    }
+}
+
+fn hex_range(b: Vec<u8>, from: int, to: int) -> string {
+    let mut part: Vec<u8> = []
+    let mut i = from
+    while i < to {
+        part.push(b[i])
+        i = i + 1
+    }
+    encoding.hex_encode(part)
+}
+
+fn pcm16_file(samples: Vec<int>, channels: int, rate: int) -> Vec<u8> {
+    let mut data: Vec<u8> = []
+    for s in samples {
+        data = put_u16(data, s & 65535)
+    }
+    riff([chunk("fmt ", fmt_body(1, channels, rate, 16)), chunk("data", data)])
+}
+
+fn test_encode_header_matches_golden_bytes() {
+    let wav = encode_f32(tone(8000, 440.0, 800, 0.5), 1, 8000) ?? []
+    assert_eq(wav.len() as int, 1644)
+    assert_eq(hex_range(wav, 0, 44), GOLDEN_HEADER)
+    assert_eq(hex_range(wav, 44, 60), GOLDEN_FIRST_SAMPLES)
+}
+
+fn test_parse_reads_encoded_header() {
+    let wav = encode_f32(tone(8000, 440.0, 800, 0.5), 1, 8000) ?? []
+    match parse(wav) {
+        Ok(info) => {
+            assert_eq(info.channels, 1)
+            assert_eq(info.sample_rate, 8000)
+            assert_eq(info.bits_per_sample, 16)
+            assert_eq(info.frame_count, 800)
+            assert_eq(info.data_offset, 44)
+            assert_eq(info.data_len, 1600)
+            assert_eq(info.block_align, 2)
+            assert(!info.extensible, "canonical header is not extensible")
+            assert(duration_seconds(info) > 0.0999 && duration_seconds(info) < 0.1001, "0.1 s")
+            match info.format {
+                SampleFormat::Pcm => {},
+                SampleFormat::Float => assert(false, "expected PCM"),
+            }
+        },
+        Err(e) => assert(false, describe(e)),
+    }
+}
+
+fn test_round_trip_within_quantisation_step() {
+    let input = tone(44100, 440.0, 4410, 0.8)
+    let wav = encode_f32(input, 1, 44100) ?? []
+    let output = decode(wav) ?? []
+    assert_eq(output.len() as int, 4410)
+    let mut worst = 0.0
+    let mut i = 0
+    while i < 4410 {
+        let d = ((output[i] - input[i]) as f64).abs()
+        if d > worst {
+            worst = d
+        }
+        i = i + 1
+    }
+    assert(worst <= 0.5 / 32768.0 + 0.000001, "round trip error ${worst} exceeds half a 16-bit step")
+}
+
+fn test_round_trip_stereo_ramp_and_clamping() {
+    let input: Vec<f32> = [0.0, -1.0, 0.5, -0.5, 1.0, 0.25, 2.0, -2.0]
+    let wav = encode_f32(input, 2, 22050) ?? []
+    match parse(wav) {
+        Ok(info) => {
+            assert_eq(info.channels, 2)
+            assert_eq(info.frame_count, 4)
+            assert_eq(info.block_align, 4)
+        },
+        Err(e) => assert(false, describe(e)),
+    }
+    let out = decode(wav) ?? []
+    assert_eq(out.len() as int, 8)
+    assert(((out[1] + 1.0) as f64).abs() < 0.0001, "-1.0 stays -1.0")
+    assert(((out[4] - 1.0) as f64).abs() < 0.0001, "1.0 stays 1.0")
+    assert(((out[6] - 1.0) as f64).abs() < 0.0001, "2.0 clamps to 1.0")
+    assert(((out[7] + 1.0) as f64).abs() < 0.0001, "-2.0 clamps to -1.0")
+    assert(((out[2] - 0.5) as f64).abs() < 0.0001, "interleave order kept")
+}
+
+fn test_quantize_rounds_half_away_from_zero() {
+    assert_eq(quantize(0.0) as int, 0)
+    assert_eq(quantize(1.0) as int, 32767)
+    assert_eq(quantize(-1.0) as int, -32768)
+    assert_eq(quantize(0.00001) as int, 0)
+    assert_eq(quantize(0.5 / 32768.0) as int, 1)
+    assert_eq(quantize(-0.5 / 32768.0) as int, -1)
+    assert_eq(quantize(5.0) as int, 32767)
+}
+
+fn test_encode_i16_round_trips_exactly() {
+    let input: Vec<i16> = [0, 1, -1, 32767, -32768, 1234, -4321]
+    let wav = encode_i16(input, 1, 16000) ?? []
+    let out = decode(wav) ?? []
+    assert_eq(out.len() as int, 7)
+    assert_eq(out[4], -1.0)
+    assert_eq((out[3] * 32768.0) as int, 32767)
+    assert_eq((out[6] * 32768.0) as int, -4321)
+}
+
+fn test_encode_rejects_bad_rate_and_channels() {
+    assert_eq(encode_i16([0], 0, 8000).is_err(), true)
+    assert_eq(encode_i16([0], 1, 0).is_err(), true)
+    assert_eq(encode_f32([0.0], 70000, 8000).is_err(), true)
+}
+
+fn test_encode_is_deterministic() {
+    let a = encode_f32(tone(8000, 440.0, 800, 0.5), 1, 8000) ?? []
+    let b = encode_f32(tone(8000, 440.0, 800, 0.5), 1, 8000) ?? []
+    assert_eq(a, b)
+    assert_eq(a.len() as int, 1644)
+}
+
+fn test_silence_encodes_to_zero_samples() {
+    let wav = encode_f32([0.0, 0.0, 0.0, 0.0], 1, 8000) ?? []
+    assert_eq(hex_range(wav, 44, 52), "0000000000000000")
+}
+
+fn test_truncated_input() {
+    let wav = encode_f32(tone(8000, 440.0, 800, 0.5), 1, 8000) ?? []
+    let mut short: Vec<u8> = []
+    let mut i = 0
+    while i < 1000 {
+        short.push(wav[i])
+        i = i + 1
+    }
+    assert_eq(error_text(parse(short)), "chunk extends past the end of the input")
+    // The same prefix is fine for a header-only read.
+    assert_eq(error_text(parse_header(short)), "ok")
+    assert_eq(error_text(parse([])), "input too short for a WAV header")
+    assert_eq(error_text(parse(bytes_of([82, 73, 70, 70, 4, 0]))), "input too short for a WAV header")
+    // Cut inside the fmt chunk.
+    let mut inside_fmt: Vec<u8> = []
+    i = 0
+    while i < 30 {
+        inside_fmt.push(wav[i])
+        i = i + 1
+    }
+    assert_eq(error_text(parse(inside_fmt)), "chunk extends past the end of the input")
+    assert_eq(error_text(parse_header(inside_fmt)), "chunk extends past the end of the input")
+    // Only the RIFF preamble.
+    let mut preamble: Vec<u8> = []
+    i = 0
+    while i < 12 {
+        preamble.push(wav[i])
+        i = i + 1
+    }
+    assert_eq(error_text(parse(preamble)), "no fmt chunk before the end of the input")
+    assert_eq(decode(inside_fmt).is_err(), true)
+}
+
+fn test_header_prefix_of_first_44_bytes() {
+    let wav = encode_f32(tone(8000, 440.0, 800, 0.5), 1, 8000) ?? []
+    let mut prefix: Vec<u8> = []
+    let mut i = 0
+    while i < 44 {
+        prefix.push(wav[i])
+        i = i + 1
+    }
+    match parse_header(prefix) {
+        Ok(info) => {
+            assert_eq(info.frame_count, 800)
+            assert_eq(info.sample_rate, 8000)
+            assert_eq(info.data_offset, 44)
+        },
+        Err(e) => assert(false, describe(e)),
+    }
+    assert_eq(error_text(parse(prefix)), "chunk extends past the end of the input")
+}
+
+fn test_bad_magic() {
+    let mut wav = encode_f32([0.0, 0.0], 1, 8000) ?? []
+    wav[0] = 88 as u8
+    assert_eq(error_text(parse(wav)), "missing RIFF/WAVE signature")
+    let mut wav2 = encode_f32([0.0, 0.0], 1, 8000) ?? []
+    wav2[8] = 88 as u8
+    assert_eq(error_text(parse(wav2)), "missing RIFF/WAVE signature")
+    assert_eq(decode(wav2).is_err(), true)
+}
+
+fn test_missing_chunks() {
+    let only_fmt = riff([chunk("fmt ", fmt_body(1, 1, 8000, 16))])
+    assert_eq(error_text(parse(only_fmt)), "no data chunk before the end of the input")
+    let only_data = riff([chunk("data", bytes_of([0, 0]))])
+    assert_eq(error_text(parse(only_data)), "no fmt chunk before the end of the input")
+}
+
+fn test_bad_fmt_chunks() {
+    let short_fmt = riff([chunk("fmt ", bytes_of([1, 0, 1, 0])), chunk("data", bytes_of([0, 0]))])
+    assert_eq(error_text(parse(short_fmt)), "malformed fmt chunk")
+    let zero_channels = riff([chunk("fmt ", fmt_body(1, 0, 8000, 16)), chunk("data", bytes_of([0, 0]))])
+    assert_eq(error_text(parse(zero_channels)), "malformed fmt chunk")
+    let zero_rate = riff([chunk("fmt ", fmt_body(1, 1, 0, 16)), chunk("data", bytes_of([0, 0]))])
+    assert_eq(error_text(parse(zero_rate)), "malformed fmt chunk")
+    let adpcm = riff([chunk("fmt ", fmt_body(2, 1, 8000, 4)), chunk("data", bytes_of([0, 0]))])
+    assert_eq(error_text(parse(adpcm)), "unsupported sample format")
+}
+
+fn test_unknown_chunks_are_skipped_with_odd_padding() {
+    // LIST (even size), a 3-byte junk chunk (odd size, one pad byte) before fmt, and another after fmt.
+    let wav = riff([
+        chunk("LIST", bytes_of([73, 78, 70, 79, 1, 2, 3, 4])),
+        chunk("junk", bytes_of([9, 9, 9])),
+        chunk("fmt ", fmt_body(1, 1, 8000, 16)),
+        chunk("odd!", bytes_of([7])),
+        chunk("data", bytes_of([0, 64, 0, 192])),
+    ])
+    match parse(wav) {
+        Ok(info) => {
+            assert_eq(info.frame_count, 2)
+            assert_eq(info.data_len, 4)
+            assert_eq(info.sample_rate, 8000)
+        },
+        Err(e) => assert(false, describe(e)),
+    }
+    let samples = decode(wav) ?? []
+    assert_eq(samples.len() as int, 2)
+    assert_eq(samples[0], 0.5)
+    assert_eq(samples[1], -0.5)
+}
+
+fn test_chunk_after_data_is_ignored() {
+    let wav = riff([
+        chunk("fmt ", fmt_body(1, 1, 8000, 16)),
+        chunk("data", bytes_of([0, 64])),
+        chunk("LIST", bytes_of([1, 2, 3, 4])),
+    ])
+    assert_eq((decode(wav) ?? []).len() as int, 1)
+}
+
+fn test_extensible_header_is_recognised() {
+    // WAVE_FORMAT_EXTENSIBLE: tag 0xFFFE, 22 extra bytes: cbSize 22, valid bits 24, channel mask 3, then the GUID
+    // whose first two bytes are the real format code (1 = PCM).
+    let mut f = fmt_body(65534, 2, 48000, 24)
+    f = put_u16(f, 22)
+    f = put_u16(f, 24)
+    f = put_u32(f, 3)
+    f = put_u16(f, 1)
+    f = put_u16(f, 0)
+    f = put_u32(f, 16)
+    f = put_u32(f, 2852126848)
+    f = put_u32(f, 1905997082)
+    // One stereo frame of 24-bit samples: +0.5 and -0.5.
+    let data = bytes_of([0, 0, 64, 0, 0, 192])
+    let wav = riff([chunk("fmt ", f), chunk("data", data)])
+    match parse(wav) {
+        Ok(info) => {
+            assert(info.extensible, "extensible flag")
+            assert_eq(info.channels, 2)
+            assert_eq(info.bits_per_sample, 24)
+            assert_eq(info.frame_count, 1)
+            assert_eq(info.block_align, 6)
+        },
+        Err(e) => assert(false, describe(e)),
+    }
+    let out = decode(wav) ?? []
+    assert_eq(out.len() as int, 2)
+    assert_eq(out[0], 0.5)
+    assert_eq(out[1], -0.5)
+}
+
+fn test_extensible_with_short_fmt_is_rejected() {
+    let wav = riff([chunk("fmt ", fmt_body(65534, 2, 48000, 16)), chunk("data", bytes_of([0, 0, 0, 0]))])
+    assert_eq(error_text(parse(wav)), "malformed fmt chunk")
+}
+
+fn test_zero_length_data() {
+    let wav = encode_f32([], 1, 8000) ?? []
+    assert_eq(wav.len() as int, 44)
+    match parse(wav) {
+        Ok(info) => {
+            assert_eq(info.frame_count, 0)
+            assert_eq(info.data_len, 0)
+            assert_eq(duration_seconds(info), 0.0)
+        },
+        Err(e) => assert(false, describe(e)),
+    }
+    assert_eq((decode(wav) ?? [1.0]).len() as int, 0)
+}
+
+fn test_partial_trailing_frame_is_dropped() {
+    let wav = riff([chunk("fmt ", fmt_body(1, 2, 8000, 16)), chunk("data", bytes_of([0, 0, 0, 0, 1, 0]))])
+    match parse(wav) {
+        Ok(info) => assert_eq(info.frame_count, 1),
+        Err(e) => assert(false, describe(e)),
+    }
+    assert_eq((decode(wav) ?? []).len() as int, 2)
+}
+
+fn test_streamed_data_size_runs_to_end() {
+    let mut wav = riff([chunk("fmt ", fmt_body(1, 1, 8000, 16)), chunk("data", bytes_of([0, 64, 0, 64, 0, 64]))])
+    // Overwrite the data size (bytes 40..44) with 0xFFFFFFFF.
+    let mut i = 40
+    while i < 44 {
+        wav[i] = 255 as u8
+        i = i + 1
+    }
+    match parse(wav) {
+        Ok(info) => assert_eq(info.frame_count, 3),
+        Err(e) => assert(false, describe(e)),
+    }
+}
+
+fn test_decode_pcm24_pcm32_and_float32() {
+    let pcm24 = riff([chunk("fmt ", fmt_body(1, 1, 8000, 24)), chunk("data", bytes_of([0, 0, 64, 0, 0, 192, 255, 255, 127]))])
+    let a = decode(pcm24) ?? []
+    assert_eq(a.len() as int, 3)
+    assert_eq(a[0], 0.5)
+    assert_eq(a[1], -0.5)
+    let pcm32 = riff([chunk("fmt ", fmt_body(1, 1, 8000, 32)), chunk("data", bytes_of([0, 0, 0, 64, 0, 0, 0, 192]))])
+    let b = decode(pcm32) ?? []
+    assert_eq(b.len() as int, 2)
+    assert_eq(b[0], 0.5)
+    assert_eq(b[1], -0.5)
+    // IEEE 754: 0.5 = 0x3F000000, -0.25 = 0xBE800000, 1.0 = 0x3F800000, 0.0.
+    let flt = riff([chunk("fmt ", fmt_body(3, 1, 8000, 32)), chunk("data", bytes_of([0, 0, 0, 63, 0, 0, 128, 190, 0, 0, 128, 63, 0, 0, 0, 0]))])
+    match parse(flt) {
+        Ok(info) => {
+            assert_eq(info.bits_per_sample, 32)
+            match info.format {
+                SampleFormat::Float => {},
+                SampleFormat::Pcm => assert(false, "expected float"),
+            }
+        },
+        Err(e) => assert(false, describe(e)),
+    }
+    let c = decode(flt) ?? []
+    assert_eq(c.len() as int, 4)
+    assert_eq(c[0], 0.5)
+    assert_eq(c[1], -0.25)
+    assert_eq(c[2], 1.0)
+    assert_eq(c[3], 0.0)
+}
+
+fn test_decode_rejects_unsupported_depth() {
+    let pcm8 = riff([chunk("fmt ", fmt_body(1, 1, 8000, 8)), chunk("data", bytes_of([128, 128]))])
+    assert_eq(error_text(parse(pcm8)), "ok")
+    assert_eq(decode(pcm8).is_err(), true)
+    let float64 = riff([chunk("fmt ", fmt_body(3, 1, 8000, 64)), chunk("data", bytes_of([0, 0, 0, 0, 0, 0, 0, 0]))])
+    assert_eq(decode(float64).is_err(), true)
+}
+
+fn test_duration_of_one_second() {
+    let wav = encode_f32(tone(24000, 220.0, 24000, 0.3), 1, 24000) ?? []
+    match parse(wav) {
+        Ok(info) => assert_eq(duration_seconds(info), 1.0),
+        Err(e) => assert(false, describe(e)),
+    }
+}

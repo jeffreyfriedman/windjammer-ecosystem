@@ -1,0 +1,326 @@
+//! Read and write RIFF/WAVE audio from byte slices, without touching the file system. Parse a header, decode PCM
+//! (16, 24 or 32 bit) or 32-bit float samples to `f32`, and encode samples to a canonical 44-byte-header PCM16 file.
+//! Malformed or truncated input is reported as a `WavError`; no function panics on bad bytes.
+
+const WAVE_FORMAT_PCM: int = 1
+const WAVE_FORMAT_FLOAT: int = 3
+const WAVE_FORMAT_EXTENSIBLE: int = 65534
+// Chunk tags as little-endian 32-bit values: the four ASCII bytes read as a number.
+const TAG_RIFF: int = 1179011410
+const TAG_WAVE: int = 1163280727
+const TAG_FMT: int = 544501094
+const TAG_DATA: int = 1635017060
+const UNKNOWN_SIZE: int = 4294967295
+
+/// Length of the header written by `encode_f32` and `encode_i16`.
+pub const CANONICAL_HEADER_LEN: int = 44
+
+/// How samples are stored in the data chunk.
+pub enum SampleFormat {
+    /// Signed integer PCM (16, 24 or 32 bit).
+    Pcm,
+    /// IEEE 754 float (32 bit).
+    Float,
+}
+
+/// Why a byte slice could not be read as a WAV file.
+pub enum WavError {
+    /// Fewer than 12 bytes, or the chunk list ends inside a chunk header.
+    TooShort,
+    /// Does not start with `RIFF` and `WAVE`.
+    BadMagic,
+    /// A chunk claims more bytes than the input holds (the `fmt ` chunk, or the data chunk in `parse`).
+    Truncated,
+    /// The input ended before a `fmt ` chunk.
+    MissingFormat,
+    /// The input ended before a `data` chunk.
+    MissingData,
+    /// The `fmt ` chunk is shorter than 16 bytes or describes zero channels, a zero rate or a bad frame size.
+    BadFormat,
+    /// A format code or bit depth that this package does not decode.
+    Unsupported,
+}
+
+/// What the header says about the audio.
+pub struct WavInfo {
+    pub channels: int,
+    pub sample_rate: int,
+    pub bits_per_sample: int,
+    pub format: SampleFormat,
+    /// True when the file used WAVE_FORMAT_EXTENSIBLE (`format` is then the sub-format).
+    pub extensible: bool,
+    /// Bytes per frame (all channels).
+    pub block_align: int,
+    /// Offset of the first sample byte.
+    pub data_offset: int,
+    /// Bytes in the data chunk.
+    pub data_len: int,
+    /// Whole frames in the data chunk.
+    pub frame_count: int,
+}
+
+/// A readable one-line description of `error`.
+pub fn describe(error: WavError) -> string {
+    match error {
+        WavError::TooShort => "input too short for a WAV header",
+        WavError::BadMagic => "missing RIFF/WAVE signature",
+        WavError::Truncated => "chunk extends past the end of the input",
+        WavError::MissingFormat => "no fmt chunk before the end of the input",
+        WavError::MissingData => "no data chunk before the end of the input",
+        WavError::BadFormat => "malformed fmt chunk",
+        WavError::Unsupported => "unsupported sample format",
+    }
+}
+
+fn u16_at(bytes: Vec<u8>, at: int) -> int {
+    (bytes[at] as int) | ((bytes[at + 1] as int) << 8)
+}
+
+fn u32_at(bytes: Vec<u8>, at: int) -> int {
+    u16_at(bytes, at) | (u16_at(bytes, at + 2) << 16)
+}
+
+fn push_u16(out: Vec<u8>, value: int) -> Vec<u8> {
+    let mut o = out
+    o.push((value & 255) as u8)
+    o.push(((value >> 8) & 255) as u8)
+    o
+}
+
+fn push_u32(out: Vec<u8>, value: int) -> Vec<u8> {
+    push_u16(push_u16(out, value & 65535), (value >> 16) & 65535)
+}
+
+fn read_format(bytes: Vec<u8>, body: int, size: int) -> Result<WavInfo, WavError> {
+    if size < 16 {
+        return Err(WavError::BadFormat)
+    }
+    let tag = u16_at(bytes, body)
+    let channels = u16_at(bytes, body + 2)
+    let sample_rate = u32_at(bytes, body + 4)
+    let block_align = u16_at(bytes, body + 12)
+    let bits = u16_at(bytes, body + 14)
+    let mut code = tag
+    let mut extensible = false
+    if tag == WAVE_FORMAT_EXTENSIBLE {
+        // cbSize, valid bits, channel mask, then the sub-format GUID whose first two bytes are the format code.
+        if size < 40 {
+            return Err(WavError::BadFormat)
+        }
+        code = u16_at(bytes, body + 24)
+        extensible = true
+    }
+    if channels == 0 || sample_rate == 0 || bits == 0 {
+        return Err(WavError::BadFormat)
+    }
+    let format = if code == WAVE_FORMAT_PCM {
+        SampleFormat::Pcm
+    } else if code == WAVE_FORMAT_FLOAT {
+        SampleFormat::Float
+    } else {
+        return Err(WavError::Unsupported)
+    }
+    if block_align == 0 || block_align * 8 < channels * bits {
+        return Err(WavError::BadFormat)
+    }
+    Ok(WavInfo {
+        channels: channels,
+        sample_rate: sample_rate,
+        bits_per_sample: bits,
+        format: format,
+        extensible: extensible,
+        block_align: block_align,
+        data_offset: 0,
+        data_len: 0,
+        frame_count: 0,
+    })
+}
+
+fn walk(bytes: Vec<u8>, need_payload: bool) -> Result<WavInfo, WavError> {
+    let total = bytes.len() as int
+    if total < 12 {
+        return Err(WavError::TooShort)
+    }
+    if u32_at(bytes, 0) != TAG_RIFF || u32_at(bytes, 8) != TAG_WAVE {
+        return Err(WavError::BadMagic)
+    }
+    let mut info: WavInfo? = None
+    let mut pos = 12
+    while pos + 8 <= total {
+        let tag = u32_at(bytes, pos)
+        let size = u32_at(bytes, pos + 4)
+        let body = pos + 8
+        if tag == TAG_FMT {
+            if body + size > total {
+                return Err(WavError::Truncated)
+            }
+            info = Some(read_format(bytes, body, size)?)
+        } else if tag == TAG_DATA {
+            let mut found = match info {
+                Some(i) => i,
+                None => return Err(WavError::MissingFormat),
+            }
+            let mut len = size
+            if need_payload && (size == UNKNOWN_SIZE || body + size > total) {
+                if size != UNKNOWN_SIZE {
+                    return Err(WavError::Truncated)
+                }
+                // A streamed file leaves the size unset: the data runs to the end of the input.
+                len = total - body
+            }
+            found.data_offset = body
+            found.data_len = len
+            found.frame_count = len / found.block_align
+            return Ok(found)
+        }
+        // Chunks are padded to an even length; the pad byte is not counted in the size.
+        pos = body + size + (size & 1)
+    }
+    if pos < total && total - pos < 8 && pos > 12 {
+        return Err(WavError::TooShort)
+    }
+    match info {
+        Some(_) => Err(WavError::MissingData),
+        None => Err(WavError::MissingFormat),
+    }
+}
+
+/// Read the header of a complete file and check that the whole data chunk is present. A data size of `0xFFFFFFFF`
+/// (a streamed file) means the data runs to the end of the input.
+pub fn parse(bytes: Vec<u8>) -> Result<WavInfo, WavError> {
+    walk(bytes, true)
+}
+
+/// Read the header from a prefix of a file (the first N bytes) without requiring the sample bytes. `data_len` and
+/// `frame_count` come from the size the header declares. Unknown chunks before `data` must fit inside the prefix.
+pub fn parse_header(prefix: Vec<u8>) -> Result<WavInfo, WavError> {
+    walk(prefix, false)
+}
+
+/// Seconds of audio the header describes.
+pub fn duration_seconds(info: WavInfo) -> f64 {
+    (info.frame_count as f64) / (info.sample_rate as f64)
+}
+
+fn float32_magnitude(bits: int) -> f64 {
+    let exponent = (bits >> 23) & 255
+    let mantissa = bits & 8388607
+    if exponent == 255 {
+        return 3.4028234663852886e38
+    }
+    if exponent == 0 {
+        return (mantissa as f64) * 1.401298464324817e-45
+    }
+    (1.0 + (mantissa as f64) / 8388608.0) * (2.0 as f64).powi((exponent - 127) as i32)
+}
+
+fn float32_signed(bits: int) -> f64 {
+    let magnitude = float32_magnitude(bits)
+    if ((bits >> 31) & 1) == 1 {
+        return -magnitude
+    }
+    magnitude
+}
+
+fn float32_value(bits: int) -> f32 {
+    float32_signed(bits) as f32
+}
+
+fn sample_at(bytes: Vec<u8>, at: int, bits: int, format: SampleFormat) -> f32 {
+    match format {
+        SampleFormat::Float => float32_value(u32_at(bytes, at)),
+        SampleFormat::Pcm => {
+            if bits == 16 {
+                let v = u16_at(bytes, at)
+                let signed = if v >= 32768 { v - 65536 } else { v }
+                (signed as f32) / 32768.0
+            } else if bits == 24 {
+                let v = u16_at(bytes, at) | ((bytes[at + 2] as int) << 16)
+                let signed = if v >= 8388608 { v - 16777216 } else { v }
+                (signed as f32) / 8388608.0
+            } else {
+                let v = u32_at(bytes, at)
+                let signed = if v >= 2147483648 { v - 4294967296 } else { v }
+                (signed as f32) / 2147483648.0
+            }
+        },
+    }
+}
+
+fn supported(info: WavInfo) -> bool {
+    match info.format {
+        SampleFormat::Float => info.bits_per_sample == 32,
+        SampleFormat::Pcm => info.bits_per_sample == 16 || info.bits_per_sample == 24 || info.bits_per_sample == 32,
+    }
+}
+
+/// Decode every sample to `f32` in the range -1.0 to 1.0, interleaved by channel. Handles PCM16, PCM24, PCM32 and
+/// float32; other depths return `WavError::Unsupported`.
+pub fn decode(bytes: Vec<u8>) -> Result<Vec<f32>, WavError> {
+    let info = parse(bytes)?
+    if !supported(info) {
+        return Err(WavError::Unsupported)
+    }
+    let width = info.bits_per_sample / 8
+    let count = info.frame_count * info.channels
+    let mut out: Vec<f32> = []
+    let mut i = 0
+    while i < count {
+        let at = info.data_offset + i * width
+        out.push(sample_at(bytes, at, info.bits_per_sample, info.format))
+        i = i + 1
+    }
+    Ok(out)
+}
+
+fn write_header(channels: int, sample_rate: int, data_len: int) -> Vec<u8> {
+    let mut out: Vec<u8> = []
+    out = push_u32(out, TAG_RIFF)
+    out = push_u32(out, 36 + data_len)
+    out = push_u32(out, TAG_WAVE)
+    out = push_u32(out, TAG_FMT)
+    out = push_u32(out, 16)
+    out = push_u16(out, WAVE_FORMAT_PCM)
+    out = push_u16(out, channels)
+    out = push_u32(out, sample_rate)
+    out = push_u32(out, sample_rate * channels * 2)
+    out = push_u16(out, channels * 2)
+    out = push_u16(out, 16)
+    out = push_u32(out, TAG_DATA)
+    push_u32(out, data_len)
+}
+
+/// Encode 16-bit samples (interleaved by channel) as a canonical 44-byte-header PCM16 WAV. `channels` and
+/// `sample_rate` must be positive, or `WavError::BadFormat` is returned.
+pub fn encode_i16(samples: Vec<i16>, channels: int, sample_rate: int) -> Result<Vec<u8>, WavError> {
+    if channels < 1 || channels > 65535 || sample_rate < 1 {
+        return Err(WavError::BadFormat)
+    }
+    let mut out = write_header(channels, sample_rate, (samples.len() as int) * 2)
+    for s in samples {
+        out = push_u16(out, (s as int) & 65535)
+    }
+    Ok(out)
+}
+
+/// Convert one `f32` sample to 16 bits: scale by 32768 (the inverse of `decode`), round half away from zero, and clamp
+/// to the 16-bit range, so 1.0 becomes 32767 and -1.0 becomes -32768.
+pub fn quantize(sample: f32) -> i16 {
+    let mut v = ((sample as f64) * 32768.0).round()
+    if v > 32767.0 {
+        v = 32767.0
+    }
+    if v < -32768.0 {
+        v = -32768.0
+    }
+    v as i16
+}
+
+/// Encode `f32` samples (interleaved by channel) as a canonical PCM16 WAV; see `quantize` for the conversion.
+pub fn encode_f32(samples: Vec<f32>, channels: int, sample_rate: int) -> Result<Vec<u8>, WavError> {
+    let mut pcm: Vec<i16> = []
+    for s in samples {
+        pcm.push(quantize(s))
+    }
+    encode_i16(pcm, channels, sample_rate)
+}

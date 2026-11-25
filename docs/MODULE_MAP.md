@@ -78,6 +78,7 @@
 | wj-url | URL parse and join | std |
 | wj-uuid | UUID generation and validation | std |
 | wj-validate | Field validators | std |
+| wj-wav | WAV header parse, PCM/float decode, PCM16 encode | std |
 | wj-ws | WebSocket frames, messages and handshake | std |
 | wj-yaml | YAML to JSON | std |
 
